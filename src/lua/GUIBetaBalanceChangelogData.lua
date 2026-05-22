@@ -103,7 +103,6 @@ if kCBMaddon then
 	  - Alien PvE bounces/glitches less during and after moving.
 	  - Flying flamethrowers in rare cases should not crash the server anymore.
 	  - Fix to cinematics of projectiles desyncing.
-	  - Fixed bug with damage mixin that caused error spam and server hitching.
 	  - Fixed shotgun trace source location to be consistent (was random).
 	
 	## MARINE - PLAYER
@@ -579,8 +578,6 @@ else
 	  - Alien PvE bounces/glitches less during and after moving.
 	  - Flying flamethrowers in rare cases should not crash the server anymore.
 	  - Fix to cinematics of projectiles desyncing.
-	  - Fixed bug with shotgun that caused bullets to fire out at random spots around the barrel position (caused major server hitching too).
-	  - Fixed bug with damage mixin that caused error spam and server hitching.
 	  - Fixed shotgun trace source location to be consistent (was random).
 	
 	## MARINE - PLAYER
