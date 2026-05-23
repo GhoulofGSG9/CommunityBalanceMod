@@ -124,7 +124,7 @@ kNerveGasCloudRadius = 7
 
 kJetpackCost = 15
 kJetpackDropCost = 15
-kJetpackTechResearchCost = 25
+kJetpackTechResearchCost = 20
 kJetpackFuelTechResearchCost = 15
 kJetpackArmorTechResearchCost = 15
 

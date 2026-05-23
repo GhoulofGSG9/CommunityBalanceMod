@@ -163,6 +163,7 @@ if kCBMaddon then
 	### Jetpack
 	  - Min 6% activation energy required (bugfix).
 	  - No longer affected by stomp when slightly above the ground (bugfix).
+	  - Tech unlock cost 20 from 25 tres.
 
 	### Sub Machine Gun
 	  - Unlocked with submachinegun tech from armory (10 tres and 30s research time).
@@ -628,6 +629,7 @@ else
 	### Jetpack
 	  - Min 6% activation energy required (bugfix).
 	  - No longer affected by stomp when slightly above the ground (bugfix).
+	  - Tech unlock cost 20 from 25 tres.
 
 	### Hand Grenades
 	  - Self damage reduced by 66% (grenades/mines).
