@@ -23,7 +23,7 @@ if kCBMaddon then
 	Ping me, @Shifter (project lead) or @NexZone30 (dev lead), in any of the NS2 discords, or start a conversation in beta-balance-feedback 
 	on the official discord to let us know you think! Below are the changes this mod introduces:
 
-	#TLDR of Community Balance Mod (v3.1.4) vs. Vanilla:
+	#TLDR of Community Balance Mod (v3.1.5) vs. Vanilla:
 	
 	## MARINE
 	  - Reworks to existing marines structures (sentry, sentry battery, and prototype lab).
@@ -121,7 +121,7 @@ if kCBMaddon then
 		  - Empty exosuit will spawn with 50 armor upon automatic ejection (minus overflow damage).
 		  - Empty exosuit must have >50 armor to enter exosuit after automatic ejection.	  
 		- Thruster: Increases movement speed and allows for flight at the cost of energy (+0.05 Weight / Costs 5 pres). 
-		  - Min 25% activation energy required and initial 10% fuel cost when activated.
+		  - Min 25% activation energy required and initial 12.5% fuel cost when activated.
 		  - Vertical boost automatically activates upon holding space bar and stacks with base jump.
 		  - Vertical boost has high initial acceleration, but slows down over time.
 	  - Settings to make duals fire both arms upon primary attack (options -> mods -> CBM: Accessibility Options)
@@ -206,6 +206,7 @@ if kCBMaddon then
 
 	### Mines
 	  - Can no longer be placed overlapping.
+	  - Can no longer be placed inside the center of gates.
 	  - Will more reliably trigger on valid targets.
 
 	### Axe
@@ -397,6 +398,9 @@ if kCBMaddon then
 	  - Improved terrain pathing.
 	  - Added proper check for marine jumping.
 
+	### Boneshield (onos)
+	  - Now blocks railgun shots from piercing.
+
 	### Stab (fade)
 	  - Stab research cost reduced from 25 to 20 tres.
 	  - Stab energy cost reduced by 16%.
@@ -504,7 +508,7 @@ else
 	Ping me, @Shifter (project lead) or @NexZone30 (dev lead), in any of the NS2 discords, or start a conversation in beta-balance-feedback 
 	on the official discord to let us know you think! Below are the changes this mod introduces:
 
-	#TLDR of Community Balance Mod (v3.1.4) vs. Vanilla:
+	#TLDR of Community Balance Mod (v3.1.5) vs. Vanilla:
 	
 	## MARINE
 	  - Reworks to existing marines structures (sentry, sentry battery, and prototype lab).
@@ -596,7 +600,7 @@ else
 		  - Empty exosuit will spawn with 50 armor upon automatic ejection (minus overflow damage).
 		  - Empty exosuit must have >50 armor to enter exosuit after automatic ejection.	  
 		- Thruster: Increases movement speed and allows for flight at the cost of energy (+0.05 Weight / Costs 5 pres). 
-		  - Min 25% activation energy required and initial 10% fuel cost when activated.
+		  - Min 25% activation energy required and initial 12.5% fuel cost when activated.
 		  - Vertical boost automatically activates upon holding space bar and stacks with base jump.
 		  - Vertical boost has high initial acceleration, but slows down over time.
 	  - Settings to make duals fire both arms upon primary attack (options -> mods -> CBM: Accessibility Options)
@@ -653,6 +657,7 @@ else
 
 	### Mines
 	  - Can no longer be placed overlapping.
+	  - Can no longer be placed inside the center of gates.
 	  - Will more reliably trigger on valid targets.
 
 	### Axe
@@ -769,6 +774,9 @@ else
 	  - Damage increased from 40 to 50 heavy damage.
 	  - Improved terrain pathing.
 	  - Added proper check for marine jumping.
+
+	### Boneshield (onos)
+	  - Now blocks railgun shots from piercing.
 
 	### Stab (fade)
 	  - Stab research cost reduced from 25 to 20 tres.

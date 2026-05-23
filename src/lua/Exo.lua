@@ -145,12 +145,6 @@ local kSmashEggRange = 1.5
 local kCrouchShrinkAmount = 0
 local kExtentsCrouchShrinkAmount = 0
 
-local kThrustersCooldownTime = 2.5
-local kThrusterDuration = 1.5
-local kThrusterRefuelCooldownTime = 0.75
-local kMinTimeBetweenThrusterActivations = 0.75
-local kMinFuelForThrusterActivation = 0.3
-
 local kDeploy2DSound = PrecacheAsset("sound/NS2.fev/marine/heavy/deploy_2D")
 
 local kThrusterCinematic = PrecacheAsset("cinematics/marine/exo/thruster.cinematic")
