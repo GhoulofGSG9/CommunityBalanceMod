@@ -137,7 +137,7 @@ local kWalkMaxSpeed = 3.7
 local kMaxSpeed = 5.75
 local kViewOffsetHeight = 2.3
 local kAcceleration = 20
-local kVerticalThrusterMaxSpeed = 1.28
+local kVerticalThrusterMaxSpeed = 1.00
 local kExoFastAirFriction = 0.2
 
 local kSmashEggRange = 1.5
@@ -159,7 +159,7 @@ local kFlareCinematic = PrecacheAsset("cinematics/marine/exo/lens_flare.cinemati
 
 local kExoJumpMod = 0.875 --0.721
 local kThrusterGravity = -11.7
-local kThrusterUpwardsAcceleration = 32 --13.7 --2
+local kThrusterUpwardsAcceleration = 32
 local kThrusterHorizontalAcceleration = 23
 local kThrusterAirAcceleration = 9
 -- added to max speed when using thrusters
