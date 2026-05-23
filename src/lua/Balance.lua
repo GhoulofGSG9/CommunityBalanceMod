@@ -1002,7 +1002,7 @@ kExosuitDeployDuration = 1.4
 kExoFuelRechargeRate = 5
 kExoThrusterMinFuel = 0.25 -- Energy Min
 kExoThrusterFuelUsageRate = 4 --Energy Cost/s
-kExoThrusterStartFuelUsage = 0.1
+kExoThrusterStartFuelUsage = 0.125
 
 -- Exo-Nanoshield (depreciated)
 kExoNanoShieldMinFuel = 0.99 -- Energy Min

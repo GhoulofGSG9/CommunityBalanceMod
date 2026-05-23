@@ -17,8 +17,8 @@ end
 if Server then
 
    -- Babblers are 0.25 wide. Give ourselves some wiggle room
-    local kCheckDist = Babbler.kRadius + 0.25
-    local kVerticalOffset = kCheckDist
+    local kCheckDist = Babbler.kRadius + 0.625
+    local kVerticalOffset = 0.1
     local kBabblerSpawnPoints =
     {
         Vector(kCheckDist, kVerticalOffset, kCheckDist),
