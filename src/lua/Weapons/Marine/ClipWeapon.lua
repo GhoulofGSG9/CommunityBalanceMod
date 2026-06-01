@@ -399,8 +399,53 @@ function ClipWeapon:GetBulletSize()
     return kBulletSize
 end
 
+function ClipWeapon_randomizer_init(player)
+    if player and player.kClipWeaponRandomArray == nil then
+        math.randomseed(player:GetId())
+        --Log("Init randoms for player-id[%s]", player:GetId())
+        player.kClipWeaponRandomArray = {}
+        player.kClipWeaponRandomArrayIdx = 1
+        player.kClipWeaponRandomArrayMaxIdx = 200
+        for i=1, player.kClipWeaponRandomArrayMaxIdx do
+            player.kClipWeaponRandomArray[i] = math.random()
+        end
+    end
+end
+
+--local numCalls = 0
+function ClipWeapon_randomizer(player)
+    ClipWeapon_randomizer_init(player)
+    if not player then
+        Log("DBG = player entity is nil for clipWeapon random value generation")
+        return NetworkRandom()
+    end
+    local r = player.kClipWeaponRandomArray[player.kClipWeaponRandomArrayIdx]
+    --Log("table[%s] = %s", player.kClipWeaponRandomArrayIdx, r)
+    player.kClipWeaponRandomArrayIdx = 1 + (player.kClipWeaponRandomArrayIdx % player.kClipWeaponRandomArrayMaxIdx)
+
+    return r
+end
+
+function ClipWeapon:CalculateSpread(directionCoords, player, spreadAmount)
+
+    local spreadAngle = spreadAmount / 2
+    
+    local randomAngle = ClipWeapon_randomizer(player) * math.pi * 2
+    local randomRadius = ClipWeapon_randomizer(player) * math.tan(spreadAngle)
+    
+    local spreadDirection = directionCoords.zAxis +
+                            (directionCoords.xAxis * math.cos(randomAngle) +
+                             directionCoords.yAxis * math.sin(randomAngle)) * randomRadius
+    
+    spreadDirection:Normalize()
+    
+    return spreadDirection
+end
+
 function ClipWeapon:CalculateSpreadDirection(shootCoords, player)
-    return CalculateSpread(shootCoords, self:GetSpread() * self:GetInaccuracyScalar(player), NetworkRandom)
+
+    return self:CalculateSpread(shootCoords, player, self:GetSpread() * self:GetInaccuracyScalar(player)) --NetworkRandom)
+
 end
 
 --
@@ -515,7 +560,7 @@ function ClipWeapon:OnDraw(player, previousWeaponMapName)
     self:SetAttachPoint(Weapon.kHumanAttachPoint)
     
     idleTime = Shared.GetTime()
-
+    ClipWeapon_randomizer_init(player)
 end
 
 function ClipWeapon:OnHolster(player)
