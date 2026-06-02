@@ -281,13 +281,13 @@ function Shotgun:GetEffectParams(tableParams)
 end
 
 function Shotgun:FirePrimary(player)
-
+    local r = {}
     local viewAngles = player:GetViewAngles()
-	
-	local unrolledCoords = viewAngles:GetCoords()
-	
+    
+    local unrolledCoords = viewAngles:GetCoords()
+    
     --viewAngles.roll = NetworkRandom() * math.pi * 2
-	viewAngles.roll = ClipWeapon_randomizer(player) * math.pi * 2
+    viewAngles.roll = ClipWeapon_randomizer(player) * math.pi * 2
 
     local shootCoords = viewAngles:GetCoords()
 
@@ -302,7 +302,7 @@ function Shotgun:FirePrimary(player)
 
     self:TriggerEffects("shotgun_attack_sound")
     self:TriggerEffects("shotgun_attack")
-	
+    
     for bullet = 1, math.min(numberBullets, #self.kSpreadVectors) do
 
         if not self.kSpreadVectors[bullet] then
@@ -332,7 +332,11 @@ function Shotgun:FirePrimary(player)
         local numTargets = #targets
 
         if numTargets == 0 then
-			self:ApplyBulletGameplayEffects(player, nil, impactPoint, direction, 0, trace.surface, showTracer)
+            table.insert(r, {target = nil,    trace = trace, hitCounts = 0, hitPoint = impactPoint,            startPoint = startPoint, direction = direction, damages = 0,                surface = trace.surface, showTracer = showTracer})
+            --if (Server) then
+            --    Log("%s: Insert miss in #r == %s", EntityToString(self), #r)
+            --end
+            --self:ApplyBulletGameplayEffects(player, nil, impactPoint, direction, 0, trace.surface, showTracer)
         end
 
         if Client and showTracer then
@@ -354,14 +358,40 @@ function Shotgun:FirePrimary(player)
                 local farDamage = thisTargetDamage * self.kDamageFalloffReductionFactor
                 thisTargetDamage = nearDamage * (1.0 - falloffFactor) + farDamage * falloffFactor
             end
-			
-			self:ApplyBulletGameplayEffects(player, target, hitPoint - hitOffset, direction, thisTargetDamage, "", showTracer and i == numTargets)
-			
-            local client = Server and player:GetClient() or Client
-            if not Shared.GetIsRunningPrediction() and client.hitRegEnabled then
-                RegisterHitEvent(player, bullet, startPoint, trace, thisTargetDamage)
+            
+            --self:ApplyBulletGameplayEffects(player, target, hitPoint - hitOffset, direction, thisTargetDamage, "", showTracer and i == numTargets)
+            local entryEdited = false
+            for i = 1, #r do
+                if (r[i].target and r[i].target:GetId() == target:GetId()) then
+                    r[i].damages = r[i].damages + thisTargetDamage
+                    r[i].hitCounts = r[i].hitCounts + 1
+                    entryEdited = true
+                    --if (Server) then Log("%s: Edited hit on %s in #r == %s (dmg: %s)", EntityToString(self), EntityToString(target), #r, r[i].damages) end
+                    break
+                end
             end
 
+            if entryEdited == false then
+                table.insert(r, {target = target, trace = trace, hitCounts = 1, hitPoint = (hitPoint - hitOffset), startPoint = startPoint, direction = direction, damages = thisTargetDamage, surface = "",            showTracer = showTracer})
+                --if (Server) then Log("%s: Inserted hit on %s in #r == %s", EntityToString(self), EntityToString(target), #r) end
+            end
+
+        end
+
+    end
+
+    -- Step 2: apply the damages and regs
+    local bulletCount = 1
+    local client = Server and player:GetClient() or Client
+    for i = 1, #r do
+
+        local e = r[i]
+
+        self:ApplyBulletGameplayEffects(player, e.target, e.hitPoint, e.direction, e.damages, e.surface, e.showTracer)
+        --Log("Shot applied it-%s/%s", i, #r)
+
+        if not Shared.GetIsRunningPrediction() and client.hitRegEnabled then
+            RegisterHitEvent(player, bulletCount, e.trace.startPoint, e.trace, e.damages)
         end
 
     end
