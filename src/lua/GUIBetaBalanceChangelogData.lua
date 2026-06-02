@@ -124,6 +124,7 @@ if kCBMaddon then
 		  - Min 25% activation energy required and initial 12.5% fuel cost when activated.
 		  - Vertical boost automatically activates upon holding space bar and stacks with base jump.
 		  - Vertical boost has high initial acceleration, but slows down over time.
+		  - Flying uses twice the amount of energy as moving along the ground.
 	  - Settings to make duals fire both arms upon primary attack (options -> mods -> CBM: Accessibility Options)
 
 	### Railgun 
@@ -604,6 +605,7 @@ else
 		  - Min 25% activation energy required and initial 12.5% fuel cost when activated.
 		  - Vertical boost automatically activates upon holding space bar and stacks with base jump.
 		  - Vertical boost has high initial acceleration, but slows down over time.
+		  - Flying uses twice the amount of energy as moving along the ground.
 	  - Settings to make duals fire both arms upon primary attack (options -> mods -> CBM: Accessibility Options)
 
 	### Railgun 

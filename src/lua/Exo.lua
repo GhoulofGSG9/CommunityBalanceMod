@@ -159,7 +159,7 @@ local kFlareCinematic = PrecacheAsset("cinematics/marine/exo/lens_flare.cinemati
 
 local kExoJumpMod = 0.875 --0.721
 local kThrusterGravity = -11.7
-local kThrusterUpwardsAcceleration = 32
+local kThrusterUpwardsAcceleration = 25
 local kThrusterHorizontalAcceleration = 23
 local kThrusterAirAcceleration = 9
 -- added to max speed when using thrusters
@@ -1672,7 +1672,11 @@ end
 function Exo:GetFuelUsageRate()
     --local usageScalar = self:GetHasMinigun() and kMinigunFuelUsageScalar or kRailgunFuelUsageScalar
     if self.thrustersActive then
-        return kExoThrusterFuelUsageRate --* usageScalar
+		if self.thrusterMode == kExoThrusterMode.Vertical then
+			return kExoThrusterFuelUsageRate * 0.5 -- This is double fuel consumption
+		else 
+			return kExoThrusterFuelUsageRate --* usageScalar
+		end
     elseif self.repairActive then
         return kExoRepairFuelUsageRate --* usageScalar
     elseif self.nanoshieldActive then
