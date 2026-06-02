@@ -3277,7 +3277,7 @@ end
 
 -- avoid problem with client generating a hit while server fails by shrinking client-side bullets a bit
 local kClientSideCaliberAdjustment = 0.00
-function GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, filter)
+function GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, filter, player)
 
     local targets = {}
     local hitPoints = {}
@@ -3305,7 +3305,25 @@ function GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, fil
         end
 
         trace = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.Bullets, traceFilter)
-        if not trace.entity then
+
+        -- Note: 
+        -- * Only do box after a recent hit (people miss 80% of the time anyway, only do the consuming part if you hit, for chained shots)
+        -- * Only do box for far targets (close are often off by a large margin)
+
+        local isHit = (trace.fraction < 1)
+        local distance = isHit and trace.endPoint:GetDistanceTo(startPoint) or 0
+
+        -- Allows boxTrace for X ticks after
+        local isPlayerHittingShots = player and HasMixin(player, "Live") and (Shared.GetTime() - player:GetTimeLastDamageDealt()) < (0.033 * 6)
+
+        -- Outside melee range dist, once in melee it's too fast paced (boxTrace is a waste, mostly needed longer ranges)
+        local doBoxTrace = not trace.entity and distance > 3 and isPlayerHittingShots
+
+        --
+        --Log("Do boxtrace: %s (dist: %s, isHit: %s, isHitting: %s)", doBoxTrace, distance, isHit, isPlayerHittingShots)
+        --
+
+        if doBoxTrace then --not trace.entity
 
             -- Limit the box trace to the point where the ray hit as an optimization.
             local boxTraceEndPoint = trace.fraction ~= 1 and trace.endPoint or endPoint
