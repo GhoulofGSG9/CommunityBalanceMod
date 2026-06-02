@@ -150,7 +150,8 @@ function ClipWeapon:GetSpread()
 end
 
 function ClipWeapon:GetRange()
-    return 100
+    -- Relevancy plus a bit to account for in/out
+    return kMaxRelevancyDistance + 5
 end
 
 function ClipWeapon:GetAmmo()
@@ -471,7 +472,7 @@ local function FireBullets(self, player)
         local spreadDirection = self:CalculateSpreadDirection(shootCoords, player)
         
         local endPoint = startPoint + spreadDirection * range
-        local targets, trace, hitPoints = GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, filter)        
+        local targets, trace, hitPoints = GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, filter, player)        
         local damage = self:GetBulletDamage()
 
         HandleHitregAnalysis(player, startPoint, endPoint, trace)        
@@ -480,7 +481,13 @@ local function FireBullets(self, player)
         local hitOffset = direction * kHitEffectOffset
         local impactPoint = trace.endPoint - hitOffset
         local effectFrequency = self:GetTracerEffectFrequency()
-        local showTracer = math.random() < effectFrequency
+        --local showTracer = math.random() < effectFrequency
+        -- Use the random table in reverse order, so the shot and effect are not related
+        local tracertRandom = player.kClipWeaponRandomArray[1 + (player.kClipWeaponRandomArrayMaxIdx - player.kClipWeaponRandomArrayIdx)]
+        local showTracer = tracertRandom < effectFrequency
+        --if not Predict then
+        --    Log("%s / %s / %s", tracertRandom, effectFrequency, 1 + (player.kClipWeaponRandomArrayMaxIdx - player.kClipWeaponRandomArrayIdx))
+        --end
 
         local numTargets = #targets
         
