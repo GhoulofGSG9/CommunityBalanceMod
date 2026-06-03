@@ -443,7 +443,7 @@ function ClipWeapon_randomizer(player)
     return r, c, s
 end
 
-function ClipWeapon:CalculateSpread(directionCoords, player, spreadAmount)
+function ClipWeapon_CalculateSpread(directionCoords, player, spreadAmount)
 
     local spreadAngle = spreadAmount / 2
     
@@ -464,7 +464,7 @@ end
 
 function ClipWeapon:CalculateSpreadDirection(shootCoords, player)
 
-    return self:CalculateSpread(shootCoords, player, self:GetSpread() * self:GetInaccuracyScalar(player)) --NetworkRandom)
+    return ClipWeapon_CalculateSpread(shootCoords, player, self:GetSpread() * self:GetInaccuracyScalar(player)) --NetworkRandom)
 
 end
 
