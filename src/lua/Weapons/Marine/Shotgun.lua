@@ -37,6 +37,7 @@ Shotgun.kDamageFalloffStart = 5 -- in meters, full damage closer than this.
 Shotgun.kDamageFalloffEnd = 15 -- in meters, minimum damage further than this, gradient between start/end.
 Shotgun.kDamageFalloffReductionFactor = 0.5 -- 50% reduction
 
+local math_min = math.min
 local kBulletsPerShot = 0 -- calculated from rings.
 Shotgun.kSpreadVectors = {}
 Shotgun.kShotgunRings =
@@ -301,7 +302,8 @@ function Shotgun:FirePrimary(player)
     self:TriggerEffects("shotgun_attack")
     
     local allowBoxTrace = false
-    for bullet = 1, math.min(numberBullets, #self.kSpreadVectors) do
+    local totalNumBullets = math_min(numberBullets, #self.kSpreadVectors)
+    for bullet = 1, totalNumBullets do
 
         if not self.kSpreadVectors[bullet] then
             break
@@ -325,7 +327,7 @@ function Shotgun:FirePrimary(player)
         local hitOffset = direction * kHitEffectOffset
         local impactPoint = trace.endPoint - hitOffset
         local effectFrequency = self:GetTracerEffectFrequency()
-        local showTracer = bullet % effectFrequency == 0
+        local showTracer = bullet % (totalNumBullets / (totalNumBullets * effectFrequency)) == 0
 
         local numTargets = #targets
 
