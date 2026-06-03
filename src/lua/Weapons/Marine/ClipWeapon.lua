@@ -23,6 +23,13 @@ local kBulletSize = 0.018
 local idleTime = 0
 local animFrequency = 10 --Amount of time between idle animations
 
+local math_pi = math.pi
+local math_cos = math.cos
+local math_sin = math.sin
+local math_tan = math.tan
+local math_random = math.random
+local math_randomseed = math.randomseed
+
 ClipWeapon.kMapName = "clipweapon"
 
 local networkVars =
@@ -400,43 +407,67 @@ function ClipWeapon:GetBulletSize()
     return kBulletSize
 end
 
-function ClipWeapon_randomizer_init(player)
+local function ClipWeapon_randomizer_init(player)
     if player and player.kClipWeaponRandomArray == nil then
-        math.randomseed(player:GetId())
+        math_randomseed(player:GetId())
         --Log("Init randoms for player-id[%s]", player:GetId())
         player.kClipWeaponRandomArray = {}
+        player.kClipWeaponRandomArrayCos = {}
+        player.kClipWeaponRandomArraySin = {}
         player.kClipWeaponRandomArrayIdx = 1
-        player.kClipWeaponRandomArrayMaxIdx = 200
+        player.kClipWeaponRandomArrayMaxIdx = 225 -- non multiple of 50 (rifle mag)
         for i=1, player.kClipWeaponRandomArrayMaxIdx do
-            player.kClipWeaponRandomArray[i] = math.random()
+            player.kClipWeaponRandomArray[i] = math_random()
+            player.kClipWeaponRandomArrayCos[i] = math_cos(player.kClipWeaponRandomArray[i] * math_pi * 2)
+            player.kClipWeaponRandomArraySin[i] = math_sin(player.kClipWeaponRandomArray[i] * math_pi * 2)
         end
     end
+
 end
 
 --local numCalls = 0
 function ClipWeapon_randomizer(player)
     ClipWeapon_randomizer_init(player)
     if not player then
-        Log("DBG = player entity is nil for clipWeapon random value generation")
-        return NetworkRandom()
+        --Log("DBG = player entity is nil for clipWeapon random value generation")
+        local r = NetworkRandom()
+        return r, math_cos(r), math_sin(r)
     end
-    local r = player.kClipWeaponRandomArray[player.kClipWeaponRandomArrayIdx]
-    --Log("table[%s] = %s", player.kClipWeaponRandomArrayIdx, r)
+    local idx = player.kClipWeaponRandomArrayIdx
+    local r = player.kClipWeaponRandomArray[idx]
+    local c = player.kClipWeaponRandomArrayCos[idx]
+    local s = player.kClipWeaponRandomArraySin[idx]
+    --Log("table[%s] = r:%s / cos:%s / sin:%s", player.kClipWeaponRandomArrayIdx, r, c, s)
     player.kClipWeaponRandomArrayIdx = 1 + (player.kClipWeaponRandomArrayIdx % player.kClipWeaponRandomArrayMaxIdx)
 
-    return r
+    return r, c, s
 end
 
-function ClipWeapon:CalculateSpread(directionCoords, player, spreadAmount)
+function ClipWeapon_CalculateSpread(directionCoords, player, spreadAmount)
 
     local spreadAngle = spreadAmount / 2
     
-    local randomAngle = ClipWeapon_randomizer(player) * math.pi * 2
-    local randomRadius = ClipWeapon_randomizer(player) * math.tan(spreadAngle)
+    local rand1, cos, sin = ClipWeapon_randomizer(player)
+    local rand2 = ClipWeapon_randomizer(player)
+
+    local prevRandomRadiusCached = (player.kClipWeaponLastSpreadAngle and player.kClipWeaponLastSpreadAngle == spreadAngle)
+    local spreadAngleTan = (prevRandomRadiusCached and player.kClipWeaponLastSpreadAngleTan or math_tan(spreadAngle))
+    if (not prevRandomRadiusCached) then
+        --Log("SETTING - cached:%s / LastSpreadAngle:%s / spreadAngle:%s / player.kClipWeaponLastSpreadAngle:%s",
+        --    prevRandomRadiusCached, player.kClipWeaponLastSpreadAngle , spreadAngle, player.kClipWeaponLastSpreadAngle)
+        player.kClipWeaponLastSpreadAngle = spreadAngle
+        player.kClipWeaponLastSpreadAngleTan = spreadAngleTan
+    else
+        --Log("GOOD - cached:%s / LastSpreadAngle:%s / spreadAngle:%s / player.kClipWeaponLastSpreadAngle:%s",
+        --    prevRandomRadiusCached, player.kClipWeaponLastSpreadAngle , spreadAngle, player.kClipWeaponLastSpreadAngle)
+    end
+
+    local randomAngle = rand1 * math_pi * 2
+    local randomRadius = rand2 * spreadAngleTan
     
     local spreadDirection = directionCoords.zAxis +
-                            (directionCoords.xAxis * math.cos(randomAngle) +
-                             directionCoords.yAxis * math.sin(randomAngle)) * randomRadius
+                            (directionCoords.xAxis * cos +
+                             directionCoords.yAxis * sin) * randomRadius
     
     spreadDirection:Normalize()
     
@@ -445,7 +476,7 @@ end
 
 function ClipWeapon:CalculateSpreadDirection(shootCoords, player)
 
-    return self:CalculateSpread(shootCoords, player, self:GetSpread() * self:GetInaccuracyScalar(player)) --NetworkRandom)
+    return ClipWeapon_CalculateSpread(shootCoords, player, self:GetSpread() * self:GetInaccuracyScalar(player)) --NetworkRandom)
 
 end
 
@@ -472,7 +503,8 @@ local function FireBullets(self, player)
         local spreadDirection = self:CalculateSpreadDirection(shootCoords, player)
         
         local endPoint = startPoint + spreadDirection * range
-        local targets, trace, hitPoints = GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, filter, player)        
+        local isPlayerHittingShots = (self.fireTime - player:GetTimeLastDamageDealt()) < (0.3)
+        local targets, trace, hitPoints = GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, filter, isPlayerHittingShots)        
         local damage = self:GetBulletDamage()
 
         HandleHitregAnalysis(player, startPoint, endPoint, trace)        
