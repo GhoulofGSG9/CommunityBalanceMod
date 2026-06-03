@@ -450,8 +450,20 @@ function ClipWeapon_CalculateSpread(directionCoords, player, spreadAmount)
     local rand1, cos, sin = ClipWeapon_randomizer(player)
     local rand2 = ClipWeapon_randomizer(player)
 
+    local prevRandomRadiusCached = (player.kClipWeaponLastSpreadAngle and player.kClipWeaponLastSpreadAngle == spreadAngle)
+    local spreadAngleTan = (prevRandomRadiusCached and player.kClipWeaponLastSpreadAngleTan or math_tan(spreadAngle))
+    if (not prevRandomRadiusCached) then
+        --Log("SETTING - cached:%s / LastSpreadAngle:%s / spreadAngle:%s / player.kClipWeaponLastSpreadAngle:%s",
+        --    prevRandomRadiusCached, player.kClipWeaponLastSpreadAngle , spreadAngle, player.kClipWeaponLastSpreadAngle)
+        player.kClipWeaponLastSpreadAngle = spreadAngle
+        player.kClipWeaponLastSpreadAngleTan = spreadAngleTan
+    else
+        --Log("GOOD - cached:%s / LastSpreadAngle:%s / spreadAngle:%s / player.kClipWeaponLastSpreadAngle:%s",
+        --    prevRandomRadiusCached, player.kClipWeaponLastSpreadAngle , spreadAngle, player.kClipWeaponLastSpreadAngle)
+    end
+
     local randomAngle = rand1 * math_pi * 2
-    local randomRadius = rand2 * math_tan(spreadAngle)
+    local randomRadius = rand2 * spreadAngleTan
     
     local spreadDirection = directionCoords.zAxis +
                             (directionCoords.xAxis * cos +
