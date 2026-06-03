@@ -332,8 +332,7 @@ local function FireBullets(self, player)
         local spreadDirection = self:CalculateSpreadDirection(shootCoords, player)
         
         local endPoint = startPoint + spreadDirection * range
-        local isPlayerHittingShots = (Shared.GetTime() - player:GetTimeLastDamageDealt()) < (0.3)
-        local targets, trace, hitPoints = GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, filter, isPlayerHittingShots)
+        local targets, trace, hitPoints = GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, filter)
 
         HandleHitregAnalysis(player, startPoint, endPoint, trace)        
 
