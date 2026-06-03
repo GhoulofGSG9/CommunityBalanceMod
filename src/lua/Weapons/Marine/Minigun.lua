@@ -44,7 +44,7 @@ local kShellsCinematics = { [ExoWeaponHolder.kSlotNames.Left] = PrecacheAsset("c
 local kShellsAttachPoints = { [ExoWeaponHolder.kSlotNames.Left] = "Exosuit_LElbow",
                               [ExoWeaponHolder.kSlotNames.Right] = "Exosuit_RElbow" }
 
-local kMinigunRange = 400
+local kMinigunRange = kMaxRelevancyDistance + 5
 local kMinigunSpread = Math.Radians(5)
 
 
@@ -277,20 +277,23 @@ local function Shoot(self, leftSide)
         local filter = EntityFilterTwo(player, self)
         local startPoint = player:GetEyePos()
         
-        local spreadDirection = CalculateSpread(shootCoords, kMinigunSpread, NetworkRandom)
+        local spreadDirection = ClipWeapon_CalculateSpread(shootCoords, player, kMinigunSpread)
         
         local range = kMinigunRange
         
         local endPoint = startPoint + spreadDirection * range
         
-        local targets, trace, hitPoints = GetBulletTargets(startPoint, endPoint, spreadDirection, kBulletSize, filter) 
+        local isPlayerHittingShots = (Shared.GetTime() - player:GetTimeLastDamageDealt()) < (0.3)
+        local targets, trace, hitPoints = GetBulletTargets(startPoint, endPoint, spreadDirection, kBulletSize, filter, isPlayerHittingShots) 
         
         local direction = (trace.endPoint - startPoint):GetUnit()
         local hitOffset = direction * kHitEffectOffset
         local impactPoint = trace.endPoint - hitOffset
         local surfaceName = trace.surface
         local effectFrequency = self:GetTracerEffectFrequency()
-        local showTracer = (math.random() < effectFrequency)
+        -- Use the random table in reverse order, so the shot and effect are not related
+        local tracertRandom = player.kClipWeaponRandomArray[1 + (player.kClipWeaponRandomArrayMaxIdx - player.kClipWeaponRandomArrayIdx)]
+        local showTracer = tracertRandom < effectFrequency
         
         local numTargets = #targets
         
