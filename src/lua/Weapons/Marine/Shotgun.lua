@@ -190,10 +190,6 @@ function Shotgun:GetBulletsPerShot()
     return kBulletsPerShot
 end
 
-function Shotgun:GetRange()
-    return 100
-end
-
 -- Only play weapon effects every other bullet to avoid sonic overload
 function Shotgun:GetTracerEffectFrequency()
     return 0.5
@@ -303,6 +299,7 @@ function Shotgun:FirePrimary(player)
     self:TriggerEffects("shotgun_attack_sound")
     self:TriggerEffects("shotgun_attack")
     
+    local allowBoxTrace = false
     for bullet = 1, math.min(numberBullets, #self.kSpreadVectors) do
 
         if not self.kSpreadVectors[bullet] then
@@ -319,7 +316,7 @@ function Shotgun:FirePrimary(player)
 
         local endPoint = player:GetEyePos() + spreadDirection * range
 
-        local targets, trace, hitPoints = GetBulletTargets(startPoint, endPoint, spreadDirection, pelletSize, filter)
+        local targets, trace, hitPoints = GetBulletTargets(startPoint, endPoint, spreadDirection, pelletSize, filter, allowBoxTrace)
 
         HandleHitregAnalysis(player, startPoint, endPoint, trace)
 
@@ -361,10 +358,10 @@ function Shotgun:FirePrimary(player)
             
             --self:ApplyBulletGameplayEffects(player, target, hitPoint - hitOffset, direction, thisTargetDamage, "", showTracer and i == numTargets)
             local entryEdited = false
-            for i = 1, #r do
-                if (r[i].target and r[i].target:GetId() == target:GetId()) then
-                    r[i].damages = r[i].damages + thisTargetDamage
-                    r[i].hitCounts = r[i].hitCounts + 1
+            for j = 1, #r do
+                if (r[j].target and r[j].target:GetId() == target:GetId()) then
+                    r[j].damages = r[j].damages + thisTargetDamage
+                    r[j].hitCounts = r[j].hitCounts + 1
                     entryEdited = true
                     --if (Server) then Log("%s: Edited hit on %s in #r == %s (dmg: %s)", EntityToString(self), EntityToString(target), #r, r[i].damages) end
                     break
@@ -373,6 +370,7 @@ function Shotgun:FirePrimary(player)
 
             if entryEdited == false then
                 table.insert(r, {target = target, trace = trace, hitCounts = 1, hitPoint = (hitPoint - hitOffset), startPoint = startPoint, direction = direction, damages = thisTargetDamage, surface = "",            showTracer = showTracer})
+                allowBoxTrace = true
                 --if (Server) then Log("%s: Inserted hit on %s in #r == %s", EntityToString(self), EntityToString(target), #r) end
             end
 
