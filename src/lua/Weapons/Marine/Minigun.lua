@@ -260,6 +260,8 @@ end
 -- TODO: we should use clip weapons provided functionality here (or create a more general solution which distincts between melee, hitscan and projectile only)!
 local function Shoot(self, leftSide)
 
+    PROFILE("Minigun:Shoot")
+
     local player = self:GetParent()
     
     -- We can get a shoot tag even when the clip is empty if the frame rate is low
