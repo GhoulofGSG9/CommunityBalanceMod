@@ -34,12 +34,8 @@ local function _GetAttackerInfo(self)
     return attacker
 end
 
-local function _GetAttackInfo(self, damage)
-    local attacker = _GetAttackerInfo(self)
-    local currentComm = nil
-
+local function _GetWeaponInfo(self, attacker)
     local weapon = nil
-    local damageType = kDamageType.Normal
     
     if not self:isa("Player") then
         if self:GetParent() and self:GetParent():isa("Player") then
@@ -49,6 +45,25 @@ local function _GetAttackInfo(self, damage)
                 weapon = self:GetTechId()
             end
         elseif HasMixin(self, "Owner") and self:GetOwner() and self:GetOwner():isa("Player") then
+            if self.GetWeaponTechId then
+                weapon = self:GetWeaponTechId()
+            elseif self.GetTechId then
+                weapon = self:GetTechId()
+            end
+        end
+    end
+
+    return weapon
+end
+
+local function _GetAttackInfo(self, damage)
+    local attacker = _GetAttackerInfo(self)
+    local currentComm = nil
+    local damageType = kDamageType.Normal
+    local weapon = _GetWeaponInfo(self, attacker)
+    
+    if not self:isa("Player") then
+        if HasMixin(self, "Owner") and self:GetOwner() and self:GetOwner():isa("Player") then
             -- If it's one of these doing damage, send the damage message to the current commander instead
             -- The original owner remains the same
             if self:isa("Whip") or self:isa("WhipBomb") or self:isa("ARC") or self:isa("Sentry") or self:isa("MAC") or self:isa("Drifter") then
@@ -56,12 +71,6 @@ local function _GetAttackInfo(self, damage)
                 if commanders and commanders[1] then
                     currentComm = commanders[1]
                 end
-            end
-            
-            if self.GetWeaponTechId then
-                weapon = self:GetWeaponTechId()
-            elseif self.GetTechId then
-                weapon = self:GetTechId()
             end
         end
     end
@@ -153,7 +162,11 @@ local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, 
     local isHit = target ~= nil
     local hitRelevancyDist = kHitEffectRelevancyDistance
     local hitRelevancyPoint = point
-    if surface ~= "none" and GetShouldSendHitEffect() then
+    local isFullAutoGun = (doer and doer:isa("ClipWeapon")) and doer:GetClipSize() >= 50 or false -- rifle/smg/hmg
+    local regulateEffects = isFullAutoGun and (not (doer:GetClip() % 3 == 0)) or false -- Only do one out of X (like tracert random)
+
+    --Log("Regulate full auto ? %s/%s(%s), fullauto:%s / Allow effect: %s", doer:GetAmmo(), doer:GetClip(), doer:GetClipSize(), isFullAutoGun, (not regulateEffects))
+    if surface ~= "none" and GetShouldSendHitEffect() and not regulateEffects then
         local directionVectorIndex = direction and GetIndexFromVector(direction) or 1
         local toPlayers = GetEntitiesWithinRange("Player", hitRelevancyPoint, hitRelevancyDist) -- kHitEffectRelevancyDistance)
 
@@ -329,6 +342,7 @@ function DamageMixin:DoDamage(damage, target, point, direction, surface, altMode
         if not surface or surface == "" then
             surface = "metal"
         end
+        weapon = _GetWeaponInfo(self, attacker)
     end
 
     _DealEffects(self, surface, attacker, weapon, damageDone, rawDamage, damageType, target, direction, point, altMode, showtracer)
