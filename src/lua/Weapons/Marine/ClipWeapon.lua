@@ -509,7 +509,7 @@ local function FireBullets(self, player)
     local endPoint = startPoint + spreadDirection * range
 
     local lastTimeDamageDealt = player:GetTimeLastDamageDealt()
-    local isPlayerHittingShots = (self.fireTime - lastTimeDamageDealt) < 0.3
+    local isPlayerHittingShots = (self.fireTime - lastTimeDamageDealt) < 0.5
 
     -- Filter ourself out of the trace so that we don't hit ourselves.
     local filter = EntityFilterTwo(player, self)
