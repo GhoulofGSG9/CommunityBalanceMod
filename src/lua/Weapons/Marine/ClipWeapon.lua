@@ -445,6 +445,8 @@ end
 
 function ClipWeapon_CalculateSpread(directionCoords, player, spreadAmount)
 
+    PROFILE("ClipWeapon_CalculateSpread")
+
     local spreadAngle = spreadAmount / 2
     
     local rand1, cos, sin = ClipWeapon_randomizer(player)
@@ -487,48 +489,44 @@ local function FireBullets(self, player)
 
     PROFILE("FireBullets")
 
+    local client = Server and player:GetClient() or Client
+    local range = self:GetRange()
+    local damage = self:GetBulletDamage()
+
+    -- Use the random table in reverse order, so the shot and effect are not related
+    local tracertRandom = player.kClipWeaponRandomArray[1 + (player.kClipWeaponRandomArrayMaxIdx - player.kClipWeaponRandomArrayIdx)]
+
+    local numberBullets = self:GetBulletsPerShot()
+    
+    local bulletSize = self:GetBulletSize()
+    local effectFrequency = self:GetTracerEffectFrequency()
+    local showTracer = tracertRandom < effectFrequency
+    
     local viewAngles = player:GetViewAngles()
     local shootCoords = viewAngles:GetCoords()
-    
+    local startPoint = player:GetEyePos()
+    local spreadDirection = self:CalculateSpreadDirection(shootCoords, player)
+    local endPoint = startPoint + spreadDirection * range
+
+    local lastTimeDamageDealt = player:GetTimeLastDamageDealt()
+    local isPlayerHittingShots = (self.fireTime - lastTimeDamageDealt) < 0.3
+
     -- Filter ourself out of the trace so that we don't hit ourselves.
     local filter = EntityFilterTwo(player, self)
-    local range = self:GetRange()
-    
-    local numberBullets = self:GetBulletsPerShot()
-    local startPoint = player:GetEyePos()
-    local bulletSize = self:GetBulletSize()
-    
-    for bullet = 1, numberBullets do
-    
-        local spreadDirection = self:CalculateSpreadDirection(shootCoords, player)
-        
-        local endPoint = startPoint + spreadDirection * range
-        local isPlayerHittingShots = (self.fireTime - player:GetTimeLastDamageDealt()) < (0.3)
-        local targets, trace, hitPoints = GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, filter, isPlayerHittingShots)        
-        local damage = self:GetBulletDamage()
 
+    for bullet = 1, numberBullets do
+        
+        local targets, trace, hitPoints = GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, filter, isPlayerHittingShots)        
+        
         HandleHitregAnalysis(player, startPoint, endPoint, trace)        
 
         local direction = (trace.endPoint - startPoint):GetUnit()
         local hitOffset = direction * kHitEffectOffset
         local impactPoint = trace.endPoint - hitOffset
-        local effectFrequency = self:GetTracerEffectFrequency()
-        --local showTracer = math.random() < effectFrequency
-        -- Use the random table in reverse order, so the shot and effect are not related
-        local tracertRandom = player.kClipWeaponRandomArray[1 + (player.kClipWeaponRandomArrayMaxIdx - player.kClipWeaponRandomArrayIdx)]
-        local showTracer = tracertRandom < effectFrequency
-        --if not Predict then
-        --    Log("%s / %s / %s", tracertRandom, effectFrequency, 1 + (player.kClipWeaponRandomArrayMaxIdx - player.kClipWeaponRandomArrayIdx))
-        --end
-
         local numTargets = #targets
         
         if numTargets == 0 then
             self:ApplyBulletGameplayEffects(player, nil, impactPoint, direction, 0, trace.surface, showTracer)
-        end
-        
-        if Client and showTracer then
-            TriggerFirstPersonTracer(self, impactPoint)
         end
         
         for i = 1, numTargets do
@@ -538,13 +536,16 @@ local function FireBullets(self, player)
 
             self:ApplyBulletGameplayEffects(player, target, hitPoint - hitOffset, direction, damage, "", showTracer and i == numTargets)
             
-            local client = Server and player:GetClient() or Client
             if not Shared.GetIsRunningPrediction() and client.hitRegEnabled then
                 RegisterHitEvent(player, bullet, startPoint, trace, damage)
             end
         
         end
         
+        if Client and showTracer then
+            TriggerFirstPersonTracer(self, impactPoint)
+        end
+
     end
     
 end
