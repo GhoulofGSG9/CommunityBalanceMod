@@ -278,6 +278,9 @@ function Shotgun:GetEffectParams(tableParams)
 end
 
 function Shotgun:FirePrimary(player)
+
+    PROFILE("Shotgun:FirePrimary")
+
     local r = {}
     local viewAngles = player:GetViewAngles()
     
@@ -298,8 +301,6 @@ function Shotgun:FirePrimary(player)
 
     local numberBullets = self:GetBulletsPerShot()
 
-    self:TriggerEffects("shotgun_attack_sound")
-    self:TriggerEffects("shotgun_attack")
     
     local allowBoxTrace = false
     local totalNumBullets = math_min(numberBullets, #self.kSpreadVectors)
@@ -396,6 +397,9 @@ function Shotgun:FirePrimary(player)
         end
 
     end
+
+    self:TriggerEffects("shotgun_attack_sound")
+    self:TriggerEffects("shotgun_attack")
 
 end
 

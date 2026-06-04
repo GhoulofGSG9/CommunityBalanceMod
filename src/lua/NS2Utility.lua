@@ -3279,6 +3279,8 @@ end
 local kClientSideCaliberAdjustment = 0.00
 function GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, filter, allowBoxTrace)
 
+    PROFILE("GetBulletTargets")
+
     local targets = {}
     local hitPoints = {}
     local trace
@@ -3317,9 +3319,9 @@ function GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, fil
         local doBoxTrace = not trace.entity and distance > 3 and allowBoxTrace
 
         --
-        -- if Server then
+        --if Server then
         --    Log("Do boxtrace: %s (dist: %s, isHit: %s, allowBoxTrace: %s)", doBoxTrace, distance, isHit, allowBoxTrace)
-        -- end
+        --end
         --
 
         if doBoxTrace then --not trace.entity
