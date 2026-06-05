@@ -192,7 +192,9 @@ local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, 
         local sent = 0
         local maxSendCount = 6
         for i, player in ipairs(toPlayers) do
-            if player:GetIsAlive() then
+            -- The target cannot see it's own body, no need to send it shots on him
+            local isPlayerTheTarget = (target and target:GetId() == player:GetId())
+            if player:GetIsAlive() and not isPlayerTheTarget then
 
                 -- Only do a network message if the actual player can see/damage the point (saves a lot of network messages)
                 local trace = Shared.TraceRay(point, player:GetEyePos(), CollisionRep.Damage, PhysicsMask.Bullets, EntityFilterOne(player))
@@ -205,7 +207,7 @@ local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, 
                     --sent = sent + 1
                     --totalMsgCount = totalMsgCount + 1
                     --Log("-Sending network message: %s", totalMsgCount)
-                    --DebugLine(player:GetEyePos(), point, 3, 0, 1, 0, 1)
+                    DebugLine(player:GetEyePos(), point, 3, 0, 1, 0, 1)
                 else
                     --DebugLine(point, player:GetEyePos(), 3, 1, 0, 0, 1)
                 end
