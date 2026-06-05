@@ -369,10 +369,10 @@ end
 local function Accelerate(self, input, velocity, deltaTime)
 
     PROFILE("GroundMoveMixin:Accelerate")
-    
-    local maxSpeed = self:GetMaxSpeed()
-    local maxSpeedTable = { maxSpeed = maxSpeed }
-    self:ModifyMaxSpeed(maxSpeedTable, input)
+
+    local maxSpeedTable = { maxSpeed = self:GetMaxSpeed() }
+    self:ModifyMaxSpeed(maxSpeedTable, input) -- modifies the maxSpeed if crouching for instance
+    local maxSpeed = maxSpeedTable.maxSpeed
     if self.onGround then
         Accelerate_onGround(self, input, velocity, maxSpeed, deltaTime)
     else
