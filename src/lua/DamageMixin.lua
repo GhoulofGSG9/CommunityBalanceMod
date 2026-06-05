@@ -204,10 +204,10 @@ local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, 
                         message = BuildHitEffectMessage(point, doer, surface, target, showtracer, altMode, rawDamage, directionVectorIndex)
                     end
                     Server.SendNetworkMessage(player, "HitEffect", message, false)
-                    --sent = sent + 1
+                    sent = sent + 1
                     --totalMsgCount = totalMsgCount + 1
                     --Log("-Sending network message: %s", totalMsgCount)
-                    DebugLine(player:GetEyePos(), point, 3, 0, 1, 0, 1)
+                    --DebugLine(player:GetEyePos(), point, 3, 0, 1, 0, 1)
                 else
                     --DebugLine(point, player:GetEyePos(), 3, 1, 0, 0, 1)
                 end
