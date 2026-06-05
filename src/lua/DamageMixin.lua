@@ -166,7 +166,8 @@ local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, 
     local regulateEffects = isFullAutoGun and (not (doer:GetClip() % 3 == 0)) or false -- Only do one out of X (like tracert random)
 
     --Log("Regulate full auto ? %s/%s(%s), fullauto:%s / Allow effect: %s", doer:GetAmmo(), doer:GetClip(), doer:GetClipSize(), isFullAutoGun, (not regulateEffects))
-    if surface ~= "none" and GetShouldSendHitEffect() and not regulateEffects then
+    if GetShouldSendHitEffect() and not regulateEffects then
+
         local directionVectorIndex = direction and GetIndexFromVector(direction) or 1
         local toPlayers = GetEntitiesWithinRange("Player", hitRelevancyPoint, hitRelevancyDist) -- kHitEffectRelevancyDistance)
 
@@ -222,6 +223,13 @@ local function _DealEffects__Client(self, surface, attacker, weapon, rawDamage, 
     local player = Client.GetLocalPlayer()
 
     if not player.serverBlood then
+
+        if GetIsPointOnInfestation(point) then
+            surface = "infestation"
+        end
+        if not surface or surface == "" then
+            surface = "metal"
+        end
         HandleHitEffect(point, doer, surface, target, showtracer, altMode, rawDamage, direction)
     end
     
@@ -249,14 +257,7 @@ local function _DealEffects(self, surface, attacker, weapon, damageDone, rawDama
         --armorMultiplier = ConditionalValue(damageType == kDamageType.Heavy, 1, armorMultiplier)
         -- local playArmorEffect = armorUsed * armorMultiplier > healthUsed 
 
-        if not target then
-            if GetIsPointOnInfestation(point) then
-                surface = "infestation"
-            end
-            if not surface or surface == "" then
-                surface = "metal"
-            end
-        else
+        if target then
             if target and HasMixin(target, "NanoShieldAble") and target:GetIsNanoShielded() then    
                 surface = "nanoshield"
             elseif target and HasMixin(target, "Fire") and target:GetIsOnFire() then
@@ -336,15 +337,19 @@ function DamageMixin:DoDamage(damage, target, point, direction, surface, altMode
         end
         killedFromDamage, weapon, damageDone, rawDamage = _DoHitShot(self, damage, target, point, direction, surface, altMode, showtracer)
     else -- MISS
+    --[[
         if GetIsPointOnInfestation(point) then
             surface = "infestation"
         end
         if not surface or surface == "" then
             surface = "metal"
         end
+        --]]
         weapon = _GetWeaponInfo(self, attacker)
     end
 
-    _DealEffects(self, surface, attacker, weapon, damageDone, rawDamage, damageType, target, direction, point, altMode, showtracer)
+    if surface ~= "none" then
+        _DealEffects(self, surface, attacker, weapon, damageDone, rawDamage, damageType, target, direction, point, altMode, showtracer)
+    end
     return killedFromDamage
 end
