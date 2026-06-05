@@ -1086,7 +1086,7 @@ kEjectionSeatWeight = 0.025
 
 -- Armor values
 kBaseExoArmor = 170
-kClawArmor = 75
+kClawArmor = 115
 kMinigunArmor = 75
 kRailgunArmor = 25
 kPlasmaLauncherArmor = 50

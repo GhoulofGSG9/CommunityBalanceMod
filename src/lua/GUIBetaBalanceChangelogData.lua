@@ -114,7 +114,7 @@ if kCBMaddon then
 		- Railgun: 25/0.1/25
 		- Minigun: 75/0.2/25
 		- Plasma Launcher: 50/0.125/20
-		- Claw: 75/0.0/15
+		- Claw: 115/0.0/15
 	  - Cores (optional upgrade):
 		- Ejection Seat: Auto-ejects marine on exosuit reaching 0 armor (+0.025 Weight / Costs 5 pres).
 		  - Requires valid ejection spot.
