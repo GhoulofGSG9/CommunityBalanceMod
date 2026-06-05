@@ -31,7 +31,7 @@ PlasmaT3.kModelName            = PrecacheAsset("models/marine/exosuit/plasma.mod
 PlasmaT3.kProjectileCinematic  = PrecacheAsset("cinematics/modularexo/plasma_fly_t3.cinematic")
 
 PlasmaT3.kClearOnImpact      = true
-PlasmaT3.kClearOnEnemyImpact = false
+PlasmaT3.kClearOnEnemyImpact = true
 
 -- The max amount of time a Plasma can last for
 local kPlasmaT3Lifetime = kPlasmaT3LifeTime
