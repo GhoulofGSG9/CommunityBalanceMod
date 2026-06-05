@@ -169,21 +169,24 @@ local function CheckTunnelCorrode(self)
         self.isCorroded = true
         self.timeCorrodeStarted = Shared.GetTime()
         self.timeLastTunnelCorrodeCheck = Shared.GetTime()
-
+        --
     end
 
 end
 
 local function SharedUpdate(self, deltaTime)
-    PROFILE("CorrodeMixin:OnUpdate")
-    
+    PROFILE("CorrodeMixin:OnUpdate")    
+
     if Server then
     
         if self.isCorroded and self.timeCorrodeStarted + kCorrodeShaderDuration < Shared.GetTime() then        
             self.isCorroded = false   
         end
         
-        CheckTunnelCorrode(self)
+        -- Prevents static entities from doing the tunnel check, they won't end up in there anyway
+        if HasMixin(self, "MobileTarget") then
+            CheckTunnelCorrode(self)
+        end
         
     elseif Client then
         UpdateCorrodeMaterial(self)
