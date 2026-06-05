@@ -336,8 +336,8 @@ function PierceProjectileController:Move(deltaTime, velocity, projectile)
             break
         end
 		
-		local traceEntity = self.controllerOutter:Move(offset, CollisionRep.Damage, CollisionRep.Damage, self.mask or PhysicsMask.PlasmaFilter)
-        local traceGeo = self.controller:Move(offset, CollisionRep.Damage, CollisionRep.Damage, self.mask or PhysicsMask.PredictedProjectileGroup)
+		local traceEntity = self.controllerOutter:Move(offset,  CollisionRep.Move,  CollisionRep.Move, PhysicsMask.PlasmaFilter)
+        local traceGeo = self.controller:Move(offset, CollisionRep.Damage, CollisionRep.Damage, PhysicsMask.PredictedProjectileGroup)
 
 		if traceEntity.fraction < 1 and traceEntity.entity then           
 
