@@ -170,7 +170,7 @@ function SporeCloud:SporeDamage(time)
                 local trace = Shared.TraceRay(self:GetOrigin(), attackPoint, CollisionRep.Damage, PhysicsMask.Bullets, filterNonDoors)
                 if trace.fraction == 1.0 or trace.entity == entity then
                 
-                    self:DoDamage(kSporesDustDamagePerSecond * kDamageInterval, entity, trace.endPoint, (attackPoint - trace.endPoint):GetUnit(), "organic" )
+                    self:DoDamage(kSporesDustDamagePerSecond * kDamageInterval, entity, trace.endPoint, (attackPoint - trace.endPoint):GetUnit(), "none" )
                     
                     -- Spores can't hurt this entity for kDamageInterval
                     SetEntityRecentlyHurt(entity:GetId())
