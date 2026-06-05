@@ -18,7 +18,7 @@ if Server then
 
    -- Babblers are 0.25 wide. Give ourselves some wiggle room
     local kCheckDist = Babbler.kRadius + 0.625
-    local kVerticalOffset = 0.1
+    local kVerticalOffset = 0
     local kBabblerSpawnPoints =
     {
         Vector(kCheckDist, kVerticalOffset, kCheckDist),
@@ -82,7 +82,7 @@ if Server then
                 babbler:SetMoveType(kBabblerMoveType.None)
 
                 lastSuccessfulSpawnPoint = spawnPoint
-                babbler:AddTimedCallback(babbler.MoveRandom, kUpdateMoveInterval + math.random() / 5)
+                babbler:AddTimedCallback(babbler.MoveRandom, kUpdateMoveInterval)
 
                 local targetPos = (targetHit and targetHit.GetEngagementPoint and targetHit:GetEngagementPoint()) or (targetHit and targetHit:GetOrigin()) or spawnPoint
                 if targetHit and targetHit:GetIsAlive() then

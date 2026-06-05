@@ -137,7 +137,7 @@ local kWalkMaxSpeed = 3.7
 local kMaxSpeed = 5.75
 local kViewOffsetHeight = 2.3
 local kAcceleration = 20
-local kVerticalThrusterMaxSpeed = 1.00
+local kVerticalThrusterMaxSpeed = 0.8
 local kExoFastAirFriction = 0.2
 
 local kSmashEggRange = 1.5
