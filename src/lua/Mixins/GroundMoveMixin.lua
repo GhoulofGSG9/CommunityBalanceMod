@@ -139,9 +139,8 @@ local function GetIsCloseToGround(self, distance)
     
 end
 
-local function GetWishDir(self, move, simpleAcceleration, velocity)
-
-    PROFILE("GroundMoveMixin:GetWishDir")
+local function GetWishDir_moveAdjust(self, viewCoords, move, simpleAcceleration, velocity, maxSpeed)
+    PROFILE("GroundMoveMixin:GetWishDir_moveAdjust")
 
     if simpleAcceleration == nil then
         simpleAcceleration = true
@@ -154,42 +153,48 @@ local function GetWishDir(self, move, simpleAcceleration, velocity)
             move.z = 0
         elseif velocity then
             
-            local translateDirection = (-self:GetViewCoords().xAxis):DotProduct(GetNormalizedVectorXZ(velocity))
-            local xMove = translateDirection == 0 and 1 or translateDirection / math.abs(translateDirection)
-            local speedFraction = velocity:GetLengthXZ() / self:GetMaxSpeed()
+            local translateDirection = (-viewCoords.xAxis):DotProduct(GetNormalizedVectorXZ(velocity))
+            local absTranslateDirection = math.abs(translateDirection)
+            local xMove = translateDirection == 0 and 1 or translateDirection / absTranslateDirection
+            local speedFraction = velocity:GetLengthXZ() / maxSpeed
             move.z = 0
             
             -- normalize translate direction
             -- translate z move to x
-            if math.abs(translateDirection) * speedFraction > 0.2 then            
+            if absTranslateDirection * speedFraction > 0.2 then            
                 move.x = xMove
             end
 
         end
-    
     end
-    
-    local wishDir
+    return GetNormalizedVector(move)
+end
 
+local function GetWishDir(self, move, simpleAcceleration, velocity, maxSpeed)
 
-    if not self:GetPerformsVerticalMove() then
+    PROFILE("GroundMoveMixin:GetWishDir")
+
+    local wishDir = nil
+    local viewCoords = self:GetViewCoords()
+    local normedMove = GetWishDir_moveAdjust(self, viewCoords, move, simpleAcceleration, velocity, maxSpeed)
+
+    if self:GetPerformsVerticalMove() then
+        wishDir = viewCoords:TransformVector(normedMove)
+    else
     
-        local local2World = self:GetViewCoords()
+        local local2World = viewCoords
         local2World.xAxis.y = 0
         local2World.xAxis:Normalize()
         local2World.zAxis.y = 0
         local2World.zAxis:Normalize()
         local2World.yAxis = local2World.zAxis:CrossProduct(local2World.xAxis)
         local2World.zAxis = local2World.xAxis:CrossProduct(local2World.yAxis)
-        wishDir = local2World:TransformVector(GetNormalizedVector(move))
+        wishDir = local2World:TransformVector(normedMove)
         wishDir.y = 0
         wishDir:Normalize()
-
-    else
-        
-        wishDir = self:GetViewCoords():TransformVector(GetNormalizedVector(move))
         
     end
+
     
     return wishDir
 
@@ -232,25 +237,26 @@ local function AccelerateSimpleXZ(self, input, velocity, maxSpeedXZ, acceleratio
 
     PROFILE("GroundMoveMixin:AccelerateSimpleXZ")
 
-    maxSpeedXZ = math.max(velocity:GetLengthXZ(), maxSpeedXZ)
-    -- do XZ acceleration
-    
-    local wishDir = self:GetViewCoords():TransformVector(input.move)
-    wishDir.y = 0
-    wishDir:Normalize()
-    
-    velocity:Add(wishDir * acceleration * deltaTime)
-    
-    if velocity:GetLengthXZ() > maxSpeedXZ then
-    
-        local yVel = velocity.y        
-        velocity.y = 0
-        velocity:Normalize()
-        velocity:Scale(maxSpeedXZ)
-        velocity.y = yVel
+    if acceleration > 0 then -- For instance, lerk have 0 fall accel
+        maxSpeedXZ = math.max(velocity:GetLengthXZ(), maxSpeedXZ)
+        -- do XZ acceleration
         
+        local wishDir = self:GetViewCoords():TransformVector(input.move)
+        wishDir.y = 0
+        wishDir:Normalize()
+        
+        velocity:Add(wishDir * acceleration * deltaTime)
+        
+        if velocity:GetLengthXZ() > maxSpeedXZ then
+        
+            local yVel = velocity.y        
+            velocity.y = 0
+            velocity:Normalize()
+            velocity:Scale(maxSpeedXZ)
+            velocity.y = yVel
+            
+        end
     end
-
 end
 
 local function ForwardControl(self, deltaTime, velocity)
@@ -279,68 +285,100 @@ local function ForwardControl(self, deltaTime, velocity)
 
 end
 
-local function Accelerate(self, input, velocity, deltaTime)
+local function Accelerate_onGround(self, input, velocity, maxSpeed, deltaTime)
+    PROFILE("GroundMoveMixin:Accelerate_onGround")
 
-    PROFILE("GroundMoveMixin:Accelerate")
-
-    local wishDir = GetWishDir(self, input.move, false, velocity)
+    local wishDir = GetWishDir(self, input.move, false, velocity, maxSpeed)
     local prevXZSpeed = velocity:GetLengthXZ()
     
-    local maxSpeedTable = { maxSpeed = self:GetMaxSpeed() }
-    self:ModifyMaxSpeed(maxSpeedTable, input)
-    
-    local groundFraction = self.onGround and GetOnGroundFraction(self) or 0
-    
-    local wishSpeed = self.onGround and maxSpeedTable.maxSpeed or kMaxAirVeer
+    local wishSpeed = maxSpeed
     local currentSpeed = math.min(velocity:GetLength(), velocity:DotProduct(wishDir))
     local addSpeed = wishSpeed - currentSpeed
     
     local clampedAirSpeed = prevXZSpeed + deltaTime * kMaxAirAccel
-    local clampSpeedXZ = math.max(self.onGround and maxSpeedTable.maxSpeed or clampedAirSpeed, prevXZSpeed)
-    
-    if input.move.z == 1 and not self.onGround then
-        ForwardControl(self, deltaTime, velocity)
-    end
+    local clampSpeedXZ = math.max(maxSpeed, prevXZSpeed)
     
     if addSpeed > 0 then
          
-        local accel = self.onGround and groundFraction * self:GetAcceleration() or self:GetAirControl()
+        local groundFraction = GetOnGroundFraction(self)
+        local accel = groundFraction * self:GetAcceleration()
         local accelSpeed = accel * deltaTime * wishSpeed
         
         accelSpeed = math.min(addSpeed, accelSpeed)    
         velocity:Add(wishDir * accelSpeed)
     
     end
+end
+
+local function Accelerate_inTheAir(self, input, useFallAccel, velocity, maxSpeed, deltaTime)
     
-    if not self.onGround then
+    PROFILE("GroundMoveMixin:Accelerate_inTheAir")
+
+    local groundFraction = 0
     
-        if not self.GetHasFallAccel or self:GetHasFallAccel() then
-        
-            wishDir.y = 0
-            local fallAccel = math.max(-velocity.y, 0) * deltaTime * kFallAccel
-            velocity:Add(GetNormalizedVectorXZ(velocity) * fallAccel)
-            
-        end
+    local wishSpeed = kMaxAirVeer
+    local wishDir = GetWishDir(self, input.move, false, velocity, maxSpeed)
+    local currentSpeed = math.min(velocity:GetLength(), velocity:DotProduct(wishDir))
+    local addSpeed = wishSpeed - currentSpeed
     
-        if velocity:GetLengthXZ() > clampSpeedXZ then
+    local prevXZSpeed = velocity:GetLengthXZ()
+    local clampedAirSpeed = prevXZSpeed + deltaTime * kMaxAirAccel
+    local clampSpeedXZ = math.max(clampedAirSpeed, prevXZSpeed)
+    
+    if input.move.z == 1 then
+        ForwardControl(self, deltaTime, velocity)
+    end
+    
+    if addSpeed > 0 then
+         
+        local accel = self:GetAirControl()
+        local accelSpeed = accel * deltaTime * wishSpeed
         
-            local prevY = velocity.y
-            velocity.y = 0
-            velocity:Normalize()            
-            velocity:Scale(clampSpeedXZ)
-            velocity.y = prevY
-        
-        end
+        accelSpeed = math.min(addSpeed, accelSpeed)    
+        velocity:Add(wishDir * accelSpeed)
     
     end
 
-    if not self.onGround then
+    if useFallAccel then
     
-        local speedScalar = 1 - Clamp(velocity:GetLengthXZ() / maxSpeedTable.maxSpeed, 0, 1) ^ 2
-        AccelerateSimpleXZ(self, input, velocity, maxSpeedTable.maxSpeed, self:GetAirAcceleration() * speedScalar, deltaTime)
-
+        wishDir.y = 0
+        local fallAccel = math.max(-velocity.y, 0) * deltaTime * kFallAccel
+        velocity:Add(GetNormalizedVectorXZ(velocity) * fallAccel)
+        
     end
+
+    if velocity:GetLengthXZ() > clampSpeedXZ then
     
+        local prevY = velocity.y
+        velocity.y = 0
+        velocity:Normalize()            
+        velocity:Scale(clampSpeedXZ)
+        velocity.y = prevY
+    
+    end
+
+    local speedScalar = 1 - Clamp(velocity:GetLengthXZ() / maxSpeed, 0, 1) ^ 2
+    local acceleration = self:GetAirAcceleration() * speedScalar
+    
+    if acceleration > 0 then
+        AccelerateSimpleXZ(self, input, velocity, maxSpeed, acceleration, deltaTime)
+    end
+
+end
+
+local function Accelerate(self, input, velocity, deltaTime)
+
+    PROFILE("GroundMoveMixin:Accelerate")
+    
+    local maxSpeed = self:GetMaxSpeed()
+    local maxSpeedTable = { maxSpeed = maxSpeed }
+    self:ModifyMaxSpeed(maxSpeedTable, input)
+    if self.onGround then
+        Accelerate_onGround(self, input, velocity, maxSpeed, deltaTime)
+    else
+        local useFallAccel = not self.GetHasFallAccel or self:GetHasFallAccel()
+        Accelerate_inTheAir(self, input, useFallAccel, velocity, maxSpeed, deltaTime)
+    end
 end
 
 local function ApplyGravity(self, input, velocity, deltaTime)
@@ -364,14 +402,17 @@ function GroundMoveMixin:GetFriction(input, velocity)
     local velocityLength = 0
     local frictionScalar = 1
     
-    if self:GetPerformsVerticalMove() or self:GetIsOnGround() then
+    local isOnGround = self:GetIsOnGround()
+    
+    if isOnGround then
         velocityLength = velocity:GetLength()
     else
-        velocityLength = velocity:GetLengthXZ()
-    end
-    
-    if not self:GetPerformsVerticalMove() and not self:GetIsOnGround() then
-        friction.y = 0
+        if self:GetPerformsVerticalMove() then
+            velocityLength = velocity:GetLength()
+        else
+            velocityLength = velocity:GetLengthXZ()
+            friction.y = 0
+        end
     end
 
     local groundFriction = self:GetGroundFriction()
@@ -381,7 +422,7 @@ function GroundMoveMixin:GetFriction(input, velocity)
     frictionScalar = velocityLength * (onGroundFraction * groundFriction + (1 - onGroundFraction) * airFriction)
     
     -- use minimum friction when on ground
-    if input.move:GetLength() == 0 and self.onGround and velocity:GetLength() < kStopSpeed then
+    if isOnGround and input.move:GetLength() == 0 and velocity:GetLength() < kStopSpeed then
         frictionScalar = math.max(kStopFriction, frictionScalar)
     end
     
