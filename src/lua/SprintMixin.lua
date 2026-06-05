@@ -132,6 +132,12 @@ function SprintMixin:UpdateSprintingState(input)
 
     PROFILE("SprintMixin:UpdateSprintingState")
     
+    -- Do not run code if we are not pressing the sprint key, and during a small period after release
+    local buttonDown = (bit.band(input.commands, Move.MovementModifier) ~= 0)
+    if (not buttonDown and not self:GetIsSprinting() and self.timeSprintChange + 0.25 < Shared.GetTime()) then
+        return
+    end
+
     local velocity = self:GetVelocity()
     local speed = velocity:GetLength()
     
@@ -144,7 +150,7 @@ function SprintMixin:UpdateSprintingState(input)
         attacking = weapon:GetTryingToFire(input)    
     end
     
-    local buttonDown = (bit.band(input.commands, Move.MovementModifier) ~= 0)
+    
     if not weapon or (not weapon.GetIsReloading or not weapon:GetIsReloading()) then
         self:UpdateSprintMode(buttonDown)
     end
