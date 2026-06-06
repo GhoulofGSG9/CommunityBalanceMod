@@ -319,7 +319,7 @@ function Shotgun:FirePrimary(player)
 
         local endPoint = player:GetEyePos() + spreadDirection * range
 
-        local targets, trace, hitPoints = GetBulletTargets(startPoint, endPoint, spreadDirection, pelletSize, filter, allowBoxTrace)
+        local targets, trace, hitPoints = GetBulletTargets(startPoint, endPoint, spreadDirection, pelletSize, filter, (allowBoxTrace or bullet <= 5))
 
         HandleHitregAnalysis(player, startPoint, endPoint, trace)
 
