@@ -21,34 +21,51 @@ BulletsMixin.networkVars =
 function BulletsMixin:__initmixin()
 end
 
--- check for umbra and play local hit effects (bullets only)
-function BulletsMixin:ApplyBulletGameplayEffects(player, target, endPoint, direction, damage, surface, showTracer, weaponAccuracyGroupOverride)
+function BulletsMixin:ApplyBulletStats(target, weaponAccuracyGroupOverride, numBullets)
+    PROFILE("BulletsMixin:ApplyBulletGameplayEffects")
 
     -- Handle Stats
-    if Server then
+    if Server and numBullets > 0 then
+
+        --Log("BulletsMixin:ApplyBulletStats - %s / %s", target, numBullets)
+
+        local hasTarget = target ~= nil
+        local isTargetEnemyPlayer = target and target:isa("Player") and GetAreEnemies(parent, target)
+        local isTargetOnos = target and target:isa("Onos")
 
         local parent = self and self.GetParent and self:GetParent()
         if parent and self.GetTechId then
 
             -- Drifters, buildings and teammates don't count towards accuracy as hits or misses
-            if (target and target:isa("Player") and GetAreEnemies(parent, target)) or target == nil then
+            if isTargetEnemyPlayer or target == nil then
 
                 local steamId = parent:GetSteamId()
                 if steamId then
-                    StatsUI_AddAccuracyStat(steamId, self:GetTechId(), target ~= nil, target and target:isa("Onos"), parent:GetTeamNumber())
+                    local techId = self:GetTechId()
+                    local teamNumber = parent:GetTeamNumber()
+                    for i = 1, numBullets do
+                        StatsUI_AddAccuracyStat(steamId, techId, hasTarget, isTargetOnos, teamNumber)
+                    end
                 end
             end
-            GetBotAccuracyTracker():AddAccuracyStat(parent:GetClient(), target ~= nil, weaponAccuracyGroupOverride or kBotAccWeaponGroup.Bullets)
+            local client = parent:GetClient()
+            local botAccuracyTracker = GetBotAccuracyTracker()
+            for i = 1, numBullets do
+                botAccuracyTracker:AddAccuracyStat(client, hasTarget, weaponAccuracyGroupOverride or kBotAccWeaponGroup.Bullets)
+            end
         end
     end
+end
 
-    local blockedByUmbra = GetBlockedByUmbra(target)
+-- check for umbra and play local hit effects (bullets only)
+function BulletsMixin:ApplyBulletGameplayEffects(player, target, endPoint, direction, damage, surface, showTracer, weaponAccuracyGroupOverride)
+
+    PROFILE("BulletsMixin:ApplyBulletGameplayEffects")
     
-    if blockedByUmbra then
+    if GetBlockedByUmbra(target) then
         surface = "umbra"
     end
 
-    -- deals damage or plays surface hit effects
-    self:DoDamage(damage, target, endPoint, direction, surface, false, showTracer)
-    
+    self:ApplyBulletStats(target, weaponAccuracyGroupOverride, 1)
+    self:DoDamage(damage, target, endPoint, direction, surface, false, showTracer) -- deals damage or plays surface hit effects
 end
