@@ -191,7 +191,7 @@ local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, 
                 local trace = nil
                 local canSeePoint = true
                 local doTrace = true
-                if doTrace and then
+                if doTrace then
                     trace = Shared.TraceRay(point, player:GetEyePos(), CollisionRep.Damage, PhysicsMask.Bullets, EntityFilterOne(player))
                     canSeePoint = (trace.fraction >= 0.95)
                 end
