@@ -30,10 +30,11 @@ function BulletsMixin:ApplyBulletStats(target, weaponAccuracyGroupOverride, numB
         --Log("BulletsMixin:ApplyBulletStats - %s / %s", target, numBullets)
 
         local hasTarget = target ~= nil
+        local parent = self and self.GetParent and self:GetParent()
         local isTargetEnemyPlayer = target and target:isa("Player") and GetAreEnemies(parent, target)
         local isTargetOnos = target and target:isa("Onos")
 
-        local parent = self and self.GetParent and self:GetParent()
+        
         if parent and self.GetTechId then
 
             -- Drifters, buildings and teammates don't count towards accuracy as hits or misses
