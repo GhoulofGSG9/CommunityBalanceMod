@@ -170,15 +170,6 @@ local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, 
 
         local directionVectorIndex = direction and GetIndexFromVector(direction) or 1
         local toPlayers = GetEntitiesWithinRange("Player", hitRelevancyPoint, hitRelevancyDist) -- kHitEffectRelevancyDistance)
-
-        --[[ -- Remove spectators from this, way too expensive (it would be (x5 specs) x kMaxHitEffectsPerSecond(15) otherwise)
-        for _, spectator in ientitylist(Shared.GetEntitiesWithClassname("Spectator")) do
-        
-            if table.icontains(toPlayers, Server.GetOwner(spectator):GetSpectatingPlayer()) then
-                table.insertunique(toPlayers, spectator)
-            end
-        end
-        --]]
         
         -- No need to send to the attacker if this is a child of the attacker.
         -- Children such as weapons are simulated on the Client as well so they will
@@ -194,11 +185,17 @@ local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, 
         for i, player in ipairs(toPlayers) do
             -- The target cannot see it's own body, no need to send it shots on him
             local isPlayerTheTarget = (target and target:GetId() == player:GetId())
-            if player:GetIsAlive() and not isPlayerTheTarget then
+            if not isPlayerTheTarget then
 
                 -- Only do a network message if the actual player can see/damage the point (saves a lot of network messages)
-                local trace = Shared.TraceRay(point, player:GetEyePos(), CollisionRep.Damage, PhysicsMask.Bullets, EntityFilterOne(player))
-                local canSeePoint = (trace.fraction >= 0.95)
+                local trace = nil
+                local canSeePoint = true
+                local doTrace = true
+                if doTrace and then
+                    trace = Shared.TraceRay(point, player:GetEyePos(), CollisionRep.Damage, PhysicsMask.Bullets, EntityFilterOne(player))
+                    canSeePoint = (trace.fraction >= 0.95)
+                end
+
                 if (canSeePoint) then
                     if message == nil then -- Only build if we have to send it to others, otherwise nothing
                         message = BuildHitEffectMessage(point, doer, surface, target, showtracer, altMode, rawDamage, directionVectorIndex)
@@ -207,9 +204,13 @@ local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, 
                     sent = sent + 1
                     --totalMsgCount = totalMsgCount + 1
                     --Log("-Sending network message: %s", totalMsgCount)
-                    --DebugLine(player:GetEyePos(), point, 3, 0, 1, 0, 1)
+                    --if (player:isa("Spectator")) then
+                    --    DebugLine(player:GetEyePos(), point, 3, 0, 1, 0, 1)
+                    --end
                 else
-                    --DebugLine(point, player:GetEyePos(), 3, 1, 0, 0, 1)
+                    --if (player:isa("Spectator")) then
+                    --    DebugLine(point, player:GetEyePos(), 3, 1, 0, 0, 1)
+                    --end
                 end
 
             end

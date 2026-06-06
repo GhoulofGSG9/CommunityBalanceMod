@@ -301,7 +301,6 @@ function Shotgun:FirePrimary(player)
 
     local numberBullets = self:GetBulletsPerShot()
 
-    
     local allowBoxTrace = false
     local totalNumBullets = math_min(numberBullets, #self.kSpreadVectors)
     for bullet = 1, totalNumBullets do
@@ -389,8 +388,9 @@ function Shotgun:FirePrimary(player)
 
         local e = r[i]
 
+        --Log("Shotgun: #r=%s, r[%s]=%s", #r, i, e.hitCounts)
         self:ApplyBulletGameplayEffects(player, e.target, e.hitPoint, e.direction, e.damages, e.surface, e.showTracer)
-        --Log("Shot applied it-%s/%s", i, #r)
+        self:ApplyBulletStats(e.target, nil, e.hitCounts - 1) -- Hit shots are aggregated, count each pellet hit as a hit for stats rather than just 1
 
         if not Shared.GetIsRunningPrediction() and client.hitRegEnabled then
             RegisterHitEvent(player, bulletCount, e.trace.startPoint, e.trace, e.damages)
@@ -400,6 +400,7 @@ function Shotgun:FirePrimary(player)
 
     self:TriggerEffects("shotgun_attack_sound")
     self:TriggerEffects("shotgun_attack")
+
 
 end
 

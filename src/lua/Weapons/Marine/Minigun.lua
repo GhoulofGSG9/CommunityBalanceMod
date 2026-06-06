@@ -91,6 +91,7 @@ function Minigun:OnCreate()
     self.shooting = false
     self.heatAmount = 0
     self.overheated = false
+    self.timeAttackFired = 0
     
     if Client then
         InitMixin(self, ClientWeaponEffectsMixin)
@@ -267,7 +268,8 @@ local function Shoot(self, leftSide)
     -- We can get a shoot tag even when the clip is empty if the frame rate is low
     -- and the animation loops before we have time to change the state.
     if self.minigunAttacking and not self.overheated and player then
-    
+
+        local now = Shared.GetTime()    
         if Server and not self.spinSound:GetIsPlaying() then
             self.spinSound:Start()
         end    
@@ -285,7 +287,16 @@ local function Shoot(self, leftSide)
         
         local endPoint = startPoint + spreadDirection * range
         
-        local isPlayerHittingShots = (Shared.GetTime() - player:GetTimeLastDamageDealt()) < (0.3)
+    
+        -- Allow boxTraces for first bullet shot, or consecutive if we hit
+        local lastTimeDamageDealt = player:GetTimeLastDamageDealt()
+        local hasShotRecently = (now - self.timeAttackFired < 0.2)
+        local hasHitRecently = (now - lastTimeDamageDealt) < 0.5
+        local allowBoxTrace = (not hasShotRecently) or hasHitRecently
+        --if Server then
+        --    Log("Minigun: allowBoxTrace: %s (hasShotRecently:%s / hasHitRecently:%s)", allowBoxTrace, hasShotRecently, hasHitRecently)
+        --end
+
         local targets, trace, hitPoints = GetBulletTargets(startPoint, endPoint, spreadDirection, kBulletSize, filter, isPlayerHittingShots) 
         
         local direction = (trace.endPoint - startPoint):GetUnit()
@@ -322,6 +333,7 @@ local function Shoot(self, leftSide)
         end
         
         self.shooting = true
+        self.timeAttackFired = now
         
     end
     
