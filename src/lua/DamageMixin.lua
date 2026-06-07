@@ -162,30 +162,28 @@ local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, 
     local isHit = target ~= nil
     local hitRelevancyDist = kHitEffectRelevancyDistance
     local hitRelevancyPoint = point
-    local isFullAutoGun = (doer and doer:isa("ClipWeapon")) and doer:GetClipSize() >= 50 or false -- rifle/smg/hmg
-    local regulateEffects = isFullAutoGun and (not (doer:GetClip() % 3 == 0)) or false -- Only do one out of X (like tracert random)
+    local isFullAutoGun = weapon and (weapon == kTechId.Rifle or weapon == kTechId.Submachinegun or weapon == kTechId.HeavyMachineGun)
+    --(doer and doer:isa("ClipWeapon")) and doer:GetClipSize() >= 50 or false -- rifle/smg/hmg
+    local regulateEffects = isFullAutoGun and (not (doer and doer:GetClip() % 3 == 0)) or false -- Only do one out of X (like tracert random)
 
     --Log("Regulate full auto ? %s/%s(%s), fullauto:%s / Allow effect: %s", doer:GetAmmo(), doer:GetClip(), doer:GetClipSize(), isFullAutoGun, (not regulateEffects))
-    if GetShouldSendHitEffect() and not regulateEffects then
+    if not regulateEffects and GetShouldSendHitEffect() then
 
-        local directionVectorIndex = direction and GetIndexFromVector(direction) or 1
         local toPlayers = GetEntitiesWithinRange("Player", hitRelevancyPoint, hitRelevancyDist) -- kHitEffectRelevancyDistance)
         
         -- No need to send to the attacker if this is a child of the attacker.
         -- Children such as weapons are simulated on the Client as well so they will
         -- already see the hit effect.
-        if attacker and self:GetParent() == attacker and not attacker.serverBlood then
-            table.removevalue(toPlayers, attacker)
-        end
+        local isChildOfAttacker = attacker and self:GetParent() == attacker and not attacker.serverBlood
 
         --Log("Entering heavy loops:")
         local message = nil
         local sent = 0
         local maxSendCount = 6
+        local targetId = target and target:GetId() or 0
         for i, player in ipairs(toPlayers) do
             -- The target cannot see it's own body, no need to send it shots on him
-            local isPlayerTheTarget = (target and target:GetId() == player:GetId())
-            if not isPlayerTheTarget then
+            if not (isChildOfAttacker and player == attacker) and not (targetId == player:GetId()) then
 
                 -- Only do a network message if the actual player can see/damage the point (saves a lot of network messages)
                 local trace = nil
@@ -198,6 +196,7 @@ local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, 
 
                 if (canSeePoint) then
                     if message == nil then -- Only build if we have to send it to others, otherwise nothing
+                        local directionVectorIndex = direction and GetIndexFromVector(direction) or 1
                         message = BuildHitEffectMessage(point, doer, surface, target, showtracer, altMode, rawDamage, directionVectorIndex)
                     end
                     Server.SendNetworkMessage(player, "HitEffect", message, false)
