@@ -115,7 +115,7 @@ Marine.kDropWeaponTimeLimit = kWeaponDropRateLimit
 Marine.kFindWeaponRange = 2
 Marine.kPickupWeaponTimeLimit = 1
 Marine.kPickupPriority = { [kTechId.Submachinegun] = 1, [kTechId.Flamethrower] = 2, [kTechId.GrenadeLauncher] = 3, [kTechId.HeavyMachineGun] = 4, [kTechId.Shotgun] = 5}
-	
+    
 Marine.kAcceleration = 100
 Marine.kSprintAcceleration = 120 -- 70
 Marine.kSprintInfestationAcceleration = 60
@@ -223,8 +223,8 @@ function Marine:OnCreate()
     InitMixin(self, RegenerationMixin)
     InitMixin(self, GUINotificationMixin)
     InitMixin(self, PlayerStatusMixin)
-	InitMixin(self, BlightMixin)
-	InitMixin(self, DoomMixin)
+    InitMixin(self, BlightMixin)
+    InitMixin(self, DoomMixin)
 
     if Server then
     
@@ -262,7 +262,7 @@ function Marine:OnCreate()
         InitMixin(self, TeamMessageMixin, { kGUIScriptName = "GUIMarineTeamMessage" })
 
         InitMixin(self, DisorientableMixin)
-		InitMixin(self, BlowtorchTargetMixin)
+        InitMixin(self, BlowtorchTargetMixin)
         
     end
     
@@ -490,11 +490,11 @@ function Marine:OnDestroy()
 end
 
 function Marine:ShouldAutopickupWeapons()
-	return self.autoPickup
+    return self.autoPickup
 end
 
 function Marine:ShouldAutopickupBetterWeapons()
-	return self.autoPickupBetter
+    return self.autoPickupBetter
 end
 
 function Marine:SetAutopickup( autoPickupEnabled, enablePickupPriorities )
@@ -574,18 +574,40 @@ local function PickupWeapon(self, weapon, wasAutoPickup)
     
 end
 
+local kSpecialKeys = bit.bor(Move.ToggleFlashlight, Move.Drop, Move.Use)
 function Marine:HandleButtons(input)
 
     PROFILE("Marine:HandleButtons")
     
+    local flashlightPressed = false
+    local dropPressed = false
+    local usePressed = false
+
     Player.HandleButtons(self, input)
-    
+
     if self:GetCanControl() then
     
         -- Update sprinting state
         self:UpdateSprintingState(input)
+
+        -- search for weapons to auto-pickup nearby.
+        if Server and self.ShouldAutopickupWeapons and self:ShouldAutopickupWeapons() then
+
+            local autopickupWeapon = self:FindNearbyAutoPickupWeapon()
+            if autopickupWeapon then
+                PickupWeapon(self, autopickupWeapon, true)
+            end
+            
+        end
         
-        local flashlightPressed = bit.band(input.commands, Move.ToggleFlashlight) ~= 0
+        -- TODO: Check autopick if it still works (got moved)
+        -- If nothing special, then stop right here
+        if bit.band(input.commands, kSpecialKeys) == 0 then
+            self.flashlightLastFrame = false
+            return
+        end
+
+        flashlightPressed = bit.band(input.commands, Move.ToggleFlashlight) ~= 0
         if not self.flashlightLastFrame and flashlightPressed then
         
             self:SetFlashlightOn(not self:GetFlashlightOn())
@@ -593,21 +615,11 @@ function Marine:HandleButtons(input)
             
         end
         self.flashlightLastFrame = flashlightPressed
-        
-        local dropPressed = bit.band(input.commands, Move.Drop) ~= 0
-        local usePressed = bit.band(input.commands, Move.Use) ~= 0
 
         if Server then
             
-            -- search for weapons to auto-pickup nearby.
-            if self.ShouldAutopickupWeapons and self:ShouldAutopickupWeapons() then
-
-                local autopickupWeapon = self:FindNearbyAutoPickupWeapon()
-                if autopickupWeapon then
-                    PickupWeapon(self, autopickupWeapon, true)
-                end
-                
-            end
+            dropPressed = bit.band(input.commands, Move.Drop) ~= 0
+            usePressed = bit.band(input.commands, Move.Use) ~= 0
             
             -- search for weapons to manually pickup nearby.
             if dropPressed then
@@ -811,8 +823,8 @@ function Marine:GetPlayerStatusDesc()
             return kPlayerStatus.Flamethrower
         elseif (weapon:isa("HeavyMachineGun")) then
             return kPlayerStatus.HeavyMachineGun
-		elseif (weapon:isa("Submachinegun")) then
-			return kPlayerStatus.Submachinegun
+        elseif (weapon:isa("Submachinegun")) then
+            return kPlayerStatus.Submachinegun
         end
     end
     
