@@ -201,6 +201,8 @@ local kPlayerRepelForce = 7
 -- Max amount of step allowed
 Player.kMaxStepAmount = 2
 
+local kWeaponMask = bit.bor(Move.Reload, Move.SelectNextWeapon, Move.SelectPrevWeapon, Move.Weapon1, Move.Weapon2, Move.Weapon3, Move.Weapon4, Move.Weapon5, Move.QuickSwitch)
+
 -------------
 -- NETWORK --
 -------------
@@ -674,7 +676,10 @@ function Player:GetController()
 
 end
 
+--[[
 function Player:WeaponUpdate()
+
+    PROFILE("Player:WeaponUpdate")
 
     local weapon = self:GetActiveWeapon()
     if weapon and weapon.OnUpdateWeapon then
@@ -682,6 +687,7 @@ function Player:WeaponUpdate()
     end
 
 end
+--]]
 
 function Player:OnPrimaryAttack()
 end
@@ -1897,64 +1903,70 @@ function Player:GetFootstepSpeedScalar()
     return Clamp(self:GetVelocityLength() / self:GetMaxSpeed(), 0, 1)
 end
 
+local kMaskIsPlayerAttacking = bit.bor(Move.PrimaryAttack, Move.SecondaryAttack, Move.TertiaryAttack)
+local kMaskBNotIsPlayerAttacking = bit.bnot(kMaskIsPlayerAttacking)
 function Player:HandleAttacks(input)
 
     PROFILE("Player:HandleAttacks")
 
-    if not self:GetCanAttack() then
-        input.commands = bit.band(input.commands, bit.bnot(bit.bor(Move.PrimaryAttack, Move.SecondaryAttack, Move.TertiaryAttack)))
+    local isPlayerUsingPrimaryAttack = false
+    local isPlayerUsingSecondaryAttack = false
+    local isPlayerUsingTertiaryAttack = false
+
+    local isPlayerAttacking = bit.band(input.commands, kMaskIsPlayerAttacking)
+    if isPlayerAttacking ~= 0 and not self:GetCanAttack() then
+        -- Removes the attack bits from the input command
+        input.commands = bit.band(input.commands, kMaskBNotIsPlayerAttacking)
     end
 
-    self:WeaponUpdate()
+    -- self:WeaponUpdate() -- Never called anywhere, just empty functions there
 
+    if isPlayerAttacking ~= 0 then
+        local isPlayerUsingSingleAttackKey = (isPlayerAttacking == Move.PrimaryAttack or isPlayerAttacking == Move.SecondaryAttack or isPlayerAttacking == Move.TertiaryAttack)
+        if isPlayerUsingSingleAttackKey then
+            if isPlayerAttacking == Move.PrimaryAttack then
+                isPlayerUsingPrimaryAttack = true
+            elseif isPlayerAttacking == Move.SecondaryAttack then
+                isPlayerUsingSecondaryAttack = true
+            elseif isPlayerAttacking == Move.TertiaryAttack then
+                isPlayerUsingTertiaryAttack = true
+            end
+        else -- If multiple key pressed, have to call the mask
+            isPlayerUsingPrimaryAttack = bit.band(input.commands, Move.PrimaryAttack) ~= 0
+            isPlayerUsingSecondaryAttack = bit.band(input.commands, Move.SecondaryAttack) ~= 0
+            isPlayerUsingTertiaryAttack = bit.band(input.commands, Move.TertiaryAttack) ~= 0
+        end
+    end
 
-    if (bit.band(input.commands, Move.PrimaryAttack) ~= 0) then
-
+    if isPlayerUsingPrimaryAttack then
         self:PrimaryAttack()
-
+        self.primaryAttackLastFrame = true
     else
-
         if self.primaryAttackLastFrame then
-
             self:PrimaryAttackEnd()
-
+            self.primaryAttackLastFrame = false
         end
-
     end
 
-    if (bit.band(input.commands, Move.SecondaryAttack) ~= 0) then
-
+    if isPlayerUsingSecondaryAttack then
         self:SecondaryAttack()
-
+        self.secondaryAttackLastFrame = true
     else
-
         if(self.secondaryAttackLastFrame ~= nil and self.secondaryAttackLastFrame) then
-
             self:SecondaryAttackEnd()
-
+            self.secondaryAttackLastFrame = false
         end
-
     end
 
-    if (bit.band(input.commands, Move.TertiaryAttack) ~= 0) then
-
+    if isPlayerUsingTertiaryAttack then
         self:TertiaryAttack()
-
+        self.tertiaryAttackLastFrame = true
     else
-
         if(self.tertiaryAttackLastFrame ~= nil and self.tertiaryAttackLastFrame) then
-
             self:TertiaryAttackEnd()
-
+            self.tertiaryAttackLastFrame = false
         end
-
     end
-
-    -- Remember if we attacked so we don't call AttackEnd() until mouse button is released
-    self.primaryAttackLastFrame = (bit.band(input.commands, Move.PrimaryAttack) ~= 0)
-    self.secondaryAttackLastFrame = (bit.band(input.commands, Move.SecondaryAttack) ~= 0)
-    self.tertiaryAttackLastFrame = (bit.band(input.commands, Move.TertiaryAttack) ~= 0)
-
 end
 
 function Player:HandleDoubleTap(input)
@@ -2065,7 +2077,6 @@ function Player:HandleButtons(input)
     local ableToUse = self:GetIsAbleToUse()
     local usePressed = ableToUse and bit.band(input.commands, Move.Use) ~= 0
     local attackLastFrame = self.primaryAttackLastFrame or self.secondaryAttackLastFrame or self.tertiaryAttackLastFrame
-    local alienSecondaryAttacking = self:isa("Alien") and self.secondaryAttackLastFrame
 
     -- The only use case so far for the 'use' key to be pressed while using primary/secondary attack is
     -- as a gorge when you heal yourself and want to press 'use' to hatch a babblerEgg, or an alien entering the hive.
@@ -2074,7 +2085,7 @@ function Player:HandleButtons(input)
     if usePressed then
 
         local isUsing = false
-        if (not attackLastFrame or alienSecondaryAttacking) then
+        if (not attackLastFrame or (self:isa("Alien") and self.secondaryAttackLastFrame)) then
             isUsing = AttemptToUse(self, input.time)
         end
         
@@ -2104,6 +2115,11 @@ function Player:HandleButtons(input)
 
     -- self:HandleDoubleTap(input)
 
+    -- Only do one binary check for all, then one by one (cheaper than every time)
+    if bit.band(input.commands, kWeaponMask) == 0 then
+        return
+    end
+
     if bit.band(input.commands, Move.Reload) ~= 0 then
         self:Reload()
     end
@@ -2113,33 +2129,19 @@ function Player:HandleButtons(input)
 
         if bit.band(input.commands, Move.SelectNextWeapon) ~= 0 then
             self:SelectNextWeapon()
-        end
-
-        if bit.band(input.commands, Move.SelectPrevWeapon) ~= 0 then
+        elseif bit.band(input.commands, Move.SelectPrevWeapon) ~= 0 then
             self:SelectPrevWeapon()
-        end
-
-        if bit.band(input.commands, Move.Weapon1) ~= 0 then
+        elseif bit.band(input.commands, Move.Weapon1) ~= 0 then
             self:SwitchWeapon(1)
-        end
-
-        if bit.band(input.commands, Move.Weapon2) ~= 0 then
+        elseif bit.band(input.commands, Move.Weapon2) ~= 0 then
             self:SwitchWeapon(2)
-        end
-
-        if bit.band(input.commands, Move.Weapon3) ~= 0 then
+        elseif bit.band(input.commands, Move.Weapon3) ~= 0 then
             self:SwitchWeapon(3)
-        end
-
-        if bit.band(input.commands, Move.Weapon4) ~= 0 then
+        elseif bit.band(input.commands, Move.Weapon4) ~= 0 then
             self:SwitchWeapon(4)
-        end
-
-        if bit.band(input.commands, Move.Weapon5) ~= 0 then
+        elseif bit.band(input.commands, Move.Weapon5) ~= 0 then
             self:SwitchWeapon(5)
-        end
-
-        if bit.band(input.commands, Move.QuickSwitch) ~= 0 then
+        elseif bit.band(input.commands, Move.QuickSwitch) ~= 0 then
             self:QuickSwitchWeapon()
         end
 
@@ -2510,6 +2512,7 @@ function Player:RetrieveMove()
 end
 
 function Player:GetCanControl()
+    PROFILE("Player:GetCanControl")
     return not self.isMoveBlocked and self:GetIsAlive() and ( not HasMixin(self, "Stun") or not self:GetIsStunned() ) and not self:GetCountdownActive() and not ConcedeSequence.GetIsPlayerObserving(self)
 end
 

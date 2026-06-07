@@ -494,14 +494,11 @@ local function FireBullets(self, player)
     local range = self:GetRange()
     local damage = self:GetBulletDamage()
 
-    -- Use the random table in reverse order, so the shot and effect are not related
-    local tracertRandom = player.kClipWeaponRandomArray[1 + (player.kClipWeaponRandomArrayMaxIdx - player.kClipWeaponRandomArrayIdx)]
-
     local numberBullets = self:GetBulletsPerShot()
     
     local bulletSize = self:GetBulletSize()
     local effectFrequency = self:GetTracerEffectFrequency()
-    local showTracer = tracertRandom < effectFrequency
+    
     
     local viewAngles = player:GetViewAngles()
     local shootCoords = viewAngles:GetCoords()
@@ -514,6 +511,10 @@ local function FireBullets(self, player)
     local hasShotRecently = (now - self.timeAttackFired < 0.2)
     local hasHitRecently = (now - lastTimeDamageDealt) < 0.5
     local allowBoxTrace = (not hasShotRecently) or hasHitRecently
+
+    -- Use the random table in reverse order, so the shot and effect are not related
+    local tracertRandom = player.kClipWeaponRandomArray[1 + (player.kClipWeaponRandomArrayMaxIdx - player.kClipWeaponRandomArrayIdx)]
+    local showTracer = tracertRandom < effectFrequency
     --if Server then
     --    Log("ClipWeap: allowBoxTrace: %s (hasShotRecently:%s / hasHitRecently:%s)", allowBoxTrace, hasShotRecently, hasHitRecently)
     --end

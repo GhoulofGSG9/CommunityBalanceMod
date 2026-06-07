@@ -115,8 +115,10 @@ function Weapon:OnParentChanged(oldParent, newParent)
 
 end
 
+--[[
 function Weapon:OnUpdateWeapon()
 end
+--]]
 
 function Weapon:UpdateWeaponSkins(client)
 end
