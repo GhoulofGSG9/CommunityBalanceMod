@@ -601,11 +601,18 @@ function Alien:GetTechButtons(techId)
 
 end
 
+local kSpecialKeys = bit.bor(Move.MovementModifier, Move.ToggleFlashlight)
 function Alien:HandleButtons(input)
 
     PROFILE("Alien:HandleButtons")
 
     Player.HandleButtons(self, input)
+
+    -- If nothing special, then stop right here
+    if not self.movementModiferState and bit.band(input.commands, kSpecialKeys) == 0 then
+        self.darkVisionLastFrame = false
+        return
+    end
 
     -- Update alien movement ability
     local newMovementState = bit.band(input.commands, Move.MovementModifier) ~= 0
