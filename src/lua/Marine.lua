@@ -240,6 +240,8 @@ function Marine:OnCreate()
         
         self.minesLeft = 0
 
+        self.timeLastAutopickupCheck = 0
+
     elseif Client then
     
         self.flashlight = Client.CreateRenderLight()
@@ -593,11 +595,16 @@ function Marine:HandleButtons(input)
         -- search for weapons to auto-pickup nearby.
         if Server and self.ShouldAutopickupWeapons and self:ShouldAutopickupWeapons() then
 
-            local autopickupWeapon = self:FindNearbyAutoPickupWeapon()
-            if autopickupWeapon then
-                PickupWeapon(self, autopickupWeapon, true)
+            local now = Shared.GetTime()
+            if (self.timeLastAutopickupCheck + 0.4 < now) then
+                local autopickupWeapon = self:FindNearbyAutoPickupWeapon()
+                if autopickupWeapon then
+                    PickupWeapon(self, autopickupWeapon, true)
+                end
+                
+                self.timeLastAutopickupCheck = now
             end
-            
+
         end
         
         -- If nothing special, then stop right here
