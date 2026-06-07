@@ -622,7 +622,7 @@ function Alien:HandleButtons(input)
 
     self.movementModiferState = newMovementState
 
-    if self:GetCanControl() and (Client or Server) then
+    if (Client or Server) and self:GetCanControl() then
 
         local darkVisionPressed = bit.band(input.commands, Move.ToggleFlashlight) ~= 0
         if not self.darkVisionLastFrame and darkVisionPressed then
