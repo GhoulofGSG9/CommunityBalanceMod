@@ -2031,6 +2031,7 @@ function Player:GetIsAbleToUse()
     return self:GetIsAlive()
 end
 
+
 function Player:HandleButtons(input)
 
     PROFILE("Player:HandleButtons")
@@ -2062,10 +2063,10 @@ function Player:HandleButtons(input)
 
     self.moveButtonPressed = input.move:GetLength() ~= 0
 
-    local ableToUse = self:GetIsAbleToUse()
-    local usePressed = ableToUse and bit.band(input.commands, Move.Use) ~= 0
-    local attackLastFrame = self.primaryAttackLastFrame or self.secondaryAttackLastFrame or self.tertiaryAttackLastFrame
-    local alienSecondaryAttacking = self:isa("Alien") and self.secondaryAttackLastFrame
+    local usePressed = false
+    if (bit.band(input.commands, Move.Use) ~= 0) then
+        usePressed = self:GetIsAbleToUse()
+    end
 
     -- The only use case so far for the 'use' key to be pressed while using primary/secondary attack is
     -- as a gorge when you heal yourself and want to press 'use' to hatch a babblerEgg, or an alien entering the hive.
@@ -2074,7 +2075,8 @@ function Player:HandleButtons(input)
     if usePressed then
 
         local isUsing = false
-        if (not attackLastFrame or alienSecondaryAttacking) then
+        local attackLastFrame = self.primaryAttackLastFrame or self.secondaryAttackLastFrame or self.tertiaryAttackLastFrame
+        if (not attackLastFrame or (self.secondaryAttackLastFrame and self:isa("Alien"))) then
             isUsing = AttemptToUse(self, input.time)
         end
         
