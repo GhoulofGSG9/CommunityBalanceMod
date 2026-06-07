@@ -600,7 +600,6 @@ function Marine:HandleButtons(input)
             
         end
         
-        -- TODO: Check autopick if it still works (got moved)
         -- If nothing special, then stop right here
         if bit.band(input.commands, kSpecialKeys) == 0 then
             self.flashlightLastFrame = false
