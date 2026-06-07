@@ -1056,7 +1056,7 @@ kPlasmaHitBoxRadiusT1 = 0.10
 kPlasmaLauncherEnergyUpRate = 0.25
 kPlasmaDamageType = kDamageType.Normal 
 
-kPlasmaLauncherWeight = 0.125
+kPlasmaLauncherWeight = 0.16
 
 -- Blowtorch (depreciated)
 kExoFlamerWeight = 0.05

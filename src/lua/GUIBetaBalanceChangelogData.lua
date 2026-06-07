@@ -36,7 +36,7 @@ if kCBMaddon then
 
 	## ALIEN
 	  - Rebalance of existing alien support structures (reduced eHP, cost, and size; increased movement speed).
-	  - New alien support structure upgrades (fortress crag, shift, shade, and whip) with powerful abilites.
+	  - New alien support structure upgrades (advanced crag, shift, shade, and whip) with powerful abilites.
 	  - Hive biomass 5 introduced (2 hive xeno).
 	  - Rework and bugfixes to onos stomp.
 	  - Rework of cloak and carapace replacement (rage).
@@ -64,7 +64,7 @@ if kCBMaddon then
 	
 	### Status Icons
 	  - New status icon for webbed status (web, stomp, whip webbing).
-	  - New status icons for fortress structure passives.
+	  - New status icons for Advanced structure passives.
 	  - Display status icons even with minimal hud elements.
 
 	### QoL / General Improvements
@@ -87,7 +87,7 @@ if kCBMaddon then
 	  - Added Icon for Drifter Eggs
 	  - Added Icon for deployed ARCS
 	  - Added Icon for Advanced Armory
-	  - Added Icons for Fortress PvE
+	  - Added Icons for Advanced PvE
 	  - Alien Commander is able to see parasited mines
 
 	### Vanilla Bugfixes
@@ -111,10 +111,10 @@ if kCBMaddon then
 	  - Base kit thruster replaced with jump (exos can no longer sprint by default).
 	  - Base Armor is 170 (+40 per armor level) and base speed is 6 m/s (speed capped at 7.5 m/s).
 	  - Additional armor/weight(inverse of speed)/pres cost is dependent on selected arms:
-		- Railgun: 25/0.1/25
+		- Railgun: 25/0.12/25
 		- Minigun: 75/0.2/25
-		- Plasma Launcher: 50/0.125/20
-		- Claw: 115/0.0/15
+		- Plasma Launcher: 50/0.16/20
+		- Claw: 75/0.08/15
 	  - Cores (optional upgrade):
 		- Ejection Seat: Auto-ejects marine on exosuit reaching 0 armor (+0.025 Weight / Costs 5 pres).
 		  - Requires valid ejection spot.
@@ -194,7 +194,7 @@ if kCBMaddon then
 	### Electrify Debuff (pulse/plasma/SPARC)
 	  - TLDR: Disables passives, reduces movement speed, and slows alien attacks and abilities.
 	  - Electrify slow on players increased to 30% from 20% (vanilla).
-	  - Electrify now works on structures (including fortress variants):
+	  - Electrify now works on structures (including Advanced variants):
 		- Whips: Prevents slapping / bombarding, reduces movement speed.
 		- Hydra: Prevents spiking.
 		- Crag: Prevents healing and douse, reduces movement speed.
@@ -363,7 +363,7 @@ if kCBMaddon then
 	    - Replaces Carapace
 	    - Increases energy regeneration rate for 3s after taking damage (+16.67% per shell).
 	  - Aura:
-	    - No longer reveals health information (moved to Fortress Shade)
+	    - No longer reveals health information (moved to Advanced Shade)
 	    - Icon is always yellow.
       - Camouflage:
 	    - Shaders completely reworked to ensure camo is competitive with other upgrades.
@@ -444,38 +444,38 @@ if kCBMaddon then
 	  - Shift:
 		- Reduced energy regenerate rate by 50%
 
-	### Fortress Support Structures
+	### Advanced Support Structures
 	  - Starting eHP reduced to 1400/1400/1400/2800 at 0% maturity and 1 biomass.
 	  - Starting eHP reduced to 2000/2000/2000/3400 at 100% maturity and 1 biomass.
-	  - Fotress whip gains 50 HP per biomass and has a max of 200 armor.
-	  - Fortress structures move 25% slower than regular PvE on infestation (2.9 m/s).
-		- Fortress structures gradually slow to 1.45/1.45/1.45/2.175 m/s off infestation.
-		- Fortress abilities do not work while moving.
+	  - Advanced whip gains 50 HP per biomass and has a max of 200 armor.
+	  - Advanced structures move 25% slower than regular PvE on infestation (2.9 m/s).
+		- Advanced structures gradually slow to 1.45/1.45/1.45/2.175 m/s off infestation.
+		- Advanced abilities do not work while moving.
 	  - New passives when specific hive tech is researched.
-	  - Fortress structure passives are only active when structure is stationary.
+	  - Advanced structure passives are only active when structure is stationary.
 	  - New UI element for passives and updated tooltips.
-	  - Fortress upgrade costs 20 tres (18 tres for whip - same total)
-	  - Fortress Shift:
+	  - Advanced upgrade costs 20 tres (18 tres for whip - same total)
+	  - Advanced Shift:
 		- Stormcloud now auto-casts every 5s.
-		- Stormcloud's buff now lasts 5s outside of Fortress Shift range.
+		- Stormcloud's buff now lasts 5s outside of Advanced Shift range.
 		- Stormcloud gives a flat speed buff (+1.5/1.5/1.25/0.75 m/s) depending on spur level (0/1/2/3). 
 		- The max possible net speed depending on spur level (0/1/2/3) with stormcloud is 1.5/2.0/2.25/2.25 m/s.
 		  - Fade, skulks, and lerks capped at +1.5 m/s.
-		- Spawns eggs around Fortress Shift when Shift Hive is researched.
+		- Spawns eggs around Advanced Shift when Shift Hive is researched.
 		- Will only spawn eggs if less than 3 FShift eggs exist.
-	  - Fortress Crag:
+	  - Advanced Crag:
 		- Applies douse every 2s which grants immunity to fire debuffs on alien players and structures.
 		- Douse applies a 5% structure damage reduction and lasts 3s.
-		- Douse is applied in inner fortress crag radius.
+		- Douse is applied in inner Advanced Crag radius.
 		- Douse has custom magenta shader and stacks with umbra.
-	  - Fortress Shade:
+	  - Advanced Shade:
 		- Hallucinations ability is now free (does not auto-cast) and has a 60s cooldown.
 		- Hallucinations no longer provide vision and move slowly.
 		- Blights (reveals eHP and location) marines in range for 6s every 5s when Shade Hive is researched.
 		- Highlight is colored blue, magenta, or red depending on number of PRIMARY attacks (accounts for focus and crush) or eHP.
 		- For players: >2 blue, 2 to 1 magenta, <=1 red
 		- For structures: >66% blue, 66% to 33% magenta, <33% red
-	  - Fortress Whip:
+	  - Advanced Whip:
 		- Active ability called bile frenzy that spawns three bile bombs and temporarily increases whip movement speed.
 		- Slaps deal 15 damage to secondary targets within 3 m of main target.
 		- Crag Hive: Siphoning Slaps (75 eHP gained on player slap hit)
@@ -545,7 +545,7 @@ else
 	
 	### Status Icons
 	  - New status icon for webbed status (web, stomp, whip webbing).
-	  - New status icons for fortress structure passives.
+	  - New status icons for advanced structure passives.
 	  - Display status icons even with minimal hud elements.
 
 	### QoL / General Improvements
@@ -568,7 +568,7 @@ else
 	  - Added Icon for Drifter Eggs
 	  - Added Icon for deployed ARCS
 	  - Added Icon for Advanced Armory
-	  - Added Icons for Fortress PvE
+	  - Added Icons for Advanced PvE
 	  - Alien Commander is able to see parasited mines
 
 	### Vanilla Bugfixes
@@ -592,10 +592,9 @@ else
 	  - Base kit thruster replaced with jump (exos can no longer sprint by default).
 	  - Base Armor is 170 (+40 per armor level) and base speed is 6 m/s (speed capped at 7.5 m/s).
 	  - Additional armor/weight(inverse of speed)/pres cost is dependent on selected arms:
-		- Railgun: 25/0.1/25
+		- Railgun: 25/0.12/25
 		- Minigun: 75/0.2/25
-		- Plasma Launcher: 50/0.125/20
-		- Claw: 75/0.0/15
+		- Claw: 75/0.08/15
 	  - Cores (optional upgrade):
 		- Ejection Seat: Auto-ejects marine on exosuit reaching 0 armor (+0.025 Weight / Costs 5 pres).
 		  - Requires valid ejection spot.
@@ -647,7 +646,7 @@ else
 	### Electrify Debuff (pulse/plasma/SPARC)
 	  - TLDR: Disables passives, reduces movement speed, and slows alien attacks and abilities.
 	  - Electrify slow on players increased to 30% from 20% (vanilla).
-	  - Electrify now works on structures (including fortress variants):
+	  - Electrify now works on structures (including Advanced variants):
 		- Whips: Prevents slapping / bombarding, reduces movement speed.
 		- Hydra: Prevents spiking.
 		- Crag: Prevents healing and douse, reduces movement speed.
@@ -749,7 +748,7 @@ else
 	    - Replaces Carapace
 	    - Increases energy regeneration rate for 3s after taking damage (+16.67% per shell).
 	  - Aura:
-	    - No longer reveals health information (moved to Fortress Shade)
+	    - No longer reveals health information (moved to Advanced Shade)
 	    - Icon is always yellow.
       - Camouflage:
 	    - Shaders completely reworked to ensure camo is competitive with other upgrades.
