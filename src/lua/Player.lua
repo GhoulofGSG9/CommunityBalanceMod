@@ -201,6 +201,8 @@ local kPlayerRepelForce = 7
 -- Max amount of step allowed
 Player.kMaxStepAmount = 2
 
+local kWeaponMask = bit.bor(Move.Reload, Move.SelectNextWeapon, Move.SelectPrevWeapon, Move.Weapon1, Move.Weapon2, Move.Weapon3, Move.Weapon4, Move.Weapon5, Move.QuickSwitch)
+
 -------------
 -- NETWORK --
 -------------
@@ -2031,7 +2033,6 @@ function Player:GetIsAbleToUse()
     return self:GetIsAlive()
 end
 
-
 function Player:HandleButtons(input)
 
     PROFILE("Player:HandleButtons")
@@ -2106,6 +2107,11 @@ function Player:HandleButtons(input)
 
     -- self:HandleDoubleTap(input)
 
+    -- Only do one binary check for all, then one by one (cheaper than every time)
+    if bit.band(input.commands, kWeaponMask) == 0 then
+        return
+    end
+
     if bit.band(input.commands, Move.Reload) ~= 0 then
         self:Reload()
     end
@@ -2115,33 +2121,19 @@ function Player:HandleButtons(input)
 
         if bit.band(input.commands, Move.SelectNextWeapon) ~= 0 then
             self:SelectNextWeapon()
-        end
-
-        if bit.band(input.commands, Move.SelectPrevWeapon) ~= 0 then
+        elseif bit.band(input.commands, Move.SelectPrevWeapon) ~= 0 then
             self:SelectPrevWeapon()
-        end
-
-        if bit.band(input.commands, Move.Weapon1) ~= 0 then
+        elseif bit.band(input.commands, Move.Weapon1) ~= 0 then
             self:SwitchWeapon(1)
-        end
-
-        if bit.band(input.commands, Move.Weapon2) ~= 0 then
+        elseif bit.band(input.commands, Move.Weapon2) ~= 0 then
             self:SwitchWeapon(2)
-        end
-
-        if bit.band(input.commands, Move.Weapon3) ~= 0 then
+        elseif bit.band(input.commands, Move.Weapon3) ~= 0 then
             self:SwitchWeapon(3)
-        end
-
-        if bit.band(input.commands, Move.Weapon4) ~= 0 then
+        elseif bit.band(input.commands, Move.Weapon4) ~= 0 then
             self:SwitchWeapon(4)
-        end
-
-        if bit.band(input.commands, Move.Weapon5) ~= 0 then
+        elseif bit.band(input.commands, Move.Weapon5) ~= 0 then
             self:SwitchWeapon(5)
-        end
-
-        if bit.band(input.commands, Move.QuickSwitch) ~= 0 then
+        elseif bit.band(input.commands, Move.QuickSwitch) ~= 0 then
             self:QuickSwitchWeapon()
         end
 
