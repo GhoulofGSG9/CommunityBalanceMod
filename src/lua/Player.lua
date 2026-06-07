@@ -2074,10 +2074,9 @@ function Player:HandleButtons(input)
 
     self.moveButtonPressed = input.move:GetLength() ~= 0
 
-    local usePressed = false
-    if (bit.band(input.commands, Move.Use) ~= 0) then
-        usePressed = self:GetIsAbleToUse()
-    end
+    local ableToUse = self:GetIsAbleToUse()
+    local usePressed = ableToUse and bit.band(input.commands, Move.Use) ~= 0
+    local attackLastFrame = self.primaryAttackLastFrame or self.secondaryAttackLastFrame or self.tertiaryAttackLastFrame
 
     -- The only use case so far for the 'use' key to be pressed while using primary/secondary attack is
     -- as a gorge when you heal yourself and want to press 'use' to hatch a babblerEgg, or an alien entering the hive.
@@ -2086,8 +2085,7 @@ function Player:HandleButtons(input)
     if usePressed then
 
         local isUsing = false
-        local attackLastFrame = self.primaryAttackLastFrame or self.secondaryAttackLastFrame or self.tertiaryAttackLastFrame
-        if (not attackLastFrame or (self.secondaryAttackLastFrame and self:isa("Alien"))) then
+        if (not attackLastFrame or (self:isa("Alien") and self.secondaryAttackLastFrame)) then
             isUsing = AttemptToUse(self, input.time)
         end
         
@@ -2514,6 +2512,7 @@ function Player:RetrieveMove()
 end
 
 function Player:GetCanControl()
+    PROFILE("Player:GetCanControl")
     return not self.isMoveBlocked and self:GetIsAlive() and ( not HasMixin(self, "Stun") or not self:GetIsStunned() ) and not self:GetCountdownActive() and not ConcedeSequence.GetIsPlayerObserving(self)
 end
 
