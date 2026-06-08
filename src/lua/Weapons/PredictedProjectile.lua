@@ -9,6 +9,8 @@
 PredictedProjectileShooterMixin = CreateMixin(PredictedProjectileShooterMixin)
 PredictedProjectileShooterMixin.type = "PredictedProjectile"
 
+-- Fixes applied to PredictedProjectile.lua should also be applied to PierceProjectile.lua.
+
 local minSpeedSquared = 0.001 * 0.001
 local function UpdateRenderCoords(self)
 
