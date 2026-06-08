@@ -441,7 +441,7 @@ function PlasmaLauncher:OnUpdateAnimationInput(modelMixin)
 
     local activity = "none"
     
-	if self.plasmalauncherAttacking and self.energyWAmount > self.energyCost then
+	if self.plasmalauncherAttacking and self.energyWAmount >= self.energyCost then
         activity = "primary"
     end
     
