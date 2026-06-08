@@ -280,8 +280,7 @@ function Skulk:GetViewModelName()
 end
 
 function Skulk:GetCanJump()
-    local canWallJump = self:GetCanWallJump()
-    return self:GetIsOnGround() or canWallJump
+    return self:GetIsOnGround() or self:GetCanWallJump()
 end
 
 function Skulk:GetIsWallWalking()

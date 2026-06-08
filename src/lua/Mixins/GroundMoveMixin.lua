@@ -630,6 +630,19 @@ function GroundMoveMixin:GetIsOnSurface()
     return self.onGround
 end
 
+local function Surfaces_StringToEnum(surfaceMaterial)
+    --PROFILE("GroundMoveMixin:Surfaces_StringToEnum")
+    if (surfaceMaterial == "metal") then
+        return kSurfaces.metal -- 99% of the cases, no need to do an enum lookup for it
+    end
+    if (surfaceMaterial == "thin_metal") then
+        return kSurfaces.thin_metal
+    end
+
+    --Log("-- %s", surfaceMaterial)
+    return StringToEnum(kSurfaces, surfaceMaterial)
+end
+
 local function UpdateOnGround(self)
 
     PROFILE("GroundMoveMixin:UpdateOnGround")
@@ -637,7 +650,7 @@ local function UpdateOnGround(self)
     local onGround, _, hitEntities, surfaceMaterial = GetIsCloseToGround(self, 0.15)
     
     if surfaceMaterial then
-        self.onGroundSurface = StringToEnum(kSurfaces, surfaceMaterial) or kSurfaces.metal
+        self.onGroundSurface = Surfaces_StringToEnum(surfaceMaterial) or kSurfaces.metal
     end
     
     if self.OverrideUpdateOnGround then
