@@ -3316,7 +3316,7 @@ function GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, fil
         local distance = isHit and trace.endPoint:GetDistanceTo(startPoint) or 0
 
         -- Outside melee range dist, once in melee it's too fast paced (boxTrace is a waste, mostly needed longer ranges)
-        local doBoxTrace = not trace.entity and distance > 3 and allowBoxTrace
+        local doBoxTrace = not trace.entity and allowBoxTrace
 
         --
         --if Server then
