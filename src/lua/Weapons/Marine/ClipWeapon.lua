@@ -313,6 +313,7 @@ function ClipWeapon:GetIsPrimaryAttackAllowed(player)
 end
 
 function ClipWeapon:OnPrimaryAttack(player)
+    PROFILE("ClipWeapon:OnPrimaryAttack")
 
     if self:GetIsPrimaryAttackAllowed(player) then
     
@@ -324,7 +325,7 @@ function ClipWeapon:OnPrimaryAttack(player)
             self.primaryAttacking = true
             self.attackLastRequested = Shared.GetTime()
 
-            if Server and self:GetPrimaryAttackPlaysClientSound() then
+            if Server and #gServerBots > 0 and self:GetPrimaryAttackPlaysClientSound() then
                 self:MaybeRevealParentToEnemyBots()
             end
             
