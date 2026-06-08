@@ -104,6 +104,7 @@ if kCBMaddon then
 	  - Flying flamethrowers in rare cases should not crash the server anymore.
 	  - Fix to cinematics of projectiles desyncing.
 	  - Fixed shotgun trace source location to be consistent (was random).
+	  - Fixed issue with projectiles visually disappearing from the client.
 	
 	## MARINE - PLAYER
 	### Modular Exosuits
@@ -585,6 +586,7 @@ else
 	  - Flying flamethrowers in rare cases should not crash the server anymore.
 	  - Fix to cinematics of projectiles desyncing.
 	  - Fixed shotgun trace source location to be consistent (was random).
+	  - Fixed issue with projectiles visually disappearing from the client.
 	
 	## MARINE - PLAYER
 	### Modular Exosuits
