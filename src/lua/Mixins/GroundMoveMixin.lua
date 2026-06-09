@@ -373,6 +373,7 @@ local function Accelerate(self, input, velocity, deltaTime)
     local maxSpeedTable = { maxSpeed = self:GetMaxSpeed() }
     self:ModifyMaxSpeed(maxSpeedTable, input) -- modifies the maxSpeed if crouching for instance
     local maxSpeed = maxSpeedTable.maxSpeed
+
     if self.onGround then
         Accelerate_onGround(self, input, velocity, maxSpeed, deltaTime)
     else
@@ -475,40 +476,52 @@ local function DoStepMove(self, _, velocity, deltaTime)
     local slowDownFraction = self.GetCollisionSlowdownFraction and self:GetCollisionSlowdownFraction() or 1
     local deflectMove = self.GetDeflectMove and self:GetDeflectMove() or false
     
-    -- step up at first
-    self:PerformMovement(Vector(0, kStepHeight, 0), 1)
-    stepAmount = self:GetOrigin().y - oldOrigin.y
-    
-    -- do the normal move
-    local startOrigin = Vector(self:GetOrigin())
-    local completedMove = self:PerformMovement(velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove)
-    local horizMoveAmount = (startOrigin - self:GetOrigin()):GetLengthXZ()
-    
-    if completedMove then
-        -- step down again
-        local _, _, averageSurfaceNormal = self:PerformMovement(Vector(0, -stepAmount - horizMoveAmount * kDownSlopeFactor, 0), 1)
+
+    self:PerformMovement(velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove)
+    local distMoved = self:GetOrigin():GetDistanceTo(oldOrigin)
+    local expectedDestPos = oldOrigin + velocity * deltaTime
+    local newOriginWithDefaultMove = self:GetOrigin()
+    success = (expectedDestPos:GetDistanceTo(self:GetOrigin()) == 0) -- If we are exactly where we should, keep it
+
+    if (self.DoExtraGroundStepsChecks and not self:DoExtraGroundStepsChecks()) then
+        return success
+    end
+
+    if not success then
+        --Log("We stepped on something")
+
+        -- step up at first
+        self:SetOrigin(oldOrigin)
+        VectorCopy(oldVelocity, velocity)
+        self:PerformMovement(Vector(0, kStepHeight, 0), 1)
+        stepAmount = self:GetOrigin().y - oldOrigin.y
         
-        if averageSurfaceNormal and averageSurfaceNormal.y >= 0.5 then
-            success = true
-        else    
+        -- do the normal move
+        local startOrigin = Vector(self:GetOrigin())
+        local completedMove = self:PerformMovement(velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove)
+        local horizMoveAmount = (startOrigin - self:GetOrigin()):GetLengthXZ()
         
-            local onGround = GetIsCloseToGround(self, 0.15)
+        if completedMove then
+            -- step down again
+            local _, _, averageSurfaceNormal = self:PerformMovement(Vector(0, -stepAmount - horizMoveAmount * kDownSlopeFactor, 0), 1)
             
-            if onGround then
+            if averageSurfaceNormal and averageSurfaceNormal.y >= 0.5 then
                 success = true
+            else    
+            
+                local onGround = GetIsCloseToGround(self, 0.15)
+                
+                if onGround then
+                    success = true
+                end
+                
             end
             
         end
-        
     end
-    
-    -- not succesful. fall back to normal move
-    if not success then
-    
-        self:SetOrigin(oldOrigin)
-        VectorCopy(oldVelocity, velocity)
-        self:PerformMovement(velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove)
-        
+
+    if (not success) then -- If the step-over failed, just keep the normal course
+        self:SetOrigin(newOriginWithDefaultMove)
     end
 
     return success
@@ -568,9 +581,11 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
         local stepAmount = 0
         local hitObstacle = false
     
-        -- check if we are allowed to step:
-        local _, hitEntities = self:PerformMovement(velocity * deltaTime * 2.5, 1, nil, false)
-  
+        -- check if we are allowed to step
+        local completedMove = false
+        local hitEntities = nil
+
+        completedMove, hitEntities = self:PerformMovement(velocity * deltaTime * 2.5, 1, nil, false)
         if stepAllowed and hitEntities then
         
             for i = 1, #hitEntities do
@@ -593,7 +608,8 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
             
             self:PerformMovement(velocity * deltaTime, 3, velocity, true, slowDownFraction * 0.5, deflectMove)
             
-        else        
+        else
+            --Log("Doing step move (allowed and no entity hit)")        
             didStep, stepAmount = DoStepMove(self, input, velocity, deltaTime)            
         end
         
@@ -692,9 +708,12 @@ function GroundMoveMixin:UpdateMove(input)
     ApplyGravity(self, input, velocity, deltaTime)
     Accelerate(self, input, velocity, deltaTime)
 
-    self:UpdatePosition(input, velocity, deltaTime)    
-    self:SetVelocity(velocity)
-    
+    if (velocity:GetLength() > 0) then -- No update if not moving
+        self:UpdatePosition(input, velocity, deltaTime)    
+        self:SetVelocity(velocity)
+    --else
+    --    Log("Not moving, skipping")
+    end
 end
 
 function GroundMoveMixin:OnWorldCollision(normal, impactForce)
