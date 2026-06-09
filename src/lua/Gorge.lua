@@ -630,8 +630,4 @@ if Server then
 
 end
 
-function BabblerBombAbility:OnUpdateWeapon(player)
-    self:RechargeCharges()
-end
-
 Shared.LinkClassToMap("Gorge", Gorge.kMapName, networkVars, true)
