@@ -706,6 +706,11 @@ function Lerk:OnUpdateAnimationInput(modelMixin)
     
 end
 
+-- Lerks do not walk (they fly), don't do those expensive checks 
+function Lerk:DoExtraGroundStepsChecks()
+    return false
+end
+
 Shared.LinkClassToMap("Lerk", Lerk.kMapName, networkVars, true)
 
 
