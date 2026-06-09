@@ -91,6 +91,7 @@ if Server then
         dotMarker:SetOwner(self:GetOwner())
 		dotMarker:SetDebuff('pulse')
 		dotMarker:SetFallOffFunc(NoFalloff)
+		dotMarker:SetLoSCheck(true)
 				
 		for _, entity in ipairs(hitEntities) do
 

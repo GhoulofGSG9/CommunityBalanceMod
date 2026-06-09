@@ -37,7 +37,7 @@ local networkVars =
 AddMixinNetworkVars(TeamMixin, networkVars)
 AddMixinNetworkVars(LOSMixin, networkVars)
 
-DotMarker.kType = enum({'Static', 'Dynamic', 'SingleTarget','StaticNoLOS'})
+DotMarker.kType = enum({'Static', 'Dynamic', 'SingleTarget'})
 
 local function GetRelativImpactPoint(origin, hitEntity)
 
@@ -153,26 +153,6 @@ local function ConstructCachedTargetList(origin, forTeam, damage, radius, fallOf
     
 end
 
-local function ConstructCachedTargetListHitEntities(origin, forTeam, damage, radius, fallOffFunc, ignoreLos, hitEntities)
-
-    local targetList = {}
-    local targetIds = {}
-    
-    for index, hitEntity in ipairs(hitEntities) do
-		if hitEntity and hitEntity:GetIsAlive() and hitEntity:GetTeamNumber() == forTeam then
-			local entry = ConstructTargetEntry(origin, hitEntity, damage, radius, ignoreLos, nil, fallOffFunc)
-			
-			if entry then
-				table.insert(targetList, entry)
-				targetIds[hitEntity:GetId()] = true
-			end
-		end
-    end
-    
-    return targetList, targetIds
-    
-end
-
 function DotMarker:OnCreate()
 
     ScriptActor.OnCreate(self)
@@ -192,6 +172,7 @@ function DotMarker:OnCreate()
     self.dotMarkerType = DotMarker.kType.Static
     self.timeLastUpdate = Shared.GetTime()
     self.deathIconIndex = kDeathMessageIcon.None
+	self.ignoreLoS = false
     self.targetIds = {}
     self.affectedByCrush = false
 	self.debuff = nil
@@ -268,10 +249,6 @@ function DotMarker:GetIsAffectedByCrush()
     return self.affectedByCrush
 end
 
-function DotMarker:SetTargetListHitEntities(hitEntities)
-    self.targetListHitEntities = hitEntities
-end
-
 function DotMarker:SetAttachToTarget(target, impactPoint)
 
     self.targetId = target:GetId()
@@ -341,6 +318,10 @@ function DotMarker:SetDebuff(debuff)
 	self.debuff = debuff
 end
 
+function DotMarker:SetLoSCheck(check)
+	self.ignoreLoS = check -- true ignores LOS
+end
+
 local function ApplyDebuff(self, targetList)
 
     for index, targetEntry in ipairs(targetList) do
@@ -395,14 +376,7 @@ function DotMarker:OnUpdate(deltaTime)
             
                 -- calculate the target list once and reuse it later (used for bilebomb)
                 if not targetList then
-                    self.targetList, self.targetIds = ConstructCachedTargetList(self:GetOrigin(), GetEnemyTeamNumber(self:GetTeamNumber()), self.damage, self.radius, self.fallOffFunc, false)
-                    targetList = self.targetList
-                end
-				
-			elseif self.dotMarkerType == DotMarker.kType.StaticNoLOS then
-
-                if not targetList then
-                    self.targetList, self.targetIds = ConstructCachedTargetListHitEntities(self:GetOrigin(), GetEnemyTeamNumber(self:GetTeamNumber()), self.damage, self.radius, self.fallOffFunc, false, self.targetListHitEntities )
+                    self.targetList, self.targetIds = ConstructCachedTargetList(self:GetOrigin(), GetEnemyTeamNumber(self:GetTeamNumber()), self.damage, self.radius, self.fallOffFunc, self.ignoreLoS)
                     targetList = self.targetList
                 end
             	
@@ -415,7 +389,6 @@ function DotMarker:OnUpdate(deltaTime)
 			if self.debuff and targetList then
 				ApplyDebuff(self, targetList)
 			end
-
 			
             self.timeLastUpdate = Shared.GetTime()
             
