@@ -447,7 +447,7 @@ end
 Server.HookNetworkMessage("ExoModularBuy", OnMessageExoModularBuy)
 
 function ModularExo_FindExoSpawnPoint(self)
-    local maxAttempts = 100
+    local maxAttempts = 5
     for index = 1, maxAttempts do
         
         -- Find open area nearby to place the big guy.
@@ -455,14 +455,14 @@ function ModularExo_FindExoSpawnPoint(self)
         local extents = Vector(Exo.kXZExtents, Exo.kYExtents, Exo.kXZExtents)
         
         local spawnPoint
-        local checkPoint = self:GetOrigin() + Vector(0, 0.02, 0)
+        local checkPoint = self:GetOrigin() + Vector(0, 0.1, 0)
         
         if GetHasRoomForCapsule(extents, checkPoint + Vector(0, extents.y, 0), CollisionRep.Move, PhysicsMask.Evolve, self) then
             spawnPoint = checkPoint
         else
             spawnPoint = GetRandomSpawnForCapsule(extents.y, extents.x, checkPoint, 0.5, 5, EntityFilterOne(self))
         end
-        
+		
         local weapons
         
         if spawnPoint then
