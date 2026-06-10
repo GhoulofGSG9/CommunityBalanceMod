@@ -338,6 +338,11 @@ end
 function DotMarker:OnUpdate(deltaTime)
 
     if Server then
+		
+		if self.dotMarkerType == DotMarker.kType.Static and not self.targetList then -- Target list should be formed immediately at spawn location not after DoT interval. This is only checked once.
+			-- calculate the target list once and reuse it later (used for bilebomb and plasma ball)
+			self.targetList, self.targetIds = ConstructCachedTargetList(self:GetOrigin(), GetEnemyTeamNumber(self:GetTeamNumber()), self.damage, self.radius, self.fallOffFunc, self.ignoreLoS)
+		end
 
         if self.timeLastUpdate + self.damageIntervall < Shared.GetTime() then
             -- we are attached to a target, update position
@@ -371,15 +376,7 @@ function DotMarker:OnUpdate(deltaTime)
             
                 -- in case for dynamic dot marker recalculate the target list each damage tick (used for burning)
                 targetList = ConstructCachedTargetList(self:GetOrigin(), GetEnemyTeamNumber(self:GetTeamNumber()), self.damage, self.radius, self.fallOffFunc)
-                
-            elseif self.dotMarkerType == DotMarker.kType.Static then
-            
-                -- calculate the target list once and reuse it later (used for bilebomb)
-                if not targetList then
-                    self.targetList, self.targetIds = ConstructCachedTargetList(self:GetOrigin(), GetEnemyTeamNumber(self:GetTeamNumber()), self.damage, self.radius, self.fallOffFunc, self.ignoreLoS)
-                    targetList = self.targetList
-                end
-            	
+                            	
             end
             
             if targetList then
