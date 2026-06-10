@@ -114,6 +114,19 @@ function ControllerMixin:DestroyOutterController()
     
 end
 
+function ControllerMixin:SetPositions(origin, allowTrigger)
+
+    if (self.controller:GetPosition() ~= origin) then
+        self.controller:SetPosition(origin, allowTrigger)
+    end
+    
+    if self.controllerOutter then
+        if self.controllerOutter:GetPosition() ~= origin then
+            self.controllerOutter:SetPosition(origin, allowTrigger)
+        end
+    end
+end
+
 --
 -- Synchronizes the origin and shape of the physics controller with the current
 -- state of the entity.
@@ -176,17 +189,12 @@ function ControllerMixin:UpdateControllerFromEntity(allowTrigger)
         -- player is at their feet, so offset it.
         VectorCopy(self:GetOrigin(), origin)
         origin.y = origin.y + self.controllerHeight * 0.5 + kSkinOffset
-        
-        self.controller:SetPosition(origin, allowTrigger)
-        
-        if self.controllerOutter then  
-            self.controllerOutter:SetPosition(origin, allowTrigger)
-        end    
-        
+
+        self:SetPositions(origin, allowTrigger)
+ 
     end
     
 end
-
 
 --
 -- Synchronizes the origin of the entity with the current state of the physics
