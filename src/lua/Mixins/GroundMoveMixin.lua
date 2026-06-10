@@ -478,20 +478,27 @@ local function DoStepMove(self, _, velocity, deltaTime)
     local slowDownFraction = self.GetCollisionSlowdownFraction and self:GetCollisionSlowdownFraction() or 1
     local deflectMove = self.GetDeflectMove and self:GetDeflectMove() or false
 
-    local completedMove, _, averageSurfaceNormal = self:PerformMovement(velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove)
+    local completedMove, hitEntities, averageSurfaceNormal = self:PerformMovement(velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove)
     local distMoved = self:GetOrigin():GetDistanceTo(oldOrigin)
     local expectedDestPos = oldOrigin + velocity * deltaTime
     local newOriginWithDefaultMove = self:GetOrigin()
     local diffPos = expectedDestPos:GetDistanceTo(self:GetOrigin())
     success = (diffPos == 0) -- If we are exactly where we should, keep it
 
-    if ((averageSurfaceNormal and averageSurfaceNormal.y < 1) or diffPos > 0.001 or newOriginWithDefaultMove.y - oldOrigin.y > 0.001 or not completedMove) then
+    if ((hitEntities and #hitEntities > 0)
+        or (averageSurfaceNormal and averageSurfaceNormal.y < 1)
+        or diffPos > 0.001 or math.abs(newOriginWithDefaultMove.y - oldOrigin.y) > 0.001
+        or not completedMove
+        ) then
         --Log("Elevation or geo-block detected, fallbacking to move-over: (diff-pos: %s)/(diff-y %sm)/completed: %s", diffPos, newOriginWithDefaultMove.y - oldOrigin.y, completedMove)
         success = false
     else
         success = true
     end
 
+    -- return true for the move-over checks to always happen
+    -- return false for it to never happen (lerks for instance)
+    -- undefined to only happen in regular cases to walk over geo
     if (self.DoExtraGroundStepsChecks) then
         if (not self:DoExtraGroundStepsChecks()) then
             return success
@@ -608,6 +615,7 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
                     if hitEntities[i]:isa("Player") then
                         hitObstacle = true
                         stepAllowed = false
+                        --Log("%s colliding with %s", self, hitEntities[i])
                         break
                         
                     end
