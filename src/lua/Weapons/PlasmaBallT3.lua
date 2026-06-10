@@ -76,7 +76,7 @@ if Server then
 
     function PlasmaT3:ProcessHit(targetHit, surface, normal, hitPoint, shotDamage, shotDOTDamage, shotDamageRadius, ChargePercent)        
 
-		local hitEntities = GetEntitiesWithMixinWithinRange("Live", self:GetOrigin(), kPlasmaBombDamageRadius)
+		local hitEntities = GetEntitiesWithMixinWithinRange("Live", self:GetOrigin() + normal*0.2, kPlasmaBombDamageRadius)
 		table.removevalue(hitEntities, self)
 		table.removevalue(hitEntities, self:GetOwner())
 
