@@ -477,11 +477,16 @@ local function DoStepMove(self, _, velocity, deltaTime)
     local deflectMove = self.GetDeflectMove and self:GetDeflectMove() or false
     
 
-    self:PerformMovement(velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove)
+    local completedMove = self:PerformMovement(velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove)
     local distMoved = self:GetOrigin():GetDistanceTo(oldOrigin)
     local expectedDestPos = oldOrigin + velocity * deltaTime
     local newOriginWithDefaultMove = self:GetOrigin()
     success = (expectedDestPos:GetDistanceTo(self:GetOrigin()) == 0) -- If we are exactly where we should, keep it
+
+    if (newOriginWithDefaultMove.y > oldOrigin.y or not completedMove) then
+        --Log("Elevation or geo-block detected, fallbacking to move-over (to smooth walking over it)")
+        success = false
+    end
 
     if (self.DoExtraGroundStepsChecks and not self:DoExtraGroundStepsChecks()) then
         return success
@@ -498,7 +503,7 @@ local function DoStepMove(self, _, velocity, deltaTime)
         
         -- do the normal move
         local startOrigin = Vector(self:GetOrigin())
-        local completedMove = self:PerformMovement(velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove)
+        completedMove = self:PerformMovement(velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove)
         local horizMoveAmount = (startOrigin - self:GetOrigin()):GetLengthXZ()
         
         if completedMove then
