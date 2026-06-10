@@ -843,11 +843,16 @@ end
 
 function Player:UpdateMisc(input)
 
+    local now = Shared.GetTime()
+    if self.kLastTimeUpdateMisc and self.kLastTimeUpdateMisc + 0.5 > now then
+        return -- No need to update effects/tech every update() call
+    end
+    self.kLastTimeUpdateMisc = now
+
     -- Set near death mask so we can add sound/visual effects.
     self:SetGameEffectMask(kGameEffect.NearDeath, self:GetHealth() < 0.2 * self:GetMaxHealth())
     
     if self:GetTeamType() == kMarineTeamType then
-    
         self.weaponUpgradeLevel = 0
         
         if GetHasTech(self, kTechId.Weapons3, true) then
