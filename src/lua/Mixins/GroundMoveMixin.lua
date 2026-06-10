@@ -118,6 +118,8 @@ local function GetIsCloseToGround(self, distance)
     
     elseif self.timeGroundAllowed <= Shared.GetTime() then
     
+        local velocity = self:GetVelocity()
+
         -- Try to move the controller downward a small amount to determine if
         -- we're on the ground.
         local offset = Vector(0, -distance, 0)
@@ -499,8 +501,6 @@ local function DoStepMove(self, _, velocity, deltaTime)
     end
 
     if not success then
-        --Log("We stepped on something: velocity.y: %s", velocity.y)
-
         -- step up at first
         self:SetOrigin(oldOrigin)
         VectorCopy(oldVelocity, velocity)
@@ -523,20 +523,17 @@ local function DoStepMove(self, _, velocity, deltaTime)
             
                 local onGround = GetIsCloseToGround(self, 0.15)
             
-                --Log("--Ground check: %s", onGround)    
                 if onGround then
                     success = true
                 end
                 
             end
         end
-        --Log("MoveOver completed: %s", completedMove)
     end
 
     if (not success) then -- If the step-over failed, just keep the normal course
         self:SetOrigin(newOriginWithDefaultMove)
         VectorCopy(oldVelocity, velocity)
-        --Log("Move-over failed")
     end
 
     return success
@@ -600,19 +597,23 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
         local completedMove = false
         local hitEntities = nil
 
-        completedMove, hitEntities = self:PerformMovement(velocity * deltaTime * 2.5, 1, nil, false)
-        if stepAllowed and hitEntities then
-        
-            for i = 1, #hitEntities do
-                if not self:GetCanStepOver(hitEntities[i]) then
-                
-                    hitObstacle = true
-                    stepAllowed = false
-                    break
-                    
+        -- - Checks for player collision while on ground, if none then we can step-over floor features
+        -- We usually move at, at most, 1.2m/update for very high speed stuff, so 5m player check is generous
+        -- We if are in the air/jumping or if nobody is in range, don't even bother checking ground move-over
+        if stepAllowed and #GetEntitiesWithinRange("Player", self:GetOrigin(), 5) > 1 then -- exclude self
+            completedMove, hitEntities = self:PerformMovement(velocity * deltaTime * 2.5, 1, nil, false)
+            if stepAllowed and hitEntities then
+            
+                for i = 1, #hitEntities do
+                    if hitEntities[i]:isa("Player") then
+                        hitObstacle = true
+                        stepAllowed = false
+                        break
+                        
+                    end
                 end
+            
             end
-        
         end
         
         if not stepAllowed then
@@ -623,8 +624,7 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
             
             self:PerformMovement(velocity * deltaTime, 3, velocity, true, slowDownFraction * 0.5, deflectMove)
             
-        else
-            --Log("Doing step move (allowed and no entity hit)")        
+        else     
             didStep, stepAmount = DoStepMove(self, input, velocity, deltaTime)            
         end
         
@@ -717,18 +717,23 @@ function GroundMoveMixin:UpdateMove(input)
     local deltaTime = input.time -- math.min(kMaxDeltaTime, input.time)
     local velocity = self:GetVelocity()
     
+    --Log("Velocity-in %s",velocity)
+
     UpdateOnGround(self)
     self:ModifyVelocity(input, velocity, deltaTime)
-    ApplyFriction(self, input, velocity, deltaTime)
+    if (velocity:GetLength() > 0) then
+        ApplyFriction(self, input, velocity, deltaTime)
+    end
     ApplyGravity(self, input, velocity, deltaTime)
     Accelerate(self, input, velocity, deltaTime)
 
     if (velocity:GetLength() > 0) then -- No update if not moving
         self:UpdatePosition(input, velocity, deltaTime)    
-        self:SetVelocity(velocity)
     --else
     --    Log("Not moving, skipping")
     end
+    self:SetVelocity(velocity)
+    --Log("Velocity-out %s",velocity)
 end
 
 function GroundMoveMixin:OnWorldCollision(normal, impactForce)

@@ -14,11 +14,13 @@ PhaseGateUserMixin.networkVars =
     timeOfLastPhase = "compensated private time"
 }
 
+local kPhaseCheckRadius = 0.6
+
 local function SharedUpdate(self)
     PROFILE("PhaseGateUserMixin:OnUpdate")
     if self:GetCanPhase() then
 
-        for _, phaseGate in ipairs(GetEntitiesForTeamWithinRange("PhaseGate", self:GetTeamNumber(), self:GetOrigin(), 0.5)) do
+        for _, phaseGate in ipairs(GetEntitiesForTeamWithinRange("PhaseGate", self:GetTeamNumber(), self:GetOrigin(), kPhaseCheckRadius)) do
         
             if phaseGate:GetIsDeployed() and GetIsUnitActive(phaseGate) and phaseGate:Phase(self) then
 
@@ -64,9 +66,21 @@ if Server then
     function PhaseGateUserMixin:OnProcessMove(input)
         PROFILE("PhaseGateUserMixin:OnProcessMove")
 
-        if self:GetCanPhase() then
-            for _, phaseGate in ipairs(GetEntitiesForTeamWithinRange("PhaseGate", self:GetTeamNumber(), self:GetOrigin(), 0.5)) do
-                if phaseGate:GetIsDeployed() and GetIsUnitActive(phaseGate) and phaseGate:Phase(self) then
+        local now = Shared.GetTime()
+        local rangeCheckThrottleRate = 0.3 -- Low enough in case of beacon/spawn
+        local rangeCheckDist = rangeCheckThrottleRate * 30 -- Safe margin
+        local performCheck = not self.kLastPhaseInRangeCheck or self.kLastPhaseInRangeCheck + rangeCheckThrottleRate < Shared.GetTime()
+        if performCheck and self:GetCanPhase() then
+
+            local gatesNearby = GetEntitiesForTeamWithinRange("PhaseGate", self:GetTeamNumber(), self:GetOrigin(), rangeCheckDist)
+            if #gatesNearby == 0 then
+                self.kLastPhaseInRangeCheck = now -- Prevents calling this mixing for the next Xs
+                return
+            end
+
+            for _, phaseGate in ipairs(gatesNearby) do
+                local distToGate = self:GetOrigin():GetDistanceTo(phaseGate:GetOrigin())
+                if distToGate < kPhaseCheckRadius and phaseGate:GetIsDeployed() and GetIsUnitActive(phaseGate) and phaseGate:Phase(self) then
                     -- If we can found a phasegate we can phase through, inform the server
                     self.timeOfLastPhase = Shared.GetTime()
                     local id = self:GetId()

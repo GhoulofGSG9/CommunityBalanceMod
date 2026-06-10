@@ -744,9 +744,11 @@ function Marine:GetMaxSpeed(possible)
     local inventorySpeedScalar = self:GetInventorySpeedScalar() + .17    
     local useModifier = 1
 
-    local activeWeapon = self:GetActiveWeapon()
-    if activeWeapon and self.isUsing and activeWeapon:GetMapName() == Builder.kMapName then
-        useModifier = 0.5
+    if self.isUsing then
+        local activeWeapon = self:GetActiveWeapon()
+        if activeWeapon and activeWeapon:GetMapName() == Builder.kMapName then
+            useModifier = 0.5
+        end
     end
 
     if self:GetHasCatPackBoost() then
