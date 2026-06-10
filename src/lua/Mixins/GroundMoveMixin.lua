@@ -475,25 +475,31 @@ local function DoStepMove(self, _, velocity, deltaTime)
     local stepAmount = 0
     local slowDownFraction = self.GetCollisionSlowdownFraction and self:GetCollisionSlowdownFraction() or 1
     local deflectMove = self.GetDeflectMove and self:GetDeflectMove() or false
-    
 
-    local completedMove = self:PerformMovement(velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove)
+    local completedMove, _, averageSurfaceNormal = self:PerformMovement(velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove)
     local distMoved = self:GetOrigin():GetDistanceTo(oldOrigin)
     local expectedDestPos = oldOrigin + velocity * deltaTime
     local newOriginWithDefaultMove = self:GetOrigin()
-    success = (expectedDestPos:GetDistanceTo(self:GetOrigin()) == 0) -- If we are exactly where we should, keep it
+    local diffPos = expectedDestPos:GetDistanceTo(self:GetOrigin())
+    success = (diffPos == 0) -- If we are exactly where we should, keep it
 
-    if (newOriginWithDefaultMove.y > oldOrigin.y or not completedMove) then
-        --Log("Elevation or geo-block detected, fallbacking to move-over (to smooth walking over it)")
+    if ((averageSurfaceNormal and averageSurfaceNormal.y < 1) or diffPos > 0.001 or newOriginWithDefaultMove.y - oldOrigin.y > 0.001 or not completedMove) then
+        --Log("Elevation or geo-block detected, fallbacking to move-over: (diff-pos: %s)/(diff-y %sm)/completed: %s", diffPos, newOriginWithDefaultMove.y - oldOrigin.y, completedMove)
         success = false
+    else
+        success = true
     end
 
-    if (self.DoExtraGroundStepsChecks and not self:DoExtraGroundStepsChecks()) then
-        return success
+    if (self.DoExtraGroundStepsChecks) then
+        if (not self:DoExtraGroundStepsChecks()) then
+            return success
+        else
+            success = false -- Else force the regular check to happen
+        end
     end
 
     if not success then
-        --Log("We stepped on something")
+        --Log("We stepped on something: velocity.y: %s", velocity.y)
 
         -- step up at first
         self:SetOrigin(oldOrigin)
@@ -510,23 +516,27 @@ local function DoStepMove(self, _, velocity, deltaTime)
             -- step down again
             local _, _, averageSurfaceNormal = self:PerformMovement(Vector(0, -stepAmount - horizMoveAmount * kDownSlopeFactor, 0), 1)
             
+            --Log("averageSurfaceNormal.y:%s", averageSurfaceNormal.y)
             if averageSurfaceNormal and averageSurfaceNormal.y >= 0.5 then
                 success = true
             else    
             
                 local onGround = GetIsCloseToGround(self, 0.15)
-                
+            
+                --Log("--Ground check: %s", onGround)    
                 if onGround then
                     success = true
                 end
                 
             end
-            
         end
+        --Log("MoveOver completed: %s", completedMove)
     end
 
     if (not success) then -- If the step-over failed, just keep the normal course
         self:SetOrigin(newOriginWithDefaultMove)
+        VectorCopy(oldVelocity, velocity)
+        --Log("Move-over failed")
     end
 
     return success

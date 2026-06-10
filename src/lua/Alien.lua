@@ -271,12 +271,6 @@ function Alien:GetCanRepairOverride(target)
     return false
 end
 
-function Alien:DoExtraGroundStepsChecks()
-    -- retrun true to add collisions checks for every move
-    -- This is useful to go over some floor features smoothing
-    return true
-end
-
 -- player for local player
 function Alien:TriggerHatchEffects()
     self.clientTimeTunnelUsed = Shared.GetTime()
