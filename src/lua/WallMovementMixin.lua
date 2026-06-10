@@ -152,6 +152,11 @@ end
 -- with others hit so we know if we're wall-walking and the normal to orient our model and the direction to jump away from
 -- when jumping off a wall.
 --
+--local numHit = 0
+--local numCalls = 0
+--local numHitDisc = 0
+--local numHitAbove = 0
+--local numHit45 = 0
 function WallMovementMixin:GetAverageWallWalkingNormal(extraRange, feelerSize, physicsMaskOverride)
 
     PROFILE("WallMovementMixin:GetAverageWallWalkingNormal")
@@ -177,12 +182,21 @@ function WallMovementMixin:GetAverageWallWalkingNormal(extraRange, feelerSize, p
     local endPoint = Vector()
     local directionVector
     local angle
-    local normalFound = true
+    local normalFound = false
+
+    --numCalls = numCalls + 1
+    if (self.lastSuccessfullWallTraceDir) then
+        directionVector = self.lastSuccessfullWallTraceDir
+        if self:TraceWallNormal(startPoint, startPoint + self.lastSuccessfullWallTraceDir * wallWalkingRange, wallNormals, feelerSize, physicsMask) then
+            normalFound = true
+            --numHit = numHit + 1
+        else
+            self.lastSuccessfullWallTraceDir = nil
+        end
+    end
     
-    if not self.lastSuccessfullWallTraceDir or not self:TraceWallNormal(startPoint, startPoint + self.lastSuccessfullWallTraceDir * wallWalkingRange, wallNormals, feelerSize, physicsMask) then
-
-        normalFound = false
-
+    -- Trace around (flat disc)
+    if not normalFound then
         for i = 0, numTraces - 1 do
         
             angle = ((i * 360/numTraces) / 360) * math.pi * 2
@@ -194,9 +208,9 @@ function WallMovementMixin:GetAverageWallWalkingNormal(extraRange, feelerSize, p
             endPoint.z = startPoint.z + directionVector.z * wallWalkingRange
             
             if self:TraceWallNormal(startPoint, endPoint, wallNormals, feelerSize, physicsMask) then
-            
-                self.lastSuccessfullWallTraceDir = directionVector
+
                 normalFound = true
+                --numHitDisc = numHitDisc + 1
                 break
                 
             end   
@@ -204,28 +218,37 @@ function WallMovementMixin:GetAverageWallWalkingNormal(extraRange, feelerSize, p
         end
     
     end
-    
+
     -- Trace above too.
     if not normalFound then
-        normalFound = self:TraceWallNormal(startPoint, startPoint + Vector(0, wallWalkingRange, 0), wallNormals, feelerSize, physicsMask)
+        directionVector = Vector(0, wallWalkingRange, 0)
+        normalFound = self:TraceWallNormal(startPoint, startPoint + directionVector, wallNormals, feelerSize, physicsMask)
+        --if (normalFound) then
+        --    numHitAbove = numHitAbove + 1
+        --end
     end
     
     -- Trace in a 45 degree cone around skulk.  Like halfway between vertical and the flat disc we did above.
     if not normalFound then
         for i=0, 7 do
             local theta = (i/8) * math.pi * 2
-            normalFound = self:TraceWallNormal(startPoint, startPoint + Vector(math.cos(theta) * wallWalkingRange * 0.707, wallWalkingRange * 0.707, math.sin(theta) * wallWalkingRange * 0.707), wallNormals, feelerSize, physicsMask)
+            directionVector = Vector(math.cos(theta), 1, math.sin(theta))
+            normalFound = self:TraceWallNormal(startPoint, startPoint + directionVector * wallWalkingRange * 0.707, wallNormals, feelerSize, physicsMask)
             if normalFound then
+                --numHit45 = numHit45 + 1
                 break
             end
         end
     end
 
     if normalFound then
+
+        --if Server then Log("%s/%s -- %s/%s/%s", numHit, numCalls, numHitDisc, numHitAbove, numHit45) end
     
         -- Check if we are right above a surface we can stand on.
         -- Even if we are in "wall walking mode", we want it to look
         -- like it is standing on a surface if it is right above it.
+        self.lastSuccessfullWallTraceDir = directionVector
         local groundTrace = Shared_TraceRay(startPoint, startPoint + Vector(0, -wallWalkingRange, 0), CollisionRep.Move, physicsMask, EntityFilterOne(self))
         if (groundTrace.fraction > 0 and groundTrace.fraction < 1 and groundTrace.entity == nil) then
             return groundTrace.normal
@@ -252,3 +275,5 @@ function WallMovementMixin:OnAdjustModelCoords(modelCoords)
     return modelCoords
     
 end
+
+
