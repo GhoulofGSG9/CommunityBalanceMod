@@ -478,20 +478,30 @@ local function DoStepMove(self, _, velocity, deltaTime)
     local slowDownFraction = self.GetCollisionSlowdownFraction and self:GetCollisionSlowdownFraction() or 1
     local deflectMove = self.GetDeflectMove and self:GetDeflectMove() or false
 
-    local completedMove, _, averageSurfaceNormal = self:PerformMovement(velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove)
+    -- Do normal one
+    local completedMove, hitEntities, averageSurfaceNormal = self:PerformMovement(velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove)
     local distMoved = self:GetOrigin():GetDistanceTo(oldOrigin)
     local expectedDestPos = oldOrigin + velocity * deltaTime
-    local newOriginWithDefaultMove = self:GetOrigin()
     local diffPos = expectedDestPos:GetDistanceTo(self:GetOrigin())
     success = (diffPos == 0) -- If we are exactly where we should, keep it
 
-    if ((averageSurfaceNormal and averageSurfaceNormal.y < 1) or diffPos > 0.001 or newOriginWithDefaultMove.y - oldOrigin.y > 0.001 or not completedMove) then
-        --Log("Elevation or geo-block detected, fallbacking to move-over: (diff-pos: %s)/(diff-y %sm)/completed: %s", diffPos, newOriginWithDefaultMove.y - oldOrigin.y, completedMove)
+    if (not completedMove
+        or (hitEntities and #hitEntities > 0)
+        or (averageSurfaceNormal and averageSurfaceNormal.y < 1)
+        or diffPos > 0.001 or math.abs(self:GetOrigin().y - oldOrigin.y) > 0.001
+        ) then
+        --if (Server) then
+        --    Log("Elevation or geo-block detected, fallbacking to move-over: (diff-pos: %s)/(diff-y %sm)/completed: %s/normal: %s",
+        --        diffPos, newOriginWithDefaultMove.y - oldOrigin.y, completedMove, (averageSurfaceNormal and averageSurfaceNormal.y < 1 or -999))
+        --end
         success = false
     else
         success = true
     end
 
+    -- return true for the move-over checks to always happen
+    -- return false for it to never happen (lerks for instance)
+    -- undefined to only happen in regular cases to walk over geo
     if (self.DoExtraGroundStepsChecks) then
         if (not self:DoExtraGroundStepsChecks()) then
             return success
@@ -509,7 +519,7 @@ local function DoStepMove(self, _, velocity, deltaTime)
         
         -- do the normal move
         local startOrigin = Vector(self:GetOrigin())
-        completedMove = self:PerformMovement(velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove)
+        local completedMove = self:PerformMovement(velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove)
         local horizMoveAmount = (startOrigin - self:GetOrigin()):GetLengthXZ()
         
         if completedMove then
@@ -522,7 +532,6 @@ local function DoStepMove(self, _, velocity, deltaTime)
             else    
             
                 local onGround = GetIsCloseToGround(self, 0.15)
-            
                 if onGround then
                     success = true
                 end
@@ -531,14 +540,19 @@ local function DoStepMove(self, _, velocity, deltaTime)
         end
     end
 
-    if (not success) then -- If the step-over failed, just keep the normal course
-        self:SetOrigin(newOriginWithDefaultMove)
+    -- If still not succesful. Have to redo first normal move (rare case of geo feature/stuck)
+    if not success then
+    
+        self:SetOrigin(oldOrigin)
         VectorCopy(oldVelocity, velocity)
+        self:PerformMovement(velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove)
+        
     end
 
     return success
 
 end
+
 
 function GroundMoveMixin:GetCanStep()
     return true
@@ -608,6 +622,7 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
                     if hitEntities[i]:isa("Player") then
                         hitObstacle = true
                         stepAllowed = false
+                        --Log("%s colliding with %s", self, hitEntities[i])
                         break
                         
                     end
