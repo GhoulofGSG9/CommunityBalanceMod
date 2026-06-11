@@ -314,6 +314,10 @@ function Welder:PerformWeld(player)
         didHit, target, endPoint, direction, surface = CheckMeleeCapsule(self, player, 0, self:GetRange(), nil, true, 1, PrioritizeDamagedFriends, nil, PhysicsMask.Flame)
     end
 
+    if target and target:isa("Weapon") and target:GetParent() then
+        target = target:GetParent() -- Weld the player, not his gun !
+    end
+
     if didHit and target and HasMixin(target, "Live") then
         
         local timeSinceLastWeld = self.welding and Shared.GetTime() - self.timeLastWeld or 0
@@ -346,7 +350,6 @@ function Welder:PerformWeld(player)
                     end
                     
                 end
-                
             end
             
             if HasMixin(target, "Construct") and target:GetCanConstruct(player) then
@@ -358,7 +361,6 @@ function Welder:PerformWeld(player)
                     target:Construct(timeSinceLastWeld, player)
                 end
             end
-            
         end
         
     end
