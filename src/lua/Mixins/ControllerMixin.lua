@@ -297,6 +297,10 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
     if slowDownFraction == nil then
         slowDownFraction = 1
     end
+    if (deltaTime) then
+        -- Vanilla move-rate per second is 26 (to make it time based, rather than tick)
+        slowDownFraction = math.min(1, slowDownFraction * 26 * deltaTime)
+    end
     
     local hitEntities
     local completedMove = true
@@ -339,7 +343,7 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
                 
                     assert(deltaTime ~= nil) -- We are now timed based (not tick based), make sure we have the deltaTime !
                     -- Scale it according to how much velocity we lost
-                    local newVelocity = velocity - velocity:GetProjection(trace.normal) * slowDownFraction * deltaTime -- + trace.normal*0.001
+                    local newVelocity = velocity - velocity:GetProjection(trace.normal) * slowDownFraction -- + trace.normal*0.001
                     
                     -- Copy it so it's changed for caller
                     VectorCopy(newVelocity, velocity)
