@@ -104,6 +104,59 @@ local function DoesStopMove(self, move, velocity)
 
 end
 
+
+--[[
+local _slowDown = 0
+local _toggle = false
+local function OnConsoleSetBounce5() _slowDown = 0.05 end
+local function OnConsoleSetBounce10() _slowDown = 0.10 end
+local function OnConsoleSetBounce15() _slowDown = 0.15 end
+local function OnConsoleSetBounce20() _slowDown = 0.20 end
+local function OnConsoleSetBounce25() _slowDown = 0.25 end
+local function OnConsoleSetBounce50() _slowDown = 0.50 end
+local function OnConsoleSetBounce75() _slowDown = 0.75 end
+local function OnConsoleSetBounce100() _slowDown = 1 end
+local function OnConsoleToggle()
+    _toggle = not _toggle
+    Log("%s", _toggle)
+end
+
+Event.Hook("Console_s5", OnConsoleSetBounce5)
+Event.Hook("Console_s10", OnConsoleSetBounce10)
+Event.Hook("Console_s15", OnConsoleSetBounce15)
+Event.Hook("Console_s20", OnConsoleSetBounce20)
+Event.Hook("Console_s25", OnConsoleSetBounce25)
+Event.Hook("Console_s50", OnConsoleSetBounce50)
+Event.Hook("Console_s75", OnConsoleSetBounce75)
+Event.Hook("Console_s100", OnConsoleSetBounce100)
+Event.Hook("Console_t", OnConsoleToggle)
+--]]
+
+local function _PerformMovement(self, offset, maxTraces, velocity, isMove, slowDownFraction, deflectMove, slowDownFilterFunc, deltaTime)
+
+    local hitPlayer = nil
+    local oldOrigin = Vector(self:GetOrigin())
+    local oldVelocity = velocity and Vector(velocity) or nil
+
+    if slowDownFraction and _toggle then
+        slowDownFraction = _slowDown
+    end
+    local completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial = self:PerformMovement(offset, maxTraces, velocity, isMove, slowDownFraction, deflectMove, slowDownFilterFunc, deltaTime)
+
+    for i = 1, (hitEntities and #hitEntities or 0) do
+        if hitEntities[i]:isa("Player") then
+            hitPlayer = hitEntities[i]
+            --if Server then Log("%s colliding with %s", self, hitPlayer) end
+            break
+            
+        end
+    end
+
+    return completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial, hitPlayer
+
+end
+
+
 local function GetIsCloseToGround(self, distance)
 
     PROFILE("GroundMoveMixin:GetIsCloseToGround")
@@ -124,7 +177,7 @@ local function GetIsCloseToGround(self, distance)
         -- we're on the ground.
         local offset = Vector(0, -distance, 0)
         -- need to do multiple slides here to not get traped in V shaped spaces
-        completedMove, hitEntities, normal, surfaceMaterial = self:PerformMovement(offset, 3, nil, false)
+        completedMove, hitEntities, normal, surfaceMaterial = _PerformMovement(self, offset, 3, nil, false)
         
         if normal and normal.y >= 0.5 then
             onGround = true
@@ -478,67 +531,37 @@ local function DoStepMove(self, _, velocity, deltaTime)
     local slowDownFraction = self.GetCollisionSlowdownFraction and self:GetCollisionSlowdownFraction() or 1
     local deflectMove = self.GetDeflectMove and self:GetDeflectMove() or false
 
-    local completedMove, _, averageSurfaceNormal = self:PerformMovement(velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove)
-    local distMoved = self:GetOrigin():GetDistanceTo(oldOrigin)
-    local expectedDestPos = oldOrigin + velocity * deltaTime
-    local newOriginWithDefaultMove = self:GetOrigin()
-    local diffPos = expectedDestPos:GetDistanceTo(self:GetOrigin())
-    success = (diffPos == 0) -- If we are exactly where we should, keep it
-
-    if ((averageSurfaceNormal and averageSurfaceNormal.y < 1) or diffPos > 0.001 or newOriginWithDefaultMove.y - oldOrigin.y > 0.001 or not completedMove) then
-        --Log("Elevation or geo-block detected, fallbacking to move-over: (diff-pos: %s)/(diff-y %sm)/completed: %s", diffPos, newOriginWithDefaultMove.y - oldOrigin.y, completedMove)
-        success = false
-    else
-        success = true
+    local onGround, normal, _, surfaceMaterial
+    
+    -- step up at first
+    _PerformMovement(self, Vector(0, kStepHeight, 0), 1)
+    stepAmount = self:GetOrigin().y - oldOrigin.y
+    
+    -- do the normal move
+    local startOrigin = Vector(self:GetOrigin())
+    local completedMove = _PerformMovement(self, velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove, nil, deltaTime)
+    local horizMoveAmount = (startOrigin - self:GetOrigin()):GetLengthXZ()
+    
+    if completedMove then
+        -- step down again
+        local _, _, averageSurfaceNormal = _PerformMovement(self, Vector(0, -stepAmount - horizMoveAmount * kDownSlopeFactor, 0), 1)
+        success = (averageSurfaceNormal and averageSurfaceNormal.y >= 0.5) or GetIsCloseToGround(self, 0.15)
+        
     end
-
-    if (self.DoExtraGroundStepsChecks) then
-        if (not self:DoExtraGroundStepsChecks()) then
-            return success
-        else
-            success = false -- Else force the regular check to happen
-        end
-    end
-
+    
+    -- not succesful. fall back to normal move
     if not success then
-        -- step up at first
+    
         self:SetOrigin(oldOrigin)
         VectorCopy(oldVelocity, velocity)
-        self:PerformMovement(Vector(0, kStepHeight, 0), 1)
-        stepAmount = self:GetOrigin().y - oldOrigin.y
+        _PerformMovement(self, velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove, nil, deltaTime)
         
-        -- do the normal move
-        local startOrigin = Vector(self:GetOrigin())
-        completedMove = self:PerformMovement(velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove)
-        local horizMoveAmount = (startOrigin - self:GetOrigin()):GetLengthXZ()
-        
-        if completedMove then
-            -- step down again
-            local _, _, averageSurfaceNormal = self:PerformMovement(Vector(0, -stepAmount - horizMoveAmount * kDownSlopeFactor, 0), 1)
-            
-            --Log("averageSurfaceNormal.y:%s", averageSurfaceNormal.y)
-            if averageSurfaceNormal and averageSurfaceNormal.y >= 0.5 then
-                success = true
-            else    
-            
-                local onGround = GetIsCloseToGround(self, 0.15)
-            
-                if onGround then
-                    success = true
-                end
-                
-            end
-        end
-    end
-
-    if (not success) then -- If the step-over failed, just keep the normal course
-        self:SetOrigin(newOriginWithDefaultMove)
-        VectorCopy(oldVelocity, velocity)
     end
 
     return success
 
 end
+
 
 function GroundMoveMixin:GetCanStep()
     return true
@@ -588,26 +611,31 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
     
     if self.controller then
         
-        local stepAllowed = self.onGround and self:GetCanStep()
+        local onGround = self.onGround
+        local normal
+        local hitEntities
+        local surfaceMaterial
+
+        local stepAllowed = onGround and self:GetCanStep()
         local didStep = false
         local stepAmount = 0
-        local hitObstacle = false
+        local playerHit = nil
     
         -- check if we are allowed to step
         local completedMove = false
-        local hitEntities = nil
 
         -- - Checks for player collision while on ground, if none then we can step-over floor features
         -- We usually move at, at most, 1.2m/update for very high speed stuff, so 5m player check is generous
         -- We if are in the air/jumping or if nobody is in range, don't even bother checking ground move-over
         if stepAllowed and #GetEntitiesWithinRange("Player", self:GetOrigin(), 5) > 1 then -- exclude self
-            completedMove, hitEntities = self:PerformMovement(velocity * deltaTime * 2.5, 1, nil, false)
+            completedMove, hitEntities = _PerformMovement(self, velocity * deltaTime * 2.5, 1, nil, false)
             if stepAllowed and hitEntities then
             
                 for i = 1, #hitEntities do
                     if hitEntities[i]:isa("Player") then
-                        hitObstacle = true
+                        playerHit = hitEntities[i]
                         stepAllowed = false
+                        --Log("%s colliding with %s", self, hitEntities[i])
                         break
                         
                     end
@@ -616,16 +644,16 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
             end
         end
         
-        if not stepAllowed then
+        if not stepAllowed then -- Handles PvP collisions or jumps
             
-            local slowDownFraction = self.GetCollisionSlowdownFraction and self:GetCollisionSlowdownFraction() or 1 
+            local slowDownFraction = self.GetCollisionSlowdownFraction and self:GetCollisionSlowdownFraction() * 0.5 or nil
             
             local deflectMove = self.GetDeflectMove and self:GetDeflectMove() or false
             
-            self:PerformMovement(velocity * deltaTime, 3, velocity, true, slowDownFraction * 0.5, deflectMove)
+            _PerformMovement(self, velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove, nil, deltaTime)
             
         else     
-            didStep, stepAmount = DoStepMove(self, input, velocity, deltaTime)            
+            DoStepMove(self, input, velocity, deltaTime)            
         end
         
         FlushCollisionCallbacks(self, velocity)
