@@ -203,7 +203,7 @@ function Lerk:GetHasFallAccel()
 end    
 
 function Lerk:GetCanStep()
-    return self:GetIsOnGround() and not self:GetIsWallGripping()
+    return false --self:GetIsOnGround() and not self:GetIsWallGripping()
 end
 
 function Lerk:ModifyGravityForce(gravityTable)
@@ -704,11 +704,6 @@ function Lerk:OnUpdateAnimationInput(modelMixin)
     local flappedRecently = (Shared.GetTime() - self.lastTimeFlapped) <= 0.5
     modelMixin:SetAnimationInput("flapping", flappedRecently)
     
-end
-
--- Lerks do not walk (they fly), don't do those expensive checks 
-function Lerk:DoExtraGroundStepsChecks()
-    return false
 end
 
 Shared.LinkClassToMap("Lerk", Lerk.kMapName, networkVars, true)
