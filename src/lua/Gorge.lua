@@ -498,10 +498,6 @@ function Gorge:PreUpdateMove()
 
 end
 
-function Gorge:DoExtraGroundStepsChecks()
-    return self:GetIsBellySliding()
-end
-
 function Gorge:PostUpdateMove(input)
 
     if self:GetIsBellySliding() and self:GetIsOnGround() then

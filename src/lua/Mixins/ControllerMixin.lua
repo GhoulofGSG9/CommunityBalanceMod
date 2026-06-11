@@ -280,8 +280,9 @@ end
 
 --
 -- Moves by the player by the specified offset, colliding and sliding with the world.
+-- slowDownFraction: 0.5s -> Takes 2s to lose all momentum, 1 -> takes 1s, 2 -> takes 0.5s, 
 --
-function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, slowDownFraction, deflectMove, slowDownFilterFunc)
+function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, slowDownFraction, deflectMove, slowDownFilterFunc, deltaTime)
 
     PROFILE("ControllerMixin:PerformMovement")
     
@@ -332,15 +333,17 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
                 
                 -- Make the motion perpendicular to the surface we collided with so we slide.
                 offset = offset - offset:GetProjection(trace.normal) -- + trace.normal*0.001
-                
+
                 -- Redirect velocity if specified
-                if velocity ~= nil then
+                if velocity ~= nil and slowDownFraction ~= nil then
                 
+                    assert(deltaTime ~= nil) -- We are now timed based (not tick based), make sure we have the deltaTime !
                     -- Scale it according to how much velocity we lost
-                    local newVelocity = velocity - velocity:GetProjection(trace.normal) * slowDownFraction -- + trace.normal*0.001
+                    local newVelocity = velocity - velocity:GetProjection(trace.normal) * slowDownFraction * deltaTime -- + trace.normal*0.001
                     
                     -- Copy it so it's changed for caller
                     VectorCopy(newVelocity, velocity)
+                    --Log("Applying slow down of %s * %s", deltaTime, slowDownFraction)
                     
                 end
                 
@@ -446,5 +449,4 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
     end
     
     return completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial
-    
 end
