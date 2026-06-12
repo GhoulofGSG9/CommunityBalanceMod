@@ -31,7 +31,14 @@ function CreateRagdoll(fromEntity)
             ragdoll:SetPhysicsGroup(PhysicsGroup.SmallStructuresGroup)    
         end
         
-        ragdoll:CopyAnimationState(fromEntity)
+        -- Killed built whips produce the following error:
+        -- * Network variable 'animationBlend' of class 'Ragdoll' has value 21474836.000000 which is outside the range 0.000000 to 1.000000
+        -- It's very likely that this is due to animatiomGraph issues, so just disable
+        -- the copy of the animation states, and let the ragdoll use the default in that case.
+        -- This prevents the issue from happening (which could freeze servers with a message spam)
+        if not fromEntity:isa("Whip") then
+            ragdoll:CopyAnimationState(fromEntity)
+        end
 
         if fromEntity.GetRagdollTextureIndex then
             ragdoll:SetTextureIndex( fromEntity:GetRagdollTextureIndex() )
