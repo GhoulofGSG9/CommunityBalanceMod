@@ -103,7 +103,7 @@ kWelderDropCost = 2
 
 kPulseGrenadeDamageRadius = 4
 kPulseGrenadeEnergyDamageRadius = 6
-kPulseGrenadeDamage = 10
+kPulseGrenadeDamage = 15
 kPulseGrenadeEnergyDamage = 0
 kPulseGrenadeDamageType = kDamageType.Normal
 kPulseDOTDamage = 5 -- DOT applied after direct damage (20 total) - DISABLED
@@ -952,7 +952,7 @@ kTimeBetweenBabblerBombShots = 1.15
 kBabblerBombEnergyCost = 20
 kBabblerBombVelocity = 15
 kMaxNumBomblers = 6
-kBomblerLifeTime = 5
+kBomblerLifeTime = 10
 kBabblerBombResearchTime = kBileBombResearchTime
 kBabblerBombResearchCost = 15
 
