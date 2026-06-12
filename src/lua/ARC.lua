@@ -285,22 +285,24 @@ end
 function ARC:Deploy(commander)
 
     local queuedDeploy = commander ~= nil and commander.shiftDown
+		
+	if queuedDeploy then
+	
+		local lastOrder = nil
+		if self:GetHasOrder() then
+			lastOrder = self:GetLastOrder()			
+		end
+		local orderOrigin = lastOrder ~=  nil and lastOrder:GetLocation() or self:GetOrigin()
+		
+		self:GiveOrder(kTechId.ARCDeploy, self:GetId(), orderOrigin, nil, false, false)
+		
+	else
 
-    if queuedDeploy then
-    
-        local lastOrder = self:GetLastOrder()        
-        local orderOrigin = lastOrder ~=  nil and lastOrder:GetLocation() or self:GetOrigin()
-        
-        self:GiveOrder(kTechId.ARCDeploy, self:GetId(), orderOrigin, nil, false, false)
-        
-    else
-
-        self:ClearOrders()
-        self.deployMode = ARC.kDeployMode.Deploying
-        self:TriggerEffects("arc_deploying")
-    
-    end
-
+		self:ClearOrders()
+		self.deployMode = ARC.kDeployMode.Deploying
+		self:TriggerEffects("arc_deploying")
+	
+	end
 end
 
 function ARC:UnDeploy()

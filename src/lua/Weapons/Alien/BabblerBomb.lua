@@ -96,7 +96,7 @@ if Server then
                         babbler:Kill()
                     end
                     return false
-                end, 8)
+                end, kBomblerLifeTime)
             end
         end
 

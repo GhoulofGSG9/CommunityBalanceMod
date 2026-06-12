@@ -105,6 +105,10 @@ if kCBMaddon then
 	  - Fix to cinematics of projectiles desyncing.
 	  - Fixed shotgun trace source location to be consistent (was random).
 	  - Fixed issue with projectiles visually disappearing from the client.
+	  - Fixed ARCs causing server hitching / crash on loss of orders when orders were queued.
+	  - Fixed welders stopping welding when accidently aimed at a marine weapon.
+	  - Fixed collisions being dependent tick/move rate (now based on time). 
+	  - Fixed whips causing server hitching / crash on death due to ragdolls.
 	
 	## MARINE - PLAYER
 	### Modular Exosuits
@@ -587,6 +591,11 @@ else
 	  - Fix to cinematics of projectiles desyncing.
 	  - Fixed shotgun trace source location to be consistent (was random).
 	  - Fixed issue with projectiles visually disappearing from the client.
+	  - Fixed issue with projectiles visually disappearing from the client.
+	  - Fixed ARCs causing server hitching / crash on loss of orders when orders were queued.
+	  - Fixed welders stopping welding when accidently aimed at a marine weapon.
+	  - Fixed collisions being dependent tick/move rate (now based on time). 
+	  - Fixed whips causing server hitching / crash on death due to ragdolls.
 	
 	## MARINE - PLAYER
 	### Modular Exosuits
