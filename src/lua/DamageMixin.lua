@@ -308,10 +308,6 @@ local function _DoHitShot(self, damage, target, point, direction, surface, altMo
     local attacker = _GetAttackerInfo(self)
     local weapon, damageType, currentComm = _GetAttackInfo(self, damage)
     local killedFromDamage, damageDone, rawDamage = _DealDamage(self, attacker, weapon, damage, damageType, target, direction, point)
-
-    if self.PostDoDamage then
-        self:PostDoDamage(target, damage)
-    end
     
     return killedFromDamage, weapon, damageDone, rawDamage
 end
@@ -353,5 +349,10 @@ function DamageMixin:DoDamage(damage, target, point, direction, surface, altMode
     if surface ~= "none" then
         _DealEffects(self, surface, attacker, weapon, damageDone, rawDamage, damageType, target, direction, point, altMode, showtracer)
     end
+
+    if self.PostDoDamage then
+        self:PostDoDamage(target, damage)
+    end
+    
     return killedFromDamage
 end
