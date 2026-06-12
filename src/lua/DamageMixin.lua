@@ -351,7 +351,7 @@ function DamageMixin:DoDamage(damage, target, point, direction, surface, altMode
     end
 
     if self.PostDoDamage then
-        self:PostDoDamage(target, damage)
+        self:PostDoDamage(target, damageDone)
     end
     
     return killedFromDamage
