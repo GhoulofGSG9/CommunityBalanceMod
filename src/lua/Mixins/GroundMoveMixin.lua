@@ -78,13 +78,13 @@ function GroundMoveMixin:__initmixin()
     
 end
 
-function GroundMoveMixin:SetGroundCheckCache(distance, hitEntities, normal, surfaceMaterial)
+local function _SetGroundCheckCache(self, distance, hitEntities, normal, surfaceMaterial)
 
     -- Only cache a successfull ground check if no entity hit (because they can move/die/etc)
     -- The ground is our friend, it's always there for us
     if (hitEntities == nil) then
         self.lastGroundCheck.distance = distance
-        self.lastGroundCheck.origin = self:GetOrigin()
+        self.lastGroundCheck.origin = Vector(self:GetOrigin())
         self.lastGroundCheck.normal = normal
         self.lastGroundCheck.surfaceMaterial = surfaceMaterial
     else
@@ -94,22 +94,23 @@ function GroundMoveMixin:SetGroundCheckCache(distance, hitEntities, normal, surf
     end
 end
 
-function GroundMoveMixin:GetGroundCheckCache()
+local function _GetGroundCheckCache(self)
     local completedMove = true
     local hitEntities = nil
     return completedMove, hitEntities, self.lastGroundCheck.normal, self.lastGroundCheck.surfaceMaterial, self.lastGroundCheck.distance
 end
-function GroundMoveMixin:GetIsStillOnSameGroundPosition(distance)
+local function _GetIsStillOnSameGroundPosition(self, distance)
     -- Any test with a higher or equal threshold distance and same position is on ground too
     local distValid = self.lastGroundCheck.distance <= distance
     local sameOrigin = self:GetOrigin() == self.lastGroundCheck.origin
-    --[[ if Server and not (distValid and sameOrigin) then
+    local isCacheHit = (distValid and sameOrigin)
+    --[[ if not isCacheHit then
         Log("Miss: distValid: %s(%s,%s), sameOrigin: %s(%s,%s)",
             distValid, self.lastGroundCheck.distance, distance,
             sameOrigin, self:GetOrigin(), self.lastGroundCheck.origin
             )
     end --]]
-    return (distValid and sameOrigin)
+    return isCacheHit
 end
 
 local function CosFalloff(distanceFraction)
@@ -202,7 +203,7 @@ local function GetIsCloseToGround(self, distance)
     PROFILE("GroundMoveMixin:GetIsCloseToGround")
 
     local onGround = false
-    local normal = Vector()
+    local normal = nil
     local completedMove, hitEntities, surfaceMaterial
 
     if self.controller == nil then
@@ -211,24 +212,23 @@ local function GetIsCloseToGround(self, distance)
     
     elseif self.timeGroundAllowed <= Shared.GetTime() then
     
-        local velocity = self:GetVelocity()
-
         -- Try to move the controller downward a small amount to determine if
         -- we're on the ground.
-        local offset = Vector(0, -distance, 0)
+        
         -- need to do multiple slides here to not get traped in V shaped spaces
 
         -- Reuse the ground check done last moverate (we performed a down move to the max)
         -- - Same position as before ? then no reasons we would not still be on ground
         -- Regaring hitEntities, if we are as close to ground as possible
         -- then no entities that could disrupt our movement could sneak below us.
-        if self:GetIsStillOnSameGroundPosition(distance) then
-            _, _, normal, surfaceMaterial = self:GetGroundCheckCache()
+        if _GetIsStillOnSameGroundPosition(self, distance) then
+            _, _, normal, surfaceMaterial = _GetGroundCheckCache(self)
             onGround = true
         else
+            local offset = Vector(0, -distance, 0)
             completedMove, hitEntities, normal, surfaceMaterial = _PerformMovement(self, offset, 3, nil, false)
             if normal and normal.y >= 0.5 then
-                self:SetGroundCheckCache(distance, hitEntities, normal, surfaceMaterial)
+                _SetGroundCheckCache(self, distance, hitEntities, normal, surfaceMaterial)
                 onGround = true
             end
         end
@@ -239,6 +239,7 @@ local function GetIsCloseToGround(self, distance)
     -- It doesn't matter if we're on the ground or not -- checking the surface material should NOT
     -- double as checking if we're on the ground or not -- that's what "onGround" is for.
     surfaceMaterial = surfaceMaterial or "metal"
+    normal = normal or Vector()
     
     return onGround, normal, hitEntities, surfaceMaterial
     
@@ -606,7 +607,7 @@ local function DoStepMove(self, _, velocity, deltaTime)
         end
 
         if (averageSurfaceNormal and averageSurfaceNormal.y >= 0.5) then
-            self:SetGroundCheckCache(downDistance, hitEntities, averageSurfaceNormal, surfaceMaterial)
+            _SetGroundCheckCache(self, downDistance, hitEntities, averageSurfaceNormal, surfaceMaterial)
             success = true
         end
         
