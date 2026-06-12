@@ -75,7 +75,8 @@ function SpikesMixin:FireSpikes()
         local spreadDirection = CalculateSpread(viewCoords, kSpikeSpread, NetworkRandom)
 
         local endPoint = startPoint + spreadDirection * range
-        local targets, trace, hitPoints = GetBulletTargets(startPoint, endPoint, spreadDirection, kSpikeSize, filter)        
+        local doBoxTrace = true
+        local targets, trace, hitPoints = GetBulletTargets(startPoint, endPoint, spreadDirection, kSpikeSize, filter, doBoxTrace)
         local damage = kSpikeDamage
         local direction = (trace.endPoint - startPoint):GetUnit()
         local hitOffset = direction * kHitEffectOffset        
