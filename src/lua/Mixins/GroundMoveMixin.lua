@@ -27,6 +27,9 @@ local kStopSpeed = 4
 
 local kMaxAirVeer = 1.3
 
+local kTracesAmount = 7
+local kPvPTracesAmount = 10
+
 -- min ~13 FPS assumed, otherwise players will move slower
 local kMaxDeltaTime = 0.07
 
@@ -226,7 +229,7 @@ local function GetIsCloseToGround(self, distance)
             onGround = true
         else
             local offset = Vector(0, -distance, 0)
-            completedMove, hitEntities, normal, surfaceMaterial = _PerformMovement(self, offset, 3, nil, false)
+            completedMove, hitEntities, normal, surfaceMaterial = _PerformMovement(self, offset, kTracesAmount, nil, false)
             if normal and normal.y >= 0.5 then
                 _SetGroundCheckCache(self, distance, hitEntities, normal, surfaceMaterial)
                 onGround = true
@@ -590,7 +593,7 @@ local function DoStepMove(self, _, velocity, deltaTime)
     
     -- do the normal move
     local startOrigin = Vector(self:GetOrigin())
-    local completedMove = _PerformMovement(self, velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove, nil, deltaTime)
+    local completedMove = _PerformMovement(self, velocity * deltaTime, kTracesAmount, velocity, true, slowDownFraction, deflectMove, nil, deltaTime)
     local horizMoveAmount = (startOrigin - self:GetOrigin()):GetLengthXZ()
     
     if completedMove then
@@ -618,7 +621,7 @@ local function DoStepMove(self, _, velocity, deltaTime)
     
         self:SetOrigin(oldOrigin)
         VectorCopy(oldVelocity, velocity)
-        _PerformMovement(self, velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove, nil, deltaTime)
+        _PerformMovement(self, velocity * deltaTime, kTracesAmount, velocity, true, slowDownFraction, deflectMove, nil, deltaTime)
         
     end
 
@@ -684,6 +687,7 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
         local didStep = false
         local stepAmount = 0
         local playerHit = nil
+        local enemyPlayerInRange = false
     
         -- check if we are allowed to step
         local completedMove = false
@@ -699,8 +703,11 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
                     if hitEntities[i]:isa("Player") then
                         playerHit = hitEntities[i]
                         stepAllowed = false
+                        if playerHit:GetTeamNumber() == GetEnemyTeamNumber(self:GetTeamNumber()) then
+                            enemyPlayerInRange = true
+                        end
                         --Log("%s colliding with %s", self, hitEntities[i])
-                        break
+                        --break
                         
                     end
                 end
@@ -714,7 +721,9 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
             
             local deflectMove = self.GetDeflectMove and self:GetDeflectMove() or false
             
-            _PerformMovement(self, velocity * deltaTime, 3, velocity, true, slowDownFraction, deflectMove, nil, deltaTime)
+            -- Increases deflect traces in combat
+            local numTraces = enemyPlayerInRange and kPvPTracesAmount or kTracesAmount
+            _PerformMovement(self, velocity * deltaTime, numTraces, velocity, true, slowDownFraction, deflectMove, nil, deltaTime)
             
         else     
             DoStepMove(self, input, velocity, deltaTime)            
