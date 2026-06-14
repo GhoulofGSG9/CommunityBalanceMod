@@ -246,6 +246,9 @@ local function ExecuteShot(self, startPoint, endPoint, player)
 							damageScalar = NS2Gamerules_GetUpgradedDamageScalar(self, ConditionalValue(HasMixin(self, "Tech"), self:GetTechId(), kTechId.None) )
 						end
 						boneshieldWeapon:TakeDamage(damage*damageScalar)
+						if Server then -- Damage numbers are only sent on server, client never predicts.
+							SendDamageMessage( self, capsuleTrace.entity:GetId(), damage*damageScalar, capsuleTrace.entity:GetOrigin(), 0, nil, kDamageMessageType.Boneshield )
+						end
 						break
 					end
 				end
