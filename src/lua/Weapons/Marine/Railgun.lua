@@ -238,16 +238,18 @@ local function ExecuteShot(self, startPoint, endPoint, player)
 
             if not table.find(hitEntities, capsuleTrace.entity) then
 
+				if capsuleTrace.entity:isa("Onos") then
+					if capsuleTrace.entity:GetIsBoneShieldActive() and capsuleTrace.entity:GetHitsBoneShield(self, capsuleTrace.endPoint + hitPointOffset) then
+						boneshieldWeapon = capsuleTrace.entity:GetWeapon(BoneShield.kMapName)
+						boneshieldWeapon:TakeDamage(damage)
+						break
+					end
+				end
+
                 table.insert(hitEntities, capsuleTrace.entity)
                 self:DoDamage(damage, capsuleTrace.entity, capsuleTrace.endPoint + hitPointOffset, direction, capsuleTrace.surface, false, false)
             end
-			
-			if capsuleTrace.entity:isa("Onos") then
-				if capsuleTrace.entity:GetIsBoneShieldActive() and capsuleTrace.entity:GetHitsBoneShield(self, capsuleTrace.endPoint + hitPointOffset) then
-					break
-				end
-			end
-			
+						
         end
 
         -- Stop looping early if we've reached the end.
