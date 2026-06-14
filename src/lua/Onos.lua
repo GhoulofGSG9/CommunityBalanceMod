@@ -947,12 +947,15 @@ function Onos:ModifyDamageTakenPostRules(damageTable, attacker, doer, damageType
 
             boneshieldDamage = boneshieldDamage * damageMult
 
-            if isRailgun then -- Railgun damages both boneshield and onos
+            --[[if isRailgun then -- Railgun damages both boneshield and onos
                 boneshieldWeapon:TakeDamage(boneshieldDamage)
             else
                 local leftoverBoneshieldDamage = boneshieldWeapon:TakeDamage(boneshieldDamage)
                 damageTable.damage = (leftoverBoneshieldDamage / damageMult) -- leftover damage converted from our multiplied damage
-            end
+            end]]
+
+			local leftoverBoneshieldDamage = boneshieldWeapon:TakeDamage(boneshieldDamage)
+			damageTable.damage = (leftoverBoneshieldDamage / damageMult) -- leftover damage converted from our multiplied damage
 
             -- send damage message for specifically boneshield
             if boneshieldDamage > 0 then
