@@ -241,7 +241,11 @@ local function ExecuteShot(self, startPoint, endPoint, player)
 				if capsuleTrace.entity:isa("Onos") then
 					if capsuleTrace.entity:GetIsBoneShieldActive() and capsuleTrace.entity:GetHitsBoneShield(self, capsuleTrace.endPoint + hitPointOffset) then
 						boneshieldWeapon = capsuleTrace.entity:GetWeapon(BoneShield.kMapName)
-						boneshieldWeapon:TakeDamage(damage)
+						local damageScalar = 1
+						if self.GetIsAffectedByWeaponUpgrades and self:GetIsAffectedByWeaponUpgrades() then
+							damageScalar = NS2Gamerules_GetUpgradedDamageScalar(self, ConditionalValue(HasMixin(self, "Tech"), self:GetTechId(), kTechId.None) )
+						end
+						boneshieldWeapon:TakeDamage(damage*damageScalar)
 						break
 					end
 				end
