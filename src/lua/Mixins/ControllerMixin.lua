@@ -164,7 +164,7 @@ function ControllerMixin:UpdateControllerFromEntity(allowTrigger)
 
             if self.controllerOutter then                
                 --self.controllerOutter:SetupBox(Vector(self.controllerRadius * 1.3, self.controllerHeight * 0.5, self.controllerRadius * 1.3), self.controller:GetCoords(), allowTrigger)
-                self.controllerOutter:SetupCylinder( controllerRadius * 1.5, controllerHeight, self.controller:GetCoords(), allowTrigger )
+                self.controllerOutter:SetupCylinder( controllerRadius * 1.55, controllerHeight, self.controller:GetCoords(), allowTrigger )
             end                
             
             -- Remove all collision reps except movement from the controller.
