@@ -237,26 +237,15 @@ local function ExecuteShot(self, startPoint, endPoint, player)
         if capsuleTrace.entity then
 
             if not table.find(hitEntities, capsuleTrace.entity) then
-
+                table.insert(hitEntities, capsuleTrace.entity)
+                self:DoDamage(damage, capsuleTrace.entity, capsuleTrace.endPoint + hitPointOffset, direction, capsuleTrace.surface, false, false)
+				
 				if capsuleTrace.entity:isa("Onos") then
 					if capsuleTrace.entity:GetIsBoneShieldActive() and capsuleTrace.entity:GetHitsBoneShield(self, capsuleTrace.endPoint + hitPointOffset) then
-						boneshieldWeapon = capsuleTrace.entity:GetWeapon(BoneShield.kMapName)
-						local damageScalar = 1
-						if self.GetIsAffectedByWeaponUpgrades and self:GetIsAffectedByWeaponUpgrades() then
-							damageScalar = NS2Gamerules_GetUpgradedDamageScalar(self, ConditionalValue(HasMixin(self, "Tech"), self:GetTechId(), kTechId.None) )
-						end
-						boneshieldWeapon:TakeDamage(damage*damageScalar)
-						if Server then -- Damage numbers are only sent on server, client never predicts.
-							SendDamageMessage( self, capsuleTrace.entity:GetId(), damage*damageScalar, capsuleTrace.entity:GetOrigin(), 0, nil, kDamageMessageType.Boneshield )
-						end
 						break
 					end
 				end
-
-                table.insert(hitEntities, capsuleTrace.entity)
-                self:DoDamage(damage, capsuleTrace.entity, capsuleTrace.endPoint + hitPointOffset, direction, capsuleTrace.surface, false, false)
-            end
-						
+            end		
         end
 
         -- Stop looping early if we've reached the end.
