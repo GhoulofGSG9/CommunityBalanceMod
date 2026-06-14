@@ -324,19 +324,19 @@ function GroundMoveMixin:ModifyMaxSpeed(maxSpeedTable, input)
 
     PROFILE("GroundMoveMixin:ModifyMaxSpeed")
 
-	local backwardsSpeedScalar = 1
+    local backwardsSpeedScalar = 1
 
-	if input and input.move.z < 0 then
-	
-		if input.move.x ~= 0 then
-			backwardsSpeedScalar = self:GetMaxBackwardSpeedScalar() * 1.4
-		else
-			backwardsSpeedScalar = self:GetMaxBackwardSpeedScalar()
-		end	
-		
-		backwardsSpeedScalar = Clamp(backwardsSpeedScalar, 0, 1)
-	
-	end
+    if input and input.move.z < 0 then
+    
+        if input.move.x ~= 0 then
+            backwardsSpeedScalar = self:GetMaxBackwardSpeedScalar() * 1.4
+        else
+            backwardsSpeedScalar = self:GetMaxBackwardSpeedScalar()
+        end 
+        
+        backwardsSpeedScalar = Clamp(backwardsSpeedScalar, 0, 1)
+    
+    end
 
     maxSpeedTable.maxSpeed = maxSpeedTable.maxSpeed * backwardsSpeedScalar
 
@@ -687,16 +687,47 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
         local didStep = false
         local stepAmount = 0
         local playerHit = nil
-        local enemyPlayerInRange = false
-    
+
         -- check if we are allowed to step
         local completedMove = false
 
-        -- - Checks for player collision while on ground, if none then we can step-over floor features
-        -- We usually move at, at most, 1.2m/update for very high speed stuff, so 5m player check is generous
-        -- We if are in the air/jumping or if nobody is in range, don't even bother checking ground move-over
-        if stepAllowed and #GetEntitiesWithinRange("Player", self:GetOrigin(), 5) > 1 then -- exclude self
-            completedMove, hitEntities = _PerformMovement(self, velocity * deltaTime * 2.5, 1, nil, false)
+        ---------
+        local friendlyPlayerInRange = false
+        local enemyPlayerInRange = false
+        local enemyPlayerHit = false
+        local vanillaMoveRate = 26
+        -- Checks if players are within X mr-tick from us at current speed
+        -- This allows us to skip the expensive PerformMovement() if none is found
+        local distCheckEnemy = math.max(1.5,(velocity*(1.0/vanillaMoveRate)*5):GetLength())
+        local distCheckFriendly = math.max(1.5,(velocity*(1.0/vanillaMoveRate)*3):GetLength())
+
+        local teamNumber = self:GetTeamNumber()
+        local enemyTeamNumber = GetEnemyTeamNumber(self:GetTeamNumber())
+        local playersAround = GetEntitiesWithinRange("Player", self:GetOrigin(), distCheckEnemy)
+        for _, player in ipairs(playersAround) do
+            if player:GetTeamNumber() == enemyTeamNumber then
+                enemyPlayerInRange = true
+            end
+            if player:GetTeamNumber() == teamNumber then
+                local dist = self:GetOrigin():GetDistanceTo(player:GetOrigin())
+                if dist <= distCheckFriendly then
+                    friendlyPlayerInRange = true
+                end
+            end
+        end
+        --
+
+        if enemyPlayerInRange or friendlyPlayerInRange then
+            local lookAheadDist = enemyPlayerInRange and 3 or 2.5
+
+            -- This call is very important for Predict side collision (and client to a lesser extent)
+            -- It has to be done in all case for Client/Predict.
+            -- * Server inits capsule once on EntityCreate()
+            -- * Client inits capsule upon entering relevancy range
+            -- * Predict inits capsule upon impact (and is responsible for a smooth collision feeling)
+            -- It makes the client predict if it will bump into other players and create the collision controller accordingly.
+            -- If not called, then the client will rubberband in place back&forth upon colliding with a player
+            completedMove, hitEntities = _PerformMovement(self, velocity * (1.0/vanillaMoveRate * lookAheadDist), 1, nil, false)
             if stepAllowed and hitEntities then
             
                 for i = 1, #hitEntities do
@@ -704,7 +735,7 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
                         playerHit = hitEntities[i]
                         stepAllowed = false
                         if playerHit:GetTeamNumber() == GetEnemyTeamNumber(self:GetTeamNumber()) then
-                            enemyPlayerInRange = true
+                            enemyPlayerHit = true
                         end
                         --Log("%s colliding with %s", self, hitEntities[i])
                         --break
@@ -715,14 +746,14 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
             end
         end
         
-        if not stepAllowed then -- Handles PvP collisions or jumps
+        if not stepAllowed then -- Handles PvP collisions or jumps (no move-over movement checks)
             
             local slowDownFraction = self.GetCollisionSlowdownFraction and self:GetCollisionSlowdownFraction() * 0.5 or nil
             
             local deflectMove = self.GetDeflectMove and self:GetDeflectMove() or false
             
             -- Increases deflect traces in combat
-            local numTraces = enemyPlayerInRange and kPvPTracesAmount or kTracesAmount
+            local numTraces = enemyPlayerHit and kPvPTracesAmount or kTracesAmount
             _PerformMovement(self, velocity * deltaTime, numTraces, velocity, true, slowDownFraction, deflectMove, nil, deltaTime)
             
         else     
@@ -863,4 +894,3 @@ function GroundMoveMixin:OnWorldCollision(normal, impactForce)
     end
     
 end
-
