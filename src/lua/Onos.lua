@@ -362,7 +362,7 @@ function Onos:GetNearbyStampedeables(origin)
 end
 
 function Onos:GetCanStampede()
-    return self:GetWeapon(Gore.kMapName) and self:GetVelocity():GetLengthXZ() > 9
+    return self:GetWeapon(Gore.kMapName) and self:GetVelocity():GetLengthXZ() > 8.5
 end
 
 function Onos:Stampede()
