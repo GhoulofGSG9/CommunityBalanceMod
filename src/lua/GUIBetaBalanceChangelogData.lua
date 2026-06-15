@@ -19,11 +19,38 @@ if kCBMaddon then
 	gChangelogData =
 	[[
 
-	Welcome to the Community Balance Mod, a project built by the community, for the community. 
-	Ping me, @Shifter (project lead) or @NexZone30 (dev lead), in any of the NS2 discords, or start a conversation in beta-balance-feedback 
-	on the official discord to let us know you think! Below are the changes this mod introduces:
+	Welcome to CBM: Content Edition, a project built by the community, for the community.
+	This version enables all content, balance, QoL, and bugfixes of the CBM suite.	
+	Ping me, @Shifter (project lead) or @NexZone30 (dev lead), in any of the NS2 discords, 
+	or start a conversation in beta-balance-feedback on the official discord to let us know 
+	you think! Below are the changes this mod introduces:
 
-	#TLDR of Community Balance Mod (v3.1.5) vs. Vanilla:
+	#TLDR of Recent Release (v3.2):
+	
+	## Balance Changes
+	  - Nerfs to exosuit movement and thruster.
+	  - Claw armor increased from 75 to 115.
+	  - Plasma launcher sphere collisions improved and DoT application bugfixed.
+	  - Jetpack tech cost reduced to 20 from 25.
+	  - Mines can no longer be placed inside the center of gates.
+	  - Bombblers spawn further and last for 10s (from 8s).
+	  - Pulse nade now deals 15 from 10 damage (to one shot babblers).
+	  - Fortress structures renamed to "Advanced" structures to reflect current role alignment.
+	  - Boneshield blocks shots from railgun from piercing and doing health pool damage.
+	
+	## Bugfixes and Enhanced Performance
+	  - Vanilla bugfixes to ARC and whip ragdoll related server hitching and crashes.
+      - Vanilla bugfix to welder stopping welding when accidently aiming at a target's weapon.
+	  - Vanilla bugfix to static DoTs (plasma and bile affected) that decreased target acquisition time by >0.5s.
+      - Extensive lua code refactor/debottlenecking, improving client/server performance (see CBM discord for details).
+      - Vanilla bugfixes related to game rate increases.
+	  - Vanilla bugfixes to collisions:
+	    - Not affected by rate changes.
+		- Better for PvP (less getting stuck / phasing through people).
+		- Better when hitting geometry (many stuck spots fixed)
+	  - Note: Server owners are encouraged to try increase game rates based on our recommendations (see CBM discord).
+
+	#TLDR of Community Balance Mod (v3.2) vs. Vanilla:
 	
 	## MARINE
 	  - Reworks to existing marines structures (sentry, sentry battery, and prototype lab).
@@ -48,7 +75,7 @@ if kCBMaddon then
 	  - Updated locale, new ui elements, and improved tech maps for new (and old) features.
 	  - Custom skins and cinematics for new content.
 	  - Various QoL, game improvements, and bugfixes.
-		  
+
 	# Full Changelog:
 	## GENERAL
 	### Structure Damage Rework
@@ -102,14 +129,14 @@ if kCBMaddon then
 	  - Jetpackers are able to replenish fuel when empty when holding space bar.
 	  - Alien PvE bounces/glitches less during and after moving.
 	  - Flying flamethrowers in rare cases should not crash the server anymore.
-	  - Fix to cinematics of projectiles desyncing.
+	  - Fixed cinematics of projectiles desyncing and disappearing.
 	  - Fixed shotgun trace source location to be consistent (was random).
 	  - Fixed issue with projectiles visually disappearing from the client.
 	  - Fixed ARCs causing server hitching / crash on loss of orders when orders were queued.
 	  - Fixed welders stopping welding when accidently aimed at a marine weapon.
 	  - Fixed collisions being dependent tick/move rate (now based on time). 
 	  - Fixed whips causing server hitching / crash on death due to ragdolls.
-	
+
 	## MARINE - PLAYER
 	### Modular Exosuits
 	  - Exosuits changed to have swappable arms and cores (pres refunds disabled when swapping arms/cores).
@@ -189,7 +216,7 @@ if kCBMaddon then
 	  - Self damage reduced by 66% (grenades/mines).
       - Pulse Grenades:
 	    - Debuff range increased by 50%.
-	    - Base damage set to 10 from 50.
+	    - Base damage set to 15 from 50.
 	    - Debuff duration is now 3.5s from 5s.
 	    - No longer reduces energy regeneration (bugfix).
 	  - Cluster Grenades:
@@ -222,10 +249,10 @@ if kCBMaddon then
 	### Welder
 	  - Autopickup for welders reduced from 5 to 1 second.
 
-    ## MARINE - COMMANDER / STRUCTURES
+	## MARINE - COMMANDER / STRUCTURES
 	### Prototype Lab
 	  - Exosuit tech changed to upgrade prototype lab into exosuit prototype lab.
-	    - The research is tied to the exosuit prototype lab, meaning the research will be lost if the structure is destroyed or recycled.
+	    - The research is tied to the exosuit prototype lab (lost when structure is destroyed or recycled).
 	  - While exosuit prototype lab is researching, a rotating exo hologram will appear above the prototype lab.
 	    - When completed, the hologram will become static and the map icon will become purple.
 	  
@@ -273,7 +300,7 @@ if kCBMaddon then
 		- Reduced default order search radius to 12m. Hold position order reduces it to 3m.
 		- MAC now prioritizes its closest target first.
 		- Reduced follow order secondary job search radius to 6m and snaps to marines with 2m.
-		- Enabled and ehanced MAC basic order commands such as Move, Stop, Patrol and Hold position.
+		- Enabled and enhanced MAC basic order commands such as Move, Stop, Patrol and Hold position.
 		- Multiple MACs can now repair PvE targets simultaneously
 
 	### A-MAC (MAC Variant)
@@ -385,18 +412,16 @@ if kCBMaddon then
 		- Babblers will now detach around the gorge instead of everyone at same location above the gorge.
 		- Babblers will stay out for at least the duration of the babbler ball.
 		- Babblers are now affected by crush upgrade.
-		- Babblers are now 10 eHp.
 	  - Babbler Bomb
 		- Bio 7 gorge ability researchable on hive (15 tres).
 		- Gorge spews out babbler filled egg that explodes on impact.
-		- Egg filled with 6 independent babblers that die after 8s.
+		- Egg filled with 6 independent babblers that die after 10s.
 		- Limited to 2 charge that fills over 10s each.
-		- Upgrades babblers to bombblers.
 		- Does not spawn additional babblers if more than twelve exist in an area.
 	  - Hydras and Bilemine cost 30% less energy
 	  - Bile damage accelerates weapon expiration
 		- 1 Bile ~ 5 seconds
-	  - Buffed Gorge Structure Healing by 15% (net neutral with structure eHP changes).
+	  - Buffed gorge structure healing by 15% (net neutral with structure eHP changes).
 
 	### Stomp (onos)
 	  - No longer knocks down marines.
@@ -406,7 +431,8 @@ if kCBMaddon then
 	  - Added proper check for marine jumping.
 
 	### Boneshield (onos)
-	  - Now blocks railgun shots from piercing.
+	  - Now blocks railgun shots from piercing through (still must be facing damage source).
+	  - Now prevents health pool damage when blocking (still must be facing damage source).
 
 	### Stab (fade)
 	  - Stab research cost reduced from 25 to 20 tres.
@@ -414,7 +440,7 @@ if kCBMaddon then
 	  
 	### Skulk
 	  - Improved movement on wall and ceilings by making fall checks more forgiving.
-	  
+
 	## ALIEN - COMMANDER / STRUCTURES
 	### Hives
 	  - Based eHP decreased to be +7.5% of vanilla.
@@ -510,12 +536,35 @@ else
 	gChangelogData =
 	[[
 
-	Welcome to the Community Balance Mod - Core Edition, a project built by the community, for the community.
+	Welcome to CBM: Core Edition, a project built by the community, for the community.
     This version only enables the balance, QoL, and bugfixes of the CBM suite.
-	Ping me, @Shifter (project lead) or @NexZone30 (dev lead), in any of the NS2 discords, or start a conversation in beta-balance-feedback 
-	on the official discord to let us know you think! Below are the changes this mod introduces:
+	Ping me, @Shifter (project lead) or @NexZone30 (dev lead), in any of the NS2 discords, 
+	or start a conversation in beta-balance-feedback on the official discord to let us know 
+	you think! Below are the changes this mod introduces:
 
-	#TLDR of Community Balance Mod (v3.1.5) vs. Vanilla:
+	#TLDR of Recent Release (v3.2):
+	
+	## Balance Changes
+	  - Nerfs to exosuit movement and thruster.
+	  - Claw armor increased from 75 to 115.
+	  - Jetpack tech cost reduced to 20 from 25.
+	  - Mines can no longer be placed inside the center of gates.
+	  - Pulse nade now deals 15 from 10 damage (to one shot babblers).
+	  - Boneshield blocks shots from railgun from piercing and doing health pool damage.
+	
+	## Bugfixes and Enhanced Performance
+	  - Vanilla bugfixes to ARC and whip ragdoll related server hitching and crashes.
+      - Vanilla bugfix to welder stopping welding when accidently aiming at a target's weapon.
+	  - Vanilla bugfix to static DoTs (bile affected) that decreased target acquisition time by >0.5s.
+      - Extensive lua code refactor and debottlenecking, improving client/server performance (see CBM discord for extensive breakdown).
+      - Vanilla bugfixes related to game rate increases.
+	  - Vanilla bugfixes to collisions:
+	    - Not affected by rate changes.
+		- Better for PvP (less getting stuck / phasing through people).
+		- Better when hitting geometry (many stuck spots fixed)
+	  - Note: Server owners are encouraged to try increase game rates based on our recommendations (see CBM discord).
+
+	#TLDR of Community Balance Mod (v3.2) vs. Vanilla:
 	
 	## MARINE
 	  - Reworks to existing marines structures (sentry, sentry battery, and prototype lab).
@@ -534,7 +583,7 @@ else
 	  - Updated locale, new ui elements, and improved tech maps for new (and old) features.
 	  - Custom skins and cinematics for new content.
 	  - Various QoL, game improvements, and bugfixes.
-		  
+ 
 	# Full Changelog:
 	## GENERAL
 	### Structure Damage Rework
@@ -588,15 +637,14 @@ else
 	  - Jetpackers are able to replenish fuel when empty when holding space bar.
 	  - Alien PvE bounces/glitches less during and after moving.
 	  - Flying flamethrowers in rare cases should not crash the server anymore.
-	  - Fix to cinematics of projectiles desyncing.
+	  - Fixed cinematics of projectiles desyncing and disappearing.
 	  - Fixed shotgun trace source location to be consistent (was random).
-	  - Fixed issue with projectiles visually disappearing from the client.
 	  - Fixed issue with projectiles visually disappearing from the client.
 	  - Fixed ARCs causing server hitching / crash on loss of orders when orders were queued.
 	  - Fixed welders stopping welding when accidently aimed at a marine weapon.
 	  - Fixed collisions being dependent tick/move rate (now based on time). 
 	  - Fixed whips causing server hitching / crash on death due to ragdolls.
-	
+
 	## MARINE - PLAYER
 	### Modular Exosuits
 	  - Exosuits changed to have swappable arms and cores (pres refunds disabled when swapping arms/cores).
@@ -647,7 +695,7 @@ else
 	  - Self damage reduced by 66% (grenades/mines).
       - Pulse Grenades:
 	    - Debuff range increased by 50%.
-	    - Base damage set to 10 from 50.
+	    - Base damage set to 15 from 50.
 	    - Debuff duration is now 3.5s from 5s.
 	    - No longer reduces energy regeneration (bugfix).
 	  - Cluster Grenades:
@@ -680,10 +728,10 @@ else
 	### Welder
 	  - Autopickup for welders reduced from 5 to 1 second.
 
-    ## MARINE - COMMANDER / STRUCTURES
+	## MARINE - COMMANDER / STRUCTURES
 	### Prototype Lab
 	  - Exosuit tech changed to upgrade prototype lab into exosuit prototype lab.
-	    - The research is tied to the exosuit prototype lab, meaning the research will be lost if the structure is destroyed or recycled.
+	    - The research is tied to the exosuit prototype lab (lost when structure is destroyed or recycled).
 	  - While exosuit prototype lab is researching, a rotating exo hologram will appear above the prototype lab.
 	    - When completed, the hologram will become static and the map icon will become purple.
 	  
@@ -776,11 +824,10 @@ else
 		- Babblers will now detach around the gorge instead of everyone at same location above the gorge.
 		- Babblers will stay out for at least the duration of the babbler ball.
 		- Babblers are now affected by crush upgrade.
-		- Babblers are now 10 eHp.
 	  - Hydras and Bilemine cost 30% less energy
 	  - Bile damage accelerates weapon expiration
 		- 1 Bile ~ 5 seconds
-	  - Buffed Gorge Structure Healing by 15% (net neutral with structure eHP changes).
+	  - Buffed gorge structure healing by 15% (net neutral with structure eHP changes).
 
 	### Stomp (onos)
 	  - No longer knocks down marines.
@@ -790,7 +837,8 @@ else
 	  - Added proper check for marine jumping.
 
 	### Boneshield (onos)
-	  - Now blocks railgun shots from piercing.
+	  - Now blocks railgun shots from piercing through (still must be facing damage source).
+	  - Now prevents health pool damage when blocking (still must be facing damage source).
 
 	### Stab (fade)
 	  - Stab research cost reduced from 25 to 20 tres.
