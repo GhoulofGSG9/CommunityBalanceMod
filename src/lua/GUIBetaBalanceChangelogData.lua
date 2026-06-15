@@ -19,7 +19,7 @@ if kCBMaddon then
 	gChangelogData =
 	[[
 
-	Welcome to CBM: Content Edition, a project built by the community, for the community.
+	Welcome to the Community Balance Mod (CBM), a project built by the community, for the community.
 	This version enables all content, balance, QoL, and bugfixes of the CBM suite.	
 	Ping me, @Shifter (project lead) or @NexZone30 (dev lead), in any of the NS2 discords, 
 	or start a conversation in beta-balance-feedback on the official discord to let us know 
@@ -31,7 +31,7 @@ if kCBMaddon then
 	  - Nerfs to exosuit movement and thruster.
 	  - Claw armor increased from 75 to 115.
 	  - Plasma launcher sphere collisions improved and DoT application bugfixed.
-	  - Jetpack tech cost reduced to 20 from 25.
+	  - Jetpack tech cost reduced from 25 to 20.
 	  - Mines can no longer be placed inside the center of gates.
 	  - Bombblers spawn further and last for 10s (from 8s).
 	  - Pulse nade now deals 15 from 10 damage (to one shot babblers).
@@ -547,7 +547,7 @@ else
 	## Balance Changes
 	  - Nerfs to exosuit movement and thruster.
 	  - Claw armor increased from 75 to 115.
-	  - Jetpack tech cost reduced to 20 from 25.
+	  - Jetpack tech cost reduced from 25 to 20.
 	  - Mines can no longer be placed inside the center of gates.
 	  - Pulse nade now deals 15 from 10 damage (to one shot babblers).
 	  - Boneshield blocks shots from railgun from piercing and doing health pool damage.
