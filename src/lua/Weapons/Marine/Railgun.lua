@@ -237,18 +237,15 @@ local function ExecuteShot(self, startPoint, endPoint, player)
         if capsuleTrace.entity then
 
             if not table.find(hitEntities, capsuleTrace.entity) then
-
                 table.insert(hitEntities, capsuleTrace.entity)
                 self:DoDamage(damage, capsuleTrace.entity, capsuleTrace.endPoint + hitPointOffset, direction, capsuleTrace.surface, false, false)
-            end
-			
-			-- Allows boneshield to block railgun shots when enabled.
-			--[[if capsuleTrace.entity:isa("Onos") then 
-				if capsuleTrace.entity:GetIsBoneShieldActive() and capsuleTrace.entity:GetHitsBoneShield(self, capsuleTrace.endPoint + hitPointOffset) then
-					break
+				
+				if capsuleTrace.entity:isa("Onos") then
+					if capsuleTrace.entity:GetIsBoneShieldActive() and capsuleTrace.entity:GetHitsBoneShield(self, capsuleTrace.endPoint + hitPointOffset) then
+						break
+					end
 				end
-			end]] 
-			
+            end		
         end
 
         -- Stop looping early if we've reached the end.
