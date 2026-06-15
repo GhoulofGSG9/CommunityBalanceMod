@@ -36,6 +36,7 @@ if kCBMaddon then
 	  - Bombblers spawn further and last for 10s (from 8s).
 	  - Pulse nade now deals 15 from 10 damage (to one shot babblers).
 	  - Fortress structures renamed to "Advanced" structures to reflect current role alignment.
+	  - Boneshield blocks shots from railgun from piercing and doing health pool damage.
 	
 	## Bugfixes and Enhanced Performance
 	  - Vanilla bugfixes to ARC and whip ragdoll related server hitching and crashes.
@@ -43,6 +44,10 @@ if kCBMaddon then
 	  - Vanilla bugfix to static DoTs (plasma and bile affected) that decreased target acquisition time by >0.5s.
       - Extensive lua code refactor/debottlenecking, improving client/server performance (see CBM discord for details).
       - Vanilla bugfixes related to game rate increases.
+	  - Vanilla bugfixes to collisions:
+	    - Not affected by rate changes.
+		- Better for PvP (less getting stuck / phasing through people).
+		- Better when hitting geometry (many stuck spots fixed)
 	  - Note: Server owners are encouraged to try increase game rates based on our recommendations (see CBM discord).
 
 	#TLDR of Community Balance Mod (v3.2) vs. Vanilla:
@@ -425,6 +430,10 @@ if kCBMaddon then
 	  - Improved terrain pathing.
 	  - Added proper check for marine jumping.
 
+	### Boneshield (onos)
+	  - Now blocks railgun shots from piercing through (still must be facing damage source).
+	  - Now prevents health pool damage when blocking (still must be facing damage source).
+
 	### Stab (fade)
 	  - Stab research cost reduced from 25 to 20 tres.
 	  - Stab energy cost reduced by 16%.
@@ -541,6 +550,7 @@ else
 	  - Jetpack tech cost reduced to 20 from 25.
 	  - Mines can no longer be placed inside the center of gates.
 	  - Pulse nade now deals 15 from 10 damage (to one shot babblers).
+	  - Boneshield blocks shots from railgun from piercing and doing health pool damage.
 	
 	## Bugfixes and Enhanced Performance
 	  - Vanilla bugfixes to ARC and whip ragdoll related server hitching and crashes.
@@ -548,6 +558,10 @@ else
 	  - Vanilla bugfix to static DoTs (bile affected) that decreased target acquisition time by >0.5s.
       - Extensive lua code refactor and debottlenecking, improving client/server performance (see CBM discord for extensive breakdown).
       - Vanilla bugfixes related to game rate increases.
+	  - Vanilla bugfixes to collisions:
+	    - Not affected by rate changes.
+		- Better for PvP (less getting stuck / phasing through people).
+		- Better when hitting geometry (many stuck spots fixed)
 	  - Note: Server owners are encouraged to try increase game rates based on our recommendations (see CBM discord).
 
 	#TLDR of Community Balance Mod (v3.2) vs. Vanilla:
@@ -821,6 +835,10 @@ else
 	  - Damage increased from 40 to 50 heavy damage.
 	  - Improved terrain pathing.
 	  - Added proper check for marine jumping.
+
+	### Boneshield (onos)
+	  - Now blocks railgun shots from piercing through (still must be facing damage source).
+	  - Now prevents health pool damage when blocking (still must be facing damage source).
 
 	### Stab (fade)
 	  - Stab research cost reduced from 25 to 20 tres.
