@@ -33,11 +33,11 @@ function GUIFeedback:Initialize()
 	local oldText = self.buildText:GetText()
     local newText = oldText .. " - CommunityBalanceMod v" .. g_communityBalanceModConfig.revision
 
-	if kCBMaddon then
+	--[[if kCBMaddon then
 		newText = newText .. ": Content Edition"
 	else
 		newText = newText .. ": Core Edition"
-	end
+	end]]
 
     if g_communityBalanceModConfig.build_tag then
         newText = newText .. " (" .. g_communityBalanceModConfig.build_tag .. ")"
