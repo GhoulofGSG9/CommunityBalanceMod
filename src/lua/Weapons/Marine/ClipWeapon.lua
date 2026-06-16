@@ -63,6 +63,47 @@ ClipWeapon.kCone10Degrees = Math.Radians(10)
 ClipWeapon.kCone15Degrees = Math.Radians(15)
 ClipWeapon.kCone20Degrees = Math.Radians(20)
 
+
+local kClipWeaponRandomArray = {}
+local kClipWeaponRandomArrayCos = {}
+local kClipWeaponRandomArraySin = {}
+local kClipWeaponRandomArrayIdx = 1
+local kClipWeaponRandomArrayMaxIdx = 525
+
+local function ClipWeapon_randomizer_init()
+    --math_randomseed(player:GetId())
+    --Log("Init randoms for player-id[%s]", player:GetId())
+    if (#kClipWeaponRandomArray == 0) then
+        kClipWeaponRandomArray = {}
+        kClipWeaponRandomArrayCos = {}
+        kClipWeaponRandomArraySin = {}
+        kClipWeaponRandomArrayIdx = 1
+        for i=1, kClipWeaponRandomArrayMaxIdx do
+            kClipWeaponRandomArray[i] = math_random()
+            kClipWeaponRandomArrayCos[i] = math_cos(kClipWeaponRandomArray[i] * math_pi * 2)
+            kClipWeaponRandomArraySin[i] = math_sin(kClipWeaponRandomArray[i] * math_pi * 2)
+        end
+    end
+end
+
+--local numCalls = 0
+function ClipWeapon_randomizer()
+    ClipWeapon_randomizer_init()
+    --[[if not player then
+        --Log("DBG = player entity is nil for clipWeapon random value generation")
+        local r = NetworkRandom()
+        return r, math_cos(r), math_sin(r)
+    end--]]
+    local idx = kClipWeaponRandomArrayIdx
+    local r = kClipWeaponRandomArray[idx]
+    local c = kClipWeaponRandomArrayCos[idx]
+    local s = kClipWeaponRandomArraySin[idx]
+    --Log("table[%s] = r:%s / cos:%s / sin:%s", player.kClipWeaponRandomArrayIdx, r, c, s)
+    kClipWeaponRandomArrayIdx = 1 + (kClipWeaponRandomArrayIdx % kClipWeaponRandomArrayMaxIdx)
+    return r, c, s
+end
+
+
 function ClipWeapon:OnCreate()
 
     Weapon.OnCreate(self)
@@ -81,6 +122,8 @@ function ClipWeapon:OnCreate()
     self.ammo = self:GetMaxClips() * self:GetClipSize()
     self.clip = self:GetClipSize()
     self.reloading = false
+
+    ClipWeapon_randomizer_init()
     
 end
 
@@ -408,50 +451,14 @@ function ClipWeapon:GetBulletSize()
     return kBulletSize
 end
 
-local function ClipWeapon_randomizer_init(player)
-    if player and player.kClipWeaponRandomArray == nil then
-        math_randomseed(player:GetId())
-        --Log("Init randoms for player-id[%s]", player:GetId())
-        player.kClipWeaponRandomArray = {}
-        player.kClipWeaponRandomArrayCos = {}
-        player.kClipWeaponRandomArraySin = {}
-        player.kClipWeaponRandomArrayIdx = 1
-        player.kClipWeaponRandomArrayMaxIdx = 225 -- non multiple of 50 (rifle mag)
-        for i=1, player.kClipWeaponRandomArrayMaxIdx do
-            player.kClipWeaponRandomArray[i] = math_random()
-            player.kClipWeaponRandomArrayCos[i] = math_cos(player.kClipWeaponRandomArray[i] * math_pi * 2)
-            player.kClipWeaponRandomArraySin[i] = math_sin(player.kClipWeaponRandomArray[i] * math_pi * 2)
-        end
-    end
-
-end
-
---local numCalls = 0
-function ClipWeapon_randomizer(player)
-    ClipWeapon_randomizer_init(player)
-    if not player then
-        --Log("DBG = player entity is nil for clipWeapon random value generation")
-        local r = NetworkRandom()
-        return r, math_cos(r), math_sin(r)
-    end
-    local idx = player.kClipWeaponRandomArrayIdx
-    local r = player.kClipWeaponRandomArray[idx]
-    local c = player.kClipWeaponRandomArrayCos[idx]
-    local s = player.kClipWeaponRandomArraySin[idx]
-    --Log("table[%s] = r:%s / cos:%s / sin:%s", player.kClipWeaponRandomArrayIdx, r, c, s)
-    player.kClipWeaponRandomArrayIdx = 1 + (player.kClipWeaponRandomArrayIdx % player.kClipWeaponRandomArrayMaxIdx)
-
-    return r, c, s
-end
-
 function ClipWeapon_CalculateSpread(directionCoords, player, spreadAmount)
 
     PROFILE("ClipWeapon_CalculateSpread")
 
     local spreadAngle = spreadAmount / 2
     
-    local rand1, cos, sin = ClipWeapon_randomizer(player)
-    local rand2 = ClipWeapon_randomizer(player)
+    local rand1, cos, sin = ClipWeapon_randomizer()
+    local rand2 = ClipWeapon_randomizer()
 
     local prevRandomRadiusCached = (player.kClipWeaponLastSpreadAngle and player.kClipWeaponLastSpreadAngle == spreadAngle)
     local spreadAngleTan = (prevRandomRadiusCached and player.kClipWeaponLastSpreadAngleTan or math_tan(spreadAngle))
@@ -513,8 +520,7 @@ local function FireBullets(self, player)
     local hasHitRecently = (now - lastTimeDamageDealt) < 0.5
     local allowBoxTrace = (not hasShotRecently) or hasHitRecently
 
-    -- Use the random table in reverse order, so the shot and effect are not related
-    local tracertRandom = player.kClipWeaponRandomArray[1 + (player.kClipWeaponRandomArrayMaxIdx - player.kClipWeaponRandomArrayIdx)]
+    local tracertRandom = ClipWeapon_randomizer()
     local showTracer = tracertRandom < effectFrequency
     --if Server then
     --    Log("ClipWeap: allowBoxTrace: %s (hasShotRecently:%s / hasHitRecently:%s)", allowBoxTrace, hasShotRecently, hasHitRecently)
@@ -671,11 +677,11 @@ function ClipWeapon:OnTag(tagName)
             --DebugFireRate(self)
             
         end
-		
-		-- If we fired the last bullet, reload immediatly
-		if self.clip == 0 and self.ammo > 0 then
-			player:Reload()
-		end
+        
+        -- If we fired the last bullet, reload immediatly
+        if self.clip == 0 and self.ammo > 0 then
+            player:Reload()
+        end
            
     elseif tagName == "reload" then
         FillClip(self)
