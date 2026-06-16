@@ -584,14 +584,19 @@ local function DoStepMove(self, _, velocity, deltaTime)
     local onGround, normal
     
     -- step up at first
-    _PerformMovement(self, kUpVector, 1)
-    stepAmount = self:GetOrigin().y - oldOrigin.y
+    --_PerformMovement(self, kUpVector, 1)
+    --stepAmount = self:GetOrigin().y - oldOrigin.y
+
+    -- Shortcut the up PerformMovement(), because any issues will be catched up
+    -- by the next forward PerformMovement anyway. (and kUpVector is small enough)
+    self:SetOrigin(oldOrigin + kUpVector)
+    stepAmount = kUpVector.y
     
     -- do the normal move
     local startOrigin = Vector(self:GetOrigin())
     local completedMove = _PerformMovement(self, velocity * deltaTime, kTracesAmount, velocity, true, slowDownFraction, deflectMove, nil, deltaTime)
     local horizMoveAmount = (startOrigin - self:GetOrigin()):GetLengthXZ()
-    
+
     if completedMove then
         -- step down again (slightly more than we went up to account for slopes)
         local downDistance = -stepAmount - horizMoveAmount * kDownSlopeFactor
