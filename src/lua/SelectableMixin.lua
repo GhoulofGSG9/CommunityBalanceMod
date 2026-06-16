@@ -56,8 +56,8 @@ function SelectableMixin:OnSighted(sighted)
 
     if not sighted then
     
-        local selectedByTeamOne = bit.band(self.selectionMask, 1) ~= 0
-        local selectedByTeamTwo = bit.band(self.selectionMask, 2) ~= 0
+        local selectedByTeamOne = bit_band(self.selectionMask, 1) ~= 0
+        local selectedByTeamTwo = bit_band(self.selectionMask, 2) ~= 0
         
         if self:GetTeamNumber() == 2 and selectedByTeamOne then
         
@@ -95,9 +95,9 @@ function SelectableMixin:SetSelected(teamNumber, selected, keepSelection, sendMe
     selected = selected and self:GetIsSelectable(teamNumber)
 
     if selected then
-        self.selectionMask = bit.bor(self.selectionMask, teamNumber)
+        self.selectionMask = bit_bor(self.selectionMask, teamNumber)
     else
-        self.selectionMask = bit.band(self.selectionMask, bit.bnot(teamNumber))
+        self.selectionMask = bit_band(self.selectionMask, bit.bnot(teamNumber))
     end  
 
     if Client then
@@ -157,7 +157,7 @@ local function GetSelectedClient(self, teamNumber)
         mask = self.selectionMaskClient
     end
     
-    selected = bit.band(mask, teamNumber) ~= 0
+    selected = bit_band(mask, teamNumber) ~= 0
     
     return selected
     
@@ -172,7 +172,7 @@ function SelectableMixin:GetIsSelected(teamNumber)
     if Client then
         selected = GetSelectedClient(self, teamNumber)    
     else
-        selected = bit.band(self.selectionMask, teamNumber) ~= 0
+        selected = bit_band(self.selectionMask, teamNumber) ~= 0
     end
     
     return selected
@@ -203,12 +203,12 @@ function SelectableMixin:UpdateIncludeRelevancyMask()
     -- on the same team.
     local includeMask = 0
     
-    if bit.band(self.selectionMask, 1) ~= 0 or (self:GetTeamNumber() == 1 and self:GetHotGroupNumber() ~= 0) then
-        includeMask = bit.bor(includeMask, kRelevantToTeam1Commander)
+    if bit_band(self.selectionMask, 1) ~= 0 or (self:GetTeamNumber() == 1 and self:GetHotGroupNumber() ~= 0) then
+        includeMask = bit_bor(includeMask, kRelevantToTeam1Commander)
     end
     
-    if bit.band(self.selectionMask, 2) ~= 0 or (self:GetTeamNumber() == 2 and self:GetHotGroupNumber() ~= 0) then
-        includeMask = bit.bor(includeMask, kRelevantToTeam2Commander)
+    if bit_band(self.selectionMask, 2) ~= 0 or (self:GetTeamNumber() == 2 and self:GetHotGroupNumber() ~= 0) then
+        includeMask = bit_bor(includeMask, kRelevantToTeam2Commander)
     end
     
     self:SetIncludeRelevancyMask( includeMask )
@@ -227,8 +227,8 @@ if Client then
         
             local teamNumber = player:GetTeamNumber()
         
-            local selectedClient = bit.band(self.selectionMaskClient, teamNumber) ~= 0
-            local selectedServer = bit.band(self.selectionMask, teamNumber) ~= 0
+            local selectedClient = bit_band(self.selectionMaskClient, teamNumber) ~= 0
+            local selectedServer = bit_band(self.selectionMask, teamNumber) ~= 0
             
             if selectedClient ~= selectedServer then
             
