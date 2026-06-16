@@ -99,9 +99,9 @@ local function UpdateSpectatorMode(self, input)
     if isBotDebugging then return end
 
     self.timeFromLastAction = self.timeFromLastAction + input.time
-    if self.timeFromLastAction > kDeltatimeBetweenAction then
+    if input.commands ~= 0 and self.timeFromLastAction > kDeltatimeBetweenAction then
 
-        if bit.band(input.commands, Move.Jump) ~= 0 then
+        if bit_band(input.commands, Move.Jump) ~= 0 then
 
             self:SetSpectatorMode(NextSpectatorMode(self))
             self.timeFromLastAction = 0
@@ -110,18 +110,18 @@ local function UpdateSpectatorMode(self, input)
                 self:ResetOverheadModeHeight()
             end
 
-        elseif bit.band(input.commands, Move.Weapon1) ~= 0 then
+        elseif bit_band(input.commands, Move.Weapon1) ~= 0 then
 
             self:SetSpectatorMode(kSpectatorMode.FreeLook)
             self.timeFromLastAction = 0
 
-        elseif bit.band(input.commands, Move.Weapon2) ~= 0 then
+        elseif bit_band(input.commands, Move.Weapon2) ~= 0 then
 
             self:SetSpectatorMode(kSpectatorMode.Overhead)
             self.timeFromLastAction = 0
             self:ResetOverheadModeHeight()
 
-        elseif bit.band(input.commands, Move.Weapon3) ~= 0 then
+        elseif bit_band(input.commands, Move.Weapon3) ~= 0 then
 
             self:SetSpectatorMode(kSpectatorMode.FirstPerson)
             self.timeFromLastAction = 0
@@ -304,7 +304,7 @@ function Spectator:OnProcessMove(input)
         -- Toggle the insight GUI.
         if self:GetTeamNumber() == kSpectatorIndex then
 
-            if bit.band(input.commands, Move.Weapon4) ~= 0 then
+            if bit_band(input.commands, Move.Weapon4) ~= 0 then
 
                 self.showInsight = not self.showInsight
                 ClientUI.GetScript("GUISpectator"):SetIsVisible(self.showInsight)
