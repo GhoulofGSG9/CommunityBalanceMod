@@ -98,7 +98,7 @@ function FilmSpectator:UpdateDollyMove(input)
     -- When locked on, we are looking at target already. Move dolly relative to our target view so we're rotating around it.
     local pitch = input.pitch
     local yaw = input.yaw
-    local jumping = bit.band(input.commands, Move.Jump) ~= 0
+    local jumping = bit_band(input.commands, Move.Jump) ~= 0
     
     if self.lockOn then    
     
@@ -127,7 +127,7 @@ function FilmSpectator:UpdateFreeMove(input)
     local velocity     = self:GetVelocity()
     local angles       = self:ConvertToViewAngles(input.pitch, input.yaw, 0)
     
-    if bit.band(input.commands, Move.Jump) ~= 0 then
+    if bit_band(input.commands, Move.Jump) ~= 0 then
         angles.pitch = 0
     end
     
@@ -135,10 +135,10 @@ function FilmSpectator:UpdateFreeMove(input)
     
     -- Hack in moving up and down with use and taunt
     local adjustedMove = Vector(input.move)
-    if bit.band(input.commands, Move.Use) ~= 0 then
+    if bit_band(input.commands, Move.Use) ~= 0 then
         adjustedMove.y = -1
     end
-    if bit.band(input.commands, Move.Taunt) ~= 0 then
+    if bit_band(input.commands, Move.Taunt) ~= 0 then
         adjustedMove.y = 1
     end
         
@@ -195,7 +195,7 @@ function FilmSpectator:UpdateViewAngles(input)
         --input.pitch = angles.pitch
         --input.yaw = angles.yaw
         
-    elseif bit.band(input.commands, Move.Jump) ~= 0 then
+    elseif bit_band(input.commands, Move.Jump) ~= 0 then
         local newAngles = Angles(0, input.yaw, 0)
         self:SetViewAngles(newAngles)
     else
@@ -211,7 +211,7 @@ end
 
 function FilmSpectator:UpdateSpectatorMode(input)
 
-    local newDollyMode = (bit.band(input.commands, Move.Crouch) ~= 0)
+    local newDollyMode = (bit_band(input.commands, Move.Crouch) ~= 0)
     if newDollyMode ~= self.dollyMode then
     
         self.dollyMode = newDollyMode
@@ -231,10 +231,10 @@ function FilmSpectator:UpdateSpectatorMode(input)
     
         -- Hack in moving up and down with use and taunt
         local adjustedMove = Vector(input.move)
-        if bit.band(input.commands, Move.Use) ~= 0 then
+        if bit_band(input.commands, Move.Use) ~= 0 then
             adjustedMove.y = -1
         end
-        if bit.band(input.commands, Move.Taunt) ~= 0 then
+        if bit_band(input.commands, Move.Taunt) ~= 0 then
             adjustedMove.y = 1
         end
         
@@ -247,7 +247,7 @@ function FilmSpectator:UpdateSpectatorMode(input)
         
     end
 
-    self.movementModifierState = bit.band(input.commands, Move.MovementModifier) ~= 0 --movement modifier for fast freelook cam
+    self.movementModifierState = bit_band(input.commands, Move.MovementModifier) ~= 0 --movement modifier for fast freelook cam
     
     self:UpdateLockOn(input)
     
@@ -257,7 +257,7 @@ function FilmSpectator:UpdateLockOn(input)
 
     -- If we now attack, find new target to lock on
     local oldLockOn = self.lockOn
-    if bit.band(input.commands, Move.PrimaryAttack) ~= 0 then
+    if bit_band(input.commands, Move.PrimaryAttack) ~= 0 then
     
         -- Optimization
         if not self.lockOn then
