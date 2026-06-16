@@ -179,8 +179,6 @@ Event.Hook("Console_t", OnConsoleToggle)
 local function _PerformMovement(self, offset, maxTraces, velocity, isMove, slowDownFraction, deflectMove, slowDownFilterFunc, deltaTime)
 
     local hitPlayer = nil
-    local oldOrigin = Vector(self:GetOrigin())
-    local oldVelocity = velocity and Vector(velocity) or nil
 
     if slowDownFraction and _toggle then
         slowDownFraction = _slowDown
@@ -404,9 +402,6 @@ local function Accelerate_onGround(self, input, velocity, maxSpeed, deltaTime)
     local currentSpeed = math.min(velocity:GetLength(), velocity:DotProduct(wishDir))
     local addSpeed = wishSpeed - currentSpeed
     
-    local clampedAirSpeed = prevXZSpeed + deltaTime * kMaxAirAccel
-    local clampSpeedXZ = math.max(maxSpeed, prevXZSpeed)
-    
     if addSpeed > 0 then
          
         local groundFraction = GetOnGroundFraction(self)
@@ -574,6 +569,7 @@ function GroundMoveMixin:PreUpdateMove()
     
 end
 
+local kUpVector = Vector(0, kStepHeight, 0)
 local function DoStepMove(self, _, velocity, deltaTime)
 
     PROFILE("GroundMoveMixin:DoStepMove")
@@ -588,7 +584,7 @@ local function DoStepMove(self, _, velocity, deltaTime)
     local onGround, normal
     
     -- step up at first
-    _PerformMovement(self, Vector(0, kStepHeight, 0), 1)
+    _PerformMovement(self, kUpVector, 1)
     stepAmount = self:GetOrigin().y - oldOrigin.y
     
     -- do the normal move
