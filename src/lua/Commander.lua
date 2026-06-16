@@ -191,7 +191,7 @@ function Commander:HandleButtons(input)
 
     -- Check for commander cancel action. It is reset in the flash hook to make
     -- sure it's recognized.
-    if bit.band(input.commands, Move.Exit) ~= 0 then
+    if bit_band(input.commands, Move.Exit) ~= 0 then
         self.commanderCancel = true
     end
     
