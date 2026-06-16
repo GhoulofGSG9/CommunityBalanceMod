@@ -93,7 +93,7 @@ end
 --
 function MinimapMoveMixin:UpdateMove(input)
 
-    if bit.band(input.commands, Move.Minimap) ~= 0 then
+    if bit_band(input.commands, Move.Minimap) ~= 0 then
     
         local position  = Vector()
         local heightmap = GetHeightmap()
