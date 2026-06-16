@@ -264,7 +264,7 @@ end
 --]]
 function Gorge:GetIsSlidingDesired(input)
 
-    if bit.band(input.commands, Move.MovementModifier) == 0 then
+    if bit_band(input.commands, Move.MovementModifier) == 0 then
         return false
     end
     
