@@ -708,7 +708,7 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
             if player:GetTeamNumber() == enemyTeamNumber then
                 enemyPlayerInRange = true
             end
-            if player:GetTeamNumber() == teamNumber then
+            if self ~= player and player:GetTeamNumber() == teamNumber then
                 local dist = self:GetOrigin():GetDistanceTo(player:GetOrigin())
                 if dist <= distCheckFriendly then
                     friendlyPlayerInRange = true
