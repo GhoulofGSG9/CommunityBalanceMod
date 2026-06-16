@@ -41,6 +41,18 @@ end
 
 GetLastBuildVersion() -- Do this right away to avoid MainVM (or other places) setting the option key before we get a chance to save it
 
+function bit_band(a, b)
+    return (a == 0 or b == 0) and 0 or bit.band(a, b)
+end
+
+function bit_bor(a, b)
+    if a == 0 or b == 0 then
+        return a == 0 and a or b
+    end
+    return bit.bor(a, b)
+
+end
+
 function ConvertWideStringToString(wideString)
 
     if not gGUIConvertItem then
@@ -474,9 +486,9 @@ function DebugTraceBox(extents, startPoint, endPoint, lifetime, r, g, b, a)
     -- create points for the boxes around the start and endpoint
     for i=0,7 do
         local v = Vector(
-            extents.x * (bit.band(i,1) == 1 and 1 or -1),
-            extents.y * (bit.band(i,2) == 2 and 1 or -1),
-            extents.z * (bit.band(i,4) == 4 and 1 or -1))
+            extents.x * (bit_band(i,1) == 1 and 1 or -1),
+            extents.y * (bit_band(i,2) == 2 and 1 or -1),
+            extents.z * (bit_band(i,4) == 4 and 1 or -1))
         table.insert(points, startPoint + v )
         table.insert(points, endPoint + v)
     end
@@ -609,9 +621,9 @@ end
 -- full opacity.
 function ColorIntToColor(color)
 
-    local red = bit.rshift(bit.band(color, 0xFF0000), 16)
-    local green = bit.rshift(bit.band(color, 0x00FF00), 8)
-    local blue = bit.band(color, 0x0000FF)
+    local red = bit.rshift(bit_band(color, 0xFF0000), 16)
+    local green = bit.rshift(bit_band(color, 0x00FF00), 8)
+    local blue = bit_band(color, 0x0000FF)
 
     return Color(red / 0xFF, green / 0xFF, blue / 0xFF, 1)
 
@@ -1504,6 +1516,8 @@ function NetworkRandom(logMessage)
 
     end
 
+    --Log("NetworkRandom: %f", result)
+
     return result
 
 end
@@ -2325,10 +2339,10 @@ function IPAddressToString(address)
 
     if type(address) == "number" then
 
-        local first = bit.rshift(bit.band(address, bit.lshift(0xff, 24)), 24)
-        local second = bit.rshift(bit.band(address, bit.lshift(0xff, 16)), 16)
-        local third = bit.rshift(bit.band(address, bit.lshift(0xff, 8)), 8)
-        local fourth = bit.band(address, 0xff)
+        local first = bit.rshift(bit_band(address, bit.lshift(0xff, 24)), 24)
+        local second = bit.rshift(bit_band(address, bit.lshift(0xff, 16)), 16)
+        local third = bit.rshift(bit_band(address, bit.lshift(0xff, 8)), 8)
+        local fourth = bit_band(address, 0xff)
         return StringFormat("%d.%d.%d.%d", first, second, third, fourth)
     else
         return address
@@ -2899,8 +2913,8 @@ function HexToColor(hx, alpha)
         return (Color(1,1,1,1))
     end
     local red = bit.rshift(dec, 16) / 255
-    local green = bit.band(bit.rshift(dec, 8),255) / 255
-    local blue = bit.band(dec, 255) / 255
+    local green = bit_band(bit.rshift(dec, 8),255) / 255
+    local blue = bit_band(dec, 255) / 255
     
     return (Color(red, green, blue, alpha))
     
@@ -3045,4 +3059,3 @@ end
 function VectorIsFinite(vec)
     return vec.x == vec.x and vec.y == vec.y and vec.z == vec.z
 end
-
