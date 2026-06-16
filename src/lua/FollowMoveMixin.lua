@@ -99,8 +99,8 @@ local function UpdateTarget(self, input)
         
     end
     
-    local primaryAttack = bit.band(input.commands, Move.PrimaryAttack) ~= 0
-    local secondaryAttack = bit.band(input.commands, Move.SecondaryAttack) ~= 0
+    local primaryAttack = bit_band(input.commands, Move.PrimaryAttack) ~= 0
+    local secondaryAttack = bit_band(input.commands, Move.SecondaryAttack) ~= 0
     local isTargetValid = self:GetIsValidTarget(Shared.GetEntity(self.followedTargetId))
     local changeTargetAction = primaryAttack or secondaryAttack
     
