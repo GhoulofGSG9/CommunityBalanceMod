@@ -126,6 +126,8 @@ Marine.kAirStrafeWeight = 2
 
 Marine.kMarineBuyAutopickupDelayTime = 5 -- Time for a marine player to delay before autopickuping a weapon after buying something. (Buying a GL when having a SG, for example)
 
+local kMaskSpecialKeys = bit.bor(Move.ToggleFlashlight, Move.Drop, Move.Use)
+
 local precached3 = PrecacheAsset("models/marine/rifle/rifle_shell_01.dds")
 local precached4 = PrecacheAsset("models/marine/rifle/rifle_shell_01_normal.dds")
 local precached5 = PrecacheAsset("models/marine/rifle/rifle_shell_01_spec.dds")
@@ -576,7 +578,6 @@ local function PickupWeapon(self, weapon, wasAutoPickup)
     
 end
 
-local kSpecialKeys = bit.bor(Move.ToggleFlashlight, Move.Drop, Move.Use)
 function Marine:HandleButtons(input)
 
     PROFILE("Marine:HandleButtons")
@@ -608,12 +609,12 @@ function Marine:HandleButtons(input)
         end
         
         -- If nothing special, then stop right here
-        if bit.band(input.commands, kSpecialKeys) == 0 then
+        if bit_band(input.commands, kMaskSpecialKeys) == 0 then
             self.flashlightLastFrame = false
             return
         end
 
-        flashlightPressed = bit.band(input.commands, Move.ToggleFlashlight) ~= 0
+        flashlightPressed = bit_band(input.commands, Move.ToggleFlashlight) ~= 0
         if not self.flashlightLastFrame and flashlightPressed then
         
             self:SetFlashlightOn(not self:GetFlashlightOn())
@@ -624,8 +625,8 @@ function Marine:HandleButtons(input)
 
         if Server then
             
-            dropPressed = bit.band(input.commands, Move.Drop) ~= 0
-            usePressed = bit.band(input.commands, Move.Use) ~= 0
+            dropPressed = bit_band(input.commands, Move.Drop) ~= 0
+            usePressed = bit_band(input.commands, Move.Use) ~= 0
             
             -- search for weapons to manually pickup nearby.
             if dropPressed then
