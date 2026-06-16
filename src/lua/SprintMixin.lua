@@ -133,11 +133,13 @@ function SprintMixin:UpdateSprintingState(input)
     PROFILE("SprintMixin:UpdateSprintingState")
     
     -- Do not run code if we are not pressing the sprint key, and during a small period after release
-    local buttonDown = (bit.band(input.commands, Move.MovementModifier) ~= 0)
-    if (not buttonDown and not self:GetIsSprinting() and self.timeSprintChange + 0.25 < Shared.GetTime()) then
+    local now = Shared.GetTime()
+    local buttonDown = (bit_band(input.commands, Move.MovementModifier) ~= 0)
+    if (not buttonDown and not self:GetIsSprinting() and self.timeSprintChange + 0.25 < now) then
         return
     end
 
+    local isOnGround = self:GetIsOnGround()
     local velocity = self:GetVelocity()
     local speed = velocity:GetLength()
     
@@ -150,25 +152,28 @@ function SprintMixin:UpdateSprintingState(input)
         attacking = weapon:GetTryingToFire(input)    
     end
     
-    
     if not weapon or (not weapon.GetIsReloading or not weapon:GetIsReloading()) then
         self:UpdateSprintMode(buttonDown)
     end
     
-    -- Allow small little falls to not break our sprint (stairs)
-    self.desiredSprinting = (buttonDown or self.sprintMode) and sprintingAllowedByWeapon and speed > 1 and not self.crouching and self:GetIsOnGround() and not attacking and not self.requireNewSprintPress
     
     if input.move.z < kEpsilon then
         self.desiredSprinting = false
     else
+        -- Allow small little falls to not break our sprint (stairs)
+        self.desiredSprinting = (buttonDown or self.sprintMode) and sprintingAllowedByWeapon and speed > 1 and not self.crouching and isOnGround and not attacking and not self.requireNewSprintPress
     
-        -- Only allow sprinting if we're pressing forward and moving in that direction
-        local normMoveDirection = GetNormalizedVectorXZ(self:GetViewCoords():TransformVector(input.move))
-        local normVelocity = GetNormalizedVectorXZ(velocity)
-        local viewFacing = GetNormalizedVectorXZ(self:GetViewCoords().zAxis)
-        
-        if normVelocity:DotProduct(normMoveDirection) < 0.3 or normMoveDirection:DotProduct(viewFacing) < 0.2 then
-            self.desiredSprinting = false
+        if (self.desiredSprinting) then -- Check if we are not blocked, or cancel sprint
+
+            -- Only allow sprinting if we're pressing forward and moving in that direction
+            local viewCoords = self:GetViewCoords()
+            local viewFacing = GetNormalizedVectorXZ(viewCoords.zAxis)
+            local normMoveDirection = GetNormalizedVectorXZ(viewCoords:TransformVector(input.move))
+            local normVelocity = GetNormalizedVectorXZ(velocity)
+            
+            if normVelocity:DotProduct(normMoveDirection) < 0.3 or normMoveDirection:DotProduct(viewFacing) < 0.2 then
+                self.desiredSprinting = false
+            end
         end
         
     end
@@ -179,8 +184,8 @@ function SprintMixin:UpdateSprintingState(input)
         --if not self.desiredSprinting or (self:GetSprintTime() >= SprintMixin.kMinSprintTime) then
     
             self.sprintTimeOnChange = self:GetSprintTime()
-            local sprintDuration = math.max(0, Shared.GetTime() - self.timeSprintChange)
-            self.timeSprintChange = Shared.GetTime()
+            local sprintDuration = math.max(0, now - self.timeSprintChange)
+            self.timeSprintChange = now
             self.sprinting = self.desiredSprinting
             
             if self.sprinting then
@@ -202,15 +207,15 @@ function SprintMixin:UpdateSprintingState(input)
     end
     
     -- Some things break us out of sprint mode
-    if self.sprintMode and (attacking or speed <= 1 or not self:GetIsOnGround() or self.crouching) then
+    if self.sprintMode and (attacking or speed <= 1 or self.crouching or not isOnGround) then
         self.sprintMode = false
         self.requireNewSprintPress = attacking
     end
     
     if self.desiredSprinting then
-        self.sprintingScalar = Clamp((Shared.GetTime() - self.timeSprintChange) / SprintMixin.kSprintTime, 0, 1) -- * self:GetSprintTime() / SprintMixin.kMaxSprintTime
+        self.sprintingScalar = Clamp((now - self.timeSprintChange) / SprintMixin.kSprintTime, 0, 1) -- * self:GetSprintTime() / SprintMixin.kMaxSprintTime
     else
-        self.sprintingScalar = 1 - Clamp((Shared.GetTime() - self.timeSprintChange) / SprintMixin.kUnsprintTime, 0, 1)
+        self.sprintingScalar = 1 - Clamp((now - self.timeSprintChange) / SprintMixin.kUnsprintTime, 0, 1)
     end
             
 end
