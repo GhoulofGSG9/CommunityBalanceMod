@@ -298,7 +298,7 @@ end
 
 function JetpackMarine:UpdateJetpack(input)
     
-    local jumpPressed = (bit.band(input.commands, Move.Jump) ~= 0)
+    local jumpPressed = (bit_band(input.commands, Move.Jump) ~= 0)
     local enoughTimePassed = not self:GetIsOnGround() and self:GetTimeGroundTouched() + 0.3 <= Shared.GetTime() or false
 
     self:UpdateJetpackMode()
