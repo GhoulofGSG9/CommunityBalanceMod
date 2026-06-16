@@ -1089,18 +1089,19 @@ end
 function Marine:OnProcessMove(input)
 
     if Server then
+
+        local now = Shared.GetTime()
+        self.ruptured = now - self.timeRuptured < kRuptureEffectTime
+        self.interruptAim  = now - self.interruptStartTime < Gore.kAimInterruptDuration
         
-        self.ruptured = Shared.GetTime() - self.timeRuptured < kRuptureEffectTime
-        self.interruptAim  = Shared.GetTime() - self.interruptStartTime < Gore.kAimInterruptDuration
-        
-        if self.unitStatusPercentage ~= 0 and self.timeLastUnitPercentageUpdate + 2 < Shared.GetTime() then
+        if self.unitStatusPercentage ~= 0 and self.timeLastUnitPercentageUpdate + 2 < now then
             self.unitStatusPercentage = 0
         end    
 
         --TODO: Create poision mixin
         if self.poisoned then
         
-            if self:GetIsAlive() and self.timeLastPoisonDamage + 1 < Shared.GetTime() then
+            if self.timeLastPoisonDamage + 1 < now and self:GetIsAlive() then
             
                 local attacker = Shared.GetEntity(self.lastPoisonAttackerId)
             
@@ -1122,7 +1123,7 @@ function Marine:OnProcessMove(input)
                 
             end
             
-            if self.timePoisoned + kPoisonBiteDuration < Shared.GetTime() then
+            if self.timePoisoned + kPoisonBiteDuration < now then
             
                 self.timePoisoned = 0
                 self.poisoned = false
@@ -1132,7 +1133,7 @@ function Marine:OnProcessMove(input)
         end
         
         -- check nano armor
-        if not self:GetIsInCombat() and self.hasNanoArmor then            
+        if self.hasNanoArmor and not self:GetIsInCombat() then            
             self:SetArmor(self:GetArmor() + input.time * kNanoArmorHealPerSecond, true)            
         end
         

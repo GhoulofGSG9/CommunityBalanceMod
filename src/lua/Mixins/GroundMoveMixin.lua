@@ -179,8 +179,6 @@ Event.Hook("Console_t", OnConsoleToggle)
 local function _PerformMovement(self, offset, maxTraces, velocity, isMove, slowDownFraction, deflectMove, slowDownFilterFunc, deltaTime)
 
     local hitPlayer = nil
-    local oldOrigin = Vector(self:GetOrigin())
-    local oldVelocity = velocity and Vector(velocity) or nil
 
     if slowDownFraction and _toggle then
         slowDownFraction = _slowDown
@@ -404,9 +402,6 @@ local function Accelerate_onGround(self, input, velocity, maxSpeed, deltaTime)
     local currentSpeed = math.min(velocity:GetLength(), velocity:DotProduct(wishDir))
     local addSpeed = wishSpeed - currentSpeed
     
-    local clampedAirSpeed = prevXZSpeed + deltaTime * kMaxAirAccel
-    local clampSpeedXZ = math.max(maxSpeed, prevXZSpeed)
-    
     if addSpeed > 0 then
          
         local groundFraction = GetOnGroundFraction(self)
@@ -574,6 +569,7 @@ function GroundMoveMixin:PreUpdateMove()
     
 end
 
+local kUpVector = Vector(0, kStepHeight, 0)
 local function DoStepMove(self, _, velocity, deltaTime)
 
     PROFILE("GroundMoveMixin:DoStepMove")
@@ -588,14 +584,19 @@ local function DoStepMove(self, _, velocity, deltaTime)
     local onGround, normal
     
     -- step up at first
-    _PerformMovement(self, Vector(0, kStepHeight, 0), 1)
-    stepAmount = self:GetOrigin().y - oldOrigin.y
+    --_PerformMovement(self, kUpVector, 1)
+    --stepAmount = self:GetOrigin().y - oldOrigin.y
+
+    -- Shortcut the up PerformMovement(), because any issues will be catched up
+    -- by the next forward PerformMovement anyway. (and kUpVector is small enough)
+    self:SetOrigin(oldOrigin + kUpVector)
+    stepAmount = kUpVector.y
     
     -- do the normal move
     local startOrigin = Vector(self:GetOrigin())
     local completedMove = _PerformMovement(self, velocity * deltaTime, kTracesAmount, velocity, true, slowDownFraction, deflectMove, nil, deltaTime)
     local horizMoveAmount = (startOrigin - self:GetOrigin()):GetLengthXZ()
-    
+
     if completedMove then
         -- step down again (slightly more than we went up to account for slopes)
         local downDistance = -stepAmount - horizMoveAmount * kDownSlopeFactor
@@ -698,8 +699,8 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
         local vanillaMoveRate = 26
         -- Checks if players are within X mr-tick from us at current speed
         -- This allows us to skip the expensive PerformMovement() if none is found
-        local distCheckEnemy = math.max(1.5,(velocity*(1.0/vanillaMoveRate)*5):GetLength())
-        local distCheckFriendly = math.max(1.5,(velocity*(1.0/vanillaMoveRate)*3):GetLength())
+        local distCheckEnemy = math.max(1.5,(velocity * 0.20):GetLength())
+        local distCheckFriendly = math.max(1.5,(velocity * 0.15):GetLength())
 
         local teamNumber = self:GetTeamNumber()
         local enemyTeamNumber = GetEnemyTeamNumber(self:GetTeamNumber())
@@ -708,7 +709,7 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
             if player:GetTeamNumber() == enemyTeamNumber then
                 enemyPlayerInRange = true
             end
-            if player:GetTeamNumber() == teamNumber then
+            if self ~= player and player:GetTeamNumber() == teamNumber then
                 local dist = self:GetOrigin():GetDistanceTo(player:GetOrigin())
                 if dist <= distCheckFriendly then
                     friendlyPlayerInRange = true
@@ -727,6 +728,7 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
             -- * Predict inits capsule upon impact (and is responsible for a smooth collision feeling)
             -- It makes the client predict if it will bump into other players and create the collision controller accordingly.
             -- If not called, then the client will rubberband in place back&forth upon colliding with a player
+
             completedMove, hitEntities = _PerformMovement(self, velocity * (1.0/vanillaMoveRate * lookAheadDist), 1, nil, false)
             if stepAllowed and hitEntities then
             
@@ -748,13 +750,13 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
         
         if not stepAllowed then -- Handles PvP collisions or jumps (no move-over movement checks)
             
-            local slowDownFraction = self.GetCollisionSlowdownFraction and self:GetCollisionSlowdownFraction() * 0.5 or nil
+            local slowDownFraction = self.GetCollisionSlowdownFraction and self:GetCollisionSlowdownFraction() or 1
             
             local deflectMove = self.GetDeflectMove and self:GetDeflectMove() or false
             
             -- Increases deflect traces in combat
             local numTraces = enemyPlayerHit and kPvPTracesAmount or kTracesAmount
-            _PerformMovement(self, velocity * deltaTime, numTraces, velocity, true, slowDownFraction, deflectMove, nil, deltaTime)
+            _PerformMovement(self, velocity * deltaTime, numTraces, velocity, true, slowDownFraction * 0.5, deflectMove, nil, deltaTime)
             
         else     
             DoStepMove(self, input, velocity, deltaTime)            
