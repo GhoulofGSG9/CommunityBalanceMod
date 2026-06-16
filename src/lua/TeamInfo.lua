@@ -523,33 +523,35 @@ function TeamInfo:UpdateBitmasks(techId, techNode)
     local techOwnedMask = BitMask64_Combine(self.techOwnedMaskHIGH, self.techOwnedMaskLOW)
     
     -- Tech researching or researched
-    if (techNode:GetResearching() and not techNode:GetResearched()) or techNode:GetHasTech() then
-        techActiveMask = bit.bor(techActiveMask, mask)
+    local hasTech = techNode:GetHasTech()
+    local isResearched = techNode:GetResearched()
+    if hasTech or (techNode:GetResearching() and not isResearched) then
+        techActiveMask = bit_bor(techActiveMask, mask)
     else
-        techActiveMask = bit.band(techActiveMask, bit.bnot(mask))
+        techActiveMask = bit_band(techActiveMask, bit.bnot(mask))
     end
     
     -- Tech has been owned at some point
-    if techNode:GetHasTech() then
+    if hasTech then
         techOwnedMask = bit.bor(techOwnedMask, mask)
     end
     
     -- Hide prerequisite techs when this tech has been researched
-    if techNode:GetResearched() or (techNode:GetIsSpecial() and techNode:GetHasTech()) then
+    if isResearched or (techNode:GetIsSpecial() and hasTech) then
         local preq1 = techNode:GetPrereq1()
         local preq2 = techNode:GetPrereq2()
         if preq1 ~= nil then
             local msk = relevantIdMask[EnumToString(kTechId, preq1)]
             if msk then
-                techActiveMask = bit.band(techActiveMask, bit.bnot(msk))
-                techOwnedMask = bit.band(techOwnedMask, bit.bnot(msk))
+                techActiveMask = bit_band(techActiveMask, bit.bnot(msk))
+                techOwnedMask = bit_band(techOwnedMask, bit.bnot(msk))
             end
         end
         if preq2 ~= nil then
             local msk = relevantIdMask[EnumToString(kTechId, preq2)]
             if msk then
-                techActiveMask = bit.band(techActiveMask, bit.bnot(msk))
-                techOwnedMask = bit.band(techOwnedMask, bit.bnot(msk))
+                techActiveMask = bit_band(techActiveMask, bit.bnot(msk))
+                techOwnedMask = bit_band(techOwnedMask, bit.bnot(msk))
             end
         end
     end
