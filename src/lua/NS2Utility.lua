@@ -3135,11 +3135,11 @@ end
 -- Ex: input.commands = RemoveMoveCommand( input.commands, Move.PrimaryAttack )
 function RemoveMoveCommand( commands, moveMask )
     local negMask = bit.bxor(0xFFFFFFFF, moveMask)
-    return bit.band(commands, negMask)
+    return bit_band(commands, negMask)
 end
 
 function HasMoveCommand( commands, moveMask )
-    return bit.band( commands, moveMask ) ~= 0
+    return bit_band( commands, moveMask ) ~= 0
 end
 
 function AddMoveCommand( commands, moveMask )
