@@ -170,6 +170,16 @@ local kExoDeployDuration = 1.4
 
 local gHurtCinematic
 
+local kMaskDisableInputs = bit.bnot(bit.bor(
+    Move.Use,
+    Move.Buy,
+    Move.Jump, Move.Crouch, Move.MovementModifier,
+    Move.PrimaryAttack, Move.SecondaryAttack,
+    Move.SelectNextWeapon, Move.SelectPrevWeapon,
+    Move.Reload,
+    Move.Taunt,
+    Move.Weapon1, Move.Weapon2, Move.Weapon3, Move.Weapon4, Move.Weapon5))
+
 Exo.kMass = 980
 
 Exo.kXZExtents = 0.55
@@ -864,7 +874,7 @@ function Exo:OnProcessMove(input)
         UpdateThrusterEffects(self)
     end
     
-    local flashlightPressed = bit.band(input.commands, Move.ToggleFlashlight) ~= 0
+    local flashlightPressed = bit_band(input.commands, Move.ToggleFlashlight) ~= 0
     if not self.flashlightLastFrame and flashlightPressed then
         
         self:SetFlashlightOn(not self:GetFlashlightOn())
@@ -1261,13 +1271,12 @@ end
 
 function Exo:HandleButtons(input)
     
+    PROFILE("Exo:HandleButtons")
+
+    -- Disable inputs if ejecting or during deploy
     if self.ejecting or self.creationTime + kExosuitDeployDuration > Shared.GetTime() then
         
-        input.commands = bit.band(input.commands, bit.bnot(bit.bor(Move.Use, Move.Buy, Move.Jump,
-                                                                   Move.PrimaryAttack, Move.SecondaryAttack,
-                                                                   Move.SelectNextWeapon, Move.SelectPrevWeapon, Move.Reload,
-                                                                   Move.Taunt, Move.Weapon1, Move.Weapon2,
-                                                                   Move.Weapon3, Move.Weapon4, Move.Weapon5, Move.Crouch, Move.MovementModifier)))
+        input.commands = bit_band(input.commands, kMaskDisableInputs)
         
         input.move:Scale(0)
     
@@ -1280,7 +1289,7 @@ function Exo:HandleButtons(input)
     self:UpdateNanoShields(input)
     self:UpdateCatPack(input)
     
-    if bit.band(input.commands, Move.Drop) ~= 0 then
+    if bit_band(input.commands, Move.Drop) ~= 0 then
         self:EjectExo()
     end
 
@@ -1340,8 +1349,8 @@ end
 function Exo:UpdateThrusters(input)
     
     local lastThrustersActive = self.thrustersActive
-    local jumpPressed = bit.band(input.commands, Move.Jump) ~= 0
-    local movementSpecialPressed = bit.band(input.commands, Move.MovementModifier) ~= 0
+    local jumpPressed = bit_band(input.commands, Move.Jump) ~= 0
+    local movementSpecialPressed = bit_band(input.commands, Move.MovementModifier) ~= 0
     local thrusterDesired = (jumpPressed or movementSpecialPressed) and self:GetIsThrusterAllowed()
 
     local desiredMode = jumpPressed and kExoThrusterMode.Vertical
@@ -1936,7 +1945,7 @@ end
 
 function Exo:UpdateNanoShields(input)
     
-    local buttonPressed = bit.band(input.commands, Move.Reload) ~= 0
+    local buttonPressed = bit_band(input.commands, Move.Reload) ~= 0
     if buttonPressed and self:GetNanoShieldAllowed() then
         -- todo shield
         if self:GetFuel() >= kExoNanoShieldMinFuel and not self.nanoshieldActive and self.lastActivatedNanoShield + 1 < Shared.GetTime() then
@@ -1958,7 +1967,7 @@ end
 
 function Exo:UpdateCatPack(input)
     
-    local buttonPressed = bit.band(input.commands, Move.Reload) ~= 0
+    local buttonPressed = bit_band(input.commands, Move.Reload) ~= 0
     if buttonPressed and self:GetCatPackAllowed() then
         
         if self:GetFuel() >= kExoCatPackMinFuel and not self.catpackActive and self.lastActivatedCatPack + 1 < Shared.GetTime() then
@@ -1981,7 +1990,7 @@ end
 
 function Exo:UpdateRepairs(input)
     
-    local buttonPressed = bit.band(input.commands, Move.MovementModifier) ~= 0
+    local buttonPressed = bit_band(input.commands, Move.MovementModifier) ~= 0
     local repairDesired = self:GetArmor() < self:GetMaxArmor()
     if buttonPressed and self:GetRepairAllowed() and repairDesired then
         
