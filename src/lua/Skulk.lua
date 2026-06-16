@@ -141,7 +141,7 @@ function Skulk:OnCreate()
     
     if Client then
         InitMixin(self, RailgunTargetMixin)
-		InitMixin(self, BlowtorchTargetMixin)
+        InitMixin(self, BlowtorchTargetMixin)
         self.timeDashChanged = 0
     end
     
@@ -331,7 +331,7 @@ function Skulk:PreUpdateMove(input, runningPrediction)
 
     PROFILE("Skulk:PreUpdateMove")
     --[[
-    local dashDesired = bit.band(input.commands, Move.MovementModifier) ~= 0 and self:GetVelocity():GetLength() > 4
+    local dashDesired = bit_band(input.commands, Move.MovementModifier) ~= 0 and self:GetVelocity():GetLength() > 4
     if not self.dashing and dashDesired and self:GetEnergy() > 15 then
         self.dashing = true    
     elseif self.dashing and not dashDesired then
@@ -563,20 +563,20 @@ end
 function Skulk:GetMaxWallJumpSpeed()
     if self.stormed and GetHasCelerityUpgrade(self) then 
         return Skulk.kWallJumpMaxSpeed + Skulk.kWallJumpMaxSpeedCelerityBonus*(1 + 0.5*self:GetSpurLevel()/3.0)
-	elseif self.stormed then
-		return Skulk.kWallJumpMaxSpeed + Skulk.kWallJumpMaxSpeedCelerityBonus
-	else
-		return Skulk.kWallJumpMaxSpeed
+    elseif self.stormed then
+        return Skulk.kWallJumpMaxSpeed + Skulk.kWallJumpMaxSpeedCelerityBonus
+    else
+        return Skulk.kWallJumpMaxSpeed
     end
 end
 
 function Skulk:GetMaxBunnyHopSpeed()
     if self.stormed and GetHasCelerityUpgrade(self) then 
-		return Skulk.kBunnyHopMaxSpeed + Skulk.kBunnyHopMaxSpeedCelerityBonus*(1 + 0.5*self:GetSpurLevel()/3.0)
-	elseif self.stormed then
-		return Skulk.kBunnyHopMaxSpeed + Skulk.kBunnyHopMaxSpeedCelerityBonus
-	else
-		return Skulk.kBunnyHopMaxSpeed
+        return Skulk.kBunnyHopMaxSpeed + Skulk.kBunnyHopMaxSpeedCelerityBonus*(1 + 0.5*self:GetSpurLevel()/3.0)
+    elseif self.stormed then
+        return Skulk.kBunnyHopMaxSpeed + Skulk.kBunnyHopMaxSpeedCelerityBonus
+    else
+        return Skulk.kBunnyHopMaxSpeed
     end
 end
 
