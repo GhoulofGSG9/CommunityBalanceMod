@@ -287,7 +287,7 @@ function Shotgun:FirePrimary(player)
     local unrolledCoords = viewAngles:GetCoords()
     
     --viewAngles.roll = NetworkRandom() * math.pi * 2
-    local rand = ClipWeapon_randomizer(player)
+    local rand = ClipWeapon_randomizer()
     viewAngles.roll = rand * math.pi * 2
 
     local shootCoords = viewAngles:GetCoords()

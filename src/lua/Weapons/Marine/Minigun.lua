@@ -305,7 +305,7 @@ local function Shoot(self, leftSide)
         local surfaceName = trace.surface
         local effectFrequency = self:GetTracerEffectFrequency()
         -- Use the random table in reverse order, so the shot and effect are not related
-        local tracertRandom = player.kClipWeaponRandomArray[1 + (player.kClipWeaponRandomArrayMaxIdx - player.kClipWeaponRandomArrayIdx)]
+        local tracertRandom = ClipWeapon_randomizer()
         local showTracer = tracertRandom < effectFrequency
         
         local numTargets = #targets
