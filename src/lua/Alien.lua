@@ -74,6 +74,8 @@ Alien.kEnergyRecuperationRate = kAlienAdrenalineEnergyRate
 -- How long our "need healing" text gets displayed under our blip
 Alien.kCustomBlipDuration = 10
 
+local kMaskSpecialKeys = bit.bor(Move.MovementModifier, Move.ToggleFlashlight)
+
 local inf1 = PrecacheAsset("materials/infestation/infestation.dds")
 local inf2 = PrecacheAsset("materials/infestation/infestation_normal.dds")
 local inf3 = PrecacheAsset("models/alien/infestation/infestation2.model")
@@ -600,7 +602,6 @@ function Alien:GetTechButtons(techId)
 
 end
 
-local kSpecialKeys = bit.bor(Move.MovementModifier, Move.ToggleFlashlight)
 function Alien:HandleButtons(input)
 
     PROFILE("Alien:HandleButtons")
@@ -608,13 +609,13 @@ function Alien:HandleButtons(input)
     Player.HandleButtons(self, input)
 
     -- If nothing special, then stop right here
-    if not self.movementModiferState and bit.band(input.commands, kSpecialKeys) == 0 then
+    if not self.movementModiferState and bit_band(input.commands, kMaskSpecialKeys) == 0 then
         self.darkVisionLastFrame = false
         return
     end
 
     -- Update alien movement ability
-    local newMovementState = bit.band(input.commands, Move.MovementModifier) ~= 0
+    local newMovementState = bit_band(input.commands, Move.MovementModifier) ~= 0
     if newMovementState ~= self.movementModiferState and self.movementModiferState ~= nil then
         self:MovementModifierChanged(newMovementState, input)
     end
@@ -623,7 +624,7 @@ function Alien:HandleButtons(input)
 
     if (Client or Server) and self:GetCanControl() then
 
-        local darkVisionPressed = bit.band(input.commands, Move.ToggleFlashlight) ~= 0
+        local darkVisionPressed = bit_band(input.commands, Move.ToggleFlashlight) ~= 0
         if not self.darkVisionLastFrame and darkVisionPressed then
             self:SetDarkVision(not self.darkVisionOn)
         end
