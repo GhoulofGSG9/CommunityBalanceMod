@@ -698,8 +698,8 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
         local vanillaMoveRate = 26
         -- Checks if players are within X mr-tick from us at current speed
         -- This allows us to skip the expensive PerformMovement() if none is found
-        local distCheckEnemy = math.max(1.5,(velocity*(1.0/vanillaMoveRate)*5):GetLength())
-        local distCheckFriendly = math.max(1.5,(velocity*(1.0/vanillaMoveRate)*3):GetLength())
+        local distCheckEnemy = math.max(1.5,(velocity * 0.20):GetLength())
+        local distCheckFriendly = math.max(1.5,(velocity * 0.15):GetLength())
 
         local teamNumber = self:GetTeamNumber()
         local enemyTeamNumber = GetEnemyTeamNumber(self:GetTeamNumber())
@@ -727,6 +727,7 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
             -- * Predict inits capsule upon impact (and is responsible for a smooth collision feeling)
             -- It makes the client predict if it will bump into other players and create the collision controller accordingly.
             -- If not called, then the client will rubberband in place back&forth upon colliding with a player
+
             completedMove, hitEntities = _PerformMovement(self, velocity * (1.0/vanillaMoveRate * lookAheadDist), 1, nil, false)
             if stepAllowed and hitEntities then
             
@@ -748,13 +749,13 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
         
         if not stepAllowed then -- Handles PvP collisions or jumps (no move-over movement checks)
             
-            local slowDownFraction = self.GetCollisionSlowdownFraction and self:GetCollisionSlowdownFraction() * 0.5 or nil
+            local slowDownFraction = self.GetCollisionSlowdownFraction and self:GetCollisionSlowdownFraction() or 1
             
             local deflectMove = self.GetDeflectMove and self:GetDeflectMove() or false
             
             -- Increases deflect traces in combat
             local numTraces = enemyPlayerHit and kPvPTracesAmount or kTracesAmount
-            _PerformMovement(self, velocity * deltaTime, numTraces, velocity, true, slowDownFraction, deflectMove, nil, deltaTime)
+            _PerformMovement(self, velocity * deltaTime, numTraces, velocity, true, slowDownFraction * 0.5, deflectMove, nil, deltaTime)
             
         else     
             DoStepMove(self, input, velocity, deltaTime)            
