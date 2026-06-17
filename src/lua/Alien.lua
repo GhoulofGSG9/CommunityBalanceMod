@@ -615,7 +615,7 @@ function Alien:HandleButtons(input)
     end
 
     -- Update alien movement ability
-    local newMovementState = InputIsPressingMoveModifier(input)
+    local newMovementState = bit_band(input.commands, Move.MovementModifier) ~= 0
     if newMovementState ~= self.movementModiferState and self.movementModiferState ~= nil then
         self:MovementModifierChanged(newMovementState, input)
     end
@@ -624,7 +624,7 @@ function Alien:HandleButtons(input)
 
     if (Client or Server) and self:GetCanControl() then
 
-        local darkVisionPressed = InputIsPressingFlashlight(input)
+        local darkVisionPressed = bit_band(input.commands, Move.ToggleFlashlight) ~= 0
         if not self.darkVisionLastFrame and darkVisionPressed then
             self:SetDarkVision(not self.darkVisionOn)
         end
