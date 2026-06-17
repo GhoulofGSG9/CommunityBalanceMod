@@ -125,6 +125,12 @@ if Server then
     end
 
     function AchievementGiverMixin:OnTakeDamage(damage, attacker, doer, point, direction, damageType, preventAlert)
+        -- This function is only used for the skulk bite+bite+para achievement.
+        -- It records on the target how it took damage (and upon death reward skulks achievement)
+        if not (attacker and attacker:isa("Skulk")) then
+            return
+        end
+
         if attacker and attacker:isa("Player") and GetAreEnemies(self, attacker) then
             if self:isa("Player") then
                 attacker:AddPlayerDamageDealt(damage)
@@ -140,6 +146,7 @@ if Server then
 
     function AchievementGiverMixin:PreOnKill(attacker, doer, point, direction)
         if attacker and attacker.GetClient and attacker:GetClient() and GetAreEnemies(self, attacker) and not self.isHallucination then
+
             attacker.lastTimeKilled = Shared.GetTime()
 
             --check for lifeforms
@@ -204,6 +211,7 @@ if Server then
 
                 --check health
                 if attacker:isa("Alien") then
+
                     if attacker:GetHealthScalar() == 1 then
                         Server.SetAchievement(attacker:GetClient(), "Short_1_20")
                     end
@@ -215,6 +223,7 @@ if Server then
                     local bites = 0
                     local parasites = 0
                     for _, data in ipairs(self.lastAttacks) do
+
                         if data[1] ~= attacker:GetId() then
                             bites = 0
                             break
@@ -225,6 +234,7 @@ if Server then
                         elseif data[2] == "parasite" then
                             parasites = parasites + 1
                         end
+
                     end
 
                     if bites == 2 and parasites == 1 then
