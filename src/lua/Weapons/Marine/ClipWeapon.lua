@@ -38,6 +38,7 @@ local networkVars =
     
     ammo = "integer (0 to 511)",
     clip = "integer (0 to 200)",
+    randIdx = "integer (0 to 511)",
     
     reloading = "compensated boolean",
     reloaded = "compensated boolean",
@@ -68,11 +69,10 @@ local kClipWeaponRandomArray = {}
 local kClipWeaponRandomArrayCos = {}
 local kClipWeaponRandomArraySin = {}
 local kClipWeaponRandomArrayIdx = 1
-local kClipWeaponRandomArrayMaxIdx = 525
+local kClipWeaponRandomArrayMaxIdx = 511 -- (512 diff values with the 0, has to match netvars max)
 
 local function ClipWeapon_randomizer_init()
     --math_randomseed(player:GetId())
-    --Log("Init randoms for player-id[%s]", player:GetId())
     if (#kClipWeaponRandomArray == 0) then
         kClipWeaponRandomArray = {}
         kClipWeaponRandomArrayCos = {}
@@ -87,22 +87,27 @@ local function ClipWeapon_randomizer_init()
 end
 
 --local numCalls = 0
-function ClipWeapon_randomizer()
-    ClipWeapon_randomizer_init()
+function ClipWeapon_randomizer(weapon)
     --[[if not player then
         --Log("DBG = player entity is nil for clipWeapon random value generation")
         local r = NetworkRandom()
         return r, math_cos(r), math_sin(r)
     end--]]
-    local idx = kClipWeaponRandomArrayIdx
-    local r = kClipWeaponRandomArray[idx]
-    local c = kClipWeaponRandomArrayCos[idx]
-    local s = kClipWeaponRandomArraySin[idx]
+    --entityIdx = 1 + (entityIdx % kClipWeaponRandomArrayMaxIdx)
+
+    weapon.randIdx = 1 + (weapon.randIdx % kClipWeaponRandomArrayMaxIdx)
+
+    --Log("-- %s", weapon.randIdx)
+
+    local r = kClipWeaponRandomArray[weapon.randIdx]
+    local c = kClipWeaponRandomArrayCos[weapon.randIdx]
+    local s = kClipWeaponRandomArraySin[weapon.randIdx]
+ 
     --Log("table[%s] = r:%s / cos:%s / sin:%s", player.kClipWeaponRandomArrayIdx, r, c, s)
-    kClipWeaponRandomArrayIdx = 1 + (kClipWeaponRandomArrayIdx % kClipWeaponRandomArrayMaxIdx)
+
     return r, c, s
 end
-
+ClipWeapon_randomizer_init()
 
 function ClipWeapon:OnCreate()
 
@@ -116,6 +121,7 @@ function ClipWeapon:OnCreate()
     self.lastTimeSprinted = 0
     self.shooting = false
     self.attackLastRequested = 0
+    self.randIdx = math.random(0, kClipWeaponRandomArrayMaxIdx)
     
     InitMixin(self, BulletsMixin)
     
@@ -451,14 +457,14 @@ function ClipWeapon:GetBulletSize()
     return kBulletSize
 end
 
-function ClipWeapon_CalculateSpread(directionCoords, player, spreadAmount)
+function ClipWeapon:CalculateSpread(directionCoords, player, spreadAmount)
 
     PROFILE("ClipWeapon_CalculateSpread")
 
     local spreadAngle = spreadAmount / 2
     
-    local rand1, cos, sin = ClipWeapon_randomizer()
-    local rand2 = ClipWeapon_randomizer()
+    local rand1, cos, sin = ClipWeapon_randomizer(self)
+    local rand2 = ClipWeapon_randomizer(self)
 
     local prevRandomRadiusCached = (player.kClipWeaponLastSpreadAngle and player.kClipWeaponLastSpreadAngle == spreadAngle)
     local spreadAngleTan = (prevRandomRadiusCached and player.kClipWeaponLastSpreadAngleTan or math_tan(spreadAngle))
@@ -486,7 +492,7 @@ end
 
 function ClipWeapon:CalculateSpreadDirection(shootCoords, player)
 
-    return ClipWeapon_CalculateSpread(shootCoords, player, self:GetSpread() * self:GetInaccuracyScalar(player)) --NetworkRandom)
+    return self:CalculateSpread(shootCoords, player, self:GetSpread() * self:GetInaccuracyScalar(player)) --NetworkRandom)
 
 end
 
@@ -520,7 +526,7 @@ local function FireBullets(self, player)
     local hasHitRecently = (now - lastTimeDamageDealt) < 0.5
     local allowBoxTrace = (not hasShotRecently) or hasHitRecently
 
-    local tracertRandom = ClipWeapon_randomizer()
+    local tracertRandom = ClipWeapon_randomizer(self)
     local showTracer = tracertRandom < effectFrequency
     --if Server then
     --    Log("ClipWeap: allowBoxTrace: %s (hasShotRecently:%s / hasHitRecently:%s)", allowBoxTrace, hasShotRecently, hasHitRecently)
@@ -614,7 +620,6 @@ function ClipWeapon:OnDraw(player, previousWeaponMapName)
     self:SetAttachPoint(Weapon.kHumanAttachPoint)
     
     idleTime = Shared.GetTime()
-    ClipWeapon_randomizer_init(player)
 end
 
 function ClipWeapon:OnHolster(player)
