@@ -134,9 +134,9 @@ function SprintMixin:UpdateSprintingState(input)
     
     -- Do not run code if we are not pressing the sprint key, and during a small period after release
     local now = Shared.GetTime()
-    local buttonDown = InputIsPressingMoveModifier(input)
+    local buttonDown = bit_band(input.commands, Move.MovementModifier) ~= 0
     if (not buttonDown and not self:GetIsSprinting() and self.timeSprintChange + 0.25 < now) then
-        return
+        return false
     end
 
     local isOnGround = self:GetIsOnGround()
@@ -217,7 +217,8 @@ function SprintMixin:UpdateSprintingState(input)
     else
         self.sprintingScalar = 1 - Clamp((now - self.timeSprintChange) / SprintMixin.kUnsprintTime, 0, 1)
     end
-            
+    
+    return true
 end
 
 function SprintMixin:OnUpdate(deltaTime)
