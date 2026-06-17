@@ -27,7 +27,7 @@ function PointGiverMixin:__initmixin()
     
     if Server then
         self.damagePoints = {
-            attackers = { } -- List of attacker Ids
+            attackers = { nil,nil,nil,nil,nil,nil,nil,nil,nil,nil } -- List of attacker Ids
         }
     end
 
