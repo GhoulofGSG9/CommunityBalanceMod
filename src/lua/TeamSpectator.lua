@@ -17,14 +17,20 @@ TeamSpectator.kMapName = "teamspectator"
 
 local networkVars = { }
 
+local kMaskExcludeInputs_1 = bit.bnot(bit.bor(Move.Weapon1, Move.Weapon2, Move.Weapon3))
+local kMaskExcludeInputs_2 = bit.bnot(bit.bor(Move.Jump, Move.PrimaryAttack, Move.SecondaryAttack))
 function TeamSpectator:OnProcessMove(input)
 
+    PROFILE("TeamSpectator:OnProcessMove")
+
     -- TeamSpectators never allow mode switching. Follow only.
-    input.commands = bit.band(input.commands, bit.bnot(bit.bor(Move.Weapon1, Move.Weapon2, Move.Weapon3)))
-    
-    -- Filter change follow target keys while respawning.
-    if self:GetIsRespawning() then
-        input.commands = bit.band(input.commands, bit.bnot(bit.bor(Move.Jump, Move.PrimaryAttack, Move.SecondaryAttack)))
+    if input.commands ~= 0 then
+        input.commands = bit.band(input.commands, kMaskExcludeInputs_1)
+
+        -- Filter change follow target keys while respawning.
+        if input.commands ~= 0 and self:GetIsRespawning() then
+            input.commands = bit.band(input.commands, kMaskExcludeInputs_2)
+        end
     end
     
     Spectator.OnProcessMove(self, input)
