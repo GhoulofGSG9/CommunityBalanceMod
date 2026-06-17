@@ -176,7 +176,7 @@ function CrouchMoveMixin:HandleButtons(input)
 
     PROFILE("CrouchMoveMixin:HandleButtons")
 
-    local crouchDesired = InputIsPressingCrouch(input)
+    local crouchDesired = bit_band(input.commands, Move.Crouch) ~= 0
     self:SetCrouching(crouchDesired)
 
 end
