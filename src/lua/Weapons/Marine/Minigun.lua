@@ -281,7 +281,7 @@ local function Shoot(self, leftSide)
         local filter = EntityFilterTwo(player, self)
         local startPoint = player:GetEyePos()
         
-        local spreadDirection = ClipWeapon_CalculateSpread(shootCoords, player, kMinigunSpread)
+        local spreadDirection = CalculateSpread(shootCoords, kMinigunSpread, NetworkRandom)
         
         local range = kMinigunRange
         
@@ -305,7 +305,7 @@ local function Shoot(self, leftSide)
         local surfaceName = trace.surface
         local effectFrequency = self:GetTracerEffectFrequency()
         -- Use the random table in reverse order, so the shot and effect are not related
-        local tracertRandom = ClipWeapon_randomizer()
+        local tracertRandom = math.random() --ClipWeapon_randomizer(self)
         local showTracer = tracertRandom < effectFrequency
         
         local numTargets = #targets

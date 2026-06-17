@@ -41,17 +41,30 @@ end
 
 GetLastBuildVersion() -- Do this right away to avoid MainVM (or other places) setting the option key before we get a chance to save it
 
-function bit_band(a, b)
-    return (a == 0 or b == 0) and 0 or bit.band(a, b)
-end
+----------
+-- Bits utility
 
-function bit_bor(a, b)
-    if a == 0 or b == 0 then
-        return a == 0 and a or b
+local _bit_band = bit.band
+function bit_band(ref, mask)
+    if (ref == 0) then
+        return 0
     end
-    return bit.bor(a, b)
-
+    if (ref == mask) then
+        return ref
+    end
+    return _bit_band(ref, mask)
 end
+
+local _bit_bor = bit.bor
+function bit_bor(ref, mask)
+    if (ref == 0) then
+        return mask
+    end
+    return _bit_bor(ref, mask)
+end
+
+----------
+--
 
 function ConvertWideStringToString(wideString)
 
