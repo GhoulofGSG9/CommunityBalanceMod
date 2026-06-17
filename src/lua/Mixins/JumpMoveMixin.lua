@@ -83,7 +83,7 @@ end
 function JumpMoveMixin:ModifyVelocity(input, velocity, deltaTime)
 
     -- Must press jump multiple times to get multiple jumps
-    if not self.jumpHandled and InputIsPressingJump(input) then
+    if not self.jumpHandled and bit_band(input.commands, Move.Jump) ~= 0 then
     
         if self.OnJumpRequest then
             self:OnJumpRequest()
@@ -152,7 +152,7 @@ end
 
 function JumpMoveMixin:HandleButtons(input)
 
-    if not InputIsPressingJump(input) then
+    if bit_band(input.commands, Move.Jump) == 0 then
         self.jumpHandled = false
     end
     
