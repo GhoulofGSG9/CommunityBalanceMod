@@ -139,7 +139,7 @@ if Server then
             
         end
         
-        if doer and HasMixin(doer, "Live") and damageType == kDamageType.Flame then
+        if damageType == kDamageType.Flame and doer and HasMixin(doer, "Live") then
             self.flinchIntensityStored = self.flinchIntensityStored + 0.1
         end
         
