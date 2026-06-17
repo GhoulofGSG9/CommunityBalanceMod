@@ -147,7 +147,7 @@ function Onos:OnCreate()
     if Client then
     
         InitMixin(self, RailgunTargetMixin)
-		InitMixin(self, BlowtorchTargetMixin)
+        InitMixin(self, BlowtorchTargetMixin)
         self.boneShieldCrouchAmount = 0
         
     end
@@ -362,7 +362,7 @@ function Onos:GetNearbyStampedeables(origin)
 end
 
 function Onos:GetCanStampede()
-    return self:GetWeapon(Gore.kMapName) and self:GetVelocity():GetLengthXZ() > 8.5
+    return self:GetVelocity():GetLengthXZ() > 8.5 and self:GetWeapon(Gore.kMapName)
 end
 
 function Onos:Stampede()
@@ -405,11 +405,12 @@ function Onos:PreUpdateMove(input, runningPrediction)
     -- Fiddle until it feels right.
     -- 0.8 allows about a 90 degree turn in atrium, ie you can start charging
     -- at the entrance, and take the first two stairs before you hit the lockdown.
-    local manuverability = ConditionalValue(self.charging, math.max(0, 0.8 - math.sqrt(self:GetChargeFraction())), 1)
     
+    local manuverability = 1
     if self.charging then
     
         -- fiddle here to determine strafing
+        manuverability = ConditionalValue(self.charging, math.max(0, 0.8 - math.sqrt(self:GetChargeFraction())), 1)
         input.move.x = input.move.x * math.max(0.3, manuverability)
         input.move.z = 1
         
@@ -863,10 +864,10 @@ set {
     "Flamethrower",
     "Grenade", -- Grenade Launcher
     "Mine",
-	"PlasmaT1",
-	"PlasmaT2",
-	"PlasmaT3",
-	"Submachinegun",
+    "PlasmaT1",
+    "PlasmaT2",
+    "PlasmaT3",
+    "Submachinegun",
 }
 
 function Onos:GetHitsBoneShield(doer, hitPoint)
@@ -954,8 +955,8 @@ function Onos:ModifyDamageTakenPostRules(damageTable, attacker, doer, damageType
                 damageTable.damage = (leftoverBoneshieldDamage / damageMult) -- leftover damage converted from our multiplied damage
             end]]
 
-			local leftoverBoneshieldDamage = boneshieldWeapon:TakeDamage(boneshieldDamage)
-			damageTable.damage = (leftoverBoneshieldDamage / damageMult) -- leftover damage converted from our multiplied damage
+            local leftoverBoneshieldDamage = boneshieldWeapon:TakeDamage(boneshieldDamage)
+            damageTable.damage = (leftoverBoneshieldDamage / damageMult) -- leftover damage converted from our multiplied damage
 
             -- send damage message for specifically boneshield
             if boneshieldDamage > 0 then
