@@ -63,37 +63,6 @@ function bit_bor(ref, mask)
     return _bit_bor(a, b)
 end
 
-function InputIsPressingKey(i, key)
-    return bit_band(i.commands, key) ~= 0
-end
-function InputIsPressingJump(i)
-    return bit_band(i.commands, Move.Jump) ~= 0
-end
-function InputIsPressingCrouch(i)
-    return bit_band(i.commands, Move.Crouch) ~= 0
-end
-function InputIsPressingMoveModifier(i)
-    return bit_band(i.commands, Move.MovementModifier) ~= 0
-end
-function InputIsPressingMinimap(i)
-    return bit_band(i.commands, Move.Minimap) ~= 0
-end
-function InputIsPressingFlashlight(i)
-    return bit_band(i.commands, Move.ToggleFlashlight) ~= 0
-end
-function InputIsPressingDrop(i)
-    return bit_band(i.commands, Move.Drop) ~= 0
-end
-function InputIsPressingUse(i)
-    return bit_band(i.commands, Move.Use) ~= 0
-end
-function InputIsPressingBuy(i)
-    return bit_band(i.commands, Move.Buy) ~= 0
-end
-function InputIsPressingReload(i)
-    return bit_band(i.commands, Move.Reload) ~= 0
-end
-
 ----------
 --
 
