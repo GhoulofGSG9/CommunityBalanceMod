@@ -1955,7 +1955,7 @@ function Player:HandleAttacks_inputs(input)
     local isSecondaryAttack = false
     local isTertiaryAttack = false
 
-    local isPlayerAttacking = bit_band(input.commands, kMaskIsPlayerAttacking)
+    local isPlayerAttacking = InputIsPressingKey(input, kMaskIsPlayerAttacking)
     if isPlayerAttacking ~= 0 and not self:GetCanAttack() then
         -- Removes the attack bits from the input command
         input.commands = bit_band(input.commands, kMaskBNotIsPlayerAttacking)
@@ -2090,7 +2090,7 @@ function Player:HandleButtons(input)
     self.moveButtonPressed = input.move:GetLength() ~= 0
 
     local ableToUse = self:GetIsAbleToUse()
-    local usePressed = ableToUse and bit_band(input.commands, Move.Use) ~= 0
+    local usePressed = ableToUse and InputIsPressingUse(input)
     local attackLastFrame = self.primaryAttackLastFrame or self.secondaryAttackLastFrame or self.tertiaryAttackLastFrame
 
     -- The only use case so far for the 'use' key to be pressed while using primary/secondary attack is
@@ -2114,7 +2114,7 @@ function Player:HandleButtons(input)
 
         self.buyLastFrame = self.buyLastFrame or false
         -- Player is bringing up the buy menu (don't toggle it too quickly)
-        local buyButtonPressed = bit_band(input.commands, Move.Buy) ~= 0
+        local buyButtonPressed = InputIsPressingBuy(input)
         if not self.buyLastFrame and buyButtonPressed and Shared.GetTime() > (self.timeLastMenu + 0.3) then
 
             self:Buy()
@@ -2128,7 +2128,7 @@ function Player:HandleButtons(input)
 
 
     -- If we do not reload/weap-mgnmt/attack, then leave immediatly (99% cases)
-    if bit_band(input.commands, kWeaponAndAttackMasks) == 0 then
+    if not InputIsPressingKey(input, kWeaponAndAttackMasks) then
         self:HandleAttacks_calls() -- so that attacks will properly end.
         return
     end
@@ -2141,11 +2141,11 @@ function Player:HandleButtons(input)
     -- self:HandleDoubleTap(input)
 
     -- Only do one binary check for all, then one by one (cheaper than every time)
-    if bit_band(input.commands, kWeaponMask) == 0 then
+    if not InputIsPressingKey(input, kWeaponMask) then
         return
     end
 
-    if bit_band(input.commands, Move.Reload) ~= 0 then
+    if InputIsPressingReload(input) then
         self:Reload()
     end
 
