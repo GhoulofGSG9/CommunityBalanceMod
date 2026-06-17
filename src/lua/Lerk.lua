@@ -506,7 +506,7 @@ local function UpdateGlide(self, input, velocity, deltaTime)
         and self.glideAllowed
         and bit_band(input.commands, Move.Jump) ~= 0
         then
-        
+
         local useSneakyGlide = bit_band(input.commands, Move.MovementModifier) ~= 0
         
         if not self.wasHoldingGlide and useSneakyGlide then
@@ -587,7 +587,7 @@ end
 -- jetpack and exo do the same, move to utility function
 local function UpdateAirStrafe(self, input, velocity, deltaTime)
 
-    if not self.gliding and not self:GetIsOnGround() then
+    if not self.gliding and not self:GetIsOnGround() and not self:GetIsWallGripping() then
 
         -- do XZ acceleration
         local wishDir = self:GetViewCoords():TransformVector(input.move)
