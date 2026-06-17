@@ -288,7 +288,7 @@ function Gorge:GetIsSlidingDesired(input)
     
     end
 
-    if not InputIsPressingMoveModifier(input) then
+    if bit_band(input.commands, Move.MovementModifier) == 0 then
         return false
     end
 
