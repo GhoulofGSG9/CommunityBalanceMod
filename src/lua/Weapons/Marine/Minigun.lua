@@ -281,7 +281,7 @@ local function Shoot(self, leftSide)
         local filter = EntityFilterTwo(player, self)
         local startPoint = player:GetEyePos()
         
-        local spreadDirection = ClipWeapon_CalculateSpread(shootCoords, player, kMinigunSpread)
+        local spreadDirection = CalculateSpread(shootCoords, player, kMinigunSpread)
         
         local range = kMinigunRange
         
