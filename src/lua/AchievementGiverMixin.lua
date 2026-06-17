@@ -15,7 +15,7 @@ function AchievementGiverMixin:__initmixin()
     PROFILE("AchievementGiverMixin:__initmixin")
     
     self.lastSneak = 0
-    self.lastAttacks = {}
+    self.lastAttacks = {nil, nil, nil, nil, nil}
     self.weldedUnits = {}
 end
 
