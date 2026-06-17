@@ -609,12 +609,12 @@ function Marine:HandleButtons(input)
         end
         
         -- If nothing special, then stop right here
-        if bit_band(input.commands, kMaskSpecialKeys) == 0 then
+        if not InputIsPressingKey(input, kMaskSpecialKeys) then
             self.flashlightLastFrame = false
             return
         end
 
-        flashlightPressed = bit_band(input.commands, Move.ToggleFlashlight) ~= 0
+        flashlightPressed = InputIsPressingFlashlight(input)
         if not self.flashlightLastFrame and flashlightPressed then
         
             self:SetFlashlightOn(not self:GetFlashlightOn())
@@ -625,8 +625,8 @@ function Marine:HandleButtons(input)
 
         if Server then
             
-            dropPressed = bit_band(input.commands, Move.Drop) ~= 0
-            usePressed = bit_band(input.commands, Move.Use) ~= 0
+            dropPressed = InputIsPressingDrop(input)
+            usePressed = InputIsPressingUse(input)
             
             -- search for weapons to manually pickup nearby.
             if dropPressed then
