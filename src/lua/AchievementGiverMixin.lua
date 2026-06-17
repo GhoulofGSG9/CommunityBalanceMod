@@ -125,18 +125,16 @@ if Server then
     end
 
     function AchievementGiverMixin:OnTakeDamage(damage, attacker, doer, point, direction, damageType, preventAlert)
-        -- This function is only used for the skulk bite+bite+para achievement.
-        -- It records on the target how it took damage (and upon death reward skulks achievement)
-        if not (attacker and attacker:isa("Skulk")) then
-            return
-        end
-
         if attacker and attacker:isa("Player") and GetAreEnemies(self, attacker) then
             if self:isa("Player") then
                 attacker:AddPlayerDamageDealt(damage)
 
-                if #self.lastAttacks == 5 then self.lastAttacks[5] = nil end
-                table.insert(self.lastAttacks, 1, {attacker:GetId(), doer and doer.kMapName or ""})
+                -- This is only used for the skulk bite+bite+para achievement.
+                -- It records on the target how it took damage (and upon death reward skulks achievement)
+                if (attacker and attacker:isa("Skulk")) then
+                    if #self.lastAttacks == 5 then self.lastAttacks[5] = nil end
+                    table.insert(self.lastAttacks, 1, {attacker:GetId(), doer and doer.kMapName or ""})
+                end
 
             elseif HasMixin(self, "Construct") or HasMixin(self, "Research") then
                 attacker:AddStructureDamageDealt(damage)
