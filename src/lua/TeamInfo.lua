@@ -17,7 +17,7 @@ class 'TeamInfo' (Entity)
 
 TeamInfo.kMapName = "TeamInfo"
 
-TeamInfo.kTechTreeUpdateInterval = 1
+TeamInfo.kTechTreeUpdateInterval = 1.2
 
 -- max 100 tres/min, max 1000 minute game; should be enough 
 kMaxTotalTeamResources = 100000
