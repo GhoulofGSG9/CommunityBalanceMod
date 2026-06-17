@@ -591,7 +591,7 @@ function Marine:HandleButtons(input)
     if self:GetCanControl() then
     
         -- Update sprinting state
-        self:UpdateSprintingState(input)
+        local sprinting = self:UpdateSprintingState(input)
 
         -- search for weapons to auto-pickup nearby.
         if Server and self.ShouldAutopickupWeapons and self:ShouldAutopickupWeapons() then
@@ -609,12 +609,12 @@ function Marine:HandleButtons(input)
         end
         
         -- If nothing special, then stop right here
-        if not InputIsPressingKey(input, kMaskSpecialKeys) then
+        if bit_band(input.commands, kMaskSpecialKeys) == 0 then
             self.flashlightLastFrame = false
             return
         end
 
-        flashlightPressed = InputIsPressingFlashlight(input)
+        flashlightPressed = bit_band(input.commands, Move.ToggleFlashlight) ~= 0
         if not self.flashlightLastFrame and flashlightPressed then
         
             self:SetFlashlightOn(not self:GetFlashlightOn())
@@ -625,8 +625,8 @@ function Marine:HandleButtons(input)
 
         if Server then
             
-            dropPressed = InputIsPressingDrop(input)
-            usePressed = InputIsPressingUse(input)
+            dropPressed = bit_band(input.commands, Move.Drop) ~= 0
+            usePressed = bit_band(input.commands, Move.Use) ~= 0
             
             -- search for weapons to manually pickup nearby.
             if dropPressed then
