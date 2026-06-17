@@ -60,7 +60,7 @@ function bit_bor(ref, mask)
     if (ref == 0) then
         return mask
     end
-    return _bit_bor(a, b)
+    return _bit_bor(ref, mask)
 end
 
 ----------
