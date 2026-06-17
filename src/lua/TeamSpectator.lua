@@ -1,0 +1,52 @@
+-- ======= Copyright (c) 2003-2012, Unknown Worlds Entertainment, Inc. All rights reserved. =====
+--
+-- lua\AlienSpectator.lua
+--
+--    Created by:   Marc Delorme (marc@unknownworlds.com)
+--
+-- TeamSpectator inherit from Spectator. It's a spectator who belongs to a team, so he should not
+-- be able to see people of opposite team.
+--
+-- ========= For more information, visit us at http://www.unknownworlds.com =====================
+
+Script.Load("lua/Spectator.lua")
+
+class 'TeamSpectator' (Spectator)
+
+TeamSpectator.kMapName = "teamspectator"
+
+local networkVars = { }
+
+local kMaskExcludeInputs_1 = bit.bnot(bit.bor(Move.Weapon1, Move.Weapon2, Move.Weapon3))
+local kMaskExcludeInputs_2 = bit.bnot(bit.bor(Move.Jump, Move.PrimaryAttack, Move.SecondaryAttack))
+function TeamSpectator:OnProcessMove(input)
+
+    PROFILE("TeamSpectator:OnProcessMove")
+
+    -- TeamSpectators never allow mode switching. Follow only.
+    if input.commands ~= 0 then
+        input.commands = bit.band(input.commands, kMaskExcludeInputs_1)
+
+        -- Filter change follow target keys while respawning.
+        if input.commands ~= 0 and self:GetIsRespawning() then
+            input.commands = bit.band(input.commands, kMaskExcludeInputs_2)
+        end
+    end
+    
+    Spectator.OnProcessMove(self, input)
+    
+end
+
+function TeamSpectator:IsValidMode(mode)
+    return mode == kSpectatorMode.FirstPerson
+end
+
+function TeamSpectator:GetPlayerStatusDesc()
+    return kPlayerStatus.Dead
+end
+
+function TeamSpectator:GetIsValidTarget(entity)
+    return Spectator.GetIsValidTarget(self, entity) and HasMixin(entity, "Team") and (self.specMode == kSpectatorMode.KillCam or entity:GetTeamNumber() == self:GetTeamNumber())
+end
+
+Shared.LinkClassToMap("TeamSpectator", TeamSpectator.kMapName, networkVars)
