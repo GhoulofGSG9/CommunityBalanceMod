@@ -42,9 +42,7 @@ local networkVars =
     bellyYaw = "private compensated float",
     timeSlideEnd = "private time",
     startedSliding = "private boolean",
-    sliding = "compensated boolean",
-    hasBellySlide = "private compensated boolean",    
-    timeOfLastPhase = "private time",
+    sliding = "compensated boolean"
 }
 
 AddMixinNetworkVars(BaseMoveMixin, networkVars)
@@ -264,10 +262,6 @@ end
 --]]
 function Gorge:GetIsSlidingDesired(input)
 
-    if bit_band(input.commands, Move.MovementModifier) == 0 then
-        return false
-    end
-    
     if self.crouching then
         return false
     end
@@ -293,7 +287,11 @@ function Gorge:GetIsSlidingDesired(input)
         end
     
     end
-    
+
+    if not InputIsPressingMoveModifier(input) then
+        return false
+    end
+
     return true
 
 end
@@ -609,14 +607,6 @@ function Gorge:GetEngagementPointOverride()
 end
 
 if Server then
-
-    function Gorge:OnProcessMove(input)
-    
-        Alien.OnProcessMove(self, input)
-        
-        self.hasBellySlide = GetIsTechAvailable(self:GetTeamNumber(), kTechId.BellySlide) == true or GetGamerules():GetAllTech()
-        
-    end
 	
 	if kCombatVersion then
 		function Gorge:GetTierThreeTechId()
