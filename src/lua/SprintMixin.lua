@@ -134,7 +134,7 @@ function SprintMixin:UpdateSprintingState(input)
     
     -- Do not run code if we are not pressing the sprint key, and during a small period after release
     local now = Shared.GetTime()
-    local buttonDown = (bit_band(input.commands, Move.MovementModifier) ~= 0)
+    local buttonDown = InputIsPressingMoveModifier(input)
     if (not buttonDown and not self:GetIsSprinting() and self.timeSprintChange + 0.25 < now) then
         return
     end
