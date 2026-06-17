@@ -874,7 +874,7 @@ function Exo:OnProcessMove(input)
         UpdateThrusterEffects(self)
     end
     
-    local flashlightPressed = bit_band(input.commands, Move.ToggleFlashlight) ~= 0
+    local flashlightPressed = InputIsPressingFlashlight(input)
     if not self.flashlightLastFrame and flashlightPressed then
         
         self:SetFlashlightOn(not self:GetFlashlightOn())
@@ -1289,7 +1289,7 @@ function Exo:HandleButtons(input)
     self:UpdateNanoShields(input)
     self:UpdateCatPack(input)
     
-    if bit_band(input.commands, Move.Drop) ~= 0 then
+    if InputIsPressingDrop(input) then
         self:EjectExo()
     end
 
@@ -1349,8 +1349,8 @@ end
 function Exo:UpdateThrusters(input)
     
     local lastThrustersActive = self.thrustersActive
-    local jumpPressed = bit_band(input.commands, Move.Jump) ~= 0
-    local movementSpecialPressed = bit_band(input.commands, Move.MovementModifier) ~= 0
+    local jumpPressed = InputIsPressingJump(input)
+    local movementSpecialPressed = InputIsPressingMoveModifier(input)
     local thrusterDesired = (jumpPressed or movementSpecialPressed) and self:GetIsThrusterAllowed()
 
     local desiredMode = jumpPressed and kExoThrusterMode.Vertical
@@ -1945,8 +1945,7 @@ end
 
 function Exo:UpdateNanoShields(input)
     
-    local buttonPressed = bit_band(input.commands, Move.Reload) ~= 0
-    if buttonPressed and self:GetNanoShieldAllowed() then
+    if self:GetNanoShieldAllowed() and InputIsPressingReload(input) then
         -- todo shield
         if self:GetFuel() >= kExoNanoShieldMinFuel and not self.nanoshieldActive and self.lastActivatedNanoShield + 1 < Shared.GetTime() then
             self:SetFuel(self:GetFuel())
@@ -1967,8 +1966,7 @@ end
 
 function Exo:UpdateCatPack(input)
     
-    local buttonPressed = bit_band(input.commands, Move.Reload) ~= 0
-    if buttonPressed and self:GetCatPackAllowed() then
+    if self:GetCatPackAllowed() and InputIsPressingReload(input) then
         
         if self:GetFuel() >= kExoCatPackMinFuel and not self.catpackActive and self.lastActivatedCatPack + 1 < Shared.GetTime() then
             self:SetFuel(self:GetFuel())
@@ -1990,9 +1988,8 @@ end
 
 function Exo:UpdateRepairs(input)
     
-    local buttonPressed = bit_band(input.commands, Move.MovementModifier) ~= 0
     local repairDesired = self:GetArmor() < self:GetMaxArmor()
-    if buttonPressed and self:GetRepairAllowed() and repairDesired then
+    if self:GetRepairAllowed() and repairDesired and InputIsPressingMoveModifier(input) then
         
         if self:GetFuel() >= kExoRepairMinFuel and not self.repairActive and self.lastActivatedRepair + 1 < Shared.GetTime() then
             self:SetFuel(self:GetFuel())
@@ -2001,7 +1998,7 @@ function Exo:UpdateRepairs(input)
         end
     end
     
-    if self.repairActive and (self:GetFuel() == 0 or not buttonPressed or not repairDesired) then
+    if self.repairActive and (self:GetFuel() == 0 or not InputIsPressingMoveModifier(input) or not repairDesired) then
         self:SetFuel(self:GetFuel())
         self.repairActive = false
     end
