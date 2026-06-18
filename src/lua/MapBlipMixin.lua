@@ -45,7 +45,7 @@ local function MapBlipMixinOnUpdateServer()
         local entity = Shared.GetEntity(entityId)
         local mapBlip = entity and entity.mapBlipId and Shared.GetEntity(entity.mapBlipId)
         if mapBlip then
-            mapBlip:Update()
+            mapBlip:Update(entity) -- Pass the owner, so we do not refetch it
         end
 
     end
