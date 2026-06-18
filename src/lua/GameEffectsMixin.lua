@@ -34,7 +34,7 @@ function GameEffectsMixin:__initmixin()
 end
 
 function GameEffectsMixin:GetGameEffectMask(effect)
-    return bit.band(self.gameEffectsFlags, effect) ~= 0
+    return bit_band(self.gameEffectsFlags, effect) ~= 0
 end
 
 -- Sets or clears a game effect flag
