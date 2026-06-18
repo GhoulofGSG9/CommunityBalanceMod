@@ -109,7 +109,9 @@ if Client then
         -- Need to keep this var updated so that client side effects work correctly
         phasedEnt.timeOfLastPhaseClient = Shared.GetTime()
 
-        phaseGate:Phase(phasedEnt)
+        if phaseGate then
+            phaseGate:Phase(phasedEnt)
+        end
         local viewAngles = phasedEnt:GetViewAngles()
 
         -- Update view angles
