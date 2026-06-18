@@ -704,7 +704,7 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
 
         local teamNumber = self:GetTeamNumber()
         local enemyTeamNumber = GetEnemyTeamNumber(self:GetTeamNumber())
-        local playersAround = GetEntitiesWithinRange("Player", self:GetOrigin(), distCheckEnemy)
+        local playersAround = GetEntitiesWithinRange("Player", self:GetOrigin(), 5)
         for _, player in ipairs(playersAround) do
             if player:GetTeamNumber() == enemyTeamNumber then
                 enemyPlayerInRange = true

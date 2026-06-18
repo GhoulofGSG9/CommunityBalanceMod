@@ -243,6 +243,7 @@ function Marine:OnCreate()
         self.minesLeft = 0
 
         self.timeLastAutopickupCheck = 0
+        self.timeLastAutopickup = 0
 
     elseif Client then
     
@@ -597,10 +598,11 @@ function Marine:HandleButtons(input)
         if Server and self.ShouldAutopickupWeapons and self:ShouldAutopickupWeapons() then
 
             local now = Shared.GetTime()
-            if (self.timeLastAutopickupCheck + 0.4 < now) then
+            if (self.timeLastAutopickupCheck + 0.35 < now or self.timeLastAutopickup + 1 > now) then
                 local autopickupWeapon = self:FindNearbyAutoPickupWeapon()
                 if autopickupWeapon then
                     PickupWeapon(self, autopickupWeapon, true)
+                    self.timeLastAutopickup = now
                 end
                 
                 self.timeLastAutopickupCheck = now
