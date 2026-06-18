@@ -125,7 +125,7 @@ function Web:OnCreate()
     self.variant = kGorgeVariants.normal
 
     self:SetUpdates(true, kDefaultUpdateRate)
-    self:SetRelevancyDistance(kMaxRelevancyDistance)
+    self:SetRelevancyDistance(25) --kMaxRelevancyDistance)
 
 end
 
