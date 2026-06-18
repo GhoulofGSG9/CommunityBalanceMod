@@ -38,6 +38,28 @@ WallMovementMixin.networkVars =
 local Shared_TraceRay = Shared.TraceRay
 local Shared_TraceCapsule = Shared.TraceCapsule
 
+local math_pi = math.pi
+
+local kNumTraces = 8
+
+local kTraceCache_flatdisc = {}
+local kTraceCache_diagcone = {}
+
+local function _initTracesTables()
+    for i = 0, kNumTraces - 1 do
+        local angle = ((i * 360/kNumTraces) / 360) * math_pi * 2
+        local directionVector = Vector(math.cos(angle), 0, math.sin(angle))
+        table.insert(kTraceCache_flatdisc, directionVector)
+    end
+
+   for i=0, kNumTraces - 1 do
+        local theta = (i/kNumTraces) * math_pi * 2
+        directionVector = Vector(math.cos(theta), 1, math.sin(theta))
+        table.insert(kTraceCache_diagcone, directionVector)
+    end
+end
+_initTracesTables()
+
 function WallMovementMixin:__initmixin()
     
     PROFILE("WallMovementMixin:__initmixin")
@@ -173,13 +195,10 @@ function WallMovementMixin:GetAverageWallWalkingNormal(extraRange, feelerSize, p
     local startPoint = Vector(self:GetOrigin())
     local extents = self:GetExtents()
     startPoint.y = startPoint.y + extents.y
-
-    local numTraces = 8
     local wallNormals = {}
 
     -- Trace in a circle around self, looking for walls we hit
     local wallWalkingRange = math.max(extents.x, extents.y) + extraRange
-    local endPoint = Vector()
     local directionVector
     local angle
     local normalFound = false
@@ -194,15 +213,15 @@ function WallMovementMixin:GetAverageWallWalkingNormal(extraRange, feelerSize, p
             self.lastSuccessfullWallTraceDir = nil
         end
     end
-    
+
     -- Trace around (flat disc)
     if not normalFound then
-        for i = 0, numTraces - 1 do
+        for i = 1, kNumTraces do
         
-            angle = ((i * 360/numTraces) / 360) * math.pi * 2
-            directionVector = Vector(math.cos(angle), 0, math.sin(angle))
+            directionVector = kTraceCache_flatdisc[i]
             
             -- Avoid excess vector creation
+            local endPoint = Vector()
             endPoint.x = startPoint.x + directionVector.x * wallWalkingRange
             endPoint.y = startPoint.y
             endPoint.z = startPoint.z + directionVector.z * wallWalkingRange
@@ -230,9 +249,8 @@ function WallMovementMixin:GetAverageWallWalkingNormal(extraRange, feelerSize, p
     
     -- Trace in a 45 degree cone around skulk.  Like halfway between vertical and the flat disc we did above.
     if not normalFound then
-        for i=0, 7 do
-            local theta = (i/8) * math.pi * 2
-            directionVector = Vector(math.cos(theta), 1, math.sin(theta))
+        for i=1, kNumTraces do
+            directionVector = kTraceCache_diagcone[i]
             normalFound = self:TraceWallNormal(startPoint, startPoint + directionVector * wallWalkingRange * 0.707, wallNormals, feelerSize, physicsMask)
             if normalFound then
                 --numHit45 = numHit45 + 1
@@ -254,7 +272,9 @@ function WallMovementMixin:GetAverageWallWalkingNormal(extraRange, feelerSize, p
             return groundTrace.normal
         end
         
-        return wallNormals[1]
+        local rval = wallNormals[1]
+        wallNormals = nil
+        return rval
         
     end
 
