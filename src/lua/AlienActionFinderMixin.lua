@@ -6,6 +6,8 @@
 --
 -- ========= For more information, visit us at http://www.unknownworlds.com =====================
 
+local kIconUpdateRate = 0.25
+
 AlienActionFinderMixin = CreateMixin( AlienActionFinderMixin )
 AlienActionFinderMixin.type = "AlienActionFinder"
 
@@ -24,6 +26,7 @@ function AlienActionFinderMixin:__initmixin()
     
         self.actionIconGUI = GetGUIManager():CreateGUIScript("GUIActionIcon")
         self.actionIconGUI:SetColor(kAlienFontColor)
+        self.lastAlienActionFindTime = 0
         
     end
 
@@ -45,6 +48,20 @@ if Client then
     function AlienActionFinderMixin:OnProcessMove(input)
         PROFILE("AlienActionFinderMixin:OnProcessMove")
         
+        local prediction = Shared.GetIsRunningPrediction()
+        if prediction then
+            return
+        end
+
+        local now = Shared.GetTime()
+        local enoughTimePassed = (now - self.lastAlienActionFindTime) >= kIconUpdateRate
+         -- If pressing use, keep updating (for smooth dissolve progress bars)
+        if not enoughTimePassed and bit_band(input.commands, Move.Use) == 0 then
+            return
+        end
+        
+        self.lastAlienActionFindTime = now
+
         local ent = self:PerformUseTrace()
         local usageAllowed = ent ~= nil -- check for entity
         usageAllowed = usageAllowed and (self:GetGameStarted() or (ent.GetUseAllowedBeforeGameStart and ent:GetUseAllowedBeforeGameStart())) -- check if entity can be used before game start
