@@ -54,6 +54,8 @@ function DropPack:OnCreate()
     InitMixin(self, LOSMixin)
 
     self:SetUpdateRate(kRealTimeUpdateRate)
+
+    self:SetRelevancyDistance(25)
     
 end
 
