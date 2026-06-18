@@ -680,7 +680,7 @@ if Client then
             self.preventSpinDuration = math.max(0, self.preventSpinDuration - deltaTime)         
         end
 
-        local shouldSpin = GetIsUnitActive(self) and self.queuedPlayerId ~= Entity.invalidId and (self.preventSpinDuration == nil or self.preventSpinDuration == 0)
+        local shouldSpin = self.queuedPlayerId ~= Entity.invalidId and (self.preventSpinDuration == nil or self.preventSpinDuration == 0) and GetIsUnitActive(self)
         
         if shouldSpin then
             CreateSpinEffect(self)
