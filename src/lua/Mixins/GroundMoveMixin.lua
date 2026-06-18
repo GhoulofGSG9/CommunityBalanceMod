@@ -699,12 +699,12 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
         local vanillaMoveRate = 26
         -- Checks if players are within X mr-tick from us at current speed
         -- This allows us to skip the expensive PerformMovement() if none is found
-        local distCheckEnemy = math.max(1.5,(velocity * 0.20):GetLength())
-        local distCheckFriendly = math.max(1.5,(velocity * 0.15):GetLength())
+        local distCheckEnemy = 3--math.max(1.5,(velocity * 0.20):GetLength())
+        local distCheckFriendly = 2.5 --math.max(1.5,(velocity * 0.15):GetLength())
 
         local teamNumber = self:GetTeamNumber()
         local enemyTeamNumber = GetEnemyTeamNumber(self:GetTeamNumber())
-        local playersAround = GetEntitiesWithinRange("Player", self:GetOrigin(), 5)
+        local playersAround = GetEntitiesWithinRange("Player", self:GetOrigin(), 4)
         for _, player in ipairs(playersAround) do
             if player:GetTeamNumber() == enemyTeamNumber then
                 enemyPlayerInRange = true
@@ -719,7 +719,7 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
         --
 
         if enemyPlayerInRange or friendlyPlayerInRange then
-            local lookAheadDist = enemyPlayerInRange and 3 or 2.5
+            local lookAheadDist = enemyPlayerInRange and distCheckEnemy or distCheckFriendly
 
             -- This call is very important for Predict side collision (and client to a lesser extent)
             -- It has to be done in all case for Client/Predict.
