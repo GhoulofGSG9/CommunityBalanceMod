@@ -111,8 +111,7 @@ if Server then
         -- update fall
         
         local weapon = self.weapon and Shared.GetEntity(self.weapon)
-
-        if self.onGroundPoint and self.onGroundPoint ~= self:GetOrigin() and self.fallSpeed and weapon == nil then
+        if weapon == nil and self.onGroundPoint and self.onGroundPoint ~= self:GetOrigin() and self.fallSpeed then
             
             self.fallSpeed = math.min(50, self.fallSpeed + deltaTime * 9.81)
             self:SetOrigin(SlerpVector(self:GetOrigin(), self.onGroundPoint, deltaTime * self.fallSpeed))
@@ -123,13 +122,18 @@ if Server then
                 self:SetOrigin(weapon:GetOrigin())
             end
         
-        elseif not (weapon ~= nil and weapon.weaponWorldState == true) then
+        elseif not self.hitStaticGround and not (weapon ~= nil and weapon.weaponWorldState == true) then -- For med/ammo/etc
+
+            -- This trace is only here in the event you drop it on an entity that dies, so they don't stay in the air
+
             local trace = Shared.TraceRay(self:GetOrigin() + kUpVector * 0.025, self:GetOrigin() - kUpVector * 20, CollisionRep.Move, PhysicsMask.AllButPCs, EntityFilterOneAndIsa(self, "Player"))
             self:SetOrigin(Vector(trace.endPoint))
-            
+            if not trace.entity and trace.fraction ~= 1 then
+                self.hitStaticGround = true
+            end
+
             self.weapon = nil
-            
-        elseif not self.hitStaticGround then
+        elseif not self.hitStaticGround then -- For weapons
 
             if not self.lastOnGroundUpdate or self.lastOnGroundUpdate + 0.1 < Shared.GetTime() then        
 
@@ -165,9 +169,8 @@ if Server then
             end
         
         end
-
         
-        -- set angles when on ground
+        -- set angles when on ground, then disable
 
         if self.desiredAngles then
         
@@ -183,21 +186,27 @@ if Server then
         
         end
 
-        -- update pickup
+        -- update pickup checks
 
-        local playersNearby = GetEntitiesForTeamWithinXZRange( "Player", self:GetTeamNumber(), self:GetOrigin(), self.pickupRange )
-        Shared.SortEntitiesByDistance(self:GetOrigin(), playersNearby)
+        local playersNearby = GetEntitiesWithinXZRange( "Player", self:GetOrigin(), self.pickupRange )
+        if #playersNearby > 0 then
 
-        for _, player in ipairs(playersNearby) do
-        
-            if not player:isa("Commander") and self:GetIsValidRecipient(player) then
-            
-                self:OnTouch(player)
-                DestroyEntity(self)
-                break
-                
+            if self.pickupRange > 1 then -- Don't even bother if range too short, just pick first one in list
+                Shared.SortEntitiesByDistance(self:GetOrigin(), playersNearby)
             end
-        
+
+            for _, player in ipairs(playersNearby) do
+            
+                local sameTeam = player:GetTeamNumber() == self:GetTeamNumber()
+                if sameTeam and not player:isa("Commander") and self:GetIsValidRecipient(player) then
+                
+                    self:OnTouch(player)
+                    DestroyEntity(self)
+                    break
+                    
+                end
+            
+            end
         end
         
     end
