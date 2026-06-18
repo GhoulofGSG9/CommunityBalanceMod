@@ -86,7 +86,7 @@ function MapBlip:UpdateRelevancy(owner)
     local mask = 0
     local isSighted = false
 
-    if (self.mapBlipTeam ~= kTeamInvalid and isSighted == nil) then
+    if (self.mapBlipTeam ~= kTeamInvalid) then
         isSighted = self:GetIsSighted(owner)
     end
 
