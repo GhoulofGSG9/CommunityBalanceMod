@@ -9,7 +9,7 @@
 --
 --============================================================================
 
-Cyst.kThinkTime = 1
+Cyst.kThinkTime = 1.2
 
 -- How long we can be without a confirmation impulse before we disconnect
 Cyst.kImpulseDisconnectTime = 15
@@ -47,7 +47,9 @@ end
 -- the GetIsConnected() method used the connect bit, which may not reflect the actual connection status.
 --
 function Cyst:GetIsActuallyConnected()
-    
+  
+    PROFILE("Cyst:GetIsActuallyConnected")
+
     -- Always in dev mode, for making movies and testing
     if Shared.GetDevMode() then
         return true
@@ -344,7 +346,7 @@ function Cyst:ServerUpdate()
         self.nextUpdate = self.nextUpdate + Cyst.kThinkTime
 
         -- Take damage if not connected
-        if not self.connected and not self:GetIsCatalysted() and self:GetCreationTime() > 1.0 then
+        if not self.connected and not self:GetIsCatalysted() and (now - self:GetCreationTime()) > 1 then
             self:TriggerDamage()
         end
 
@@ -353,8 +355,6 @@ function Cyst:ServerUpdate()
 end
 
 function Cyst:OnUpdate(deltaTime)
-
-    PROFILE("Cyst:OnUpdate")
 
     ScriptActor.OnUpdate(self, deltaTime)
 
@@ -379,7 +379,6 @@ function Cyst:OnUpdate(deltaTime)
 end
 
 function Cyst:UpdateInfestationCloaking()
-    PROFILE("Cyst:UpdateInfestationCloaking")
 
     self.cloakInfestation = self.timeUncloaked < self.timeCloaked and self.timeCloaked > Shared.GetTime()
 
