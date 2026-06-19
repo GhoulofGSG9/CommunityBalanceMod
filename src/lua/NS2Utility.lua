@@ -1481,6 +1481,8 @@ function GetLocations()
     return EntityListToTable(Shared.GetEntitiesWithClassname("Location"))
 end
 
+
+
 function GetLocationForPoint(point, ignoredLocation)
     PROFILE("GetLocationForPoint")
 
@@ -1488,11 +1490,23 @@ function GetLocationForPoint(point, ignoredLocation)
 
     for _, location in ipairs(ents) do
 
-        if location ~= ignoredLocation and location:GetIsPointInside(point) then
-
+        -- Inlined `function TriggerMixin:GetIsPointInside(point)`
+        local worldToObj = location.worldToObjCoords
+        local localSpacePt = worldToObj:TransformPoint(point)
+        local x = localSpacePt.x
+        local y = localSpacePt.y
+        local z = localSpacePt.z
+        local isInside = z < 1.0 and x >= -1 and x < 1.0 and z >= -1 and y >= -1 and y < 1.0
+        -- ignoredLocation is nil the large majority the cases, check after
+        if isInside and ignoredLocation ~= location then
             return location
-
         end
+
+        --[[ -- Previous code
+        if location:GetIsPointInside(point) and location ~= ignoredLocation then
+            return location
+        end
+        --]]
 
     end
 
