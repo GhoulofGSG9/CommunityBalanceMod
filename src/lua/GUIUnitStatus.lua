@@ -133,6 +133,15 @@ local function UpdateItemsGUIScale()
     kActionDefaultPos = GUIScale(Vector(0, -16, 0))
 end
 
+local function _SetIsVisible(item, state)
+    local needsToBeSet = (item.GUIUnitStatus_lastVisible == nil or item.GUIUnitStatus_lastVisible ~= state or state)
+    if needsToBeSet then
+        item:SetIsVisible(state)
+        item.GUIUnitStatus_lastVisible = state
+    end
+    return state
+end
+
 function GUIUnitStatus:Initialize()
 
     GUIAnimatedScript.Initialize(self, kUpdateIntervalFull)
@@ -155,8 +164,12 @@ end
 
 function GUIUnitStatus:SetIsVisible(state)
     
+    local needsUpdate = (self.visible ~= state or state)
     self.visible = state
-    self:Update(0)
+
+    if (needsUpdate) then
+        self:Update(0)
+    end
     
 end
 
@@ -448,9 +461,12 @@ function GUIUnitStatus:UpdateUnitStatusBlip(blipIndex, localPlayerIsCommander, b
     -- status icon, color and unit name
 
     local updateBlip = self.activeBlipList[blipIndex]
-    updateBlip.GraphicsItem:SetTexturePixelCoordinates(GetUnitStatusTextureCoordinates(blipData.Status))
-    updateBlip.GraphicsItem:SetPosition(blipData.Position - GUIUnitStatus.kUnitStatusSize * .5 )
-    updateBlip.GraphicsItem:SetIsVisible(self.visible and blipData.LOSSighted)
+    local isVisible_GraphicsItem = self.visible and blipData.LOSSighted
+    if (isVisible_GraphicsItem) then
+        updateBlip.GraphicsItem:SetTexturePixelCoordinates(GetUnitStatusTextureCoordinates(blipData.Status))
+        updateBlip.GraphicsItem:SetPosition(blipData.Position - GUIUnitStatus.kUnitStatusSize * .5 )
+    end
+    _SetIsVisible(updateBlip.GraphicsItem, isVisible_GraphicsItem)
 
     local teamType = blipData.TeamType
     local isEnemy = false
@@ -590,11 +606,12 @@ function GUIUnitStatus:UpdateUnitStatusBlip(blipIndex, localPlayerIsCommander, b
     -- Name
     local showName = alpha > 0 and (not localPlayerIsCommander or isCrosshairTarget)
     if ( blipData.ForceName and blipData.IsPlayer ) or showName then
-        updateBlip.NameText:SetIsVisible(self.visible)
-        updateBlip.NameText:SetText(blipNameText)
-        updateBlip.NameText:SetColor(textColor) -- use the entities team color here, so you can make a difference between enemy or friend
+        if _SetIsVisible(updateBlip.NameText, self.visible) then
+            updateBlip.NameText:SetText(blipNameText)
+            updateBlip.NameText:SetColor(textColor) -- use the entities team color here, so you can make a difference between enemy or friend
+        end
     else
-        updateBlip.NameText:SetIsVisible(false)
+        _SetIsVisible(updateBlip.NameText, false)
     end
 
     local hideBars = nameplates == 1 -- numbers only.
@@ -603,7 +620,7 @@ function GUIUnitStatus:UpdateUnitStatusBlip(blipIndex, localPlayerIsCommander, b
     local displayHBar = alpha > 0 and healthFraction ~= 0 -- only diplay when health > 0 and unitstatus visible
     displayHBar = displayHBar and (localPlayerIsCommander or (not hideBars and (not blipData.IsPlayer or not isEnemy))) -- don't display health bar for enemies
     if displayHBar then
-        updateBlip.HealthBarBg:SetIsVisible(self.visible)
+        _SetIsVisible(updateBlip.HealthBarBg, self.visible)
 
         if blipData.IsPlayer and isEnemy and not blipData.EvolvePercentage then
             updateBlip.HealthBarBg:SetColor( kHealthBarBgEnemyPlayerColor )
@@ -617,25 +634,26 @@ function GUIUnitStatus:UpdateUnitStatusBlip(blipIndex, localPlayerIsCommander, b
         end
 
         if healthFraction < regenFraction then
-            updateBlip.RegenBar:SetIsVisible(self.visible)
-            updateBlip.RegenBar:SetSize(Vector(kHealthBarWidth * ( regenFraction - healthFraction ), kHealthBarHeight, 0))
-            updateBlip.RegenBar:SetTexturePixelCoordinates(GetPixelCoordsForFractionPiece(healthFraction,regenFraction))
-            updateBlip.RegenBar:SetPosition(Vector(kHealthBarWidth * healthFraction,0,0))
+            if _SetIsVisible(updateBlip.RegenBar, self.visible) then
+                updateBlip.RegenBar:SetSize(Vector(kHealthBarWidth * ( regenFraction - healthFraction ), kHealthBarHeight, 0))
+                updateBlip.RegenBar:SetTexturePixelCoordinates(GetPixelCoordsForFractionPiece(healthFraction,regenFraction))
+                updateBlip.RegenBar:SetPosition(Vector(kHealthBarWidth * healthFraction,0,0))
+            end
         else
-            updateBlip.RegenBar:SetIsVisible(false)
+            _SetIsVisible(updateBlip.RegenBar, false)
         end
 
         updateBlip.HealthBar:SetSize(Vector(kHealthBarWidth * healthFraction, kHealthBarHeight, 0))
         updateBlip.HealthBar:SetTexturePixelCoordinates(GetPixelCoordsForFraction(healthFraction))
     else
-            updateBlip.HealthBarBg:SetIsVisible(false)
+        _SetIsVisible(updateBlip.HealthBarBg, false)
     end
 
     -- Armor Bar
     local displayABar = alpha > 0 and armorFraction ~= 0 -- only diplay when armor > 0 and unitstatus visible
     displayABar = displayABar and (localPlayerIsCommander or (not hideBars and (not blipData.IsPlayer or not isEnemy))) -- don't display armor bar for enemies
     if displayABar then
-        updateBlip.ArmorBarBg:SetIsVisible(self.visible)
+        _SetIsVisible(updateBlip.ArmorBarBg, self.visible)
         if blipData.IsPlayer and isEnemy and not blipData.EvolvePercentage then
             updateBlip.ArmorBarBg:SetColor(kArmorBarBgEnemyPlayerColor)
             updateBlip.ArmorBar:SetColor(kArmorBarEnemyPlayerColor)
@@ -646,7 +664,7 @@ function GUIUnitStatus:UpdateUnitStatusBlip(blipIndex, localPlayerIsCommander, b
         updateBlip.ArmorBar:SetSize(Vector(kArmorBarWidth * armorFraction, kArmorBarHeight, 0))
         updateBlip.ArmorBar:SetTexturePixelCoordinates(GetPixelCoordsForFraction(armorFraction))
     else
-        updateBlip.ArmorBarBg:SetIsVisible(false)
+        _SetIsVisible(updateBlip.ArmorBarBg, false)
     end
 
     -- Ammo/Ability Bar
@@ -656,8 +674,9 @@ function GUIUnitStatus:UpdateUnitStatusBlip(blipIndex, localPlayerIsCommander, b
         end
 
         if alpha > 0 then
-            updateBlip.AbilityBarBg:SetIsVisible( self.visible )
-            updateBlip.AbilityBarBg:SetColor(kAbilityBarBgColors[teamType])
+            if _SetIsVisible( updateBlip.AbilityBarBg, self.visible ) then
+                updateBlip.AbilityBarBg:SetColor(kAbilityBarBgColors[teamType])
+            end
             updateBlip.AbilityBar:SetSize(Vector(kArmorBarWidth * abilityFraction, kArmorBarHeight * 2, 0))
             updateBlip.AbilityBar:SetTexturePixelCoordinates(GetPixelCoordsForFraction(abilityFraction))
 
@@ -675,11 +694,11 @@ function GUIUnitStatus:UpdateUnitStatusBlip(blipIndex, localPlayerIsCommander, b
             end
 
         else
-            updateBlip.AbilityBarBg:SetIsVisible( false )
+            _SetIsVisible( updateBlip.AbilityBarBg, false )
         end
     else
         if updateBlip.AbilityBarBg then
-            updateBlip.AbilityBarBg:SetIsVisible( false )
+            _SetIsVisible( updateBlip.AbilityBarBg, false )
         end
     end
 
@@ -696,9 +715,10 @@ function GUIUnitStatus:UpdateUnitStatusBlip(blipIndex, localPlayerIsCommander, b
     showHints = showHints and (not localPlayerIsCommander or isCrosshairTarget) or displayPercentages
 
     if showHints and blipHintText and blipHintText ~= "" and alpha > 0 then
-        updateBlip.HintText:SetIsVisible(self.visible)
-        updateBlip.HintText:SetText(blipHintText)
-        updateBlip.HintText:SetColor(textColor)
+        if _SetIsVisible(updateBlip.HintText, self.visible) then
+            updateBlip.HintText:SetText(blipHintText)
+            updateBlip.HintText:SetColor(textColor)
+        end
 
         local bgsize = GUIUnitStatus.kStatusBgSize
         local hintTextWidth = updateBlip.HintText:GetTextWidth(blipHintText) + 8
@@ -711,21 +731,22 @@ function GUIUnitStatus:UpdateUnitStatusBlip(blipIndex, localPlayerIsCommander, b
         updateBlip.statusBg:SetSize(bgsize)
         updateBlip.statusBg:SetPosition(blipData.HealthBarPosition - updateBlip.statusBg:GetSize() * .5 )
     else
-        updateBlip.HintText:SetIsVisible(false)
+        _SetIsVisible(updateBlip.HintText, false)
         updateBlip.statusBg:SetSize(GUIUnitStatus.kStatusBgNoHintSize)
     end
 
     -- Research Progress
     if isCrosshairTarget and statusFraction > 0 and statusFraction < 1 then
-        updateBlip.ProgressingIcon:SetIsVisible(self.visible)
-        updateBlip.ProgressingIcon:SetRotation(Vector(0, 0, -2 * math.pi * baseResearchRot))
+        if _SetIsVisible(updateBlip.ProgressingIcon, self.visible) then
+            updateBlip.ProgressingIcon:SetRotation(Vector(0, 0, -2 * math.pi * baseResearchRot))
+        end
         updateBlip.ProgressText:SetText(math.floor(statusFraction * 100) .. "%")
         updateBlip.ActionText:SetText(blipData.Action)
         updateBlip.ActionText:SetColor(textColor)
         updateBlip.ActionTextShadow:SetText(blipData.Action)
         updateBlip.ActionTextShadow:SetColor(Color(0, 0, 0, 1))
     else
-        updateBlip.ProgressingIcon:SetIsVisible(false)
+        _SetIsVisible(updateBlip.ProgressingIcon, false)
     end
 
     -- Badges
@@ -739,33 +760,35 @@ function GUIUnitStatus:UpdateUnitStatusBlip(blipIndex, localPlayerIsCommander, b
             if texture then
 
                 badge:SetTexture(texture)
-                badge:SetIsVisible(self.visible)
+                _SetIsVisible(badge, self.visible)
 
             else
-                badge:SetIsVisible(false)
+                _SetIsVisible(badge, false)
             end
 
         end
     else
         for i = 1, #updateBlip.Badges do
-            updateBlip.Badges[i]:SetIsVisible(false)
+            _SetIsVisible(updateBlip.Badges[i], false)
         end
     end
     
     -- Maturity
     if maturityFraction ~= -1 and alpha > 0 and isCrosshairTarget then
-        local text = string.format("Maturity: %.f%%", maturityFraction * 100)
-        updateBlip.MaturityText:SetIsVisible(self.visible)
-        updateBlip.MaturityText:SetText(text)
-        updateBlip.MaturityText:SetColor(textColor)
+
+        if _SetIsVisible(updateBlip.MaturityText, self.visible) then
+            local text = string.format("Maturity: %.f%%", maturityFraction * 100)
+            updateBlip.MaturityText:SetText(text)
+            updateBlip.MaturityText:SetColor(textColor)
+        end
     else
-        updateBlip.MaturityText:SetIsVisible(false)
+        _SetIsVisible(updateBlip.MaturityText, false)
     end
 
     if GetAdvancedOption("nameplates") == 2 and blipData.IsPlayer == false then
-        updateBlip.NameText:SetIsVisible(false)
-        updateBlip.HintText:SetIsVisible(false)
-        updateBlip.MaturityText:SetIsVisible(false)
+        _SetIsVisible(updateBlip.NameText, false)
+        _SetIsVisible(updateBlip.HintText, false)
+        _SetIsVisible(updateBlip.MaturityText, false)
     end
 
 end
@@ -781,8 +804,8 @@ function GUIUnitStatus:UpdateUnitStatusList()
         local newBlipItem = GetNewBlipItem(self)
         table.insert(self.activeBlipList, newBlipItem)
 
-        newBlipItem.GraphicsItem:SetIsVisible(true)
-        newBlipItem.statusBg:SetIsVisible(true)
+        _SetIsVisible(newBlipItem.GraphicsItem, true)
+        _SetIsVisible(newBlipItem.statusBg, true)
 
     end
 
@@ -790,8 +813,8 @@ function GUIUnitStatus:UpdateUnitStatusList()
 
         -- hide unused blips
         local blip = table.remove(self.activeBlipList, 1)
-        blip.GraphicsItem:SetIsVisible(false)
-        blip.statusBg:SetIsVisible(false)
+        _SetIsVisible(blip.GraphicsItem, false)
+        _SetIsVisible(blip.statusBg, false)
 
         table.insert(self.dirtyBlipList, blip)
 
