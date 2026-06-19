@@ -182,17 +182,17 @@ function MapBlip:Update(owner)
         
         -- Anything that has those can potentially move
         local isPlayer = owner:isa("Player")
-        local isMobile = isPlayer or HasMixin(owner, "Pathing") or HasMixin(owner, "TeleportAble")
+        local fowardNormal = owner:GetCoords().zAxis
+        local yaw = 0
 
-        if isMobile or isFirstUpdate then
-            local fowardNormal = owner:GetCoords().zAxis
-            local yaw = 0
-            if isMobile or not (owner:isa("PowerPoint") or owner:isa("Hive")) then
-                yaw = math_atan2(fowardNormal.x, fowardNormal.z)
-            end
-            self:SetAngles(Angles(0, yaw, 0))
+        if isPlayer then
+            yaw = math.atan2(fowardNormal.x, fowardNormal.z)
+        else
+            yaw = ConditionalValue(owner:isa("PowerPoint") or owner:isa("Hive"), 0, math.atan2(fowardNormal.x, fowardNormal.z))
         end
         
+        self:SetAngles(Angles(0, yaw, 0))
+
         local origin
         if owner.GetPositionForMinimap then
             origin = owner:GetPositionForMinimap()
@@ -202,10 +202,8 @@ function MapBlip:Update(owner)
         
         if origin then
         
-            if isMobile or isFirstUpdate then
-                -- always use zero y-origin (for now, if you want to use it for long-range hivesight, add it back
-                self:SetOrigin(Vector(origin.x, 0, origin.z))
-            end
+            -- always use zero y-origin (for now, if you want to use it for long-range hivesight, add it back
+            self:SetOrigin(Vector(origin.x, 0, origin.z))
             
             self:UpdateRelevancy(owner)
 
