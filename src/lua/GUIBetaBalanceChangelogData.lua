@@ -42,6 +42,9 @@ if kCBMaddon then
 	  - Vanilla bugfixes to ARC and whip ragdoll related server hitching and crashes.
       - Vanilla bugfix to welder stopping welding when accidently aiming at a target's weapon.
 	  - Vanilla bugfix to static DoTs (plasma and bile affected) that decreased target acquisition time by >0.5s.
+	  - Vanilla bugfix to cyst popping on expanding across the map.
+	  - Vanilla bugfix to nil error on phasegates.
+	  - Vanilla bugfix for mine being triggered outside of damage range and improved responsiveness of detection.
       - Extensive lua code refactor/debottlenecking, improving client/server performance (see CBM discord for details).
       - Vanilla bugfixes related to game rate increases.
 	  - Vanilla bugfixes to collisions:
@@ -49,6 +52,8 @@ if kCBMaddon then
 		- Better for PvP (less getting stuck / phasing through people).
 		- Better when hitting geometry (many stuck spots fixed)
 	  - Note: Server owners are encouraged to try increase game rates based on our recommendations (see CBM discord).
+	  
+	###Be sure to thank Katzenfleisch for his amazing work on the NS2 codebase optimizations!
 
 	#TLDR of Community Balance Mod (v3.5) vs. Vanilla:
 	
@@ -137,6 +142,9 @@ if kCBMaddon then
 	  - Fixed welders stopping welding when accidently aimed at a marine weapon.
 	  - Fixed collisions being dependent tick/move rate (now based on time). 
 	  - Fixed whips causing server hitching / crash on death due to ragdolls.
+	  - Fixed cyst popping on expanding across the map.
+	  - Fixed nil error on phasegates.
+	  - Fixed mine being triggered outside of damage range and improved responsiveness of detection.
 
 	### Vanilla Codebase Optimizations
 	  - Refactored and optimized the way the game processes and confirms damage, collisions, and movement.
@@ -148,6 +156,8 @@ if kCBMaddon then
 	  - Optimized sound calls.
 	  - Optimized bitmasks and bitmask calls.
 	  - Optimized bot functions and calls.
+	  - Optimized pregame functions and calls.
+	  - Optimized spectate related functions and calls.
 
 	## MARINE - PLAYER
 	### Modular Exosuits
@@ -568,6 +578,9 @@ else
 	  - Vanilla bugfixes to ARC and whip ragdoll related server hitching and crashes.
       - Vanilla bugfix to welder stopping welding when accidently aiming at a target's weapon.
 	  - Vanilla bugfix to static DoTs (bile affected) that decreased target acquisition time by >0.5s.
+	  - Vanilla bugfix to cyst popping on expanding across the map.
+	  - Vanilla bugfix to nil error on phasegates.
+	  - Vanilla bugfix for mine being triggered outside of damage range and improved responsiveness of detection.
       - Extensive lua code refactor and debottlenecking, improving client/server performance (see CBM discord for extensive breakdown).
       - Vanilla bugfixes related to game rate increases.
 	  - Vanilla bugfixes to collisions:
@@ -575,6 +588,8 @@ else
 		- Better for PvP (less getting stuck / phasing through people).
 		- Better when hitting geometry (many stuck spots fixed)
 	  - Note: Server owners are encouraged to try increase game rates based on our recommendations (see CBM discord).
+
+	###Be sure to thank Katzenfleisch for his amazing work on the NS2 codebase optimizations!
 
 	#TLDR of Community Balance Mod (v3.5) vs. Vanilla:
 	
@@ -657,6 +672,9 @@ else
 	  - Fixed welders stopping welding when accidently aimed at a marine weapon.
 	  - Fixed collisions being dependent tick/move rate (now based on time). 
 	  - Fixed whips causing server hitching / crash on death due to ragdolls.
+	  - Fixed cyst popping on expanding across the map.
+	  - Fixed nil error on phasegates.
+	  - Fixed mine being triggered outside of damage range and improved responsiveness of detection.
 
 	### Vanilla Codebase Optimizations
 	  - Refactored and optimized the way the game processes and confirms damage, collisions, and movement.
@@ -668,6 +686,8 @@ else
 	  - Optimized sound calls.
 	  - Optimized bitmasks and bitmask calls.
 	  - Optimized bot functions and calls.
+	  - Optimized pregame functions and calls.
+	  - Optimized spectate related functions and calls.
 
 	## MARINE - PLAYER
 	### Modular Exosuits
