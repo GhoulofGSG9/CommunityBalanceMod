@@ -131,16 +131,51 @@ function TriggerMixin:SetTriggerCollisionEnabled(setEnabled)
     self.triggerBody:SetCollisionEnabled(setEnabled)
 end
 
+-- local count = 0
+-- local stats = {0,0,0,0,0,0}
+
+--[[ Stats to do condition reordering
+
+-- Stats from an idle marine in main
+Client  : 178.415985 : {2 = "151,817",  5 = "415,256",  6 = "614,080",  3 = "877,303",  1 = "911,319",  4 = "940,000"}
+Server  : 178.034836 : {1 = "216,318",  6 = "239,198",  5 = "356,211",  2 = "382,363",  4 = "519,494",  3 = "514,004"}
+
+-- Stats from a 10v10 bot pregame for a few minutes
+Server  : 107.210785 : {6 = "1,851,859",1 = "1,922,344",2 = "2,441,450",5 = "2,534,710",3 = "3,634,752",4 = "3,728,937",}
+
+--]]
 function TriggerMixin:GetIsPointInside(point)
     
-    PROFILE("TriggerMixin:GetIsPointInside")
+    --PROFILE("TriggerMixin:GetIsPointInside") -- Cannot measure without that, but if it is like assert it's a 10-15ns gain
     
-    assert(self.worldToObjCoords)
-    local localSpacePt = self.worldToObjCoords:TransformPoint(point)
+    --assert(self.worldToObjCoords) -> Went from 85ns to 72ns commenting this
+
+    local worldToObj = self.worldToObjCoords
+    local localSpacePt = worldToObj:TransformPoint(point)
+
+--[[
+    stats[1] = stats[1] + (localSpacePt.x >= -1 and 1 or 0)
+    stats[2] = stats[2] + (localSpacePt.x < 1.0 and 1 or 0)
+    stats[3] = stats[3] + (localSpacePt.y >= -1 and 1 or 0)
+    stats[4] = stats[4] + (localSpacePt.y < 1.0 and 1 or 0)
+    stats[5] = stats[5] + (localSpacePt.z >= -1 and 1 or 0)
+    stats[6] = stats[6] + (localSpacePt.z < 1.0 and 1 or 0)
+    count = count + 1
+    if (count % 10000 == 0) then
+        Log("%s", stats)
+    end
+    
     return  localSpacePt.x >= -1 and localSpacePt.x < 1.0 and
             localSpacePt.y >= -1 and localSpacePt.y < 1.0 and
             localSpacePt.z >= -1 and localSpacePt.z < 1.0
-    
+    -]]
+
+    -- --> Went from 72ns to 64ns with the condition reordering
+    local x = localSpacePt.x
+    local y = localSpacePt.y
+    local z = localSpacePt.z
+    -- Reordered checks according to our benchmark above of who fails the most first
+    return z < 1.0 and x >= -1 and x < 1.0 and z >= -1 and y >= -1 and y < 1.0
 end
 
 function TriggerMixin:GetNumberOfEntitiesInTrigger()
