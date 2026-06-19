@@ -25,7 +25,7 @@ if kCBMaddon then
 	or start a conversation in beta-balance-feedback on the official discord to let us know 
 	you think! Below are the changes this mod introduces:
 
-	#TLDR of Recent Release (v3.2):
+	#TLDR of Recent Release (v3.5):
 	
 	## Balance Changes
 	  - Nerfs to exosuit movement and thruster.
@@ -50,7 +50,7 @@ if kCBMaddon then
 		- Better when hitting geometry (many stuck spots fixed)
 	  - Note: Server owners are encouraged to try increase game rates based on our recommendations (see CBM discord).
 
-	#TLDR of Community Balance Mod (v3.2) vs. Vanilla:
+	#TLDR of Community Balance Mod (v3.5) vs. Vanilla:
 	
 	## MARINE
 	  - Reworks to existing marines structures (sentry, sentry battery, and prototype lab).
@@ -75,6 +75,7 @@ if kCBMaddon then
 	  - Updated locale, new ui elements, and improved tech maps for new (and old) features.
 	  - Custom skins and cinematics for new content.
 	  - Various QoL, game improvements, and bugfixes.
+	  - Refactor and optimization of lua codebase (major client and server performance improvements).
 
 	# Full Changelog:
 	## GENERAL
@@ -136,6 +137,17 @@ if kCBMaddon then
 	  - Fixed welders stopping welding when accidently aimed at a marine weapon.
 	  - Fixed collisions being dependent tick/move rate (now based on time). 
 	  - Fixed whips causing server hitching / crash on death due to ragdolls.
+
+	### Vanilla Codebase Optimizations
+	  - Refactored and optimized the way the game processes and confirms damage, collisions, and movement.
+	  - Entity OnUpdates() and callback routines have been optimized.
+	  - Optimized droppacks (meds/ammo/catpacks), bonewall, RTs, PvE, mines, and webs.
+	  - Optimized to not calculate gravity when already on the ground.
+	  - Optimized randomization calls and logic.
+	  - Optimized shaders and cloak to less negatively impact performance.
+	  - Optimized sound calls.
+	  - Optimized bitmasks and bitmask calls.
+	  - Optimized bot functions and calls.
 
 	## MARINE - PLAYER
 	### Modular Exosuits
@@ -542,7 +554,7 @@ else
 	or start a conversation in beta-balance-feedback on the official discord to let us know 
 	you think! Below are the changes this mod introduces:
 
-	#TLDR of Recent Release (v3.2):
+	#TLDR of Recent Release (v3.5):
 	
 	## Balance Changes
 	  - Nerfs to exosuit movement and thruster.
@@ -564,7 +576,7 @@ else
 		- Better when hitting geometry (many stuck spots fixed)
 	  - Note: Server owners are encouraged to try increase game rates based on our recommendations (see CBM discord).
 
-	#TLDR of Community Balance Mod (v3.2) vs. Vanilla:
+	#TLDR of Community Balance Mod (v3.5) vs. Vanilla:
 	
 	## MARINE
 	  - Reworks to existing marines structures (sentry, sentry battery, and prototype lab).
@@ -583,6 +595,7 @@ else
 	  - Updated locale, new ui elements, and improved tech maps for new (and old) features.
 	  - Custom skins and cinematics for new content.
 	  - Various QoL, game improvements, and bugfixes.
+	  - Refactor and optimization of lua codebase (major client and server performance improvements).
  
 	# Full Changelog:
 	## GENERAL
@@ -644,6 +657,17 @@ else
 	  - Fixed welders stopping welding when accidently aimed at a marine weapon.
 	  - Fixed collisions being dependent tick/move rate (now based on time). 
 	  - Fixed whips causing server hitching / crash on death due to ragdolls.
+
+	### Vanilla Codebase Optimizations
+	  - Refactored and optimized the way the game processes and confirms damage, collisions, and movement.
+	  - Entity OnUpdates() and callback routines have been optimized.
+	  - Optimized droppacks (meds/ammo/catpacks), bonewall, RTs, PvE, mines, and webs.
+	  - Optimized to not calculate gravity when already on the ground.
+	  - Optimized randomization calls and logic.
+	  - Optimized shaders and cloak to less negatively impact performance.
+	  - Optimized sound calls.
+	  - Optimized bitmasks and bitmask calls.
+	  - Optimized bot functions and calls.
 
 	## MARINE - PLAYER
 	### Modular Exosuits
