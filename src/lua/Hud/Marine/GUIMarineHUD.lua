@@ -515,14 +515,14 @@ function GUIMarineHUD:Reset()
     self.minimapPower:SetUniformScale(self.scale)
     self.minimapPower:SetSize(GUIMarineHUD.kMinimapPowerSize)
     self.minimapPower:SetPosition(GUIMarineHUD.kMinimapPowerPos)
-    self.minimapPower:SetIsVisible(true)
+    GUI_SetIsVisible(self.minimapPower, true)
 
     self.locationText:SetUniformScale(self.scale)
     self.locationText:SetScale(GetScaledVector())
     self.locationText:SetPosition(GUIMarineHUD.kLocationTextOffset)
     self.locationText:SetFontName(GUIMarineHUD.kTextFontName)
     GUIMakeFontScale(self.locationText)
-    self.locationText:SetIsVisible(true)
+    GUI_SetIsVisible(self.locationText, true)
 
     local y = GUIMarineHUD.kMinimapPowerPos.y + ConditionalValue(minimap, 283, 33)
 
@@ -531,7 +531,7 @@ function GUIMarineHUD:Reset()
     self.commanderName:SetPosition(Vector(x, y, 0))
     self.commanderName:SetFontName(GUIMarineHUD.kTextFontName)
     GUIMakeFontScale(self.commanderName)
-    self.commanderName:SetIsVisible(not minimalHud)
+    GUI_SetIsVisible(self.commanderName, not minimalHud)
 
     if self.commanderName:GetIsVisible() then
         y = y + 30
@@ -539,7 +539,7 @@ function GUIMarineHUD:Reset()
 
     self.gameTime:SetPosition(Vector(x, y, 0))
     GUIMakeFontScale(self.gameTime)
-    self.gameTime:SetIsVisible(not minimalHud)
+    GUI_SetIsVisible(self.gameTime, not minimalHud)
 
     if self.gameTime:GetIsVisible() then
         y = y + 30
@@ -549,7 +549,7 @@ function GUIMarineHUD:Reset()
     self.teamResText:SetPosition(Vector(x, y, 0))
     GUIMakeFontScale(self.teamResText)
 
-    self.teamResText:SetIsVisible(minimalHud)
+    GUI_SetIsVisible(self.teamResText, minimalHud)
     
     self.statusDisplay:Reset(self.scale)
     self.statusDisplays:Reset(self.scale)
@@ -559,11 +559,11 @@ function GUIMarineHUD:Reset()
     
     self.armorLevel:SetPosition(GUIMarineHUD.kUpgradePos * self.scale)
     self.armorLevel:SetSize(GUIMarineHUD.kUpgradeSize * self.scale)
-    self.armorLevel:SetIsVisible(false)    
+    GUI_SetIsVisible(self.armorLevel, false)    
     
     self.weaponLevel:SetPosition(Vector(GUIMarineHUD.kUpgradePos.x, GUIMarineHUD.kUpgradePos.y + GUIMarineHUD.kUpgradeSize.y + 8, 0) * self.scale)
     self.weaponLevel:SetSize(GUIMarineHUD.kUpgradeSize * self.scale)
-    self.weaponLevel:SetIsVisible(false)
+    GUI_SetIsVisible(self.weaponLevel, false)
     
     if self.minimapEnabled then    
         self:ResetMinimap()       
@@ -591,9 +591,9 @@ function GUIMarineHUD:Reset()
         GetGUIManager():CreateGUIScriptSingle("GUIAdvancedHUDBars")
 
         if marineHudBars == 2 then
-            self.statusDisplay.healthBar:SetIsVisible(false)
-            self.statusDisplay.armorBar:SetIsVisible(false)
-            self.statusDisplay.regenBar:SetIsVisible(false)
+            GUI_SetIsVisible(self.statusDisplay.healthBar, false)
+            GUI_SetIsVisible(self.statusDisplay.armorBar, false)
+            GUI_SetIsVisible(self.statusDisplay.regenBar, false)
 
             self.resourceDisplay.background:SetPosition(Vector(-350, -100, 0))
 
@@ -759,7 +759,7 @@ function GUIMarineHUD:Update(deltaTime)
     }
 
     self.statusDisplays:Update(deltaTime, playerStatusIcons, self.cachedHudDetail == kHUDMode.Full)
-    self.statusDisplays:SetIsVisible(self.statusDisplayVisible)
+    GUI_SetIsVisible(self.statusDisplays, self.statusDisplayVisible)
 
     -- Update resource display
     local resourceUpdate = {
@@ -854,8 +854,8 @@ function GUIMarineHUD:Update(deltaTime)
     armorLevel = PlayerUI_GetArmorLevel()
     weaponLevel = PlayerUI_GetWeaponLevel()
 
-    self.armorLevel:SetIsVisible(armorLevel ~= 0)
-    self.weaponLevel:SetIsVisible(weaponLevel ~= 0)
+    GUI_SetIsVisible(self.armorLevel, armorLevel ~= 0)
+    GUI_SetIsVisible(self.weaponLevel, weaponLevel ~= 0)
     
     if armorLevel ~= self.lastArmorLevel then
     
@@ -920,20 +920,21 @@ function GUIMarineHUD:Update(deltaTime)
     end
 
     -- Update nanoshield
-    if self.lastNanoShieldState ~= PlayerUI_GetIsNanoShielded() then
+    local isNanoShielded = PlayerUI_GetIsNanoShielded()
+    if self.lastNanoShieldState ~= isNanoShielded then
 
-        self.lastNanoShieldState = PlayerUI_GetIsNanoShielded()
+        self.lastNanoShieldState = isNanoShielded
         
         if self.lastNanoShieldState then
         
             self.nanoshieldBackground:SetColor(Color(0.6, 0.6, 1, 0.4), 0.3, "NANO_SHIELD_IN")
-            self.nanoshieldText:SetIsVisible(true)
+            GUI_SetIsVisible(self.nanoshieldText, true)
             
         else
         
             self.nanoshieldBackground:DestroyAnimations()
             self.nanoshieldBackground:FadeOut(0.4)
-            self.nanoshieldText:SetIsVisible(false)
+            GUI_SetIsVisible(self.nanoshieldText, false)
             
         end
         
@@ -968,39 +969,43 @@ end
 -- Shared function that sets gui items visible or invisible based on a number of variables.
 function GUIMarineHUD:UpdateVisibility()
     
-    self.background:SetIsVisible(self.visible)
+    GUI_SetIsVisible(self.background, self.visible)
     
-    self.statusDisplay:SetIsVisible(self.visible and self.statusDisplayVisible)
-    self.statusDisplays:SetIsVisible(self.visible and self.statusDisplayVisible)
+    GUI_SetIsVisible(self.statusDisplay, self.visible and self.statusDisplayVisible)
+    GUI_SetIsVisible(self.statusDisplays, self.visible and self.statusDisplayVisible)
 
     local frameVis = self.visible and self.frameVisible
-    self.topLeftFrame:SetIsVisible(frameVis)
-    self.topRightFrame:SetIsVisible(frameVis)
-    self.bottomLeftFrame:SetIsVisible(frameVis)
-    self.bottomRightFrame:SetIsVisible(frameVis)
+    GUI_SetIsVisible(self.topLeftFrame, frameVis)
+    GUI_SetIsVisible(self.topRightFrame, frameVis)
+    GUI_SetIsVisible(self.bottomLeftFrame, frameVis)
+    GUI_SetIsVisible(self.bottomRightFrame, frameVis)
     
-    self.inventoryDisplay:SetIsVisible(self.visible and self.inventoryDisplayVisible)
+    GUI_SetIsVisible(self.inventoryDisplay, self.visible and self.inventoryDisplayVisible)
 
 
     local player = Client.GetLocalPlayer()
     if player and player:isa("Exo") and Client.kHideViewModel == true then
 
-        self.statusDisplay:SetIsVisible(true)
+        GUI_SetIsVisible(self.statusDisplay, true)
         self.statusDisplay.statusbackground:SetColor(Color(1,1,1,0))
         self.statusDisplay.healthBorderMask:SetColor(Color(1,1,1,0))
-        self.statusDisplay.healthBorderMask:SetIsVisible(false)
-        self.statusDisplay.healthBar:SetIsVisible(false)
-        self.statusDisplay.healthText:SetIsVisible(false)
-        self.statusDisplay.armorText:SetIsVisible(true)
+        GUI_SetIsVisible(self.statusDisplay.healthBorderMask, false)
+        GUI_SetIsVisible(self.statusDisplay.healthBar, false)
+        GUI_SetIsVisible(self.statusDisplay.healthText, false)
+        GUI_SetIsVisible(self.statusDisplay.armorText, true)
 
     end
     
 end
 
-function GUIMarineHUD:SetIsVisible(isVisible)
+function GUIMarineHUD:SetIsVisible(state)
     
-    self.visible = isVisible
-    self:UpdateVisibility()
+    local needsUpdate = (self.visible ~= state or state)
+    self.visible = state
+
+    if (needsUpdate) then
+        self:UpdateVisibility()
+    end
     
 end
 
