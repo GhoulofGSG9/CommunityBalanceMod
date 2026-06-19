@@ -14,6 +14,15 @@ Script.Load("lua/UnorderedSet.lua")
 
 local kInfestationDecalSimpleMaterial = PrecacheAsset("materials/infestation/infestation_decal_simple.material")
 
+function GUI_SetIsVisible(item, state)
+    local needsToBeSet = (item.GUI_lastVisible == nil or item.GUI_lastVisible ~= state or state)
+    if needsToBeSet then
+        item:SetIsVisible(state)
+        item.GUI_lastVisible = state
+    end
+    return state
+end
+
 -- For Bot Exploration
 function SetPlayerStartingLocation(player)
     if not player then return end
