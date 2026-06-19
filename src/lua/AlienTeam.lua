@@ -794,6 +794,29 @@ function AlienTeam:GetPurificationCharging()
 	return self.PurificationCharging
 end
 
+-- Update alien armor level based on biomass and shell upgrades
+function AlienTeam:UpdateAliensArmorAmount()
+
+    local now = Shared.GetTime()
+
+    if self.timeOfLastArmorUpdate == nil then
+        self.timeOfLastArmorUpdate = now
+    end
+
+    -- Mostly for when biomass is different (gained or lost)
+    if now > (self.timeOfLastArmorUpdate + 0.5) then
+
+        for _, alien in ipairs(GetEntitiesForTeam("Alien", self:GetTeamNumber())) do
+            local shellLevel = alien:GetShellLevel()
+            alien:UpdateArmorAmount(shellLevel, alien:GetUpgradeLevel("bioMassLevel"))
+        end
+
+        self.timeOfLastArmorUpdate = now
+
+    end
+
+end
+
 function AlienTeam:Update(timePassed)
 
     PROFILE("AlienTeam:Update")
@@ -805,12 +828,7 @@ function AlienTeam:Update(timePassed)
     self:UpdateEggCount()
     self:UpdateAlienSpectators()
     self:UpdateBioMassLevel()
-
-    -- Todo: Make this event driven
-    for _, alien in ipairs(GetEntitiesForTeam("Alien", self:GetTeamNumber())) do
-        local shellLevel = alien:GetShellLevel()
-        alien:UpdateArmorAmount(shellLevel, alien:GetUpgradeLevel("bioMassLevel"))
-    end
+    self:UpdateAliensArmorAmount()
 
 	--[[self:UpdateLinkedPowerBatteryNumber()
 	

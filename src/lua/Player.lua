@@ -490,6 +490,7 @@ function Player:OnInitialized()
         }, true)
     end
 
+    self.countDownActive = nil
     -- TODO: MOVE TO ONCREATE
     self.communicationStatus = kPlayerCommunicationStatus.None
 
@@ -1055,7 +1056,8 @@ function Player:GetIsPlaying()
 end
 
 function Player:GetIsOnPlayingTeam()
-    return self:GetTeamNumber() == kTeam1Index or self:GetTeamNumber() == kTeam2Index
+    local teamNumber = self:GetTeamNumber()
+    return teamNumber == kTeam1Index or teamNumber == kTeam2Index
 end
 
 function Player:GetTechAllowed(techId, techNode)
@@ -1530,7 +1532,8 @@ function Player:OnProcessMove(input)
     SetMoveForHitregAnalysis(input)
 
     local commands = input.commands
-    if self:GetIsAlive() then
+    local isAlive = self:GetIsAlive()
+    if isAlive then
 
         if self:GetCountdownActive() then
 
@@ -1551,10 +1554,10 @@ function Player:OnProcessMove(input)
 
     end
     
-    do
-        PROFILE("Player:OnProcessMove:OnUpdatePlayer")
+    --do
+        --PROFILE("Player:OnProcessMove:OnUpdatePlayer")
         self:OnUpdatePlayer(input.time)
-    end
+    --end
 
     ScriptActor.OnProcessMove(self, input)
 
@@ -1562,7 +1565,7 @@ function Player:OnProcessMove(input)
 
     UpdateAnimationInputs(self, input)
 
-    if self:GetIsAlive() then
+    if isAlive then
 
         local runningPrediction = Shared.GetIsRunningPrediction()
 
@@ -2431,13 +2434,28 @@ function Player:GetGameStarted()
     return gameInfoEnt:GetGameStarted()
 end
 
+-- Called below to prevent player from moving if it is countdown, and from the client
 function Player:GetCountdownActive()
+
+    --PROFILE("Player:GetCountdownActive")
+
+    if self.countDownActive == false then
+        return false
+    end
+
     local gameInfoEnt = GetGameInfoEntity()
     if not gameInfoEnt then
         return false
     end
 
-    return self:GetIsOnPlayingTeam() and gameInfoEnt:GetCountdownActive()
+    local isActive = gameInfoEnt:GetCountdownActive()
+    if not isActive and self:GetGameStarted() then
+        -- Countdown doesn't happen after, no need to refetch entity
+        self.countDownActive = false
+    end
+
+    -- Countdown is only relevant for player, not RR or specs
+    return isActive and self:GetIsOnPlayingTeam()
 end
 
 function Player:Drop(weapon, ignoreDropTimeLimit)
@@ -2537,7 +2555,6 @@ function Player:RetrieveMove()
 end
 
 function Player:GetCanControl()
-    PROFILE("Player:GetCanControl")
     return not self.isMoveBlocked and self:GetIsAlive() and ( not HasMixin(self, "Stun") or not self:GetIsStunned() ) and not self:GetCountdownActive() and not ConcedeSequence.GetIsPlayerObserving(self)
 end
 
