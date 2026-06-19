@@ -45,7 +45,7 @@ local function MapBlipMixinOnUpdateServer()
         local entity = Shared.GetEntity(entityId)
         local mapBlip = entity and entity.mapBlipId and Shared.GetEntity(entity.mapBlipId)
         if mapBlip then
-            mapBlip:Update()
+            mapBlip:Update(entity) -- Pass the owner, so we do not refetch it
         end
 
     end
@@ -82,6 +82,9 @@ function MapBlipMixin:__initmixin()
     
     assert(Server)
 
+    self.lastBlipOrigin = Vector(0,0,0)
+    self.lastBlipAngle = Angles(0,0,0)
+
     -- Check if the new entity should have a map blip to represent it.
     local success, blipType, blipTeam, isInCombat = self:GetMapBlipInfo()
     if success then
@@ -97,15 +100,25 @@ end
 --
 -- Intercept the functions that changes the state the mapblip depends on
 --
-function MapBlipMixin:SetOrigin()
-    mapBlipMixinDirtyTable:Insert(self:GetId())
+function MapBlipMixin:SetOrigin(orig)
+    if self.lastBlipOrigin and self.lastBlipOrigin ~= orig then
+        mapBlipMixinDirtyTable:Insert(self:GetId())
+        self.lastBlipOrigin = orig
+    --else
+    --    Log("%s Marking dirty even if we set same orig", self)
+    end
 end
 
-function MapBlipMixin:SetAngles()
-    mapBlipMixinDirtyTable:Insert(self:GetId())
+function MapBlipMixin:SetAngles(angles)
+    if self.lastBlipAngle and self.lastBlipAngle ~= self:GetAngles() then
+        mapBlipMixinDirtyTable:Insert(self:GetId())
+        self.lastBlipAngle = angles
+    --else
+    --    Log("%s Marking dirty even if we set same angle", self)
+    end
 end
 
-function MapBlipMixin:SetCoords()
+function MapBlipMixin:SetCoords(coords)
     mapBlipMixinDirtyTable:Insert(self:GetId())
 end
 
