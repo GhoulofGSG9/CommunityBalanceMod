@@ -83,7 +83,7 @@ function MapBlipMixin:__initmixin()
     assert(Server)
 
     self.lastBlipOrigin = Vector(0,0,0)
-    self.lastBlipAngle = Angles(0,0,0)
+    self.lastBlipAngleYaw = 0
 
     -- Check if the new entity should have a map blip to represent it.
     local success, blipType, blipTeam, isInCombat = self:GetMapBlipInfo()
@@ -109,12 +109,20 @@ function MapBlipMixin:SetOrigin(orig)
     end
 end
 
+ -- How much degree we must be off to update map blip (in case we stand still, otherwise SetOrigin will catch up)
+local kMinYawDelta = Math.Radians(6)
 function MapBlipMixin:SetAngles(angles)
-    if self.lastBlipAngle and self.lastBlipAngle ~= self:GetAngles() then
-        mapBlipMixinDirtyTable:Insert(self:GetId())
-        self.lastBlipAngle = angles
-    --else
-    --    Log("%s Marking dirty even if we set same angle", self)
+    if self.lastBlipAngleYaw ~= nil then
+        local currentYaw = angles.yaw
+        local lastYaw = self.lastBlipAngleYaw
+
+        -- Minimap blips, only look for left/right
+        local diff = currentYaw - lastYaw
+        local absDiff = diff < 0 and -diff or diff
+        if currentYaw ~= lastYaw and absDiff >= kMinYawDelta then --currentYaw ~= lastYaw then
+            mapBlipMixinDirtyTable:Insert(self:GetId())
+            self.lastBlipAngleYaw = currentYaw
+        end
     end
 end
 

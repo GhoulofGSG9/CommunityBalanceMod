@@ -583,14 +583,17 @@ local function DoStepMove(self, _, velocity, deltaTime)
 
     local onGround, normal
     
-    -- step up at first
-    --_PerformMovement(self, kUpVector, 1)
-    --stepAmount = self:GetOrigin().y - oldOrigin.y
-
-    -- Shortcut the up PerformMovement(), because any issues will be catched up
-    -- by the next forward PerformMovement anyway. (and kUpVector is small enough)
-    self:SetOrigin(oldOrigin + kUpVector)
-    stepAmount = kUpVector.y
+    local canSkipUpCheck = self.GetCrouching and not self:GetCrouching()
+    if canSkipUpCheck then
+        -- Shortcut the up PerformMovement(), because any issues will be catched up
+        -- by the next forward PerformMovement anyway. (and kUpVector is small enough)
+        self:SetOrigin(oldOrigin + kUpVector)
+        stepAmount = kUpVector.y
+    else
+        -- step up at first
+        _PerformMovement(self, kUpVector, 1)
+        stepAmount = self:GetOrigin().y - oldOrigin.y        
+    end
     
     -- do the normal move
     local startOrigin = Vector(self:GetOrigin())

@@ -19,32 +19,29 @@ function DamageMixin:__initmixin()
     PROFILE("DamageMixin:__initmixin")
 end
 
-local function _GetAttackerInfo(self)
-    local attacker = self
-
-    if self:isa("Player") then
-        attacker = self
-    else
-        if self:GetParent() and self:GetParent():isa("Player") then
-            attacker = self:GetParent()
-        elseif HasMixin(self, "Owner") and self:GetOwner() and self:GetOwner():isa("Player") then
-            attacker = self:GetOwner()
+local function _GetAttackerInfo(parent, attacker, isPlayer, isParentPlayer, isOwnerPlayer, owner)
+    if not isPlayer then
+        if isParentPlayer then
+            attacker = parent
+        elseif isOwnerPlayer then
+            attacker = owner
         end
     end
     return attacker
 end
 
-local function _GetWeaponInfo(self, attacker)
+local function _GetWeaponInfo(isParentPlayer, self, isPlayer, isOwnerPlayer, attacker)
+
     local weapon = nil
     
-    if not self:isa("Player") then
-        if self:GetParent() and self:GetParent():isa("Player") then
-            if attacker:isa("Alien") and (self.secondaryAttacking or self.shootingSpikes) then
+    if not isPlayer then
+        if isParentPlayer then
+            if (self.secondaryAttacking or self.shootingSpikes) and attacker:isa("Alien") then
                 weapon = attacker:GetActiveWeapon():GetSecondaryTechId()
             else
                 weapon = self:GetTechId()
             end
-        elseif HasMixin(self, "Owner") and self:GetOwner() and self:GetOwner():isa("Player") then
+        elseif isOwnerPlayer then
             if self.GetWeaponTechId then
                 weapon = self:GetWeaponTechId()
             elseif self.GetTechId then
@@ -56,14 +53,38 @@ local function _GetWeaponInfo(self, attacker)
     return weapon
 end
 
+local function _GetWeaponAndAttackerInfo(self, isPlayer, owner, isOwnerPlayer)
+
+    local parent = self:GetParent()
+    local isParentPlayer = parent and parent:isa("Player")
+
+    if isPlayer == nil then
+        isPlayer = self:isa("Player")
+    end
+    if owner == nil then
+        owner = HasMixin(self, "Owner") and self:GetOwner()
+    end
+    if isOwnerPlayer == nil then
+        isOwnerPlayer = owner and owner:isa("Player")
+    end
+
+    local attacker = _GetAttackerInfo(parent, self, isPlayer, isParentPlayer, isOwnerPlayer, owner)
+    local weapon, damageType, currentComm = _GetWeaponInfo(isParentPlayer, self, isPlayer, isOwnerPlayer, attacker)
+    return attacker, weapon, damageType, currentComm
+end
+
 local function _GetAttackInfo(self, damage)
-    local attacker = _GetAttackerInfo(self)
+
+    local isPlayer = self:isa("Player")
+    local owner = HasMixin(self, "Owner") and self:GetOwner()
+    local isOwnerPlayer = owner and owner:isa("Player")
+    local attacker, weapon = _GetWeaponAndAttackerInfo(self, isPlayer, owner, isOwnerPlayer)
+
     local currentComm = nil
     local damageType = kDamageType.Normal
-    local weapon = _GetWeaponInfo(self, attacker)
-    
-    if not self:isa("Player") then
-        if HasMixin(self, "Owner") and self:GetOwner() and self:GetOwner():isa("Player") then
+   
+    if not isPlayer then
+        if isOwnerPlayer then
             -- If it's one of these doing damage, send the damage message to the current commander instead
             -- The original owner remains the same
             if self:isa("Whip") or self:isa("WhipBomb") or self:isa("ARC") or self:isa("Sentry") or self:isa("MAC") or self:isa("Drifter") then
@@ -85,7 +106,7 @@ local function _GetAttackInfo(self, damage)
         end
     end
 
-    return weapon, damageType, currentComm
+    return attacker, weapon, damageType, currentComm
 end
 
 local function _DealDamage(self, attacker, weapon, damage, damageType, target, direction, point)
@@ -115,9 +136,10 @@ local function _DealDamage(self, attacker, weapon, damage, damageType, target, d
             -- We use messages to handle multiple-hits per frame, such as splash damage from grenades.
             if Server and attacker:isa("Player") then
             
-                if GetAreEnemies( attacker, target ) then
+                local areEnemies = GetAreEnemies( attacker, target )
+                if areEnemies then
                 
-                    local amount = (target:GetCanTakeDamage() or killedFromDamage) and (damageDone + overshieldDamage) or 0 -- actual damage done
+                    local amount = (killedFromDamage or target:GetCanTakeDamage()) and (damageDone + overshieldDamage) or 0 -- actual damage done
                     local overkill = healthUsed + armorUsed * 2 -- the full amount of potential damage, including overkill
                     
                     if HitSound_IsEnabledForWeapon( weapon ) then
@@ -132,7 +154,7 @@ local function _DealDamage(self, attacker, weapon, damage, damageType, target, d
                 end
                 
                 -- This makes the cross hair turn red. Show it when hitting enemies only
-                if (not doer.GetShowHitIndicator or doer:GetShowHitIndicator()) and GetAreEnemies(attacker, target) then
+                if areEnemies and (not doer.GetShowHitIndicator or doer:GetShowHitIndicator()) then
                     attacker.giveDamageTime = Shared.GetTime()
                 end
                 
@@ -156,7 +178,18 @@ end
 --local totalMsgCount = 0
 local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, target, point, direction, altMode, showtracer)
 
-    PROFILE("DamageMixin:DealEffects__Server")
+    --PROFILE("DamageMixin:DealEffects__Server")
+
+    local now = Shared.GetTime()
+    if target then    
+        -- A single target can only display impact effects from others every X amount of time
+        -- This greatly reduces the amount of messages from targets under heavy firing (Onos, PvE, Hives)
+        -- Note: The client deals with its own effects, so he sees all of its hits (it is only from others here)    
+        if target.kTimeLastDamageEffectShown and target.kTimeLastDamageEffectShown + 0.2 > now then
+            return
+        end
+        
+    end
 
     local doer = self
     local isHit = target ~= nil
@@ -167,8 +200,12 @@ local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, 
     local regulateEffects = isFullAutoGun and (not (doer and doer:GetClip() % 3 == 0)) or false -- Only do one out of X (like tracert random)
 
     --Log("Regulate full auto ? %s/%s(%s), fullauto:%s / Allow effect: %s", doer:GetAmmo(), doer:GetClip(), doer:GetClipSize(), isFullAutoGun, (not regulateEffects))
+
     if not regulateEffects and GetShouldSendHitEffect() then
 
+        if attacker and target then
+            target.kTimeLastDamageEffectShown = now
+        end
         local toPlayers = GetEntitiesWithinRange("Player", hitRelevancyPoint, hitRelevancyDist) -- kHitEffectRelevancyDistance)
         
         -- No need to send to the attacker if this is a child of the attacker.
@@ -200,6 +237,7 @@ local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, 
                         message = BuildHitEffectMessage(point, doer, surface, target, showtracer, altMode, rawDamage, directionVectorIndex)
                     end
                     Server.SendNetworkMessage(player, "HitEffect", message, false)
+
                     sent = sent + 1
                     --totalMsgCount = totalMsgCount + 1
                     --Log("-Sending network message: %s", totalMsgCount)
@@ -251,7 +289,7 @@ end
 
 local function _DealEffects(self, surface, attacker, weapon, damageDone, rawDamage, damageType, target, direction, point, altMode, showtracer)
 
-    PROFILE("DamageMixin:DealEffects")
+    --PROFILE("DamageMixin:DealEffects")
 
     -- trigger damage effects (damage, deflect) with correct surface
     if surface ~= "none" then
@@ -259,8 +297,19 @@ local function _DealEffects(self, surface, attacker, weapon, damageDone, rawDama
         --armorMultiplier = ConditionalValue(damageType == kDamageType.Heavy, 1, armorMultiplier)
         -- local playArmorEffect = armorUsed * armorMultiplier > healthUsed 
 
-        if target then
-            if target and HasMixin(target, "NanoShieldAble") and target:GetIsNanoShielded() then    
+        -- Nominal case shortcut: Marines shooting an alien or PvE, must do that first
+        if target and (target.GetTeamType and target:GetTeamType() == kAlienTeamType) then
+            surface = "organic"
+            if target.GetSurfaceOverride then
+                surface = target:GetSurfaceOverride(damageDone) or surface
+            else
+                if target.GetIsOnFire and target:GetIsOnFire() then
+                    surface = "flame"
+                end
+            end
+        elseif target then -- Legacy resolution code
+
+            if HasMixin(target, "NanoShieldAble") and target:GetIsNanoShielded() then    
                 surface = "nanoshield"
             elseif target and HasMixin(target, "Fire") and target:GetIsOnFire() then
                 surface = "flame"
@@ -272,12 +321,12 @@ local function _DealEffects(self, surface, attacker, weapon, damageDone, rawDama
                 if target.GetSurfaceOverride then
                     surface = target:GetSurfaceOverride(damageDone) or surface
                 elseif GetAreEnemies(self, target) then
-                    if target:isa("Alien") then
-                        surface = "organic"
+                    if target:isa("Marine") then
+                        surface = "flesh"
                     elseif target:isa("Exo") then
                         surface = "robot"
-                    elseif target:isa("Marine") then
-                        surface = "flesh"
+                    elseif target:isa("Alien") then
+                        surface = "organic"
                     else
                         if HasMixin(target, "Team") then
                             if target:GetTeamType() == kAlienTeamType then
@@ -301,15 +350,14 @@ local function _DealEffects(self, surface, attacker, weapon, damageDone, rawDama
 end
 
 local function _DoHitShot(self, damage, target, point, direction, surface, altMode, showtracer)
-    PROFILE("DamageMixin:_DoHitShot")
+    --PROFILE("DamageMixin:_DoHitShot")
 
     direction = direction or Vector(0, 0, 1)
 
-    local attacker = _GetAttackerInfo(self)
-    local weapon, damageType, currentComm = _GetAttackInfo(self, damage)
+    local attacker, weapon, damageType, currentComm = _GetAttackInfo(self, damage)
     local killedFromDamage, damageDone, rawDamage = _DealDamage(self, attacker, weapon, damage, damageType, target, direction, point)
     
-    return killedFromDamage, weapon, damageDone, rawDamage
+    return attacker, killedFromDamage, weapon, damageDone, rawDamage
 end
 
 -- damage type, doer and attacker don't need to be passed. that info is going to be fetched here. pass optional surface name
@@ -319,7 +367,7 @@ function DamageMixin:DoDamage(damage, target, point, direction, surface, altMode
     PROFILE("DamageMixin:DoDamage")
 
     local killedFromDamage = false
-    local attacker = _GetAttackerInfo(self)
+    local attacker = nil
     local weapon = nil
     local damageDone = 0
     local rawDamage = 0
@@ -333,7 +381,7 @@ function DamageMixin:DoDamage(damage, target, point, direction, surface, altMode
         if target:isa("Ragdoll") or not (target.GetCanTakeDamage and target:GetCanTakeDamage()) then
             return false
         end
-        killedFromDamage, weapon, damageDone, rawDamage = _DoHitShot(self, damage, target, point, direction, surface, altMode, showtracer)
+        attacker, killedFromDamage, weapon, damageDone, rawDamage = _DoHitShot(self, damage, target, point, direction, surface, altMode, showtracer)
     else -- MISS
     --[[
         if GetIsPointOnInfestation(point) then
@@ -343,7 +391,7 @@ function DamageMixin:DoDamage(damage, target, point, direction, surface, altMode
             surface = "metal"
         end
         --]]
-        weapon = _GetWeaponInfo(self, attacker)
+        attacker, weapon = _GetWeaponAndAttackerInfo(self)
     end
 
     if surface ~= "none" then

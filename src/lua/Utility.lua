@@ -22,6 +22,8 @@ local gGUIConvertItem
 
 local Max = math.max
 local Min = math.min
+local math_pi = math.pi
+local two_math_pi = math.pi * 2
 local pairs = pairs
 local ipairs = ipairs
 local select = select
@@ -52,6 +54,9 @@ function bit_band(ref, mask)
     if (ref == mask) then
         return ref
     end
+    -- Luajit says it is faster to call C functions directly (bit.band), Tracy says otherwise
+    -- Going to trust Tracy profiler (~x2 speed using the cache call)
+    --return _bit_cache[ref][mask] --_bit_band(ref, mask)
     return _bit_band(ref, mask)
 end
 
@@ -574,7 +579,7 @@ function DebugCircle(center, radius, normal, lifetime, r, g, b, a, forceSharedAP
 
     for i = 1, 16 do
 
-        local angle = 2 * i * math.pi / 16
+        local angle = 2 * i * math_pi / 16
         local point = center + radius*math.cos(angle)*side + radius*math.sin(angle)*up
 
         DebugLine(lastPoint, point, lifetime, r, g, b, a, forceSharedAPI)
@@ -589,7 +594,7 @@ function DebugWireSphere( center, radius, lifetime, r, g, b, a, forceSharedAPI )
     local numCircles = 8
     for i = 1, numCircles do
 
-        local rads = (i-1)*math.pi/numCircles
+        local rads = (i-1)*math_pi/numCircles
         local normal = Vector(math.cos(rads), math.sin(rads), 0)
         DebugCircle( center, radius, normal, lifetime, r, g, b, a, forceSharedAPI )
 
@@ -963,11 +968,17 @@ end
 function InterpolateAngle(currentAngle, desiredAngle, speed)
 
     local angleDiff = desiredAngle - currentAngle
-
     local angleDiffSign = GetSign(angleDiff)
 
+    if angleDiff < 0 then
+        angleDiff = -angleDiff
+    end
+    if speed < 0 then
+        speed = -speed
+    end
+
     -- Don't move past angle
-    local moveAmount = Min(math.abs(angleDiff), math.abs(speed))*angleDiffSign
+    local moveAmount = Min(angleDiff, speed)*angleDiffSign
 
     return currentAngle + moveAmount
 
@@ -978,10 +989,10 @@ end
 ]]
 function RadianDiff(angle1, angle2)
 
-    if angle1 - angle2 > math.pi then
-        angle1 = angle1 - 2 * math.pi
-    elseif angle2 - angle1 > math.pi then
-        angle1 = angle1 + 2*math.pi
+    if angle1 - angle2 > math_pi then
+        angle1 = angle1 - two_math_pi
+    elseif angle2 - angle1 > math_pi then
+        angle1 = angle1 + two_math_pi
     end
 
     return angle1 - angle2
@@ -995,7 +1006,11 @@ function Slerp(current, target, rate)
         rate = -rate
     end
 
-    if(math.abs(target - current) < rate) then
+    local diff = target - current
+    if diff < 0 then
+        diff = -diff
+    end
+    if(diff < rate) then
         return target
     end
 
@@ -1006,14 +1021,14 @@ end
 function SlerpRadians(current, target, rate)
 
     -- normalize the current and target angles to between -pi to pi
-    current = ((current + math.pi) % (2 * math.pi)) - math.pi
-    target = ((target + math.pi) % (2 * math.pi)) - math.pi
+    current = ((current + math_pi) % two_math_pi) - math_pi
+    target = ((target + math_pi) % two_math_pi) - math_pi
 
     -- Interpoloate the short way around
-    if(target - current > math.pi) then
-        target = target - 2*math.pi
-    elseif(current - target > math.pi) then
-        target = target + 2*math.pi
+    if(target - current > math_pi) then
+        target = target - two_math_pi
+    elseif(current - target > math_pi) then
+        target = target + two_math_pi
     end
 
     return Slerp(current, target, rate)
@@ -1323,18 +1338,19 @@ function GetAnglesDifference(startAngle, endAngle)
 
     local tolerance = 0.1
     local diff = endAngle - startAngle
+    local absDiff = diff < 0 and -diff or diff
 
-    if(math.abs(diff) > 100) then
+    if(absDiff > 100) then
         Print("Warning - GetAnglesDiff(%.2f, %.2f) called with large numbers, should be optimized.", startAngle, endAngle)
     end
 
-    while(math.abs(diff) > (2*math.pi - tolerance)) do
-        diff = diff - GetSign(diff)*2*math.pi
+    while(absDiff > (two_math_pi - tolerance)) do
+        diff = diff - GetSign(diff)*two_math_pi
     end
 
     -- Return shortest path around circle
-    if(math.abs(diff) > math.pi) then
-        diff = diff - GetSign(diff)*2*math.pi
+    if(absDiff > math_pi) then
+        diff = diff - GetSign(diff)*two_math_pi
     end
 
     return diff
@@ -1362,7 +1378,7 @@ end
 function SetRandomOrientation(entity)
 
     local angles = Angles(entity:GetAngles())
-    angles.yaw = math.random() * math.pi * 2
+    angles.yaw = math.random() * two_math_pi
     entity:SetAngles(angles)
 
 end
@@ -1370,7 +1386,7 @@ end
 function SampleCircleUniform(cx, cy, radius)
 
     local r = math.sqrt(math.random()) * radius
-    local angle = math.random() * 2*math.pi
+    local angle = math.random() * two_math_pi
     return
     cx + r*math.cos(angle),
     cy + r*math.sin(angle)
@@ -1381,16 +1397,19 @@ function GetYawFromVector(vec)
 
     local dx = vec.x
     local dz = vec.z
+    local abs_dx = dx < 0 and -dx or dx
+    local abs_dz = dz < 0 and -dz or dz
 
-    if math.abs(dx) < 0.001 and math.abs(dz) < 0.001 then
+    if abs_dx < 0.001 and abs_dz < 0.001 then
         -- If the vector is vertical, then the rotation around the vertical
         -- axis is arbitrary.
         return 0.0
     else
 
+
         local result = math.atan2(dx, dz)
         if result < 0 then
-            return result + math.pi * 2
+            return result + two_math_pi
         end
 
         return result
@@ -1400,6 +1419,9 @@ function GetYawFromVector(vec)
 end
 
 function GetPitchFromVector(vec)
+    if (vec.y == 0) then
+        return 0
+    end
     local y = Clamp(vec.y, -1, 1)
     return -math.asin(y)
 end
@@ -1447,12 +1469,12 @@ end
 -- Returns radians in [0,2*pi)
 function RadiansTo2PiRange(rads)
 
-    while rads >= 2*math.pi do
-        rads = rads - 2*math.pi
+    while rads >= two_math_pi do
+        rads = rads - two_math_pi
     end
 
     while rads < 0 do
-        rads = rads + 2*math.pi
+        rads = rads + two_math_pi
     end
 
     return rads
@@ -2712,7 +2734,8 @@ function GetIndexFromVector(vector)
         index = index + 17
     end
 
-    if math.abs(vector.y) < 0.5 then
+    local absY = vector.y < 0 and -vector.y or vector.y
+    if absY < 0.5 then
         index = index + 7
     end
 
@@ -2812,7 +2835,7 @@ end
 
 function GetRandomDirXZ()
 
-    local azimuth = math.random() * 2 * math.pi
+    local azimuth = math.random() * two_math_pi
     return (Vector( math.cos(azimuth), 0, math.sin(azimuth) ))
 
 end

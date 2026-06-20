@@ -222,7 +222,11 @@ local function ApplyMouseAdjustments(amount, sensitivity)
         sign = -1.0
     end
     
-    return sign * math.pow(math.abs(amount * rotateScale), _mouseAccel) * sensitivity
+    local absVal = amount * rotateScale
+    if absVal < 0 then
+        absVal = -absVal
+    end
+    return sign * math.pow(absVal, _mouseAccel) * sensitivity
     
 end
 
