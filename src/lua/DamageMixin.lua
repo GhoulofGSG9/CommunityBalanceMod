@@ -276,10 +276,10 @@ local function _DealEffects(self, surface, attacker, weapon, damageDone, rawDama
         --armorMultiplier = ConditionalValue(damageType == kDamageType.Heavy, 1, armorMultiplier)
         -- local playArmorEffect = armorUsed * armorMultiplier > healthUsed 
 
-        -- Nominal case: Marines shooting an alien
-        if target and target:isa("Alien") then
+        -- Nominal case shortcut: Marines shooting an alien or PvE, must do that first
+        if target and (target.GetTeamType and target:GetTeamType() == kAlienTeamType) then
             surface = "organic"
-        elseif target then
+        elseif target then -- Legacy resolution code
 
             if HasMixin(target, "NanoShieldAble") and target:GetIsNanoShielded() then    
                 surface = "nanoshield"
