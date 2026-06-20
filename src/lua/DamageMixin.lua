@@ -115,9 +115,10 @@ local function _DealDamage(self, attacker, weapon, damage, damageType, target, d
             -- We use messages to handle multiple-hits per frame, such as splash damage from grenades.
             if Server and attacker:isa("Player") then
             
-                if GetAreEnemies( attacker, target ) then
+                local areEnemies = GetAreEnemies( attacker, target )
+                if areEnemies then
                 
-                    local amount = (target:GetCanTakeDamage() or killedFromDamage) and (damageDone + overshieldDamage) or 0 -- actual damage done
+                    local amount = (killedFromDamage or target:GetCanTakeDamage()) and (damageDone + overshieldDamage) or 0 -- actual damage done
                     local overkill = healthUsed + armorUsed * 2 -- the full amount of potential damage, including overkill
                     
                     if HitSound_IsEnabledForWeapon( weapon ) then
@@ -132,7 +133,7 @@ local function _DealDamage(self, attacker, weapon, damage, damageType, target, d
                 end
                 
                 -- This makes the cross hair turn red. Show it when hitting enemies only
-                if (not doer.GetShowHitIndicator or doer:GetShowHitIndicator()) and GetAreEnemies(attacker, target) then
+                if areEnemies and (not doer.GetShowHitIndicator or doer:GetShowHitIndicator()) then
                     attacker.giveDamageTime = Shared.GetTime()
                 end
                 
@@ -167,7 +168,20 @@ local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, 
     local regulateEffects = isFullAutoGun and (not (doer and doer:GetClip() % 3 == 0)) or false -- Only do one out of X (like tracert random)
 
     --Log("Regulate full auto ? %s/%s(%s), fullauto:%s / Allow effect: %s", doer:GetAmmo(), doer:GetClip(), doer:GetClipSize(), isFullAutoGun, (not regulateEffects))
+
+    local now = Shared.GetTime()
+    if target then    
+        -- A single target can only display impact effects from others every X amount of time
+        -- This greatly reduces the amount of messages from targets under heavy firing (Onos, PvE, Hives)
+        -- Note: The client deals with its own effects, so he sees all of its hits (it is only from others here)
+        if target.kTimeLastDamageEffectShown and target.kTimeLastDamageEffectShown + 0.15 > now then
+            return
+        end
+    end
+
     if not regulateEffects and GetShouldSendHitEffect() then
+
+
 
         local toPlayers = GetEntitiesWithinRange("Player", hitRelevancyPoint, hitRelevancyDist) -- kHitEffectRelevancyDistance)
         
@@ -200,6 +214,10 @@ local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, 
                         message = BuildHitEffectMessage(point, doer, surface, target, showtracer, altMode, rawDamage, directionVectorIndex)
                     end
                     Server.SendNetworkMessage(player, "HitEffect", message, false)
+                    if target then
+                        target.kTimeLastDamageEffectShown = now
+                    end
+
                     sent = sent + 1
                     --totalMsgCount = totalMsgCount + 1
                     --Log("-Sending network message: %s", totalMsgCount)
