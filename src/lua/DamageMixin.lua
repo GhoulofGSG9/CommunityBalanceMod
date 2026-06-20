@@ -276,8 +276,12 @@ local function _DealEffects(self, surface, attacker, weapon, damageDone, rawDama
         --armorMultiplier = ConditionalValue(damageType == kDamageType.Heavy, 1, armorMultiplier)
         -- local playArmorEffect = armorUsed * armorMultiplier > healthUsed 
 
-        if target then
-            if target and HasMixin(target, "NanoShieldAble") and target:GetIsNanoShielded() then    
+        -- Nominal case: Marines shooting an alien
+        if target and target:isa("Alien") then
+            surface = "organic"
+        elseif target then
+
+            if HasMixin(target, "NanoShieldAble") and target:GetIsNanoShielded() then    
                 surface = "nanoshield"
             elseif target and HasMixin(target, "Fire") and target:GetIsOnFire() then
                 surface = "flame"
@@ -289,12 +293,12 @@ local function _DealEffects(self, surface, attacker, weapon, damageDone, rawDama
                 if target.GetSurfaceOverride then
                     surface = target:GetSurfaceOverride(damageDone) or surface
                 elseif GetAreEnemies(self, target) then
-                    if target:isa("Alien") then
-                        surface = "organic"
+                    if target:isa("Marine") then
+                        surface = "flesh"
                     elseif target:isa("Exo") then
                         surface = "robot"
-                    elseif target:isa("Marine") then
-                        surface = "flesh"
+                    elseif target:isa("Alien") then
+                        surface = "organic"
                     else
                         if HasMixin(target, "Team") then
                             if target:GetTeamType() == kAlienTeamType then
