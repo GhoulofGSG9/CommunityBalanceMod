@@ -174,7 +174,7 @@ local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, 
         -- A single target can only display impact effects from others every X amount of time
         -- This greatly reduces the amount of messages from targets under heavy firing (Onos, PvE, Hives)
         -- Note: The client deals with its own effects, so he sees all of its hits (it is only from others here)
-        if target.kTimeLastDamageEffectShown and target.kTimeLastDamageEffectShown + 0.15 > now then
+        if target.kTimeLastDamageEffectShown and target.kTimeLastDamageEffectShown + 0.2 > now then
             return
         end
     end
