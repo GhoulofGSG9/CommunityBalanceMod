@@ -159,16 +159,6 @@ local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, 
 
     PROFILE("DamageMixin:DealEffects__Server")
 
-    local doer = self
-    local isHit = target ~= nil
-    local hitRelevancyDist = kHitEffectRelevancyDistance
-    local hitRelevancyPoint = point
-    local isFullAutoGun = weapon and (weapon == kTechId.Rifle or weapon == kTechId.Submachinegun or weapon == kTechId.HeavyMachineGun)
-    --(doer and doer:isa("ClipWeapon")) and doer:GetClipSize() >= 50 or false -- rifle/smg/hmg
-    local regulateEffects = isFullAutoGun and (not (doer and doer:GetClip() % 3 == 0)) or false -- Only do one out of X (like tracert random)
-
-    --Log("Regulate full auto ? %s/%s(%s), fullauto:%s / Allow effect: %s", doer:GetAmmo(), doer:GetClip(), doer:GetClipSize(), isFullAutoGun, (not regulateEffects))
-
     local now = Shared.GetTime()
     if target then    
         -- A single target can only display impact effects from others every X amount of time
@@ -179,9 +169,17 @@ local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, 
         end
     end
 
+    local doer = self
+    local isHit = target ~= nil
+    local hitRelevancyDist = kHitEffectRelevancyDistance
+    local hitRelevancyPoint = point
+    local isFullAutoGun = weapon and (weapon == kTechId.Rifle or weapon == kTechId.Submachinegun or weapon == kTechId.HeavyMachineGun)
+    --(doer and doer:isa("ClipWeapon")) and doer:GetClipSize() >= 50 or false -- rifle/smg/hmg
+    local regulateEffects = isFullAutoGun and (not (doer and doer:GetClip() % 3 == 0)) or false -- Only do one out of X (like tracert random)
+
+    --Log("Regulate full auto ? %s/%s(%s), fullauto:%s / Allow effect: %s", doer:GetAmmo(), doer:GetClip(), doer:GetClipSize(), isFullAutoGun, (not regulateEffects))
+
     if not regulateEffects and GetShouldSendHitEffect() then
-
-
 
         local toPlayers = GetEntitiesWithinRange("Player", hitRelevancyPoint, hitRelevancyDist) -- kHitEffectRelevancyDistance)
         
