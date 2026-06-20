@@ -198,7 +198,7 @@ function WallMovementMixin:GetAverageWallWalkingNormal(extraRange, feelerSize, p
     local wallNormals = {}
 
     -- Trace in a circle around self, looking for walls we hit
-    local wallWalkingRange = math.max(extents.x, extents.y) + extraRange
+    local wallWalkingRange = (extents.x > extents.y and extents.x or extents.y) + extraRange
     local directionVector
     local angle
     local normalFound = false
