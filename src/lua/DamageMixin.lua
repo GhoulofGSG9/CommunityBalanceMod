@@ -182,7 +182,7 @@ local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, 
 
     if not regulateEffects and GetShouldSendHitEffect() then
 
-        if target then
+        if attacker and target then
             target.kTimeLastDamageEffectShown = now
         end
         local toPlayers = GetEntitiesWithinRange("Player", hitRelevancyPoint, hitRelevancyDist) -- kHitEffectRelevancyDistance)
