@@ -19,32 +19,29 @@ function DamageMixin:__initmixin()
     PROFILE("DamageMixin:__initmixin")
 end
 
-local function _GetAttackerInfo(self)
-    local attacker = self
-
-    if self:isa("Player") then
-        attacker = self
-    else
-        if self:GetParent() and self:GetParent():isa("Player") then
-            attacker = self:GetParent()
-        elseif HasMixin(self, "Owner") and self:GetOwner() and self:GetOwner():isa("Player") then
-            attacker = self:GetOwner()
+local function _GetAttackerInfo(parent, attacker, isPlayer, isParentPlayer, isOwnerPlayer, owner)
+    if not isPlayer then
+        if isParentPlayer then
+            attacker = parent
+        elseif isOwnerPlayer then
+            attacker = owner
         end
     end
     return attacker
 end
 
-local function _GetWeaponInfo(self, attacker)
+local function _GetWeaponInfo(isParentPlayer, self, isPlayer, isOwnerPlayer, attacker)
+
     local weapon = nil
     
-    if not self:isa("Player") then
-        if self:GetParent() and self:GetParent():isa("Player") then
-            if attacker:isa("Alien") and (self.secondaryAttacking or self.shootingSpikes) then
+    if not isPlayer then
+        if isParentPlayer then
+            if (self.secondaryAttacking or self.shootingSpikes) and attacker:isa("Alien") then
                 weapon = attacker:GetActiveWeapon():GetSecondaryTechId()
             else
                 weapon = self:GetTechId()
             end
-        elseif HasMixin(self, "Owner") and self:GetOwner() and self:GetOwner():isa("Player") then
+        elseif isOwnerPlayer then
             if self.GetWeaponTechId then
                 weapon = self:GetWeaponTechId()
             elseif self.GetTechId then
@@ -56,14 +53,38 @@ local function _GetWeaponInfo(self, attacker)
     return weapon
 end
 
+local function _GetWeaponAndAttackerInfo(self, isPlayer, owner, isOwnerPlayer)
+
+    local parent = self:GetParent()
+    local isParentPlayer = parent and parent:isa("Player")
+
+    if isPlayer == nil then
+        isPlayer = self:isa("Player")
+    end
+    if owner == nil then
+        owner = HasMixin(self, "Owner") and self:GetOwner()
+    end
+    if isOwnerPlayer == nil then
+        isOwnerPlayer = owner and owner:isa("Player")
+    end
+
+    local attacker = _GetAttackerInfo(parent, self, isPlayer, isParentPlayer, isOwnerPlayer, owner)
+    local weapon, damageType, currentComm = _GetWeaponInfo(isParentPlayer, self, isPlayer, isOwnerPlayer, attacker)
+    return attacker, weapon, damageType, currentComm
+end
+
 local function _GetAttackInfo(self, damage)
-    local attacker = _GetAttackerInfo(self)
+
+    local isPlayer = self:isa("Player")
+    local owner = HasMixin(self, "Owner") and self:GetOwner()
+    local isOwnerPlayer = owner and owner:isa("Player")
+    local attacker, weapon = _GetWeaponAndAttackerInfo(self, isPlayer, owner, isOwnerPlayer)
+
     local currentComm = nil
     local damageType = kDamageType.Normal
-    local weapon = _GetWeaponInfo(self, attacker)
-    
-    if not self:isa("Player") then
-        if HasMixin(self, "Owner") and self:GetOwner() and self:GetOwner():isa("Player") then
+   
+    if not isPlayer then
+        if isOwnerPlayer then
             -- If it's one of these doing damage, send the damage message to the current commander instead
             -- The original owner remains the same
             if self:isa("Whip") or self:isa("WhipBomb") or self:isa("ARC") or self:isa("Sentry") or self:isa("MAC") or self:isa("Drifter") then
@@ -85,7 +106,7 @@ local function _GetAttackInfo(self, damage)
         end
     end
 
-    return weapon, damageType, currentComm
+    return attacker, weapon, damageType, currentComm
 end
 
 local function _DealDamage(self, attacker, weapon, damage, damageType, target, direction, point)
@@ -157,7 +178,7 @@ end
 --local totalMsgCount = 0
 local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, target, point, direction, altMode, showtracer)
 
-    PROFILE("DamageMixin:DealEffects__Server")
+    --PROFILE("DamageMixin:DealEffects__Server")
 
     local now = Shared.GetTime()
     if target then    
@@ -268,7 +289,7 @@ end
 
 local function _DealEffects(self, surface, attacker, weapon, damageDone, rawDamage, damageType, target, direction, point, altMode, showtracer)
 
-    PROFILE("DamageMixin:DealEffects")
+    --PROFILE("DamageMixin:DealEffects")
 
     -- trigger damage effects (damage, deflect) with correct surface
     if surface ~= "none" then
@@ -329,15 +350,14 @@ local function _DealEffects(self, surface, attacker, weapon, damageDone, rawDama
 end
 
 local function _DoHitShot(self, damage, target, point, direction, surface, altMode, showtracer)
-    PROFILE("DamageMixin:_DoHitShot")
+    --PROFILE("DamageMixin:_DoHitShot")
 
     direction = direction or Vector(0, 0, 1)
 
-    local attacker = _GetAttackerInfo(self)
-    local weapon, damageType, currentComm = _GetAttackInfo(self, damage)
+    local attacker, weapon, damageType, currentComm = _GetAttackInfo(self, damage)
     local killedFromDamage, damageDone, rawDamage = _DealDamage(self, attacker, weapon, damage, damageType, target, direction, point)
     
-    return killedFromDamage, weapon, damageDone, rawDamage
+    return attacker, killedFromDamage, weapon, damageDone, rawDamage
 end
 
 -- damage type, doer and attacker don't need to be passed. that info is going to be fetched here. pass optional surface name
@@ -347,7 +367,7 @@ function DamageMixin:DoDamage(damage, target, point, direction, surface, altMode
     PROFILE("DamageMixin:DoDamage")
 
     local killedFromDamage = false
-    local attacker = _GetAttackerInfo(self)
+    local attacker = nil
     local weapon = nil
     local damageDone = 0
     local rawDamage = 0
@@ -361,7 +381,7 @@ function DamageMixin:DoDamage(damage, target, point, direction, surface, altMode
         if target:isa("Ragdoll") or not (target.GetCanTakeDamage and target:GetCanTakeDamage()) then
             return false
         end
-        killedFromDamage, weapon, damageDone, rawDamage = _DoHitShot(self, damage, target, point, direction, surface, altMode, showtracer)
+        attacker, killedFromDamage, weapon, damageDone, rawDamage = _DoHitShot(self, damage, target, point, direction, surface, altMode, showtracer)
     else -- MISS
     --[[
         if GetIsPointOnInfestation(point) then
@@ -371,7 +391,7 @@ function DamageMixin:DoDamage(damage, target, point, direction, surface, altMode
             surface = "metal"
         end
         --]]
-        weapon = _GetWeaponInfo(self, attacker)
+        attacker, weapon = _GetWeaponAndAttackerInfo(self)
     end
 
     if surface ~= "none" then
