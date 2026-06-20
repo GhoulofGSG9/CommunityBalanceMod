@@ -12,6 +12,7 @@ Script.Load("lua/Table.lua")
 Script.Load("lua/Utility.lua")
 Script.Load("lua/UnorderedSet.lua")
 
+local math_pi = math.pi
 local kInfestationDecalSimpleMaterial = PrecacheAsset("materials/infestation/infestation_decal_simple.material")
 
 function GUI_SetIsVisible(item, state)
@@ -1768,16 +1769,14 @@ local function SetLight(renderLight, intensity, color)
 
 end
 
+local kScalar = math.sin(1 * math_pi / 2)
 local kMinCommanderLightIntensityScalar = 0.3
 
 local function UpdateRedLightsforPowerPointWorker(self)
 
     for renderLight,_ in pairs(self.activeLights) do
 
-        --Max redness already.
-        local angleRad = 1 * math.pi / 2
-        -- and scalar goes 0->1
-        local scalar = math.sin(angleRad)
+        local scalar = kScalar
 
         local showCommanderLight = false
 
@@ -2897,7 +2896,7 @@ function CalcEggSpawnTime(numPlayers, eggNumber, numDeadPlayers)
     local clampedEggNumber = Clamp(eggNumber, 1, kAlienEggsPerHive)
     local clampedNumPlayers = Clamp(numPlayers, 1, kMaxPlayers/2)
 
-    local calcEggScalar = math.sin(((clampedEggNumber - 1)/kAlienEggsPerHive) * (math.pi / 2)) * kAlienEggSinScalar
+    local calcEggScalar = math.sin(((clampedEggNumber - 1)/kAlienEggsPerHive) * (math_pi / 2)) * kAlienEggSinScalar
     local calcSpawnTime = kAlienEggMinSpawnTime + (calcEggScalar / clampedNumPlayers) * kAlienEggPlayerScalar
 
     return Clamp(calcSpawnTime, kAlienEggMinSpawnTime, kAlienEggMaxSpawnTime)
