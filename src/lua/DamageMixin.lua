@@ -163,10 +163,11 @@ local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, 
     if target then    
         -- A single target can only display impact effects from others every X amount of time
         -- This greatly reduces the amount of messages from targets under heavy firing (Onos, PvE, Hives)
-        -- Note: The client deals with its own effects, so he sees all of its hits (it is only from others here)
+        -- Note: The client deals with its own effects, so he sees all of its hits (it is only from others here)    
         if target.kTimeLastDamageEffectShown and target.kTimeLastDamageEffectShown + 0.2 > now then
             return
         end
+        
     end
 
     local doer = self
@@ -181,6 +182,9 @@ local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, 
 
     if not regulateEffects and GetShouldSendHitEffect() then
 
+        if target then
+            target.kTimeLastDamageEffectShown = now
+        end
         local toPlayers = GetEntitiesWithinRange("Player", hitRelevancyPoint, hitRelevancyDist) -- kHitEffectRelevancyDistance)
         
         -- No need to send to the attacker if this is a child of the attacker.
@@ -212,9 +216,6 @@ local function _DealEffects__Server(self, surface, attacker, weapon, rawDamage, 
                         message = BuildHitEffectMessage(point, doer, surface, target, showtracer, altMode, rawDamage, directionVectorIndex)
                     end
                     Server.SendNetworkMessage(player, "HitEffect", message, false)
-                    if target then
-                        target.kTimeLastDamageEffectShown = now
-                    end
 
                     sent = sent + 1
                     --totalMsgCount = totalMsgCount + 1
