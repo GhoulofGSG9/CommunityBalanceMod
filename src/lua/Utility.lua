@@ -1338,18 +1338,17 @@ function GetAnglesDifference(startAngle, endAngle)
 
     local tolerance = 0.1
     local diff = endAngle - startAngle
-    local absDiff = diff < 0 and -diff or diff
 
-    if(absDiff > 100) then
+    if(math.abs(diff) > 100) then
         Print("Warning - GetAnglesDiff(%.2f, %.2f) called with large numbers, should be optimized.", startAngle, endAngle)
     end
 
-    while(absDiff > (two_math_pi - tolerance)) do
+    while(math.abs(diff) > (two_math_pi - tolerance)) do
         diff = diff - GetSign(diff)*two_math_pi
     end
 
     -- Return shortest path around circle
-    if(absDiff > math_pi) then
+    if(math.abs(diff) > math_pi) then
         diff = diff - GetSign(diff)*two_math_pi
     end
 
