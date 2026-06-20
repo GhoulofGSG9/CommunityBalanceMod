@@ -583,7 +583,7 @@ local function DoStepMove(self, _, velocity, deltaTime)
 
     local onGround, normal
     
-    local canSkipUpCheck = self.GetCrouching and not self:GetCrouching()
+    local canSkipUpCheck = not (self.GetCrouching and self:GetCrouching())
     if canSkipUpCheck then
         -- Shortcut the up PerformMovement(), because any issues will be catched up
         -- by the next forward PerformMovement anyway. (and kUpVector is small enough)
