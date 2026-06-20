@@ -278,7 +278,11 @@ local function _DealEffects(self, surface, attacker, weapon, damageDone, rawDama
 
         -- Nominal case shortcut: Marines shooting an alien or PvE, must do that first
         if target and (target.GetTeamType and target:GetTeamType() == kAlienTeamType) then
-            surface = "organic"
+            if HasMixin(target, "Fire") and target:GetIsOnFire() then
+                surface = "flame"
+            else
+                surface = "organic"
+            end
         elseif target then -- Legacy resolution code
 
             if HasMixin(target, "NanoShieldAble") and target:GetIsNanoShielded() then    
