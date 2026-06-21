@@ -384,10 +384,12 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
                     
     
                     -- Print the position diff before and after that move (to see by how much this has changed the outcome)
+                    --[[
                     Log("Collision - diff of position: %s=%s(v:%s/%s), %s=%s(v:%s/%s)",
                         self, (self:GetOrigin() - sos):GetLength(), sov:GetLength(), velocity:GetLength(),
                         e, (eo - e:GetOrigin()):GetLength(), ev:GetLength(), e:GetVelocity():GetLength()
                     )
+                    --]]
 
                     -- From benchmark, client rarely goes below 0.003, but server does reach 0.0000 0000 1, so restrict to a bit below client value
                     -- (even with very low values, there were no stuck within each others, this more about excluding the case where it's so close it gets stuck)
