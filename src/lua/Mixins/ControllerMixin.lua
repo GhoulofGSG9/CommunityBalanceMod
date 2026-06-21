@@ -29,7 +29,6 @@ ControllerMixin.optionalCallbacks =
 
 ControllerMixin.networkVars =
 {
-    timeUntilPlayerCollisionsIgnored = "private compensated time"
 }
 
 function ControllerMixin:__initmixin()
@@ -37,7 +36,7 @@ function ControllerMixin:__initmixin()
     PROFILE("ControllerMixin:__initmixin")
     
     self.controller = nil
-    self.timeUntilPlayerCollisionsIgnored = 0
+    self.kTimeLastControllerMove = 0
     
 end
 
@@ -78,7 +77,10 @@ local function SetNearbyPlayerControllers(self, enabled)
     
         if player ~= self then
         
+            --Log("Collisions for %s: %s (%s/%s)", player, enabled, player.controller, player.controllerOutter)
+
             if player.controllerOutter then
+
                 player.controllerOutter:SetCollisionEnabled(enabled)
             end
             
@@ -151,20 +153,25 @@ function ControllerMixin:UpdateControllerFromEntity(allowTrigger)
         
             local capsuleHeight = controllerHeight - 2*controllerRadius
         
+            -- Skulks/Gorges/Lerks
             if capsuleHeight < 0.001 then
                 -- Use a sphere controller
+                --Log("A - %s", self)
                 self.controller:SetupSphere( controllerRadius, self.controller:GetCoords(), allowTrigger )
-            else
+            else -- Marines/Exos/Fades/Onos
                 -- A flat bottomed cylinder works well for movement since we don't
                 -- slide down as we walk up stairs or over other lips. The curved
                 -- edges of the cylinder allows players to slide off when we hit them,
+                --Log("%s - %s / %s", self, controllerRadius, capsuleHeight)
                 self.controller:SetupCapsule( controllerRadius, capsuleHeight, self.controller:GetCoords(), allowTrigger )
                 --self.controller:SetupCylinder( controllerRadius, controllerHeight, self.controller:GetCoords(), allowTrigger )
             end
 
             if self.controllerOutter then                
+            --if self.controllerOutter and self:isa("Fade") then                
                 --self.controllerOutter:SetupBox(Vector(self.controllerRadius * 1.3, self.controllerHeight * 0.5, self.controllerRadius * 1.3), self.controller:GetCoords(), allowTrigger)
                 self.controllerOutter:SetupCylinder( controllerRadius * 1.55, controllerHeight, self.controller:GetCoords(), allowTrigger )
+                --DebugCapsule(self:GetOrigin() + Vector(0, 0.5, 0), self:GetOrigin() + Vector(0, 0.5, 0), controllerRadius * 1.55, controllerHeight, 5)
             end                
             
             -- Remove all collision reps except movement from the controller.
@@ -209,14 +216,6 @@ function ControllerMixin:UpdateOriginFromController()
     
     self:SetOrigin(origin)
     
-end
-
-function ControllerMixin:SetIgnorePlayerCollisions(time)
-    self.timeUntilPlayerCollisionsIgnored = time + Shared.GetTime()
-end
-
-function ControllerMixin:GetPlayerCollisionsIgnored()
-    return self.timeUntilPlayerCollisionsIgnored ~= 0 and self.timeUntilPlayerCollisionsIgnored >= Shared.GetTime()
 end
 
 local function UpdateControllerAfterPhysics(self)
@@ -278,14 +277,23 @@ function ControllerMixin:GetIsColliding()
 
 end
 
+-- TODO: nornalize, make the fastest one move first, then do our move, but don't touch them, just make us move as if they moved first
+-- (no commit move, just recall the move and get a coord of where we ended up ? maybe just a set coords could work of its controller for collisions ?)
+
 --
 -- Moves by the player by the specified offset, colliding and sliding with the world.
 -- slowDownFraction: 0.5s -> Takes 2s to lose all momentum, 1 -> takes 1s, 2 -> takes 0.5s, 
 --
-function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, slowDownFraction, deflectMove, slowDownFilterFunc, deltaTime)
+--local minOverlapping = 5
+local kFirstCall = nil
+local kSimulatedMove = 0
+local kAdjustedMove = 1
+function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, slowDownFraction, deflectMove, slowDownFilterFunc, deltaTime, correctionDone)
 
     PROFILE("ControllerMixin:PerformMovement")
     
+    local commitChanges = (correctionDone == kFirstCall or correctionDone == kAdjustedMove)
+
     if isMove == nil then
         isMove = true
     end
@@ -301,6 +309,8 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
         -- Vanilla move-rate per second is 26 (to make it time based, rather than tick)
         slowDownFraction = math.min(1, slowDownFraction * 26 * deltaTime)
     end
+    local origSlowDownFraction = slowDownFraction
+    local origOffset = offset
     
     local hitEntities
     local completedMove = true
@@ -310,18 +320,12 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
     local hitVelocity
     local surfaceMaterial
 
-    local ignorePlayerCollisions = self:GetPlayerCollisionsIgnored()
-
     if self.controller then
         
         if self.controllerOutter then
             self.controllerOutter:SetCollisionEnabled(false)        
         end
         
-        if ignorePlayerCollisions then
-            SetNearbyPlayerControllers(self, false)        
-        end
- 
         self:UpdateControllerFromEntity()
         
         local tracesPerformed = 0
@@ -338,8 +342,88 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
                 -- Make the motion perpendicular to the surface we collided with so we slide.
                 offset = offset - offset:GetProjection(trace.normal) -- + trace.normal*0.001
 
+                local preventRedirect = false
+                -- Normalized and make the slowest one move
+                -- (because it is the smallest possible adjustment out of the two)
+                if deltaTime and trace.entity and correctionDone == kFirstCall
+                    -- Only simulate the collidee if he hasn't moved yet this mr-tick (we are first to move)
+                    and self.kTimeLastControllerMove and trace.entity.kTimeLastControllerMove
+                    and not (self.kTimeLastControllerMove < trace.entity.kTimeLastControllerMove)
+                    and trace.entity.GetVelocity and trace.entity:GetVelocity():GetLength() > 0
+                    and self.GetVelocity and self:GetVelocity():GetLength() > 0
+                    and self:GetVelocity():GetLength() < trace.entity:GetVelocity():GetLength()
+
+                    then
+                    local e = trace.entity
+                    local eo = Vector(e:GetOrigin())
+                    local ev = Vector(e:GetVelocity())
+                    local es = e.GetCollisionSlowdownFraction and e:GetCollisionSlowdownFraction() or 1
+                    local ed = e.GetDeflectMove and e:GetDeflectMove() or false
+                    
+                    local sos = Vector(self:GetOrigin())
+                    local sov = oldVelocity
+
+                    -- Reset our current controller collisions
+                    preventRedirect = true
+                    if self.controllerOutter then
+                        self.controllerOutter:SetCollisionEnabled(true)        
+                    end
+                    self:UpdateControllerFromEntity()
+                    -- Make the other move (Only its controller, never touch origin or it could get stuck when we revert)
+                    --Log("1. %s", e.controller:GetPosition())
+                    completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial = e:PerformMovement(ev * deltaTime, 3, ev, 1, es, ed, slowDownFilterFunc, deltaTime, kSimulatedMove)
+                    --Log("2. %s", e.controller:GetPosition())
+                    if self.controllerOutter then
+                        self.controllerOutter:SetCollisionEnabled(false)        
+                    end
+
+
+
+                    -- Move ourselves now that the other has moved his way
+                    completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial = self:PerformMovement(origOffset, maxTraces, oldVelocity, isMove, origSlowDownFraction, deflectMove, slowDownFilterFunc, deltaTime, kAdjustedMove)
+                    
+    
+                    -- Print the position diff before and after that move (to see by how much this has changed the outcome)
+                    --[[
+                    Log("Collision - diff of position: %s=%s(v:%s/%s), %s=%s(v:%s/%s)",
+                        self, (self:GetOrigin() - sos):GetLength(), sov:GetLength(), velocity:GetLength(),
+                        e, (eo - e:GetOrigin()):GetLength(), ev:GetLength(), e:GetVelocity():GetLength()
+                    )
+                    --]]
+
+                    -- From benchmark, client rarely goes below 0.003, but server does reach 0.0000 0000 1, so restrict to a bit below client value
+                    -- (even with very low values, there were no stuck within each others, this more about excluding the case where it's so close it gets stuck)
+                    -- (and it is mostly marines vs marines case)
+                    -- If we are overlapping with even just a slight diff, engine will handle well and smooth it out
+                    local isOverlapping = (self:GetOrigin() - sos):GetLength() < 0.0001
+                    -- Since we are reverting the colidee to its old position, make sure we are not too much "inside" him.
+                    -- Otherwise this could lead to the RR or IP bug, where two entities are stuck within each others.
+                    --if (minOverlapping > (self:GetOrigin() - sos):GetLength()) then
+                    --    Log("New overlapping min found: %s (%s vs %s)", minOverlapping, self, e)
+                    --    minOverlapping = (self:GetOrigin() - sos):GetLength()
+                    --end
+
+                    -- Reset the colidee move
+                    --e:SetOrigin(eo)
+                    --VectorCopy(ev, e:GetVelocity())
+                    e:UpdateControllerFromEntity()
+                    --Log("3. %s", e.controller:GetPosition())
+
+                    if not isOverlapping then
+                        -- Return data with the colidee simulated move first
+                        return completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial
+                    else
+                        -- Redo the classic one
+                        return self:PerformMovement(origOffset, maxTraces, oldVelocity, isMove, origSlowDownFraction, deflectMove, slowDownFilterFunc, deltaTime, kAdjustedMove)
+                    end
+                end
+
+                --if trace.entity and trace.entity:isa("Player") then
+                --    Log("%s colliding with %s (first ? %s (%s/%s))", self, trace.entity, Shared.GetTime() > (trace.entity.kTimeLastControllerMove and trace.entity.kTimeLastControllerMove or 0), self.kTimeLastControllerMove, trace.entity.kTimeLastControllerMove)
+                --end
+
                 -- Redirect velocity if specified
-                if velocity ~= nil and slowDownFraction ~= nil then
+                if preventRedirect == false and velocity ~= nil and slowDownFraction ~= nil then
                 
                     assert(deltaTime ~= nil) -- We are now timed based (not tick based), make sure we have the deltaTime !
                     -- Scale it according to how much velocity we lost
@@ -381,6 +465,11 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
                 surfaceMaterial = trace.surface
                 
                 completedMove = false
+
+                if preventRedirect then
+                    Log("Stopped %s from gliding against %s", self, trace.entity)
+                    break
+                end
                 
             else
                 offset = Vector(0, 0, 0)
@@ -390,7 +479,7 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
             
         end
         
-        if isMove then
+        if isMove and commitChanges then
             self:UpdateOriginFromController()
         end
         
@@ -398,14 +487,14 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
             self.controllerOutter:SetCollisionEnabled(true)
         end
         
-        if ignorePlayerCollisions then
-            SetNearbyPlayerControllers(self, true)        
-        end
-        
     end
     
-    -- Do the hit callbacks.
-    if hitEntities and isMove then
+    if isMove == true then
+        self.kTimeLastControllerMove = Shared.GetTime()
+    end
+
+    -- Do the hit callbacks. (but not if we do the blank one to nornalize, isMove would be set to "1")
+    if hitEntities and isMove == true and commitChanges then
         
         --[[
         if hitVelocity and oldVelocity then
@@ -427,12 +516,12 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
         
     end
 
-    if velocity and oldVelocity and not deflectMove then
+    if velocity and oldVelocity and not deflectMove and commitChanges then
         
         -- edge case when jumping down slopes. we never want that the controller can add speed
         local newXZSpeed = velocity:GetLengthXZ()
         if newXZSpeed > prevXZSpeed then
-            
+        
             local ySpeed = velocity.y
             velocity.y = 0
             velocity:Scale(prevXZSpeed / newXZSpeed)
@@ -445,7 +534,7 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
     -- TODO: dont compare velocities, use some boolean
     -- averageSurfaceNormal should not normally be nil at this point but there is an edge
     -- case where it is.
-    if oldVelocity ~= velocity and isMove and averageSurfaceNormal and self.OnWorldCollision then
+    if oldVelocity ~= velocity and isMove == true and averageSurfaceNormal and self.OnWorldCollision and commitChanges then
     
         local impactForce = math.max(0, (-averageSurfaceNormal):DotProduct(oldVelocity))    
         self:OnWorldCollision(averageSurfaceNormal, impactForce, velocity)
