@@ -314,8 +314,9 @@ end
 
 local function FireBullets(self, player)
 
-    PROFILE("SubmachinegunFireBullets")
+    PROFILE("Submachinegun:FireBullets")
 
+    local now = Shared.GetTime()
     local viewAngles = player:GetViewAngles()
     local shootCoords = viewAngles:GetCoords()
     
@@ -331,8 +332,18 @@ local function FireBullets(self, player)
     
         local spreadDirection = self:CalculateSpreadDirection(shootCoords, player)
         
+        -- Allow boxTraces for first bullet shot, or consecutive if we hit
+        local lastTimeDamageDealt = player:GetTimeLastDamageDealt()
+        local hasShotRecently = (now - self.timeAttackFired < 0.2)
+        local hasHitRecently = (now - lastTimeDamageDealt) < 0.5
+        local allowBoxTrace = (not hasShotRecently) or hasHitRecently
+        --if Server then
+        --    Log("SMG allowBoxTrace: %s (hasShotRecently:%s / hasHitRecently:%s)", allowBoxTrace, hasShotRecently, hasHitRecently)
+        --end
+
+
         local endPoint = startPoint + spreadDirection * range
-        local targets, trace, hitPoints = GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, filter)
+        local targets, trace, hitPoints = GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, filter, allowBoxTrace)
 
         HandleHitregAnalysis(player, startPoint, endPoint, trace)        
 

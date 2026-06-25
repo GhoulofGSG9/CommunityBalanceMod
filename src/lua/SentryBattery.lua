@@ -116,7 +116,7 @@ function SentryBattery:OnCreate()
     if Client then
         InitMixin(self, CommanderGlowMixin)
 		InitMixin(self, BlowtorchTargetMixin)
-		self:AddTimedCallback(SentryBattery.OnTimedUpdate, kUpdateIntervalLow)
+		-- self:AddTimedCallback(SentryBattery.OnTimedUpdate, kUpdateIntervalLow)
     end
     
     self:SetLagCompensated(false)
@@ -374,13 +374,13 @@ local function DeleteEffects(self)
 	
 end
 
-if Client then
+--[[if Client then
     function SentryBattery:OnTimedUpdate(deltaTime)
         CreateEffects(self)
         DeleteEffects(self)
         return true
     end
-end
+end]]
 
 function SentryBattery:GetTechButtons(techId)
 

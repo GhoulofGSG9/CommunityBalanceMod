@@ -160,14 +160,15 @@ end
 function JetpackMarine:GetFuel()
 
     local dt = Shared.GetTime() - self.timeJetpackingChanged
-
-    --more weight means the Jetpack has to provide more force to lift the marine and therefor consumes more fuel
-    local weightFactor = math.max( self:GetWeaponsWeight() / kJetpackWeightLiftForce, kMinWeightJetpackFuelFactor )
-    local rate = -kJetpackUseFuelRate * weightFactor
+    local rate
     
     if not self.jetpacking then
         rate = kJetpackReplenishFuelRate
         dt = math.max(0, dt - JetpackMarine.kJetpackFuelReplenishDelay)
+    else
+        --more weight means the Jetpack has to provide more force to lift the marine and therefor consumes more fuel
+        local weightFactor = math.max( self:GetWeaponsWeight() / kJetpackWeightLiftForce, kMinWeightJetpackFuelFactor )
+        rate = -kJetpackUseFuelRate * weightFactor
     end
     
     if self:GetDarwinMode() then
@@ -298,15 +299,18 @@ end
 
 function JetpackMarine:UpdateJetpack(input)
     
-    local jumpPressed = (bit.band(input.commands, Move.Jump) ~= 0)
-    local enoughTimePassed = not self:GetIsOnGround() and self:GetTimeGroundTouched() + 0.3 <= Shared.GetTime() or false
+    PROFILE("JetpackMarine:UpdateJetpack")
+
+    local now = Shared.GetTime()
+    local jumpPressed = bit_band(input.commands, Move.Jump) ~= 0
+    local enoughTimePassed = not self:GetIsOnGround() and self:GetTimeGroundTouched() + 0.3 <= now or false
 
     self:UpdateJetpackMode()
     
     -- handle jetpack start, ensure minimum wait time to deal with sound errors
     local minFuelNeeded = 0.06 -- the good timing to bunny hop with a jp on 0 fuel
-    local coldStartNeedJump = self:GetIsOnGround() or (self.timeOfLastJump ~= nil and self.timeOfLastJump + .04 > Shared.GetTime())
-    if not self.jetpacking and (Shared.GetTime() - self.timeJetpackingChanged > 0.2) and jumpPressed and self:GetFuel() > minFuelNeeded and not coldStartDelay then
+    --local coldStartNeedJump = self:GetIsOnGround() or (self.timeOfLastJump ~= nil and self.timeOfLastJump + .04 > now)
+    if not self.jetpacking and (now - self.timeJetpackingChanged > 0.2) and jumpPressed and self:GetFuel() > minFuelNeeded then -- and not coldStartNeedJump then
     
         self:HandleJetpackStart()
         
@@ -321,7 +325,7 @@ function JetpackMarine:UpdateJetpack(input)
     end
     
     -- handle jetpack stop, ensure minimum flight time to deal with sound errors
-    if self.jetpacking and (Shared.GetTime() - self.timeJetpackingChanged) > 0.2 then
+    if self.jetpacking and (now - self.timeJetpackingChanged) > 0.2 then
         if self:GetFuel() == 0 or not jumpPressed then
             self:HandleJetPackEnd()
         end
@@ -349,7 +353,7 @@ function JetpackMarine:UpdateJetpack(input)
 end
 
 function JetpackMarine:GetCanJump()
-    return ( self:GetIsOnGround() or (self.timeJetpackingChanged == Shared.GetTime() and self.startedFromGround) or self:GetIsOnLadder() )
+    return ( self:GetIsOnGround() or (self.startedFromGround and self.timeJetpackingChanged == Shared.GetTime()) or self:GetIsOnLadder() )
 end
 
 -- required to not stick to the ground during jetpacking
@@ -393,7 +397,10 @@ end
 
 function JetpackMarine:ModifyVelocity(input, velocity, deltaTime)
 
-    if self:GetIsJetpacking() then
+    PROFILE("JetpackMarine:ModifyVelocity")
+
+    local isJetpacking = self:GetIsJetpacking()
+    if isJetpacking then
         
         local verticalAccel = 22
         
@@ -417,7 +424,7 @@ function JetpackMarine:ModifyVelocity(input, velocity, deltaTime)
         self:ModifyMaxSpeed(maxSpeedTable)
         local maxSpeed = maxSpeedTable.maxSpeed        
         
-        if not self:GetIsJetpacking() then
+        if not isJetpacking then
             maxSpeed = prevXZSpeed
         end
         
@@ -440,7 +447,7 @@ function JetpackMarine:ModifyVelocity(input, velocity, deltaTime)
             
         end 
         
-        if self:GetIsJetpacking() then
+        if isJetpacking then
             velocity:Add(wishDir * kJetpackingAccel * deltaTime)
         end
     
@@ -464,11 +471,14 @@ end
 
 function JetpackMarine:UpdateJetpackMode()
 
+    PROFILE("JetpackMarine:UpdateJetpackMode")
+
     local newMode = JetpackMarine.kJetpackMode.Disabled
 
     if self:GetIsJetpacking() then
     
-        if ((Shared.GetTime() - self.timeJetpackingChanged) < JetpackMarine.kJetpackTakeOffTime) and (( Shared.GetTime() - self.timeJetpackingChanged > 1.5 ) or self:GetIsOnGround() ) then
+        local now = Shared.GetTime()
+        if ((now - self.timeJetpackingChanged) < JetpackMarine.kJetpackTakeOffTime) and (( now - self.timeJetpackingChanged > 1.5 ) or self:GetIsOnGround() ) then
 
             newMode = JetpackMarine.kJetpackMode.TakeOff
 
@@ -530,7 +540,7 @@ end
 --]]
 
 function JetpackMarine:FallingAfterJetpacking()
-    return (self.timeJetpackingChanged + 1.5 > Shared.GetTime()) and not self:GetIsOnGround()
+    return not self:GetIsOnGround() and (self.timeJetpackingChanged + 1.5 > Shared.GetTime())
 end
 
 function JetpackMarine:OnUpdateAnimationInput(modelMixin)

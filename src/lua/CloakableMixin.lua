@@ -109,6 +109,7 @@ function CloakableMixin:__initmixin()
     
     self.desiredCloakFraction = 0
     self.timeCloaked = 0
+    self.timeLastFirstCloakUpdateCheck = 0
     self.timeUncloaked = 0
     self.cloakRate = 0
 	self.timeInkCloakEnd = 0    
@@ -286,6 +287,13 @@ end
 
 local function UpdateCloakState(self, deltaTime)
     PROFILE("CloakableMixin:OnUpdate")
+
+    -- Do not run the expensive code next if we never cloaked, only check cloak rate for those who already got camoed
+    if (self.timeCloaked == 0 and self.timeLastFirstCloakUpdateCheck + 1 < Shared.GetTime()) then
+        self.timeLastFirstCloakUpdateCheck = Shared.GetTime()
+        return
+    end
+
     -- Account for trigger cloak, uncloak, camouflage speed
     UpdateDesiredCloakFraction(self, deltaTime)
     

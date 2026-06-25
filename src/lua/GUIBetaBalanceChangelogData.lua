@@ -19,11 +19,43 @@ if kCBMaddon then
 	gChangelogData =
 	[[
 
-	Welcome to the Community Balance Mod, a project built by the community, for the community. 
-	Ping me, @Shifter (project lead) or @NexZone30 (dev lead), in any of the NS2 discords, or start a conversation in beta-balance-feedback 
-	on the official discord to let us know you think! Below are the changes this mod introduces:
+	Welcome to the Community Balance Mod (CBM): Content Edition, a project built by the community, for the community.
+	This version enables all content, balance, QoL, performance optimizations, and bugfixes of the CBM suite.	
+	Ping me, @Shifter (project lead) or @NexZone30 (dev lead), in any of the NS2 discords, 
+	or start a conversation in beta-balance-feedback on the official discord to let us know 
+	you think! Below are the changes this mod introduces:
 
-	#TLDR of Community Balance Mod (v3.1.4) vs. Vanilla:
+	#TLDR of Recent Release (v3.5):
+	
+	## Balance Changes
+	  - Nerfs to exosuit movement and thruster.
+	  - Claw armor increased from 75 to 115.
+	  - Plasma launcher sphere collisions improved and DoT application bugfixed.
+	  - Jetpack tech cost reduced from 25 to 20.
+	  - Mines can no longer be placed inside the center of gates.
+	  - Bombblers spawn further and last for 10s (from 8s).
+	  - Pulse nade now deals 15 from 10 damage (to one shot babblers).
+	  - Fortress structures renamed to "Advanced" structures to reflect current role alignment.
+	  - Boneshield blocks shots from railgun from piercing and doing health pool damage.
+	
+	## Bugfixes and Enhanced Performance
+	  - Vanilla bugfixes to ARC and whip ragdoll related server hitching and crashes.
+      - Vanilla bugfix to welder stopping welding when accidently aiming at a target's weapon.
+	  - Vanilla bugfix to static DoTs (plasma and bile affected) that decreased target acquisition time by >0.5s.
+	  - Vanilla bugfix to cyst popping on expanding across the map.
+	  - Vanilla bugfix to nil error on phasegates.
+	  - Vanilla bugfix for mine being triggered outside of damage range and improved responsiveness of detection.
+      - Extensive lua code refactor/debottlenecking, improving client/server performance (see CBM discord for details).
+      - Vanilla bugfixes related to game rate increases.
+	  - Vanilla bugfixes to collisions:
+	    - Not affected by rate changes.
+		- Better for PvP (less getting stuck / phasing through people).
+		- Better when hitting geometry (many stuck spots fixed)
+	  - Note: Server owners are encouraged to try increase game rates based on our recommendations (see CBM discord).
+	  
+	###Be sure to thank Katzenfleisch for his amazing work on the NS2 codebase optimizations!
+
+	#TLDR of Community Balance Mod (v3.5) vs. Vanilla:
 	
 	## MARINE
 	  - Reworks to existing marines structures (sentry, sentry battery, and prototype lab).
@@ -36,7 +68,7 @@ if kCBMaddon then
 
 	## ALIEN
 	  - Rebalance of existing alien support structures (reduced eHP, cost, and size; increased movement speed).
-	  - New alien support structure upgrades (fortress crag, shift, shade, and whip) with powerful abilites.
+	  - New alien support structure upgrades (advanced crag, shift, shade, and whip) with powerful abilites.
 	  - Hive biomass 5 introduced (2 hive xeno).
 	  - Rework and bugfixes to onos stomp.
 	  - Rework of cloak and carapace replacement (rage).
@@ -48,7 +80,8 @@ if kCBMaddon then
 	  - Updated locale, new ui elements, and improved tech maps for new (and old) features.
 	  - Custom skins and cinematics for new content.
 	  - Various QoL, game improvements, and bugfixes.
-		  
+	  - Refactor and optimization of lua codebase (major client and server performance improvements).
+
 	# Full Changelog:
 	## GENERAL
 	### Structure Damage Rework
@@ -64,7 +97,7 @@ if kCBMaddon then
 	
 	### Status Icons
 	  - New status icon for webbed status (web, stomp, whip webbing).
-	  - New status icons for fortress structure passives.
+	  - New status icons for Advanced structure passives.
 	  - Display status icons even with minimal hud elements.
 
 	### QoL / General Improvements
@@ -87,7 +120,7 @@ if kCBMaddon then
 	  - Added Icon for Drifter Eggs
 	  - Added Icon for deployed ARCS
 	  - Added Icon for Advanced Armory
-	  - Added Icons for Fortress PvE
+	  - Added Icons for Advanced PvE
 	  - Alien Commander is able to see parasited mines
 
 	### Vanilla Bugfixes
@@ -102,28 +135,50 @@ if kCBMaddon then
 	  - Jetpackers are able to replenish fuel when empty when holding space bar.
 	  - Alien PvE bounces/glitches less during and after moving.
 	  - Flying flamethrowers in rare cases should not crash the server anymore.
-	  - Fix to cinematics of projectiles desyncing.
+	  - Fixed cinematics of projectiles desyncing and disappearing.
 	  - Fixed shotgun trace source location to be consistent (was random).
-	
+	  - Fixed issue with projectiles visually disappearing from the client.
+	  - Fixed ARCs causing server hitching / crash on loss of orders when orders were queued.
+	  - Fixed welders stopping welding when accidently aimed at a marine weapon.
+	  - Fixed collisions being dependent tick/move rate (now based on time). 
+	  - Fixed whips causing server hitching / crash on death due to ragdolls.
+	  - Fixed cyst popping on expanding across the map.
+	  - Fixed nil error on phasegates.
+	  - Fixed mine being triggered outside of damage range and improved responsiveness of detection.
+
+	### Vanilla Codebase Optimizations
+	  - Refactored and optimized the way the game processes and confirms damage, collisions, and movement.
+	  - Entity OnUpdates() and callback routines have been optimized.
+	  - Optimized droppacks (meds/ammo/catpacks), bonewall, RTs, PvE, mines, and webs.
+	  - Optimized to not calculate gravity when already on the ground.
+	  - Optimized randomization calls and logic.
+	  - Optimized shaders and cloak to less negatively impact performance.
+	  - Optimized sound calls.
+	  - Optimized bitmasks and bitmask calls.
+	  - Optimized bot functions and calls.
+	  - Optimized pregame functions and calls.
+	  - Optimized spectate related functions and calls.
+
 	## MARINE - PLAYER
 	### Modular Exosuits
 	  - Exosuits changed to have swappable arms and cores (pres refunds disabled when swapping arms/cores).
 	  - Base kit thruster replaced with jump (exos can no longer sprint by default).
 	  - Base Armor is 170 (+40 per armor level) and base speed is 6 m/s (speed capped at 7.5 m/s).
 	  - Additional armor/weight(inverse of speed)/pres cost is dependent on selected arms:
-		- Railgun: 25/0.1/25
+		- Railgun: 25/0.12/25
 		- Minigun: 75/0.2/25
-		- Plasma Launcher: 50/0.125/20
-		- Claw: 75/0.0/15
+		- Plasma Launcher: 50/0.16/20
+		- Claw: 75/0.08/15
 	  - Cores (optional upgrade):
 		- Ejection Seat: Auto-ejects marine on exosuit reaching 0 armor (+0.025 Weight / Costs 5 pres).
 		  - Requires valid ejection spot.
 		  - Empty exosuit will spawn with 50 armor upon automatic ejection (minus overflow damage).
 		  - Empty exosuit must have >50 armor to enter exosuit after automatic ejection.	  
 		- Thruster: Increases movement speed and allows for flight at the cost of energy (+0.05 Weight / Costs 5 pres). 
-		  - Min 25% activation energy required and initial 10% fuel cost when activated.
+		  - Min 25% activation energy required and initial 12.5% fuel cost when activated.
 		  - Vertical boost automatically activates upon holding space bar and stacks with base jump.
 		  - Vertical boost has high initial acceleration, but slows down over time.
+		  - Flying uses twice the amount of energy as moving along the ground.
 	  - Settings to make duals fire both arms upon primary attack (options -> mods -> CBM: Accessibility Options)
 
 	### Railgun 
@@ -163,6 +218,7 @@ if kCBMaddon then
 	### Jetpack
 	  - Min 6% activation energy required (bugfix).
 	  - No longer affected by stomp when slightly above the ground (bugfix).
+	  - Tech unlock cost to 20 from 25 tres.
 
 	### Sub Machine Gun
 	  - Unlocked with submachinegun tech from armory (10 tres and 30s research time).
@@ -182,17 +238,17 @@ if kCBMaddon then
 	  - Self damage reduced by 66% (grenades/mines).
       - Pulse Grenades:
 	    - Debuff range increased by 50%.
-	    - Base damage set to 10 from 50.
+	    - Base damage set to 15 from 50.
 	    - Debuff duration is now 3.5s from 5s.
 	    - No longer reduces energy regeneration (bugfix).
 	  - Cluster Grenades:
 	    - Cluster damage type modifier increased from 2.5 to 2.875 (net neutral with structure eHP changes).
 		- Cluster grenade range and fragment range reduced by 20%.
 
-	### Electrify Debuff (pulse/plasma/SPARC)
+	### Electrify Debuff (pulse)
 	  - TLDR: Disables passives, reduces movement speed, and slows alien attacks and abilities.
 	  - Electrify slow on players increased to 30% from 20% (vanilla).
-	  - Electrify now works on structures (including fortress variants):
+	  - Electrify now works on structures (including Advanced variants):
 		- Whips: Prevents slapping / bombarding, reduces movement speed.
 		- Hydra: Prevents spiking.
 		- Crag: Prevents healing and douse, reduces movement speed.
@@ -206,6 +262,7 @@ if kCBMaddon then
 
 	### Mines
 	  - Can no longer be placed overlapping.
+	  - Can no longer be placed inside the center of gates.
 	  - Will more reliably trigger on valid targets.
 
 	### Axe
@@ -214,10 +271,10 @@ if kCBMaddon then
 	### Welder
 	  - Autopickup for welders reduced from 5 to 1 second.
 
-    ## MARINE - COMMANDER / STRUCTURES
+	## MARINE - COMMANDER / STRUCTURES
 	### Prototype Lab
 	  - Exosuit tech changed to upgrade prototype lab into exosuit prototype lab.
-	    - The research is tied to the exosuit prototype lab, meaning the research will be lost if the structure is destroyed or recycled.
+	    - The research is tied to the exosuit prototype lab (lost when structure is destroyed or recycled).
 	  - While exosuit prototype lab is researching, a rotating exo hologram will appear above the prototype lab.
 	    - When completed, the hologram will become static and the map icon will become purple.
 	  
@@ -265,7 +322,7 @@ if kCBMaddon then
 		- Reduced default order search radius to 12m. Hold position order reduces it to 3m.
 		- MAC now prioritizes its closest target first.
 		- Reduced follow order secondary job search radius to 6m and snaps to marines with 2m.
-		- Enabled and ehanced MAC basic order commands such as Move, Stop, Patrol and Hold position.
+		- Enabled and enhanced MAC basic order commands such as Move, Stop, Patrol and Hold position.
 		- Multiple MACs can now repair PvE targets simultaneously
 
 	### A-MAC (MAC Variant)
@@ -360,7 +417,7 @@ if kCBMaddon then
 	    - Replaces Carapace
 	    - Increases energy regeneration rate for 3s after taking damage (+16.67% per shell).
 	  - Aura:
-	    - No longer reveals health information (moved to Fortress Shade)
+	    - No longer reveals health information (moved to Advanced Shade)
 	    - Icon is always yellow.
       - Camouflage:
 	    - Shaders completely reworked to ensure camo is competitive with other upgrades.
@@ -377,18 +434,16 @@ if kCBMaddon then
 		- Babblers will now detach around the gorge instead of everyone at same location above the gorge.
 		- Babblers will stay out for at least the duration of the babbler ball.
 		- Babblers are now affected by crush upgrade.
-		- Babblers are now 10 eHp.
 	  - Babbler Bomb
 		- Bio 7 gorge ability researchable on hive (15 tres).
 		- Gorge spews out babbler filled egg that explodes on impact.
-		- Egg filled with 6 independent babblers that die after 8s.
+		- Egg filled with 6 independent babblers that die after 10s.
 		- Limited to 2 charge that fills over 10s each.
-		- Upgrades babblers to bombblers.
 		- Does not spawn additional babblers if more than twelve exist in an area.
 	  - Hydras and Bilemine cost 30% less energy
 	  - Bile damage accelerates weapon expiration
 		- 1 Bile ~ 5 seconds
-	  - Buffed Gorge Structure Healing by 15% (net neutral with structure eHP changes).
+	  - Buffed gorge structure healing by 15% (net neutral with structure eHP changes).
 
 	### Stomp (onos)
 	  - No longer knocks down marines.
@@ -397,13 +452,17 @@ if kCBMaddon then
 	  - Improved terrain pathing.
 	  - Added proper check for marine jumping.
 
+	### Boneshield (onos)
+	  - Now blocks railgun shots from piercing through (still must be facing damage source).
+	  - Now prevents health pool damage when blocking (still must be facing damage source).
+
 	### Stab (fade)
 	  - Stab research cost reduced from 25 to 20 tres.
 	  - Stab energy cost reduced by 16%.
 	  
 	### Skulk
 	  - Improved movement on wall and ceilings by making fall checks more forgiving.
-	  
+
 	## ALIEN - COMMANDER / STRUCTURES
 	### Hives
 	  - Based eHP decreased to be +7.5% of vanilla.
@@ -438,38 +497,38 @@ if kCBMaddon then
 	  - Shift:
 		- Reduced energy regenerate rate by 50%
 
-	### Fortress Support Structures
+	### Advanced Support Structures
 	  - Starting eHP reduced to 1400/1400/1400/2800 at 0% maturity and 1 biomass.
 	  - Starting eHP reduced to 2000/2000/2000/3400 at 100% maturity and 1 biomass.
-	  - Fotress whip gains 50 HP per biomass and has a max of 200 armor.
-	  - Fortress structures move 25% slower than regular PvE on infestation (2.9 m/s).
-		- Fortress structures gradually slow to 1.45/1.45/1.45/2.175 m/s off infestation.
-		- Fortress abilities do not work while moving.
+	  - Advanced whip gains 50 HP per biomass and has a max of 200 armor.
+	  - Advanced structures move 25% slower than regular PvE on infestation (2.9 m/s).
+		- Advanced structures gradually slow to 1.45/1.45/1.45/2.175 m/s off infestation.
+		- Advanced abilities do not work while moving.
 	  - New passives when specific hive tech is researched.
-	  - Fortress structure passives are only active when structure is stationary.
+	  - Advanced structure passives are only active when structure is stationary.
 	  - New UI element for passives and updated tooltips.
-	  - Fortress upgrade costs 20 tres (18 tres for whip - same total)
-	  - Fortress Shift:
+	  - Advanced upgrade costs 20 tres (18 tres for whip - same total)
+	  - Advanced Shift:
 		- Stormcloud now auto-casts every 5s.
-		- Stormcloud's buff now lasts 5s outside of Fortress Shift range.
+		- Stormcloud's buff now lasts 5s outside of Advanced Shift range.
 		- Stormcloud gives a flat speed buff (+1.5/1.5/1.25/0.75 m/s) depending on spur level (0/1/2/3). 
 		- The max possible net speed depending on spur level (0/1/2/3) with stormcloud is 1.5/2.0/2.25/2.25 m/s.
 		  - Fade, skulks, and lerks capped at +1.5 m/s.
-		- Spawns eggs around Fortress Shift when Shift Hive is researched.
+		- Spawns eggs around Advanced Shift when Shift Hive is researched.
 		- Will only spawn eggs if less than 3 FShift eggs exist.
-	  - Fortress Crag:
+	  - Advanced Crag:
 		- Applies douse every 2s which grants immunity to fire debuffs on alien players and structures.
 		- Douse applies a 5% structure damage reduction and lasts 3s.
-		- Douse is applied in inner fortress crag radius.
+		- Douse is applied in inner Advanced Crag radius.
 		- Douse has custom magenta shader and stacks with umbra.
-	  - Fortress Shade:
+	  - Advanced Shade:
 		- Hallucinations ability is now free (does not auto-cast) and has a 60s cooldown.
 		- Hallucinations no longer provide vision and move slowly.
 		- Blights (reveals eHP and location) marines in range for 6s every 5s when Shade Hive is researched.
 		- Highlight is colored blue, magenta, or red depending on number of PRIMARY attacks (accounts for focus and crush) or eHP.
 		- For players: >2 blue, 2 to 1 magenta, <=1 red
 		- For structures: >66% blue, 66% to 33% magenta, <33% red
-	  - Fortress Whip:
+	  - Advanced Whip:
 		- Active ability called bile frenzy that spawns three bile bombs and temporarily increases whip movement speed.
 		- Slaps deal 15 damage to secondary targets within 3 m of main target.
 		- Crag Hive: Siphoning Slaps (75 eHP gained on player slap hit)
@@ -499,12 +558,40 @@ else
 	gChangelogData =
 	[[
 
-	Welcome to the Community Balance Mod - Core Edition, a project built by the community, for the community.
-    This version only enables the balance, QoL, and bugfixes of the CBM suite.
-	Ping me, @Shifter (project lead) or @NexZone30 (dev lead), in any of the NS2 discords, or start a conversation in beta-balance-feedback 
-	on the official discord to let us know you think! Below are the changes this mod introduces:
+	Welcome to the Community Balance Mod (CBM): Core Edition, a project built by the community, for the community.
+    This version only enables the balance, QoL, performance optimizations, and bugfixes of the CBM suite.
+	Ping me, @Shifter (project lead) or @NexZone30 (dev lead), in any of the NS2 discords, 
+	or start a conversation in beta-balance-feedback on the official discord to let us know 
+	you think! Below are the changes this mod introduces:
 
-	#TLDR of Community Balance Mod (v3.1.4) vs. Vanilla:
+	#TLDR of Recent Release (v3.5):
+	
+	## Balance Changes
+	  - Nerfs to exosuit movement and thruster.
+	  - Claw armor increased from 75 to 115.
+	  - Jetpack tech cost reduced from 25 to 20.
+	  - Mines can no longer be placed inside the center of gates.
+	  - Pulse nade now deals 15 from 10 damage (to one shot babblers).
+	  - Boneshield blocks shots from railgun from piercing and doing health pool damage.
+	
+	## Bugfixes and Enhanced Performance
+	  - Vanilla bugfixes to ARC and whip ragdoll related server hitching and crashes.
+      - Vanilla bugfix to welder stopping welding when accidently aiming at a target's weapon.
+	  - Vanilla bugfix to static DoTs (bile affected) that decreased target acquisition time by >0.5s.
+	  - Vanilla bugfix to cyst popping on expanding across the map.
+	  - Vanilla bugfix to nil error on phasegates.
+	  - Vanilla bugfix for mine being triggered outside of damage range and improved responsiveness of detection.
+      - Extensive lua code refactor and debottlenecking, improving client/server performance (see CBM discord for extensive breakdown).
+      - Vanilla bugfixes related to game rate increases.
+	  - Vanilla bugfixes to collisions:
+	    - Not affected by rate changes.
+		- Better for PvP (less getting stuck / phasing through people).
+		- Better when hitting geometry (many stuck spots fixed)
+	  - Note: Server owners are encouraged to try increase game rates based on our recommendations (see CBM discord).
+
+	###Be sure to thank Katzenfleisch for his amazing work on the NS2 codebase optimizations!
+
+	#TLDR of Community Balance Mod (v3.5) vs. Vanilla:
 	
 	## MARINE
 	  - Reworks to existing marines structures (sentry, sentry battery, and prototype lab).
@@ -523,7 +610,8 @@ else
 	  - Updated locale, new ui elements, and improved tech maps for new (and old) features.
 	  - Custom skins and cinematics for new content.
 	  - Various QoL, game improvements, and bugfixes.
-		  
+	  - Refactor and optimization of lua codebase (major client and server performance improvements).
+ 
 	# Full Changelog:
 	## GENERAL
 	### Structure Damage Rework
@@ -539,7 +627,6 @@ else
 	
 	### Status Icons
 	  - New status icon for webbed status (web, stomp, whip webbing).
-	  - New status icons for fortress structure passives.
 	  - Display status icons even with minimal hud elements.
 
 	### QoL / General Improvements
@@ -562,7 +649,6 @@ else
 	  - Added Icon for Drifter Eggs
 	  - Added Icon for deployed ARCS
 	  - Added Icon for Advanced Armory
-	  - Added Icons for Fortress PvE
 	  - Alien Commander is able to see parasited mines
 
 	### Vanilla Bugfixes
@@ -577,28 +663,49 @@ else
 	  - Jetpackers are able to replenish fuel when empty when holding space bar.
 	  - Alien PvE bounces/glitches less during and after moving.
 	  - Flying flamethrowers in rare cases should not crash the server anymore.
-	  - Fix to cinematics of projectiles desyncing.
+	  - Fixed cinematics of projectiles desyncing and disappearing.
 	  - Fixed shotgun trace source location to be consistent (was random).
-	
+	  - Fixed issue with projectiles visually disappearing from the client.
+	  - Fixed ARCs causing server hitching / crash on loss of orders when orders were queued.
+	  - Fixed welders stopping welding when accidently aimed at a marine weapon.
+	  - Fixed collisions being dependent tick/move rate (now based on time). 
+	  - Fixed whips causing server hitching / crash on death due to ragdolls.
+	  - Fixed cyst popping on expanding across the map.
+	  - Fixed nil error on phasegates.
+	  - Fixed mine being triggered outside of damage range and improved responsiveness of detection.
+
+	### Vanilla Codebase Optimizations
+	  - Refactored and optimized the way the game processes and confirms damage, collisions, and movement.
+	  - Entity OnUpdates() and callback routines have been optimized.
+	  - Optimized droppacks (meds/ammo/catpacks), bonewall, RTs, PvE, mines, and webs.
+	  - Optimized to not calculate gravity when already on the ground.
+	  - Optimized randomization calls and logic.
+	  - Optimized shaders and cloak to less negatively impact performance.
+	  - Optimized sound calls.
+	  - Optimized bitmasks and bitmask calls.
+	  - Optimized bot functions and calls.
+	  - Optimized pregame functions and calls.
+	  - Optimized spectate related functions and calls.
+
 	## MARINE - PLAYER
 	### Modular Exosuits
 	  - Exosuits changed to have swappable arms and cores (pres refunds disabled when swapping arms/cores).
 	  - Base kit thruster replaced with jump (exos can no longer sprint by default).
 	  - Base Armor is 170 (+40 per armor level) and base speed is 6 m/s (speed capped at 7.5 m/s).
 	  - Additional armor/weight(inverse of speed)/pres cost is dependent on selected arms:
-		- Railgun: 25/0.1/25
+		- Railgun: 25/0.12/25
 		- Minigun: 75/0.2/25
-		- Plasma Launcher: 50/0.125/20
-		- Claw: 75/0.0/15
+		- Claw: 75/0.08/15
 	  - Cores (optional upgrade):
 		- Ejection Seat: Auto-ejects marine on exosuit reaching 0 armor (+0.025 Weight / Costs 5 pres).
 		  - Requires valid ejection spot.
 		  - Empty exosuit will spawn with 50 armor upon automatic ejection (minus overflow damage).
 		  - Empty exosuit must have >50 armor to enter exosuit after automatic ejection.	  
 		- Thruster: Increases movement speed and allows for flight at the cost of energy (+0.05 Weight / Costs 5 pres). 
-		  - Min 25% activation energy required and initial 10% fuel cost when activated.
+		  - Min 25% activation energy required and initial 12.5% fuel cost when activated.
 		  - Vertical boost automatically activates upon holding space bar and stacks with base jump.
 		  - Vertical boost has high initial acceleration, but slows down over time.
+		  - Flying uses twice the amount of energy as moving along the ground.
 	  - Settings to make duals fire both arms upon primary attack (options -> mods -> CBM: Accessibility Options)
 
 	### Railgun 
@@ -624,12 +731,13 @@ else
 	### Jetpack
 	  - Min 6% activation energy required (bugfix).
 	  - No longer affected by stomp when slightly above the ground (bugfix).
+	  - Tech unlock cost to 20 from 25 tres.
 
 	### Hand Grenades
 	  - Self damage reduced by 66% (grenades/mines).
       - Pulse Grenades:
 	    - Debuff range increased by 50%.
-	    - Base damage set to 10 from 50.
+	    - Base damage set to 15 from 50.
 	    - Debuff duration is now 3.5s from 5s.
 	    - No longer reduces energy regeneration (bugfix).
 	  - Cluster Grenades:
@@ -639,7 +747,7 @@ else
 	### Electrify Debuff (pulse/plasma/SPARC)
 	  - TLDR: Disables passives, reduces movement speed, and slows alien attacks and abilities.
 	  - Electrify slow on players increased to 30% from 20% (vanilla).
-	  - Electrify now works on structures (including fortress variants):
+	  - Electrify now works on structures (including Advanced variants):
 		- Whips: Prevents slapping / bombarding, reduces movement speed.
 		- Hydra: Prevents spiking.
 		- Crag: Prevents healing and douse, reduces movement speed.
@@ -653,6 +761,7 @@ else
 
 	### Mines
 	  - Can no longer be placed overlapping.
+	  - Can no longer be placed inside the center of gates.
 	  - Will more reliably trigger on valid targets.
 
 	### Axe
@@ -661,10 +770,10 @@ else
 	### Welder
 	  - Autopickup for welders reduced from 5 to 1 second.
 
-    ## MARINE - COMMANDER / STRUCTURES
+	## MARINE - COMMANDER / STRUCTURES
 	### Prototype Lab
 	  - Exosuit tech changed to upgrade prototype lab into exosuit prototype lab.
-	    - The research is tied to the exosuit prototype lab, meaning the research will be lost if the structure is destroyed or recycled.
+	    - The research is tied to the exosuit prototype lab (lost when structure is destroyed or recycled).
 	  - While exosuit prototype lab is researching, a rotating exo hologram will appear above the prototype lab.
 	    - When completed, the hologram will become static and the map icon will become purple.
 	  
@@ -740,7 +849,7 @@ else
 	    - Replaces Carapace
 	    - Increases energy regeneration rate for 3s after taking damage (+16.67% per shell).
 	  - Aura:
-	    - No longer reveals health information (moved to Fortress Shade)
+	    - No longer reveals health information (moved to Advanced Shade)
 	    - Icon is always yellow.
       - Camouflage:
 	    - Shaders completely reworked to ensure camo is competitive with other upgrades.
@@ -757,11 +866,10 @@ else
 		- Babblers will now detach around the gorge instead of everyone at same location above the gorge.
 		- Babblers will stay out for at least the duration of the babbler ball.
 		- Babblers are now affected by crush upgrade.
-		- Babblers are now 10 eHp.
 	  - Hydras and Bilemine cost 30% less energy
 	  - Bile damage accelerates weapon expiration
 		- 1 Bile ~ 5 seconds
-	  - Buffed Gorge Structure Healing by 15% (net neutral with structure eHP changes).
+	  - Buffed gorge structure healing by 15% (net neutral with structure eHP changes).
 
 	### Stomp (onos)
 	  - No longer knocks down marines.
@@ -769,6 +877,10 @@ else
 	  - Damage increased from 40 to 50 heavy damage.
 	  - Improved terrain pathing.
 	  - Added proper check for marine jumping.
+
+	### Boneshield (onos)
+	  - Now blocks railgun shots from piercing through (still must be facing damage source).
+	  - Now prevents health pool damage when blocking (still must be facing damage source).
 
 	### Stab (fade)
 	  - Stab research cost reduced from 25 to 20 tres.

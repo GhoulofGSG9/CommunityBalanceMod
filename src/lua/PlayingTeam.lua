@@ -19,7 +19,7 @@ PlayingTeam.kObliterateVictoryTeamResourcesNeeded = 500
 
 PlayingTeam.kTooltipHelpInterval = 1
 
-PlayingTeam.kTechTreeUpdateTime = 1
+PlayingTeam.kTechTreeUpdateTime = 1.2
 
 PlayingTeam.kBaseAlertInterval = 15
 PlayingTeam.kRepeatAlertInterval = 15

@@ -35,8 +35,9 @@ if Server then
     local kHitSoundHigh = 0.9
     local kHitSoundMid = 0.5
 
-    local kHitSoundHighShotgunHitCount = 14
-    local kHitSoundMidShotgunHitCount = 6
+    -- Damaged based hitsound for shotgun, not pellet count (baseline is w1)
+    local kHitSoundHighShotgunDamages = 14*11
+    local kHitSoundMidShotgunDamages = 6*11
 
     local kHitSoundHighXenoHitCount = 4
     local kHitSoundMidXenoHitCount = 2
@@ -96,7 +97,6 @@ if Server then
         local attacker = Shared.GetEntity(hit.attacker)
         if hit.weapon == kTechId.Railgun then
             -- Railgun hitsound is based on charge amount
-			local target = Shared.GetEntity(hit.target) -- Balance mod adds target for DamageTypes.lua
             local chargeAmount = ( ( hit.overkill / NS2Gamerules_GetUpgradedDamageScalar( attacker, hit.weapon ) ) - kRailgunDamage ) / kRailgunChargeDamage
             if kHitSoundHigh <= chargeAmount then
                 sound = 3
@@ -113,9 +113,9 @@ if Server then
             end
         elseif hit.weapon == kTechId.Shotgun then
             -- Shotgun hitsound is based on number of pellets that hit a single target
-            if kHitSoundHighShotgunHitCount <= hit.hitcount then
+            if kHitSoundHighShotgunDamages <= hit.amount then
                 sound = 3
-            elseif kHitSoundMidShotgunHitCount <= hit.hitcount then
+            elseif kHitSoundMidShotgunDamages <= hit.amount then
                 sound = 2
             end
         elseif hit.weapon == kTechId.LerkBite then

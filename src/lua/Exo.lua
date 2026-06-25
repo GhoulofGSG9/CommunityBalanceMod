@@ -137,19 +137,13 @@ local kWalkMaxSpeed = 3.7
 local kMaxSpeed = 5.75
 local kViewOffsetHeight = 2.3
 local kAcceleration = 20
-local kVerticalThrusterMaxSpeed = 1.28
+local kVerticalThrusterMaxSpeed = 0.8
 local kExoFastAirFriction = 0.2
 
 local kSmashEggRange = 1.5
 
 local kCrouchShrinkAmount = 0
 local kExtentsCrouchShrinkAmount = 0
-
-local kThrustersCooldownTime = 2.5
-local kThrusterDuration = 1.5
-local kThrusterRefuelCooldownTime = 0.75
-local kMinTimeBetweenThrusterActivations = 0.75
-local kMinFuelForThrusterActivation = 0.3
 
 local kDeploy2DSound = PrecacheAsset("sound/NS2.fev/marine/heavy/deploy_2D")
 
@@ -165,7 +159,7 @@ local kFlareCinematic = PrecacheAsset("cinematics/marine/exo/lens_flare.cinemati
 
 local kExoJumpMod = 0.875 --0.721
 local kThrusterGravity = -11.7
-local kThrusterUpwardsAcceleration = 32 --13.7 --2
+local kThrusterUpwardsAcceleration = 25
 local kThrusterHorizontalAcceleration = 23
 local kThrusterAirAcceleration = 9
 -- added to max speed when using thrusters
@@ -175,6 +169,16 @@ local kExoEjectDuration = 0
 local kExoDeployDuration = 1.4
 
 local gHurtCinematic
+
+local kMaskDisableInputs = bit.bnot(bit.bor(
+    Move.Use,
+    Move.Buy,
+    Move.Jump, Move.Crouch, Move.MovementModifier,
+    Move.PrimaryAttack, Move.SecondaryAttack,
+    Move.SelectNextWeapon, Move.SelectPrevWeapon,
+    Move.Reload,
+    Move.Taunt,
+    Move.Weapon1, Move.Weapon2, Move.Weapon3, Move.Weapon4, Move.Weapon5))
 
 Exo.kMass = 980
 
@@ -870,7 +874,7 @@ function Exo:OnProcessMove(input)
         UpdateThrusterEffects(self)
     end
     
-    local flashlightPressed = bit.band(input.commands, Move.ToggleFlashlight) ~= 0
+    local flashlightPressed = bit_band(input.commands, Move.ToggleFlashlight) ~= 0
     if not self.flashlightLastFrame and flashlightPressed then
         
         self:SetFlashlightOn(not self:GetFlashlightOn())
@@ -1267,13 +1271,12 @@ end
 
 function Exo:HandleButtons(input)
     
+    PROFILE("Exo:HandleButtons")
+
+    -- Disable inputs if ejecting or during deploy
     if self.ejecting or self.creationTime + kExosuitDeployDuration > Shared.GetTime() then
         
-        input.commands = bit.band(input.commands, bit.bnot(bit.bor(Move.Use, Move.Buy, Move.Jump,
-                                                                   Move.PrimaryAttack, Move.SecondaryAttack,
-                                                                   Move.SelectNextWeapon, Move.SelectPrevWeapon, Move.Reload,
-                                                                   Move.Taunt, Move.Weapon1, Move.Weapon2,
-                                                                   Move.Weapon3, Move.Weapon4, Move.Weapon5, Move.Crouch, Move.MovementModifier)))
+        input.commands = bit_band(input.commands, kMaskDisableInputs)
         
         input.move:Scale(0)
     
@@ -1286,7 +1289,7 @@ function Exo:HandleButtons(input)
     self:UpdateNanoShields(input)
     self:UpdateCatPack(input)
     
-    if bit.band(input.commands, Move.Drop) ~= 0 then
+    if bit_band(input.commands, Move.Drop) ~= 0 then
         self:EjectExo()
     end
 
@@ -1346,8 +1349,8 @@ end
 function Exo:UpdateThrusters(input)
     
     local lastThrustersActive = self.thrustersActive
-    local jumpPressed = bit.band(input.commands, Move.Jump) ~= 0
-    local movementSpecialPressed = bit.band(input.commands, Move.MovementModifier) ~= 0
+    local jumpPressed = bit_band(input.commands, Move.Jump) ~= 0
+    local movementSpecialPressed = bit_band(input.commands, Move.MovementModifier) ~= 0
     local thrusterDesired = (jumpPressed or movementSpecialPressed) and self:GetIsThrusterAllowed()
 
     local desiredMode = jumpPressed and kExoThrusterMode.Vertical
@@ -1678,7 +1681,11 @@ end
 function Exo:GetFuelUsageRate()
     --local usageScalar = self:GetHasMinigun() and kMinigunFuelUsageScalar or kRailgunFuelUsageScalar
     if self.thrustersActive then
-        return kExoThrusterFuelUsageRate --* usageScalar
+		if self.thrusterMode == kExoThrusterMode.Vertical then
+			return kExoThrusterFuelUsageRate * 0.5 -- This is double fuel consumption
+		else 
+			return kExoThrusterFuelUsageRate --* usageScalar
+		end
     elseif self.repairActive then
         return kExoRepairFuelUsageRate --* usageScalar
     elseif self.nanoshieldActive then
@@ -1938,8 +1945,7 @@ end
 
 function Exo:UpdateNanoShields(input)
     
-    local buttonPressed = bit.band(input.commands, Move.Reload) ~= 0
-    if buttonPressed and self:GetNanoShieldAllowed() then
+    if self:GetNanoShieldAllowed() and bit_band(input.commands, Move.Reload) ~= 0 then
         -- todo shield
         if self:GetFuel() >= kExoNanoShieldMinFuel and not self.nanoshieldActive and self.lastActivatedNanoShield + 1 < Shared.GetTime() then
             self:SetFuel(self:GetFuel())
@@ -1960,8 +1966,7 @@ end
 
 function Exo:UpdateCatPack(input)
     
-    local buttonPressed = bit.band(input.commands, Move.Reload) ~= 0
-    if buttonPressed and self:GetCatPackAllowed() then
+    if self:GetCatPackAllowed() and bit_band(input.commands, Move.Reload) ~= 0 then
         
         if self:GetFuel() >= kExoCatPackMinFuel and not self.catpackActive and self.lastActivatedCatPack + 1 < Shared.GetTime() then
             self:SetFuel(self:GetFuel())
@@ -1983,9 +1988,8 @@ end
 
 function Exo:UpdateRepairs(input)
     
-    local buttonPressed = bit.band(input.commands, Move.MovementModifier) ~= 0
     local repairDesired = self:GetArmor() < self:GetMaxArmor()
-    if buttonPressed and self:GetRepairAllowed() and repairDesired then
+    if self:GetRepairAllowed() and repairDesired and bit_band(input.commands, Move.MovementModifier) ~= 0 then
         
         if self:GetFuel() >= kExoRepairMinFuel and not self.repairActive and self.lastActivatedRepair + 1 < Shared.GetTime() then
             self:SetFuel(self:GetFuel())
@@ -1994,7 +1998,7 @@ function Exo:UpdateRepairs(input)
         end
     end
     
-    if self.repairActive and (self:GetFuel() == 0 or not buttonPressed or not repairDesired) then
+    if self.repairActive and (self:GetFuel() == 0 or bit_band(input.commands, Move.MovementModifier) == 0 or not repairDesired) then
         self:SetFuel(self:GetFuel())
         self.repairActive = false
     end

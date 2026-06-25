@@ -103,7 +103,7 @@ kWelderDropCost = 2
 
 kPulseGrenadeDamageRadius = 4
 kPulseGrenadeEnergyDamageRadius = 6
-kPulseGrenadeDamage = 10
+kPulseGrenadeDamage = 15
 kPulseGrenadeEnergyDamage = 0
 kPulseGrenadeDamageType = kDamageType.Normal
 kPulseDOTDamage = 5 -- DOT applied after direct damage (20 total) - DISABLED
@@ -124,7 +124,7 @@ kNerveGasCloudRadius = 7
 
 kJetpackCost = 15
 kJetpackDropCost = 15
-kJetpackTechResearchCost = 25
+kJetpackTechResearchCost = 20
 kJetpackFuelTechResearchCost = 15
 kJetpackArmorTechResearchCost = 15
 
@@ -952,7 +952,7 @@ kTimeBetweenBabblerBombShots = 1.15
 kBabblerBombEnergyCost = 20
 kBabblerBombVelocity = 15
 kMaxNumBomblers = 6
-kBomblerLifeTime = 5
+kBomblerLifeTime = 10
 kBabblerBombResearchTime = kBileBombResearchTime
 kBabblerBombResearchCost = 15
 
@@ -1002,7 +1002,7 @@ kExosuitDeployDuration = 1.4
 kExoFuelRechargeRate = 5
 kExoThrusterMinFuel = 0.25 -- Energy Min
 kExoThrusterFuelUsageRate = 4 --Energy Cost/s
-kExoThrusterStartFuelUsage = 0.1
+kExoThrusterStartFuelUsage = 0.125
 
 -- Exo-Nanoshield (depreciated)
 kExoNanoShieldMinFuel = 0.99 -- Energy Min
@@ -1056,7 +1056,7 @@ kPlasmaHitBoxRadiusT1 = 0.10
 kPlasmaLauncherEnergyUpRate = 0.25
 kPlasmaDamageType = kDamageType.Normal 
 
-kPlasmaLauncherWeight = 0.125
+kPlasmaLauncherWeight = 0.16
 
 -- Blowtorch (depreciated)
 kExoFlamerWeight = 0.05
@@ -1086,7 +1086,7 @@ kEjectionSeatWeight = 0.025
 
 -- Armor values
 kBaseExoArmor = 170
-kClawArmor = 75
+kClawArmor = 115
 kMinigunArmor = 75
 kRailgunArmor = 25
 kPlasmaLauncherArmor = 50

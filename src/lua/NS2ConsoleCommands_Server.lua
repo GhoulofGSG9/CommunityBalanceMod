@@ -1386,6 +1386,32 @@ local function OnCommandChangeGCSettingServer(client, settingName, newValue)
     
 end
 
+local function OnCommandGCCount(client)
+
+    if client ~= nil and Shared.GetCheatsEnabled() then
+        local player = client:GetControllingPlayer()
+        if player then
+            local c = string.format("collectgarbage(count): %s", collectgarbage("count"))
+            Shared.Message(c)
+        end
+    end
+
+end
+
+local function OnCommandGCCollect(client)
+
+    if client ~= nil and Shared.GetCheatsEnabled() then
+        local player = client:GetControllingPlayer()
+        if player then
+            OnCommandGCCount(client)
+            local c = string.format("collectgarbage(collect): %s", collectgarbage("collect"))
+            Shared.Message(c)
+            OnCommandGCCount(client)
+        end
+    end
+
+end
+
 local function OnCommandEject(client)
 
     if Shared.GetCheatsEnabled() then
@@ -2018,6 +2044,10 @@ Event.Hook("Console_devtrace", OnCommandDevTrace)
 
 -- GC commands
 Event.Hook("Console_changegcsettingserver", OnCommandChangeGCSettingServer)
+--collectgarbage("collect") − Runs one complete cycle of garbage collection.
+--collectgarbage("count") − Returns the amount of memory currently used by the program in Kilobytes.
+Event.Hook("Console_gccollect", OnCommandGCCollect)
+Event.Hook("Console_gccount", OnCommandGCCount)
 
 -- NS2 game mode console commands
 Event.Hook("Console_jointeamone", OnCommandJoinTeamOne)

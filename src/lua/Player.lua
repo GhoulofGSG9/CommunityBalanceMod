@@ -201,6 +201,20 @@ local kPlayerRepelForce = 7
 -- Max amount of step allowed
 Player.kMaxStepAmount = 2
 
+local kWeaponMask = bit.bor(Move.Reload, Move.SelectNextWeapon, Move.SelectPrevWeapon, Move.Weapon1, Move.Weapon2, Move.Weapon3, Move.Weapon4, Move.Weapon5, Move.QuickSwitch)
+local kMaskIsPlayerAttacking = bit.bor(Move.PrimaryAttack, Move.SecondaryAttack, Move.TertiaryAttack)
+local kMaskBNotIsPlayerAttacking = bit.bnot(kMaskIsPlayerAttacking)
+
+local kWeaponAndAttackMasks = bit.bor(kWeaponMask, kMaskIsPlayerAttacking)
+
+local kMaskTurnedOffInputs = bit.bnot(bit.bor(Move.Use, Move.Buy, Move.Jump,
+            Move.PrimaryAttack, Move.SecondaryAttack,
+            Move.SelectNextWeapon, Move.SelectPrevWeapon, Move.Reload,
+            Move.Taunt, Move.Weapon1, Move.Weapon2,
+            Move.Weapon3, Move.Weapon4, Move.Weapon5,
+            Move.Crouch, Move.Drop, Move.MovementModifier,
+            Move.TertiaryAttack, Move.QuickSwitch))
+
 -------------
 -- NETWORK --
 -------------
@@ -476,6 +490,7 @@ function Player:OnInitialized()
         }, true)
     end
 
+    self.countDownActive = nil
     -- TODO: MOVE TO ONCREATE
     self.communicationStatus = kPlayerCommunicationStatus.None
 
@@ -599,7 +614,7 @@ function Player:OverrideInput(input)
 
         -- Don't allow weapon firing
         local removePrimaryAttackMask = bit.bxor(0xFFFFFFFF, Move.PrimaryAttack)
-        input.commands = bit.band(input.commands, removePrimaryAttackMask)
+        input.commands = bit_band(input.commands, removePrimaryAttackMask)
 
     end
 
@@ -674,7 +689,10 @@ function Player:GetController()
 
 end
 
+--[[
 function Player:WeaponUpdate()
+
+    PROFILE("Player:WeaponUpdate")
 
     local weapon = self:GetActiveWeapon()
     if weapon and weapon.OnUpdateWeapon then
@@ -682,6 +700,7 @@ function Player:WeaponUpdate()
     end
 
 end
+--]]
 
 function Player:OnPrimaryAttack()
 end
@@ -1037,7 +1056,8 @@ function Player:GetIsPlaying()
 end
 
 function Player:GetIsOnPlayingTeam()
-    return self:GetTeamNumber() == kTeam1Index or self:GetTeamNumber() == kTeam2Index
+    local teamNumber = self:GetTeamNumber()
+    return teamNumber == kTeam1Index or teamNumber == kTeam2Index
 end
 
 function Player:GetTechAllowed(techId, techNode)
@@ -1512,7 +1532,8 @@ function Player:OnProcessMove(input)
     SetMoveForHitregAnalysis(input)
 
     local commands = input.commands
-    if self:GetIsAlive() then
+    local isAlive = self:GetIsAlive()
+    if isAlive then
 
         if self:GetCountdownActive() then
 
@@ -1533,10 +1554,10 @@ function Player:OnProcessMove(input)
 
     end
     
-    do
-        PROFILE("Player:OnProcessMove:OnUpdatePlayer")
+    --do
+        --PROFILE("Player:OnProcessMove:OnUpdatePlayer")
         self:OnUpdatePlayer(input.time)
-    end
+    --end
 
     ScriptActor.OnProcessMove(self, input)
 
@@ -1544,7 +1565,7 @@ function Player:OnProcessMove(input)
 
     UpdateAnimationInputs(self, input)
 
-    if self:GetIsAlive() then
+    if isAlive then
 
         local runningPrediction = Shared.GetIsRunningPrediction()
 
@@ -1646,13 +1667,16 @@ end
 
 function Player:UpdateMaxMoveSpeed(deltaTime)
 
-    ASSERT(deltaTime >= 0)
+    --ASSERT(deltaTime >= 0)
 
     -- Only recover max speed when on the ground
-    if HasMixin(self, "GroundMove") and self:GetIsOnGround() then
+    if self.GetIsOnGround and self:GetIsOnGround() then
 
-        local newSlow = math.max(0, self.slowAmount - deltaTime)
-        self.slowAmount = newSlow
+        local absDelta = self.slowAmount - deltaTime
+        if absDelta < 0 then
+            absDelta = -absDelta
+        end
+        self.slowAmount = absDelta
 
     end
 
@@ -1897,64 +1921,76 @@ function Player:GetFootstepSpeedScalar()
     return Clamp(self:GetVelocityLength() / self:GetMaxSpeed(), 0, 1)
 end
 
-function Player:HandleAttacks(input)
+function Player:HandleAttacks_calls(isPrimaryAttack, isSecondaryAttack, isTertiaryAttack)
+    if isPrimaryAttack then
+        self:PrimaryAttack()
+        self.primaryAttackLastFrame = true
+    else
+        if self.primaryAttackLastFrame then
+            self:PrimaryAttackEnd()
+            self.primaryAttackLastFrame = false
+        end
+    end
+
+    if isSecondaryAttack then
+        self:SecondaryAttack()
+        self.secondaryAttackLastFrame = true
+    else
+        if(self.secondaryAttackLastFrame ~= nil and self.secondaryAttackLastFrame) then
+            self:SecondaryAttackEnd()
+            self.secondaryAttackLastFrame = false
+        end
+    end
+
+    if isTertiaryAttack then
+        self:TertiaryAttack()
+        self.tertiaryAttackLastFrame = true
+    else
+        if(self.tertiaryAttackLastFrame ~= nil and self.tertiaryAttackLastFrame) then
+            self:TertiaryAttackEnd()
+            self.tertiaryAttackLastFrame = false
+        end
+    end
+end
+
+function Player:HandleAttacks_inputs(input)
 
     PROFILE("Player:HandleAttacks")
 
-    if not self:GetCanAttack() then
-        input.commands = bit.band(input.commands, bit.bnot(bit.bor(Move.PrimaryAttack, Move.SecondaryAttack, Move.TertiaryAttack)))
+    local isPrimaryAttack = false
+    local isSecondaryAttack = false
+    local isTertiaryAttack = false
+
+    local isPlayerAttacking = bit_band(input.commands, kMaskIsPlayerAttacking)
+    if isPlayerAttacking ~= 0 and not self:GetCanAttack() then
+        -- Removes the attack bits from the input command
+        input.commands = bit_band(input.commands, kMaskBNotIsPlayerAttacking)
     end
 
-    self:WeaponUpdate()
+    -- self:WeaponUpdate() -- Never called anywhere, just empty functions there
 
-
-    if (bit.band(input.commands, Move.PrimaryAttack) ~= 0) then
-
-        self:PrimaryAttack()
-
-    else
-
-        if self.primaryAttackLastFrame then
-
-            self:PrimaryAttackEnd()
-
+    if isPlayerAttacking ~= 0 then
+        local isSingleAttackKey = (isPlayerAttacking == Move.PrimaryAttack or isPlayerAttacking == Move.SecondaryAttack or isPlayerAttacking == Move.TertiaryAttack)
+        if isSingleAttackKey then
+            if isPlayerAttacking == Move.PrimaryAttack then
+                isPrimaryAttack = true
+            elseif isPlayerAttacking == Move.SecondaryAttack then
+                isSecondaryAttack = true
+            elseif isPlayerAttacking == Move.TertiaryAttack then
+                isTertiaryAttack = true
+            end
+        else -- If multiple key pressed, have to call the mask
+            isPrimaryAttack = bit_band(input.commands, Move.PrimaryAttack) ~= 0
+            isSecondaryAttack = bit_band(input.commands, Move.SecondaryAttack) ~= 0
+            isTertiaryAttack = bit_band(input.commands, Move.TertiaryAttack) ~= 0
         end
-
     end
+    return isPrimaryAttack, isSecondaryAttack, isTertiaryAttack
+end
 
-    if (bit.band(input.commands, Move.SecondaryAttack) ~= 0) then
-
-        self:SecondaryAttack()
-
-    else
-
-        if(self.secondaryAttackLastFrame ~= nil and self.secondaryAttackLastFrame) then
-
-            self:SecondaryAttackEnd()
-
-        end
-
-    end
-
-    if (bit.band(input.commands, Move.TertiaryAttack) ~= 0) then
-
-        self:TertiaryAttack()
-
-    else
-
-        if(self.tertiaryAttackLastFrame ~= nil and self.tertiaryAttackLastFrame) then
-
-            self:TertiaryAttackEnd()
-
-        end
-
-    end
-
-    -- Remember if we attacked so we don't call AttackEnd() until mouse button is released
-    self.primaryAttackLastFrame = (bit.band(input.commands, Move.PrimaryAttack) ~= 0)
-    self.secondaryAttackLastFrame = (bit.band(input.commands, Move.SecondaryAttack) ~= 0)
-    self.tertiaryAttackLastFrame = (bit.band(input.commands, Move.TertiaryAttack) ~= 0)
-
+function Player:HandleAttacks(input)
+    local isPrimaryAttack, isSecondaryAttack, isTertiaryAttack = self:HandleAttacks_inputs(input)
+    self:HandleAttacks_calls(isPrimaryAttack, isSecondaryAttack, isTertiaryAttack)
 end
 
 function Player:HandleDoubleTap(input)
@@ -2031,29 +2067,26 @@ function Player:GetIsAbleToUse()
     return self:GetIsAlive()
 end
 
+function Player:HandleButtons_noControl(input)
+    -- The following inputs are disabled when the player cannot control themself.
+    input.commands = bit_band(input.commands, kMaskTurnedOffInputs)
+
+    input.move.x = 0
+    input.move.y = 0
+    input.move.z = 0
+
+    self:HandleAttacks_calls() -- so that attacks will properly end.
+
+    return
+end
+
 function Player:HandleButtons(input)
 
     PROFILE("Player:HandleButtons")
 
-    if not self:GetCanControl() then
-
-        -- The following inputs are disabled when the player cannot control themself.
-        input.commands = bit.band(input.commands, bit.bnot(bit.bor(Move.Use, Move.Buy, Move.Jump,
-                Move.PrimaryAttack, Move.SecondaryAttack,
-                Move.SelectNextWeapon, Move.SelectPrevWeapon, Move.Reload,
-                Move.Taunt, Move.Weapon1, Move.Weapon2,
-                Move.Weapon3, Move.Weapon4, Move.Weapon5,
-                Move.Crouch, Move.Drop, Move.MovementModifier,
-                Move.TertiaryAttack, Move.QuickSwitch)))
-
-        input.move.x = 0
-        input.move.y = 0
-        input.move.z = 0
-
-        self:HandleAttacks(input) -- so that attacks will properly end.
-
+    if not self:GetCanControl() then -- if dead/spectating for instance
+        self:HandleButtons_noControl(input)
         return
-
     end
 
     if self.HandleButtonsMixin then
@@ -2063,9 +2096,8 @@ function Player:HandleButtons(input)
     self.moveButtonPressed = input.move:GetLength() ~= 0
 
     local ableToUse = self:GetIsAbleToUse()
-    local usePressed = ableToUse and bit.band(input.commands, Move.Use) ~= 0
+    local usePressed = ableToUse and bit_band(input.commands, Move.Use) ~= 0
     local attackLastFrame = self.primaryAttackLastFrame or self.secondaryAttackLastFrame or self.tertiaryAttackLastFrame
-    local alienSecondaryAttacking = self:isa("Alien") and self.secondaryAttackLastFrame
 
     -- The only use case so far for the 'use' key to be pressed while using primary/secondary attack is
     -- as a gorge when you heal yourself and want to press 'use' to hatch a babblerEgg, or an alien entering the hive.
@@ -2074,7 +2106,7 @@ function Player:HandleButtons(input)
     if usePressed then
 
         local isUsing = false
-        if (not attackLastFrame or alienSecondaryAttacking) then
+        if (not attackLastFrame or (self:isa("Alien") and self.secondaryAttackLastFrame)) then
             isUsing = AttemptToUse(self, input.time)
         end
         
@@ -2088,7 +2120,7 @@ function Player:HandleButtons(input)
 
         self.buyLastFrame = self.buyLastFrame or false
         -- Player is bringing up the buy menu (don't toggle it too quickly)
-        local buyButtonPressed = bit.band(input.commands, Move.Buy) ~= 0
+        local buyButtonPressed = bit_band(input.commands, Move.Buy) ~= 0
         if not self.buyLastFrame and buyButtonPressed and Shared.GetTime() > (self.timeLastMenu + 0.3) then
 
             self:Buy()
@@ -2100,46 +2132,47 @@ function Player:HandleButtons(input)
 
     end
 
+
+    -- If we do not reload/weap-mgnmt/attack, then leave immediatly (99% cases)
+    if bit_band(input.commands, kWeaponAndAttackMasks) == 0 then
+        self:HandleAttacks_calls() -- so that attacks will properly end.
+        return
+    end
+
+    --Log("Attack or weapon managementy")
+
+    -- TODO: Call that after the weapon mask, and wrap it so save one call
     self:HandleAttacks(input)
 
     -- self:HandleDoubleTap(input)
 
-    if bit.band(input.commands, Move.Reload) ~= 0 then
+    -- Only do one binary check for all, then one by one (cheaper than every time)
+    if bit_band(input.commands, kWeaponMask) == 0 then
+        return
+    end
+
+    if bit_band(input.commands, Move.Reload) ~= 0 then
         self:Reload()
     end
 
     -- Weapon switch
     if not self:GetIsCommander() and not self:GetIsUsing() then
 
-        if bit.band(input.commands, Move.SelectNextWeapon) ~= 0 then
+        if bit_band(input.commands, Move.SelectNextWeapon) ~= 0 then
             self:SelectNextWeapon()
-        end
-
-        if bit.band(input.commands, Move.SelectPrevWeapon) ~= 0 then
+        elseif bit_band(input.commands, Move.SelectPrevWeapon) ~= 0 then
             self:SelectPrevWeapon()
-        end
-
-        if bit.band(input.commands, Move.Weapon1) ~= 0 then
+        elseif bit_band(input.commands, Move.Weapon1) ~= 0 then
             self:SwitchWeapon(1)
-        end
-
-        if bit.band(input.commands, Move.Weapon2) ~= 0 then
+        elseif bit_band(input.commands, Move.Weapon2) ~= 0 then
             self:SwitchWeapon(2)
-        end
-
-        if bit.band(input.commands, Move.Weapon3) ~= 0 then
+        elseif bit_band(input.commands, Move.Weapon3) ~= 0 then
             self:SwitchWeapon(3)
-        end
-
-        if bit.band(input.commands, Move.Weapon4) ~= 0 then
+        elseif bit_band(input.commands, Move.Weapon4) ~= 0 then
             self:SwitchWeapon(4)
-        end
-
-        if bit.band(input.commands, Move.Weapon5) ~= 0 then
+        elseif bit_band(input.commands, Move.Weapon5) ~= 0 then
             self:SwitchWeapon(5)
-        end
-
-        if bit.band(input.commands, Move.QuickSwitch) ~= 0 then
+        elseif bit_band(input.commands, Move.QuickSwitch) ~= 0 then
             self:QuickSwitchWeapon()
         end
 
@@ -2404,13 +2437,28 @@ function Player:GetGameStarted()
     return gameInfoEnt:GetGameStarted()
 end
 
+-- Called below to prevent player from moving if it is countdown, and from the client
 function Player:GetCountdownActive()
+
+    --PROFILE("Player:GetCountdownActive")
+
+    if self.countDownActive == false then
+        return false
+    end
+
     local gameInfoEnt = GetGameInfoEntity()
     if not gameInfoEnt then
         return false
     end
 
-    return self:GetIsOnPlayingTeam() and gameInfoEnt:GetCountdownActive()
+    local isActive = gameInfoEnt:GetCountdownActive()
+    if not isActive and self:GetGameStarted() then
+        -- Countdown doesn't happen after, no need to refetch entity
+        self.countDownActive = false
+    end
+
+    -- Countdown is only relevant for player, not RR or specs
+    return isActive and self:GetIsOnPlayingTeam()
 end
 
 function Player:Drop(weapon, ignoreDropTimeLimit)

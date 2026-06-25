@@ -78,18 +78,26 @@ function MapBlip:OnCreate()
 end
 
 
-
-function MapBlip:UpdateRelevancy()
+local kMaskRelevantToBothTeam = bit.bor(kRelevantToTeam1, kRelevantToTeam2)
+function MapBlip:UpdateRelevancy(owner)
 
     self:SetRelevancyDistance(Math.infinity)
     
     local mask = 0
+    local isSighted = false
 
-    if self.mapBlipTeam == kTeam1Index or self.mapBlipTeam == kTeamInvalid or self:GetIsSighted() then
-        mask = bit.bor(mask, kRelevantToTeam1)
+    if (self.mapBlipTeam ~= kTeamInvalid) then
+        isSighted = self:GetIsSighted(owner)
     end
-    if self.mapBlipTeam == kTeam2Index or self.mapBlipTeam == kTeamInvalid or self:GetIsSighted() then
-        mask = bit.bor(mask, kRelevantToTeam2)
+
+    if (self.mapBlipTeam == kTeamInvalid or isSighted) then
+        mask = kMaskRelevantToBothTeam
+    else
+        if (self.mapBlipTeam == kTeam2Index) then
+            mask = kRelevantToTeam2
+        elseif (self.mapBlipTeam == kTeam1Index) then
+            mask = kRelevantToTeam1
+        end
     end
     
     self:SetExcludeRelevancyMask( mask )
@@ -133,9 +141,9 @@ function MapBlip:GetIsActive()
     return self.active
 end
 
-function MapBlip:GetIsSighted()
+function MapBlip:GetIsSighted(owner)
 
-    local owner = Shared.GetEntity(self.ownerEntityId)
+    owner = owner or Shared.GetEntity(self.ownerEntityId)
     
     if owner then
     
@@ -160,18 +168,31 @@ function MapBlip:GetIsParasited()
 end
 
 -- Called (server side) when a mapblips owner has changed its map-blip dependent state
-function MapBlip:Update()
+local math_atan2 = math.atan2
+function MapBlip:Update(owner)
     PROFILE("MapBlip:Update")
 
-    local owner = self.ownerEntityId and Shared.GetEntity(self.ownerEntityId)
+    local isFirstUpdate = false
+    if not (owner and owner:GetId() == self.ownerEntityId) then
+        owner = self.ownerEntityId and Shared.GetEntity(self.ownerEntityId)
+        isFirstUpdate = true
+    end
+
     if owner then
         
+        -- Anything that has those can potentially move
+        local isPlayer = owner:isa("Player")
         local fowardNormal = owner:GetCoords().zAxis
-        -- Don't rotate power nodes
-        local yaw = ConditionalValue(owner:isa("PowerPoint") or owner:isa("Hive"), 0, math.atan2(fowardNormal.x, fowardNormal.z))
+        local yaw = 0
+
+        if isPlayer then
+            yaw = math.atan2(fowardNormal.x, fowardNormal.z)
+        else
+            yaw = ConditionalValue(owner:isa("PowerPoint") or owner:isa("Hive"), 0, math.atan2(fowardNormal.x, fowardNormal.z))
+        end
         
         self:SetAngles(Angles(0, yaw, 0))
-        
+
         local origin
         if owner.GetPositionForMinimap then
             origin = owner:GetPositionForMinimap()
@@ -182,10 +203,10 @@ function MapBlip:Update()
         if origin then
         
             -- always use zero y-origin (for now, if you want to use it for long-range hivesight, add it back
-            self:SetOrigin(Vector(origin.x, 0, origin.z))      
+            self:SetOrigin(Vector(origin.x, 0, origin.z))
             
-            self:UpdateRelevancy()
-            
+            self:UpdateRelevancy(owner)
+
             if HasMixin(owner, "MapBlip") then
             
                 local success, blipType, blipTeam, isInCombat, isParasited = owner:GetMapBlipInfo()
@@ -197,7 +218,7 @@ function MapBlip:Update()
                 
             end 
             
-            if owner:isa("Player") then
+            if isPlayer then
                 self.clientIndex = owner:GetClientIndex()
                 self.isSteamFriend = nil
             end 

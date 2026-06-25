@@ -115,8 +115,10 @@ function Weapon:OnParentChanged(oldParent, newParent)
 
 end
 
+--[[
 function Weapon:OnUpdateWeapon()
 end
+--]]
 
 function Weapon:UpdateWeaponSkins(client)
 end
@@ -155,7 +157,7 @@ function Weapon:GetSprintAllowed()
 end
 
 function Weapon:GetTryingToFire(input)
-    return (bit.band(input.commands, Move.PrimaryAttack) ~= 0) or ((bit.band(input.commands, Move.SecondaryAttack) ~= 0) and self:GetHasSecondary(self:GetParent()))
+    return (bit_band(input.commands, Move.PrimaryAttack) ~= 0) or ((bit_band(input.commands, Move.SecondaryAttack) ~= 0) and self:GetHasSecondary(self:GetParent()))
 end
 
 function Weapon:GetPrimaryAttackRequiresPress()

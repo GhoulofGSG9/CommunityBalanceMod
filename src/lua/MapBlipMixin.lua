@@ -45,7 +45,7 @@ local function MapBlipMixinOnUpdateServer()
         local entity = Shared.GetEntity(entityId)
         local mapBlip = entity and entity.mapBlipId and Shared.GetEntity(entity.mapBlipId)
         if mapBlip then
-            mapBlip:Update()
+            mapBlip:Update(entity) -- Pass the owner, so we do not refetch it
         end
 
     end
@@ -82,6 +82,9 @@ function MapBlipMixin:__initmixin()
     
     assert(Server)
 
+    self.lastBlipOrigin = Vector(0,0,0)
+    self.lastBlipAngleYaw = 0
+
     -- Check if the new entity should have a map blip to represent it.
     local success, blipType, blipTeam, isInCombat = self:GetMapBlipInfo()
     if success then
@@ -97,15 +100,33 @@ end
 --
 -- Intercept the functions that changes the state the mapblip depends on
 --
-function MapBlipMixin:SetOrigin()
-    mapBlipMixinDirtyTable:Insert(self:GetId())
+function MapBlipMixin:SetOrigin(orig)
+    if self.lastBlipOrigin and self.lastBlipOrigin ~= orig then
+        mapBlipMixinDirtyTable:Insert(self:GetId())
+        self.lastBlipOrigin = orig
+    --else
+    --    Log("%s Marking dirty even if we set same orig", self)
+    end
 end
 
-function MapBlipMixin:SetAngles()
-    mapBlipMixinDirtyTable:Insert(self:GetId())
+ -- How much degree we must be off to update map blip (in case we stand still, otherwise SetOrigin will catch up)
+local kMinYawDelta = Math.Radians(6)
+function MapBlipMixin:SetAngles(angles)
+    if self.lastBlipAngleYaw ~= nil then
+        local currentYaw = angles.yaw
+        local lastYaw = self.lastBlipAngleYaw
+
+        -- Minimap blips, only look for left/right
+        local diff = currentYaw - lastYaw
+        local absDiff = diff < 0 and -diff or diff
+        if currentYaw ~= lastYaw and absDiff >= kMinYawDelta then --currentYaw ~= lastYaw then
+            mapBlipMixinDirtyTable:Insert(self:GetId())
+            self.lastBlipAngleYaw = currentYaw
+        end
+    end
 end
 
-function MapBlipMixin:SetCoords()
+function MapBlipMixin:SetCoords(coords)
     mapBlipMixinDirtyTable:Insert(self:GetId())
 end
 

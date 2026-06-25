@@ -174,10 +174,10 @@ kSurfaces = enum(kSurfaceList)
 
 -- a longer surface list, for hiteffects only (used by hiteffects network message, don't remove any values)
 kHitEffectSurface = enum( { "metal", "door", "electronic", "organic", "rock", "thin_metal", "membrane", "armor", "flesh", "flame", "infestation", "glass", "ethereal", "flame", "hallucination", "umbra", "nanoshield", "robot" } )
-kHitEffectRelevancyDistance = 40
+kHitEffectRelevancyDistance = 18 -- From impact point
 kHitEffectMaxPosition = 1638 -- used for precision in hiteffect message
 kTracerSpeed = 115
-kMaxHitEffectsPerSecond = 25
+kMaxHitEffectsPerSecond = 20
 
 kPlayerStatus = enum( { "Hidden", "Dead", "Evolving", "Embryo", "Commander", "Exo", "GrenadeLauncher", "Rifle", "HeavyMachineGun", "Shotgun", "Flamethrower", "Void", "Spectator", "Skulk", "Gorge", "Fade", "Lerk", "Onos", "SkulkEgg", "GorgeEgg", "FadeEgg", "LerkEgg", "OnosEgg", "Submachinegun" } )
 kPlayerCommunicationStatus = enum( {'None', 'Voice', 'Typing', 'Menu'} )

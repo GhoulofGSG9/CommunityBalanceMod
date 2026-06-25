@@ -277,22 +277,22 @@ function GUIAlienHUD:SetIsVisible(isVisible)
     local usingCustomHudBars = self.cachedHudBarsOption > 0
 
     self.visible = isVisible
-
-    self.healthBall:SetIsVisible(isVisible)
-    self.armorBall:SetIsVisible(isVisible and not usingCustomHudBars)
-    self.babblerIndicationFrame:SetIsVisible(isVisible)
-
     local hasShield = PlayerUI_GetHasMucousShield()
-    self.mucousBall:SetIsVisible(hasShield and isVisible and not usingCustomHudBars) -- Only show mucous ring on default hudbars.
 
-    self.energyBall:SetIsVisible(isVisible)
-    self.resourceBackground:SetIsVisible(isVisible)
+    GUI_SetIsVisible(self.healthBall, isVisible)
+    GUI_SetIsVisible(self.armorBall, isVisible and not usingCustomHudBars)
+    GUI_SetIsVisible(self.babblerIndicationFrame, isVisible)
+
+    GUI_SetIsVisible(self.mucousBall, hasShield and isVisible and not usingCustomHudBars) -- Only show mucous ring on default hudbars.
+
+    GUI_SetIsVisible(self.energyBall, isVisible)
+    GUI_SetIsVisible(self.resourceBackground, isVisible)
 
     if usingCustomHudBars then
-        self.healthBall.leftSide:SetIsVisible(false)
-        self.healthBall.rightSide:SetIsVisible(false)
-        self.energyBall.leftSide:SetIsVisible(false)
-        self.energyBall.rightSide:SetIsVisible(false)
+        GUI_SetIsVisible(self.healthBall.leftSide, false)
+        GUI_SetIsVisible(self.healthBall.rightSide, false)
+        GUI_SetIsVisible(self.energyBall.leftSide, false)
+        GUI_SetIsVisible(self.energyBall.rightSide, false)
     end
 
     if isVisible then
@@ -327,14 +327,14 @@ function GUIAlienHUD:Reset()
     self.gameTime:SetPosition(Vector(Client.GetScreenWidth() - GUIScale(20), GUIScale(400 - ns1HudbarsHeightOffset), 0))
     GUIMakeFontScale(self.gameTime)
 
-    self.gameTime:SetIsVisible(not minimal)
+    GUI_SetIsVisible(self.gameTime, not minimal)
 
     self.teamResText:SetScale(GetScaledVector())
     self.teamResText:SetTextAlignmentX(GUIItem.Align_Max)
     self.teamResText:SetPosition(Vector(-20, 375, 0))
     GUIMakeFontScale(self.teamResText)
 
-    self.teamResText:SetIsVisible(minimal)
+    GUI_SetIsVisible(self.teamResText, minimal)
 
 end
 
@@ -672,11 +672,15 @@ function GUIAlienHUD:Uninitialize()
     
 end
 
-local function UpdateHealthBall(self, deltaTime)
+local function UpdateHealthBall(self, deltaTime, player)
 
     PROFILE("GUIAlienHUD:UpdateHealthBall")
     
-    local healthBarPercentageGoal = PlayerUI_GetPlayerHealth() / PlayerUI_GetPlayerMaxHealth()
+    local health = PlayerUI_GetPlayerHealth()
+    local maxHealth = PlayerUI_GetPlayerMaxHealth()
+    local armor = PlayerUI_GetPlayerArmor()
+    local maxArmor = PlayerUI_GetPlayerMaxArmor()
+    local healthBarPercentageGoal = health / maxHealth
 
     if GUIAlienHUD.kInstantAlienHealthBall then
         self.healthBarPercentage = healthBarPercentageGoal
@@ -684,14 +688,14 @@ local function UpdateHealthBall(self, deltaTime)
         self.healthBarPercentage = Slerp(self.healthBarPercentage, healthBarPercentageGoal, deltaTime * kBarMoveRate)
     end
     
-    local maxArmor = PlayerUI_GetPlayerMaxArmor()
+    
     local armorBarPercentageGoal = 1
     
     if maxArmor == 0 then
         armorBarPercentageGoal = 0
         self.armorBarPercentage = 0
     else
-        armorBarPercentageGoal = PlayerUI_GetPlayerArmor() / maxArmor
+        armorBarPercentageGoal = armor / maxArmor
 
         if GUIAlienHUD.kInstantAlienHealthBall then
             self.armorBarPercentage = armorBarPercentageGoal
@@ -702,7 +706,7 @@ local function UpdateHealthBall(self, deltaTime)
     
     -- don't use more than 60% for armor in case armor value is bigger than health
     -- for skulk use 10 / 70 = 14% as armor and 86% as health
-    local armorUseFraction = Clamp( PlayerUI_GetPlayerMaxArmor() / PlayerUI_GetPlayerMaxHealth(), 0, 0.6)
+    local armorUseFraction = Clamp( maxArmor / maxHealth, 0, 0.6)
     local healthUseFraction = 1 - armorUseFraction
     
     -- set global rotation to snap to the health ring
@@ -714,8 +718,7 @@ local function UpdateHealthBall(self, deltaTime)
     -- It's probably better to do a math.ceil for display health instead of floor, but NS1 did it this way
     -- and I want to make sure the values are exactly the same to avoid confusion right now. When you are
     -- barely alive though, show 1 health.
-    local health = PlayerUI_GetPlayerHealth()
-    
+
     local displayHealth = math.floor(health)
     if health > 0 and displayHealth == 0 then
         displayHealth = 1
@@ -723,7 +726,7 @@ local function UpdateHealthBall(self, deltaTime)
     self.healthText:SetText(tostring(displayHealth))
     self.healthBall:Update(deltaTime)
 
-    self.armorText:SetText(tostring(math.floor(PlayerUI_GetPlayerArmor())))
+    self.armorText:SetText(tostring(math.floor(armor)))
     self.armorBall:Update(deltaTime)
 
     local updated = healthBarPercentageGoal ~= self.healthBarPercentage or armorBarPercentageGoal ~= self.armorBarPercentage
@@ -735,24 +738,26 @@ local function UpdateHealthBall(self, deltaTime)
     end
     
     self:UpdateFading(self.healthBall:GetBackground(), self.healthBarPercentage * self.armorBarPercentage, deltaTime)
-    self.armorBall:GetLeftSide():SetIsVisible(self.healthBall:GetBackground():GetIsVisible() and self.visible)
-    self.armorBall:GetRightSide():SetIsVisible(self.healthBall:GetBackground():GetIsVisible() and self.visible)
+    GUI_SetIsVisible(self.armorBall:GetLeftSide(), self.healthBall:GetBackground():GetIsVisible() and self.visible)
+    GUI_SetIsVisible(self.armorBall:GetRightSide(), self.healthBall:GetBackground():GetIsVisible() and self.visible)
 
 end
 
-local function UpdateMucousBall(self, deltaTime)
-    local shieldFraction = PlayerUI_GetMucousShieldFraction()
+local function UpdateMucousBall(self, deltaTime, player)
+    
     local hasShield = PlayerUI_GetHasMucousShield()
     local shouldShow = hasShield and self.visible and self.cachedHudBarsOption == 0
     local hasMucous = false -- specifically mucous, the PlayerUI_GetHasMucousShield call includes babblers, vamp, etc
-    local player = Client.GetLocalPlayer()
+
     hasMucous = player and player.GetHasMucousShield and player:GetHasMucousShield()
 
-    self.mucousBallPercentage = Slerp(self.mucousBallPercentage, shieldFraction, deltaTime * kBarMoveRate)
-    self.mucousBall:SetIsVisible(shouldShow)
-    self.mucousBall:SetTextureCoordinatesFromSettings(hasMucous and kMucousBallSettings or kMucousBallNoMucousSettings)
-    self.mucousBall:SetPercentage(self.mucousBallPercentage)
-    self.mucousBall:Update(deltaTime)
+    if GUI_SetIsVisible(self.mucousBall, shouldShow) then
+        local shieldFraction = PlayerUI_GetMucousShieldFraction()
+        self.mucousBall:SetTextureCoordinatesFromSettings(hasMucous and kMucousBallSettings or kMucousBallNoMucousSettings)
+        self.mucousBallPercentage = Slerp(self.mucousBallPercentage, shieldFraction, deltaTime * kBarMoveRate)
+        self.mucousBall:SetPercentage(self.mucousBallPercentage)
+        self.mucousBall:Update(deltaTime)
+    end
 
     local updated = shieldFraction ~= self.mucousBallPercentage
 
@@ -762,9 +767,11 @@ local function UpdateMucousBall(self, deltaTime)
         self.updateInterval = kUpdateIntervalFull
     end
 
-    local displayMuscuousHP = PlayerUI_GetMucousShieldHP()
-    self.mucousText:SetText(tostring(displayMuscuousHP))
-    self.mucousText:SetIsVisible(hasShield)
+    if (hasShield) then
+        local displayMuscuousHP = PlayerUI_GetMucousShieldHP()
+        self.mucousText:SetText(tostring(displayMuscuousHP))
+    end
+    GUI_SetIsVisible(self.mucousText, hasShield)
 end
 
 local gEnergizeColors
@@ -784,7 +791,7 @@ local function GetEnergizeColor(energizeLevel)
 end
 
 local lastEnergy = 0
-local function UpdateEnergyBall(self, deltaTime)
+local function UpdateEnergyBall(self, deltaTime, player)
 
     PROFILE("GUIAlienHUD:UpdateEnergyBall")
     
@@ -798,7 +805,7 @@ local function UpdateEnergyBall(self, deltaTime)
     self.energyBall:Update(deltaTime)
 
     --self:UpdateFading(self.energyBall:GetBackground(), energy / totalMaxEnergy, deltaTime)
-    self:UpdateAbilities(deltaTime)
+    self:UpdateAbilities(deltaTime, player)
     
     local hasMovementSpecial = AlienUI_GetHasMovementSpecial()
     if hasMovementSpecial then
@@ -809,22 +816,22 @@ local function UpdateEnergyBall(self, deltaTime)
             local energyCost = AlienUI_GetMovementSpecialEnergyCost()
             local msFraction = 1-AlienUI_GetMovementSpecialCooldown()
             local color = msFraction < 1 and Color(0.2, 0.2, 0.2, 1) 
-              or PlayerUI_GetPlayerEnergy() >= energyCost and Color(kMovementSpecialColor)
+              or energy >= energyCost and Color(kMovementSpecialColor)
               or Color(1, 0, 0, 1)
 
             local x1, y1, x2, y2 = GUIUnpackCoords(GetTextureCoordinatesForIcon(techId))
             self.movementSpecialIcon:SetTexturePixelCoordinates(x1, y2, x2, y2-(y2-y1)*msFraction)
             self.movementSpecialIcon:SetSize(Vector(kMovementSpecialIconSize, -kMovementSpecialIconSize*msFraction, 0))
             self.movementSpecialIconBg:SetTexturePixelCoordinates(x1, y1, x2, y2)
-            self.movementSpecialIconBg:SetIsVisible(true)
-            self.movementSpecialIcon:SetIsVisible(true)
+            GUI_SetIsVisible(self.movementSpecialIconBg, true)
+            GUI_SetIsVisible(self.movementSpecialIcon, true)
             self.movementSpecialIcon:SetColor(color)
             
         end
         
     else
-        self.movementSpecialIcon:SetIsVisible(false)
-        self.movementSpecialIconBg:SetIsVisible(false)
+        GUI_SetIsVisible(self.movementSpecialIcon, false)
+        GUI_SetIsVisible(self.movementSpecialIconBg, false)
     end    
     
     -- Same as with the healthbar, but this runs after it
@@ -848,7 +855,7 @@ local function UpdateNotifications(self, deltaTime)
     
 end
 
-local function UpdateBabblerIndication(self, deltaTime)
+local function UpdateBabblerIndication(self, deltaTime, player)
     
     local numBabblers = PlayerUI_GetNumBabblers()
     local numBabblersClinged = PlayerUI_GetNumClingedBabblers()
@@ -909,12 +916,14 @@ local function UpdateBabblerIndication(self, deltaTime)
 
 end
 
+local kTimeLastStatusDisplay = 0
 function GUIAlienHUD:Update(deltaTime)
 
     PROFILE("GUIAlienHUD:Update")
 
     local newHudMode = Client.GetHudDetail()
     local fullMode = newHudMode == kHUDMode.Full
+    local player = Client.GetLocalPlayer()
 
     if self.cachedHudDetail ~= newHudMode then
 
@@ -938,32 +947,43 @@ function GUIAlienHUD:Update(deltaTime)
     
     self.inventoryDisplay:Update(deltaTime, { PlayerUI_GetActiveWeaponTechId(), PlayerUI_GetInventoryTechIds() })
 
-    -- Update player status icons
-    local playerStatusIcons = {
-        Detected = PlayerUI_GetIsDetected(),
-        Enzymed = PlayerUI_GetIsEnzymed(),
-        Stormed = PlayerUI_GetIsStormed(),
-        MucousedState = PlayerUI_GetPlayerMucousShieldState(),
-        MucousedTime = PlayerUI_GetMucousShieldTimeRemaining(),
-        Cloaked = PlayerUI_GetIsCloaked(),
-        OnFire = PlayerUI_GetIsOnFire(),
-        Electrified = PlayerUI_GetIsElectrified(),
-        WallWalking = PlayerUI_GetIsWallWalking(),
-        Umbra = PlayerUI_GetHasUmbra(),
-		Douse = PlayerUI_GetHasDouse(),
-        Energize = PlayerUI_GetEnergizeLevel(),
-        CragRange = PlayerUI_WithinCragRange(),
-        NerveGas = PlayerUI_InGasGrenadeCloud(),
-    }
+    local playerStatusIcons = self.kLastPlayerStatusIcons
 
+    if not playerStatusIcons or Shared.GetTime() > kTimeLastStatusDisplay + 0.2 then
+        -- Update player status icons
+
+        playerStatusIcons = {
+                Detected = false,
+                Enzymed = PlayerUI_GetIsEnzymed(),
+                Stormed = PlayerUI_GetIsStormed(),
+                MucousedState = PlayerUI_GetPlayerMucousShieldState(),
+                MucousedTime = 0,
+                Cloaked = false,
+                OnFire = PlayerUI_GetIsOnFire(),
+                Electrified = PlayerUI_GetIsElectrified(),
+                WallWalking = PlayerUI_GetIsWallWalking(),
+                Umbra = PlayerUI_GetHasUmbra(),
+                Douse = PlayerUI_GetHasDouse(),
+                Energize = PlayerUI_GetEnergizeLevel(),
+                CragRange = PlayerUI_WithinCragRange(),
+                NerveGas = PlayerUI_InGasGrenadeCloud(),
+            }
+        self.kLastPlayerStatusIcons = playerStatusIcons
+
+        kTimeLastStatusDisplay = Shared.GetTime()
+    end
+
+    playerStatusIcons.Cloaked = PlayerUI_GetIsCloaked()
+    playerStatusIcons.Detected = PlayerUI_GetIsDetected()
+    playerStatusIcons.MucousedTime = PlayerUI_GetMucousShieldTimeRemaining()
     self.statusDisplays:Update(deltaTime, playerStatusIcons, fullMode)
 
     -- The resource display was modifying the update interval for the script, so this block will run last
     -- This way we can also update the display rate in case it's set to low after an animation finishes
-    UpdateHealthBall(self, deltaTime)
-    UpdateEnergyBall(self, deltaTime)
-    UpdateBabblerIndication(self, deltaTime)
-    UpdateMucousBall(self, deltaTime)
+    UpdateHealthBall(self, deltaTime, player)
+    UpdateEnergyBall(self, deltaTime, player)
+    UpdateBabblerIndication(self, deltaTime, player)
+    UpdateMucousBall(self, deltaTime, player)
 
     if self.gameTime:GetIsVisible() then
         self.gameTime:SetText(PlayerUI_GetGameTimeString())
@@ -975,12 +995,16 @@ function GUIAlienHUD:Update(deltaTime)
     
 end
 
-function GUIAlienHUD:UpdateAbilities(deltaTime)
+function GUIAlienHUD:UpdateAbilities(deltaTime, player)
 
     local activeHudSlot = 0
     
     local abilityData = PlayerUI_GetAbilityData()
     local currentIndex = 1
+
+    local player = player or Client.GetLocalPlayer()
+    local playerIsaGorge = player and player:isa("Gorge")
+    local gorgeActiveWeapon = playerIsaGorge and player:GetActiveWeapon()
     
     if table.icount(abilityData) > 0 then
     
@@ -994,16 +1018,17 @@ function GUIAlienHUD:UpdateAbilities(deltaTime)
         
         local x1, y1, x2, y2 = GetTexCoordsForTechId(techId)
         
-        self.activeAbilityIcon:SetIsVisible(true)
-        self.activeAbilityIcon:SetTexturePixelCoordinates(x1,y1,x2,y2)
+        if GUI_SetIsVisible(self.activeAbilityIcon, true) then
+            self.activeAbilityIcon:SetTexturePixelCoordinates(x1,y1,x2,y2)
+        end
         
         if cooldown > 0 then
             local offset = kInventoryIconTextureHeight * ( 0.925 - 0.925 * cooldown ) -- [1,0] -> [0, 0.95]
-            self.activeAbilityCooldownIcon:SetIsVisible(true)
             self.activeAbilityCooldownIcon:SetSize(Vector(GUIScale(kInventoryIconTextureWidth*0.75), GUIScale(( kInventoryIconTextureHeight - offset )*0.75), 0))
             self.activeAbilityCooldownIcon:SetTexturePixelCoordinates(x1,y1,x2,y2 - offset)
+            GUI_SetIsVisible(self.activeAbilityCooldownIcon, true)
         else 
-            self.activeAbilityCooldownIcon:SetIsVisible(false)
+            GUI_SetIsVisible(self.activeAbilityCooldownIcon, false)
         end
             
         
@@ -1024,14 +1049,14 @@ function GUIAlienHUD:UpdateAbilities(deltaTime)
         self.energyBall:GetRightSide():SetColor(setColor)
         
     else
-        self.activeAbilityIcon:SetIsVisible(false)
+        GUI_SetIsVisible(self.activeAbilityIcon, false)
     end
     
     -- The the player changed abilities, force show the energy ball and
     -- the inactive abilities bar.
     if activeHudSlot ~= self.lastActiveHudSlot then
     
-        self.energyBall:GetBackground():SetIsVisible(true)
+        GUI_SetIsVisible(self.energyBall:GetBackground(), true)
         self:ForceUnfade(self.energyBall:GetBackground())
         --[[
         for i, ability in ipairs(self.inactiveAbilityIconList) do
@@ -1043,11 +1068,10 @@ function GUIAlienHUD:UpdateAbilities(deltaTime)
     
     self.lastActiveHudSlot = activeHudSlot
 
-    local player = Client.GetLocalPlayer()
     local gorgeBuiltTextVisible = false
-    if player and player:isa("Gorge") and GUIGorgeBuildMenu then
+    if playerIsaGorge and GUIGorgeBuildMenu then
 
-        local activeWeapon = player:GetActiveWeapon()
+        local activeWeapon = gorgeActiveWeapon
         if activeWeapon and activeWeapon:isa("DropStructureAbility") then
 
             local structure = activeWeapon:GetActiveStructure()
@@ -1065,8 +1089,8 @@ function GUIAlienHUD:UpdateAbilities(deltaTime)
 
     end
 
-    self.gorgeBuiltText:SetIsVisible(gorgeBuiltTextVisible)
-    self.activeAbilityIcon:SetIsVisible(not gorgeBuiltTextVisible)
+    GUI_SetIsVisible(self.gorgeBuiltText, gorgeBuiltTextVisible)
+    GUI_SetIsVisible(self.activeAbilityIcon, not gorgeBuiltTextVisible)
     
     -- Secondary ability.
     abilityData = PlayerUI_GetSecondaryAbilityData()
@@ -1080,10 +1104,10 @@ function GUIAlienHUD:UpdateAbilities(deltaTime)
         local hudSlot = abilityData[currentIndex + 4]
 
         if techId ~= kTechId.None then        
-            self.secondaryAbilityBackground:SetIsVisible(self.visible)
+            GUI_SetIsVisible(self.secondaryAbilityBackground, self.visible)
             self.secondaryAbilityIcon:SetTexturePixelCoordinates(GetTexCoordsForTechId(techId))
         else
-            self.secondaryAbilityBackground:SetIsVisible(false)
+            GUI_SetIsVisible(self.secondaryAbilityBackground, false)
         end
         
         if totalPower < minimumPower then
@@ -1100,21 +1124,19 @@ function GUIAlienHUD:UpdateAbilities(deltaTime)
         end
         
     else
-        self.secondaryAbilityBackground:SetIsVisible(false)
+        GUI_SetIsVisible(self.secondaryAbilityBackground, false)
     end
     
     -- self:UpdateInactiveAbilities(deltaTime, activeHudSlot)
-    local player = Client.GetLocalPlayer()
     local showBabblerCharges = false
-
-    if player and player:isa("Gorge") then
-        local activeWeapon = player:GetActiveWeapon()
+    if playerIsaGorge then
+        local activeWeapon = gorgeActiveWeapon
         
         if activeWeapon and activeWeapon:isa("BabblerBombAbility") then
             local currentCharges = activeWeapon.GetCurrentCharges and activeWeapon:GetCurrentCharges() or 0
             local maxCharges = activeWeapon.GetMaxCharges and activeWeapon:GetMaxCharges() or 3
 
-            self.babblerBombChargesText:SetIsVisible(true)
+            GUI_SetIsVisible(self.babblerBombChargesText, true)
             self.babblerBombChargesText:SetText(string.format("%d / %d", currentCharges, maxCharges))
             self.babblerBombChargesText:SetColor(currentCharges > 0 and kAlienFontColor or kRed)
 
@@ -1123,7 +1145,7 @@ function GUIAlienHUD:UpdateAbilities(deltaTime)
     end
 
     if not showBabblerCharges then
-        self.babblerBombChargesText:SetIsVisible(false)
+        GUI_SetIsVisible(self.babblerBombChargesText, false)
     end
     
     
@@ -1138,7 +1160,7 @@ function GUIAlienHUD:UpdateInactiveAbilities(deltaTime, activeHudSlot)
     
     if numberAbilities > 0 then
     
-        self.inactiveAbilitiesBar:SetIsVisible(self.visible)
+        GUI_SetIsVisible(self.inactiveAbilitiesBar, self.visible)
         
         local totalAbilityCount = table.icount(self.inactiveAbilityIconList)
         local fixedOffset = (kInactiveAbilityBarOffset * GUIScale(1)) + Vector(GUIScale(kDistanceBetweenAbilities), 0, 0)
@@ -1150,7 +1172,7 @@ function GUIAlienHUD:UpdateInactiveAbilities(deltaTime, activeHudSlot)
         while currentAbilityIndex <= totalAbilityCount do
         
             local visible = currentAbilityIndex <= numberAbilities
-            self.inactiveAbilityIconList[currentAbilityIndex].Background:SetIsVisible(visible)
+            GUI_SetIsVisible(self.inactiveAbilityIconList[currentAbilityIndex].Background, visible)
             
             if visible then
             
@@ -1179,7 +1201,7 @@ function GUIAlienHUD:UpdateInactiveAbilities(deltaTime, activeHudSlot)
             
         end
     else
-        self.inactiveAbilitiesBar:SetIsVisible(false)
+        GUI_SetIsVisible(self.inactiveAbilitiesBar, false)
     end
     
 end
@@ -1222,8 +1244,9 @@ function GUIAlienHUD:UpdateFading(fadeItem, itemFillPercentage, deltaTime)
         
     else
     
-        fadeItem:SetIsVisible(self.visible)
-        fadeItem:SetColor(Color(1, 1, 1, 1))
+        if GUI_SetIsVisible(fadeItem, self.visible) then
+            fadeItem:SetColor(Color(1, 1, 1, 1))
+        end
         
     end
 

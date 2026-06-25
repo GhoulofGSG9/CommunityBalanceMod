@@ -203,7 +203,7 @@ function Lerk:GetHasFallAccel()
 end    
 
 function Lerk:GetCanStep()
-    return self:GetIsOnGround() and not self:GetIsWallGripping()
+    return false --self:GetIsOnGround() and not self:GetIsWallGripping()
 end
 
 function Lerk:ModifyGravityForce(gravityTable)
@@ -424,7 +424,7 @@ end
 
 local function UpdateFlap(self, input, velocity)
 
-    local flapPressed = bit.band(input.commands, Move.Jump) ~= 0
+    local flapPressed = bit_band(input.commands, Move.Jump) ~= 0
 
     if flapPressed ~= self.flapPressed then
 
@@ -502,10 +502,13 @@ local kSneakyGlideSlowRate = (kMaxSpeed - kMinGlideSpeed) / kSneakyGlideSpeedSlo
 local function UpdateGlide(self, input, velocity, deltaTime)
 
     -- more control when moving forward
-    local holdingGlide = bit.band(input.commands, Move.Jump) ~= 0 and self.glideAllowed
-    if input.move.z == 1 and holdingGlide then
+    if input.move.z == 1
+        and self.glideAllowed
+        and bit_band(input.commands, Move.Jump) ~= 0
+        then
 
-        local useSneakyGlide = bit.band(input.commands, Move.MovementModifier) ~= 0
+        local useSneakyGlide = bit_band(input.commands, Move.MovementModifier) ~= 0
+        
         if not self.wasHoldingGlide and useSneakyGlide then
             self.sneakGlideStartSpeed = velocity:GetLength()
             self.wasHoldingGlide = true
@@ -584,7 +587,7 @@ end
 -- jetpack and exo do the same, move to utility function
 local function UpdateAirStrafe(self, input, velocity, deltaTime)
 
-    if not self:GetIsOnGround() and not self.gliding then
+    if not self.gliding and not self:GetIsOnGround() and not self:GetIsWallGripping() then
 
         -- do XZ acceleration
         local wishDir = self:GetViewCoords():TransformVector(input.move)
@@ -633,9 +636,10 @@ function Lerk:PreUpdateMove(input, runningPrediction)
 
     PROFILE("Lerk:PreUpdateMove")
 
-    local wallGripPressed = bit.band(input.commands, Move.MovementModifier) ~= 0 and bit.band(input.commands, Move.Jump) == 0
-    
-    if not self:GetIsWallGripping() and wallGripPressed and self.wallGripAllowed then
+    if self.wallGripAllowed and not self:GetIsWallGripping()
+        and bit_band(input.commands, Move.MovementModifier) ~= 0
+        and bit_band(input.commands, Move.Jump) == 0
+        then
 
         -- check if we can grab anything around us
         local wallNormal = self:GetAverageWallWalkingNormal(Lerk.kWallGripRange, Lerk.kWallGripFeelerSize)
@@ -651,7 +655,8 @@ function Lerk:PreUpdateMove(input, runningPrediction)
     else
         
         -- we always abandon wall gripping if we flap (even if we are sliding to a halt)
-        local breakWallGrip = bit.band(input.commands, Move.Jump) ~= 0 or input.move:GetLength() > 0 or self:GetCrouching()
+        local hasPressedJump = bit_band(input.commands, Move.Jump) ~= 0
+        local breakWallGrip =  hasPressedJump or input.move:GetLength() > 0 or self:GetCrouching()
         
         if breakWallGrip then
         

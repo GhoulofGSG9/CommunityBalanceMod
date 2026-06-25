@@ -12,9 +12,6 @@ local kBabblerBombChargeAmount = 2
 local kBbombViewEffect = PrecacheAsset("cinematics/alien/gorge/bbomb_1p.cinematic")
 local kPheromoneTraceWidth = 0.3
 local networkVars = {
-
-    remainingCharges = "integer (0 to 2)",
-    lastChargeFilledTime = "time"
 }
 
 function BabblerBombAbility:OnCreate()
@@ -23,8 +20,6 @@ function BabblerBombAbility:OnCreate()
     self.timeLastBabblerBomb = 0
     self.remainingCharges = kBabblerBombChargeAmount
     self.lastChargeFilledTime = Shared.GetTime()
-    
-    self:SetUpdates(true)
 end
 
 
@@ -136,11 +131,13 @@ function BabblerBombAbility:GetPrimaryAttackAllowed()
     local player = self:GetParent()
     if not player then return false end
 
+    self:RechargeCharges()
     local isCooldownReady = Shared.GetTime() >= self.timeLastBabblerBomb + kTimeBetweenBabblerBombShots
     local hasEnoughEnergy = player:GetEnergy() >= self:GetEnergyCost(player)
     local hasCharges = self.remainingCharges > 0
 
-    return not player:GetIsBellySliding() and isCooldownReady and hasEnoughEnergy and hasCharges
+    local isPrimaryAllowed = not player:GetIsBellySliding() and isCooldownReady and hasEnoughEnergy and hasCharges
+    return isPrimaryAllowed
     
 end
 
@@ -181,7 +178,12 @@ function BabblerBombAbility:GetCooldownFraction()
     local rechargeInterval = self:GetRechargeInterval()
     local elapsed = now - self.lastChargeFilledTime
 
-    return 1 - Clamp(elapsed / rechargeInterval, 0, 1)
+    local fraction = 1 - Clamp(elapsed / rechargeInterval, 0, 1)
+
+    if (fraction == 0) then
+        self:RechargeCharges()
+    end
+    return fraction
 end
 
 Shared.LinkClassToMap("BabblerBombAbility", BabblerBombAbility.kMapName, networkVars)

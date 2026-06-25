@@ -178,6 +178,7 @@ local function UpdateProjectiles(self, input, predict)
     end
 
 end
+
 if Server then
     function PierceProjectileShooterMixin:OnProcessMove(input)
         UpdateProjectiles(self, input, false)
@@ -213,6 +214,16 @@ local function DestroyProjectiles(self)
         if projectile then
 
             projectile:SetPierceProjectileController(entry.Controller, true)
+            if entry.Model then
+                Client.DestroyRenderModel(entry.Model)
+            end
+
+            if entry.Cinematic then
+                Client.DestroyCinematic(entry.Cinematic)
+            end
+
+        elseif entry.EntityId then  -- bugfix for phantom projectile on client, delete on client even if entity is not found																	  
+            
             if entry.Model then
                 Client.DestroyRenderModel(entry.Model)
             end
@@ -336,8 +347,8 @@ function PierceProjectileController:Move(deltaTime, velocity, projectile)
             break
         end
 		
-		local traceEntity = self.controllerOutter:Move(offset, CollisionRep.Damage, CollisionRep.Damage, self.mask or PhysicsMask.PredictedProjectileGroup)
-        local traceGeo = self.controller:Move(offset, CollisionRep.Damage, CollisionRep.Damage, self.mask or PhysicsMask.PredictedProjectileGroup)
+		local traceEntity = self.controllerOutter:Move(offset,  CollisionRep.Move,  CollisionRep.Move, PhysicsMask.PlasmaFilter)
+        local traceGeo = self.controller:Move(offset, CollisionRep.Damage, CollisionRep.Damage, PhysicsMask.PredictedProjectileGroup)
 
 		if traceEntity.fraction < 1 and traceEntity.entity then           
 

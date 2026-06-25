@@ -97,6 +97,8 @@ function Mine:OnCreate()
         self:SetUpdates(true, kDefaultUpdateRate)
     
     end
+
+    self:SetRelevancyDistance(30)
     
 end
 

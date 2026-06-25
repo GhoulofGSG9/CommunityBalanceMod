@@ -121,6 +121,7 @@ function DetectableMixin:__initmixin()
     self.detected = false
     self.timeWasDetected = nil
     self.sensorBlipId = Entity.invalidId
+    self.lastDetectOrigin = Vector(0,0,0)
 
     if Server then
         self:AddTimedCallback(DisableDetected, kResetDetectionInterval)
@@ -146,11 +147,14 @@ function DetectableMixin:OnDestroy()
 
 end
 
-function DetectableMixin:SetOrigin()
-    DetectableMixinDirtyTable:Insert(self:GetId())
+function DetectableMixin:SetOrigin(orig)
+    if self.lastDetectOrigin and self.lastDetectOrigin ~= orig then
+        DetectableMixinDirtyTable:Insert(self:GetId())
+        self.lastDetectOrigin = orig
+    end
 end
 
-function DetectableMixin:SetCoords()
+function DetectableMixin:SetCoords(coords)
     DetectableMixinDirtyTable:Insert(self:GetId())
 end
 

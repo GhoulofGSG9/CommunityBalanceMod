@@ -12,7 +12,17 @@ Script.Load("lua/Table.lua")
 Script.Load("lua/Utility.lua")
 Script.Load("lua/UnorderedSet.lua")
 
+local math_pi = math.pi
 local kInfestationDecalSimpleMaterial = PrecacheAsset("materials/infestation/infestation_decal_simple.material")
+
+function GUI_SetIsVisible(item, state)
+    local needsToBeSet = (item.GUI_lastVisible == nil or item.GUI_lastVisible ~= state or state)
+    if needsToBeSet then
+        item:SetIsVisible(state)
+        item.GUI_lastVisible = state
+    end
+    return state
+end
 
 -- For Bot Exploration
 function SetPlayerStartingLocation(player)
@@ -1472,6 +1482,8 @@ function GetLocations()
     return EntityListToTable(Shared.GetEntitiesWithClassname("Location"))
 end
 
+
+
 function GetLocationForPoint(point, ignoredLocation)
     PROFILE("GetLocationForPoint")
 
@@ -1479,11 +1491,23 @@ function GetLocationForPoint(point, ignoredLocation)
 
     for _, location in ipairs(ents) do
 
-        if location ~= ignoredLocation and location:GetIsPointInside(point) then
-
+        -- Inlined `function TriggerMixin:GetIsPointInside(point)`
+        local worldToObj = location.worldToObjCoords
+        local localSpacePt = worldToObj:TransformPoint(point)
+        local x = localSpacePt.x
+        local y = localSpacePt.y
+        local z = localSpacePt.z
+        local isInside = z < 1.0 and x >= -1 and x < 1.0 and z >= -1 and y >= -1 and y < 1.0
+        -- ignoredLocation is nil the large majority the cases, check after
+        if isInside and ignoredLocation ~= location then
             return location
-
         end
+
+        --[[ -- Previous code
+        if location:GetIsPointInside(point) and location ~= ignoredLocation then
+            return location
+        end
+        --]]
 
     end
 
@@ -1745,16 +1769,14 @@ local function SetLight(renderLight, intensity, color)
 
 end
 
+local kScalar = math.sin(1 * math_pi / 2)
 local kMinCommanderLightIntensityScalar = 0.3
 
 local function UpdateRedLightsforPowerPointWorker(self)
 
     for renderLight,_ in pairs(self.activeLights) do
 
-        --Max redness already.
-        local angleRad = 1 * math.pi / 2
-        -- and scalar goes 0->1
-        local scalar = math.sin(angleRad)
+        local scalar = kScalar
 
         local showCommanderLight = false
 
@@ -2874,7 +2896,7 @@ function CalcEggSpawnTime(numPlayers, eggNumber, numDeadPlayers)
     local clampedEggNumber = Clamp(eggNumber, 1, kAlienEggsPerHive)
     local clampedNumPlayers = Clamp(numPlayers, 1, kMaxPlayers/2)
 
-    local calcEggScalar = math.sin(((clampedEggNumber - 1)/kAlienEggsPerHive) * (math.pi / 2)) * kAlienEggSinScalar
+    local calcEggScalar = math.sin(((clampedEggNumber - 1)/kAlienEggsPerHive) * (math_pi / 2)) * kAlienEggSinScalar
     local calcSpawnTime = kAlienEggMinSpawnTime + (calcEggScalar / clampedNumPlayers) * kAlienEggPlayerScalar
 
     return Clamp(calcSpawnTime, kAlienEggMinSpawnTime, kAlienEggMaxSpawnTime)
@@ -3135,11 +3157,11 @@ end
 -- Ex: input.commands = RemoveMoveCommand( input.commands, Move.PrimaryAttack )
 function RemoveMoveCommand( commands, moveMask )
     local negMask = bit.bxor(0xFFFFFFFF, moveMask)
-    return bit.band(commands, negMask)
+    return bit_band(commands, negMask)
 end
 
 function HasMoveCommand( commands, moveMask )
-    return bit.band( commands, moveMask ) ~= 0
+    return bit_band( commands, moveMask ) ~= 0
 end
 
 function AddMoveCommand( commands, moveMask )
@@ -3277,7 +3299,9 @@ end
 
 -- avoid problem with client generating a hit while server fails by shrinking client-side bullets a bit
 local kClientSideCaliberAdjustment = 0.00
-function GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, filter)
+function GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, filter, allowBoxTrace)
+
+    PROFILE("GetBulletTargets")
 
     local targets = {}
     local hitPoints = {}
@@ -3305,7 +3329,24 @@ function GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, fil
         end
 
         trace = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.Bullets, traceFilter)
-        if not trace.entity then
+
+        -- Note: 
+        -- * Only do box after a recent hit (people miss 80% of the time anyway, only do the consuming part if you hit, for chained shots)
+        -- * Only do box for far targets (close are often off by a large margin)
+
+        local isHit = (trace.fraction < 1)
+        local distance = isHit and trace.endPoint:GetDistanceTo(startPoint) or 0
+
+        -- Outside melee range dist, once in melee it's too fast paced (boxTrace is a waste, mostly needed longer ranges)
+        local doBoxTrace = not trace.entity and allowBoxTrace
+
+        --
+        --if Server then
+        --    Log("Do boxtrace: %s (dist: %s, isHit: %s, allowBoxTrace: %s)", doBoxTrace, distance, isHit, allowBoxTrace)
+        --end
+        --
+
+        if doBoxTrace then --not trace.entity
 
             -- Limit the box trace to the point where the ray hit as an optimization.
             local boxTraceEndPoint = trace.fraction ~= 1 and trace.endPoint or endPoint
