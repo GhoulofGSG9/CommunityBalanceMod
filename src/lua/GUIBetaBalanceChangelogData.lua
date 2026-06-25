@@ -19,8 +19,8 @@ if kCBMaddon then
 	gChangelogData =
 	[[
 
-	Welcome to the Community Balance Mod (CBM), a project built by the community, for the community.
-	This version enables all content, balance, QoL, and bugfixes of the CBM suite.	
+	Welcome to the Community Balance Mod (CBM): Content Edition, a project built by the community, for the community.
+	This version enables all content, balance, QoL, performance optimizations, and bugfixes of the CBM suite.	
 	Ping me, @Shifter (project lead) or @NexZone30 (dev lead), in any of the NS2 discords, 
 	or start a conversation in beta-balance-feedback on the official discord to let us know 
 	you think! Below are the changes this mod introduces:
@@ -218,7 +218,7 @@ if kCBMaddon then
 	### Jetpack
 	  - Min 6% activation energy required (bugfix).
 	  - No longer affected by stomp when slightly above the ground (bugfix).
-	  - Tech unlock cost 20 from 25 tres.
+	  - Tech unlock cost to 20 from 25 tres.
 
 	### Sub Machine Gun
 	  - Unlocked with submachinegun tech from armory (10 tres and 30s research time).
@@ -245,7 +245,7 @@ if kCBMaddon then
 	    - Cluster damage type modifier increased from 2.5 to 2.875 (net neutral with structure eHP changes).
 		- Cluster grenade range and fragment range reduced by 20%.
 
-	### Electrify Debuff (pulse/plasma/SPARC)
+	### Electrify Debuff (pulse)
 	  - TLDR: Disables passives, reduces movement speed, and slows alien attacks and abilities.
 	  - Electrify slow on players increased to 30% from 20% (vanilla).
 	  - Electrify now works on structures (including Advanced variants):
@@ -558,8 +558,8 @@ else
 	gChangelogData =
 	[[
 
-	Welcome to CBM: Core Edition, a project built by the community, for the community.
-    This version only enables the balance, QoL, and bugfixes of the CBM suite.
+	Welcome to the Community Balance Mod (CBM): Core Edition, a project built by the community, for the community.
+    This version only enables the balance, QoL, performance optimizations, and bugfixes of the CBM suite.
 	Ping me, @Shifter (project lead) or @NexZone30 (dev lead), in any of the NS2 discords, 
 	or start a conversation in beta-balance-feedback on the official discord to let us know 
 	you think! Below are the changes this mod introduces:
@@ -627,7 +627,6 @@ else
 	
 	### Status Icons
 	  - New status icon for webbed status (web, stomp, whip webbing).
-	  - New status icons for advanced structure passives.
 	  - Display status icons even with minimal hud elements.
 
 	### QoL / General Improvements
@@ -650,7 +649,6 @@ else
 	  - Added Icon for Drifter Eggs
 	  - Added Icon for deployed ARCS
 	  - Added Icon for Advanced Armory
-	  - Added Icons for Advanced PvE
 	  - Alien Commander is able to see parasited mines
 
 	### Vanilla Bugfixes
@@ -733,7 +731,7 @@ else
 	### Jetpack
 	  - Min 6% activation energy required (bugfix).
 	  - No longer affected by stomp when slightly above the ground (bugfix).
-	  - Tech unlock cost 20 from 25 tres.
+	  - Tech unlock cost to 20 from 25 tres.
 
 	### Hand Grenades
 	  - Self damage reduced by 66% (grenades/mines).
