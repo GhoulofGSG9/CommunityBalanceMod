@@ -1108,7 +1108,7 @@ function AlienTeam:InitTechTree()
 
     -- personal upgrades (all alien types)
     self.techTree:AddBuyNode(kTechId.Vampirism, kTechId.Shell, kTechId.None, kTechId.AllAliens)
-    self.techTree:AddBuyNode(kTechId.Resilience, kTechId.Shell, kTechId.None, kTechId.AllAliens)
+    self.techTree:AddBuyNode((kCBMaddon and kTechId.Resilience or kTechId.Carapace), kTechId.Shell, kTechId.None, kTechId.AllAliens)
     self.techTree:AddBuyNode(kTechId.Regeneration, kTechId.Shell, kTechId.None, kTechId.AllAliens)
 
     self.techTree:AddBuyNode(kTechId.Focus, kTechId.Veil, kTechId.None, kTechId.AllAliens)
@@ -1304,7 +1304,7 @@ local kUpgradeStructureTable =
         name = "Shell",
         techId = kTechId.Shell,
         upgrades = {
-            kTechId.Vampirism, kTechId.Resilience, kTechId.Regeneration
+            kTechId.Vampirism, (kCBMaddon and kTechId.Resilience or kTechId.Carapace), kTechId.Regeneration
         }
     },
     {

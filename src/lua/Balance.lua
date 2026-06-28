@@ -906,7 +906,7 @@ kOnosSwitchUpgradeCost = 4
 local kUpgradesGroupedByChamber = {
     { kTechId.Crush, kTechId.Celerity, kTechId.Adrenaline },
     { kTechId.Camouflage, kTechId.Aura, kTechId.Focus },
-    { kTechId.Vampirism, kTechId.Resilience, kTechId.Regeneration },
+    { kTechId.Vampirism, (kCBMaddon and kTechId.Resilience or kTechId.Carapace), kTechId.Regeneration },
 }
 
 kTraitsInChamberMap = {}

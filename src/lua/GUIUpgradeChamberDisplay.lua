@@ -38,7 +38,7 @@ local kIndexToUpgrades =
 {
     { kTechId.Spur, kTechId.Crush, kTechId.Celerity, kTechId.Adrenaline },
     { kTechId.Veil, kTechId.Camouflage, kTechId.Aura, kTechId.Focus },
-    { kTechId.Shell, kTechId.Vampirism, kTechId.Resilience, kTechId.Regeneration },
+    { kTechId.Shell, kTechId.Vampirism, (kCBMaddon and kTechId.Resilience or kTechId.Carapace), kTechId.Regeneration },
 }
 
 local function CreateUpgradeIcon()

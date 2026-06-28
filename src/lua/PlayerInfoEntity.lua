@@ -88,8 +88,7 @@ local techUpgradesTable =
     kTechId.Mine,
 
     kTechId.Vampirism,
-    --kTechId.Carapace,
-    kTechId.Resilience,
+    (kCBMaddon and kTechId.Resilience or kTechId.Carapace),
     kTechId.Regeneration,
 
     kTechId.Aura,

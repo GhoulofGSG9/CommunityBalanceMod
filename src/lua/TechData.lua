@@ -4899,6 +4899,14 @@ function BuildTechData()
             [kTechDataCostKey] = kResilienceCost,
             [kTechDataTooltipInfo] = "RESILIENCE_TOOLTIP",
         },
+
+		 {
+            [kTechDataId] = kTechId.Carapace,
+            [kTechDataCategory] = kTechId.CragHive,
+            [kTechDataDisplayName] = "CARAPACE",
+            [kTechDataCostKey] = kCarapaceCost,
+            [kTechDataTooltipInfo] = "CARAPACE_TOOLTIP",
+        },
 		
 		{ 
 			[kTechDataId] = kTechId.ExoPrototypeLab,
