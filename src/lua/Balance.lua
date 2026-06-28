@@ -9,7 +9,7 @@
 Script.Load("lua/BalanceHealth.lua")
 Script.Load("lua/BalanceMisc.lua")
 
-kCBMaddon = true -- Enables Plasma Exo, AMAC, SPARC, SMG, Adv Obs, Adv Gate, Bio 5, and Fortress Structures
+kCBMaddon = false -- Enables AMAC, SPARC, SMG, Adv Obs, Adv Gate, Bio 5, and Advanced Structures; replaces carapace with rage.
 
 kTransformResourcesTime = 15
 kTransformResourcesCost = 15
@@ -906,7 +906,7 @@ kOnosSwitchUpgradeCost = 4
 local kUpgradesGroupedByChamber = {
     { kTechId.Crush, kTechId.Celerity, kTechId.Adrenaline },
     { kTechId.Camouflage, kTechId.Aura, kTechId.Focus },
-    { kTechId.Vampirism, kTechId.Resilience, kTechId.Regeneration },
+    { kTechId.Vampirism, (kCBMaddon and kTechId.Resilience or kTechId.Carapace), kTechId.Regeneration },
 }
 
 kTraitsInChamberMap = {}

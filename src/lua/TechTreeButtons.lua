@@ -191,7 +191,7 @@ kTechIdToMaterialOffset[kTechId.EvolveBombard] = 60
 
 ----Crag-Hive
 kTechIdToMaterialOffset[kTechId.Vampirism] = 173
-kTechIdToMaterialOffset[kTechId.Carapace] = 167
+kTechIdToMaterialOffset[kTechId.Carapace] = 61
 kTechIdToMaterialOffset[kTechId.Regeneration] = 62
 
 ----Shift-Hive

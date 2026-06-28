@@ -128,7 +128,7 @@ else
 								kTechId.RoboticsFactory, kTechId.ArmsLab, kTechId.None, kTechId.None },
 								
 		[kTechId.AdvancedMenu] = { kTechId.Sentry, kTechId.Observatory, kTechId.PhaseGate, kTechId.PrototypeLab, 
-								   kTechId.None, kTechId.None, kTechId.None, kTechId.None },
+								   kTechId.SentryBattery, kTechId.None, kTechId.None, kTechId.None },
 
 		[kTechId.AssistMenu] = { kTechId.AmmoPack, kTechId.MedPack, kTechId.NanoShield, kTechId.Scan,
 								 kTechId.PowerSurge, kTechId.CatPack, kTechId.WeaponsMenu, kTechId.None, },

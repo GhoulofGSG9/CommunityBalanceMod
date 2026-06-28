@@ -870,8 +870,8 @@ function AlienUI_GetUpgradesForCategory(category)
         kTechId.Vampirism ~= nil and 
         kTechId.Regeneration ~= nil 
         then 
-        upgrades[1] =  kTechId.Vampirism  
-        upgrades[2] =  kTechId.Resilience
+        upgrades[1] =  kTechId.Vampirism
+        upgrades[2] =  (kCBMaddon and kTechId.Resilience or kTechId.Carapace)
         upgrades[3] =  kTechId.Regeneration
     end
 
