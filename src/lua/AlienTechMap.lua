@@ -158,7 +158,7 @@ else
 		{ kTechId.Aura, 8, 5 },
 
 		{ kTechId.Vampirism, 9, 5 },
-		{ kTechId.Resilience, 10, 5 },
+		{ kTechId.Carapace, 10, 5 },
 		{ kTechId.Regeneration, 11, 5 },
 
 		{ kTechId.BioMassOne, 2.5, 7, nil, "1" }, { kTechId.NutrientMist, 2.5, 8 },
@@ -198,7 +198,7 @@ else
 		GetLinePositionForTechMap(kAlienTechMap, kTechId.ShiftHive, kTechId.CystCelerity),
 		
 		GetLinePositionForTechMap(kAlienTechMap, kTechId.Shell, kTechId.Vampirism),
-		GetLinePositionForTechMap(kAlienTechMap, kTechId.Shell, kTechId.Resilience),
+		GetLinePositionForTechMap(kAlienTechMap, kTechId.Shell, kTechId.Carapace),
 		GetLinePositionForTechMap(kAlienTechMap, kTechId.Shell, kTechId.Regeneration),
 
 		GetLinePositionForTechMap(kAlienTechMap, kTechId.Veil, kTechId.Focus),
