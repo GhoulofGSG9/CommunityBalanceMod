@@ -153,7 +153,7 @@ else
 			{ kTechId.ExosuitTech, 10.0, 9.0 },
 			
 			{ kTechId.RoboticsFactory, 10.75, 3.0 }, { kTechId.ARCRoboticsFactory, 10.75, 5.0 },
-			{ kTechId.MAC, 11.75, 3.0},{ kTechId.Sentry, 11.75, 4.0 }, { kTechId.ARC, 11.75, 5.0 },  		      
+			{ kTechId.MAC, 11.75, 3.0}, { kTechId.Sentry, 11.75, 4.0 }, { kTechId.SentryBattery, 11.75, 5.0 }, { kTechId.ARC, 11.75, 6.0 },		      
 			
 			{ kTechId.ArmsLab, 5.5, 11.5}, 
 			{ kTechId.Armor1, 6.5, 12.0 }, { kTechId.Weapons1, 6.5, 11.0 },
@@ -200,6 +200,7 @@ else
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armor2, kTechId.Armor3),
 		
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.RoboticsFactory, kTechId.ARCRoboticsFactory),
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.ARCRoboticsFactory, kTechId.SentryBattery),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.ARCRoboticsFactory, kTechId.ARC),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.RoboticsFactory, kTechId.MAC),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.RoboticsFactory, kTechId.Sentry),		
