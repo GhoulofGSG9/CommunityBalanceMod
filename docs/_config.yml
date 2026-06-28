@@ -3,5 +3,7 @@ theme: jekyll-theme-slate
 nav:
   - title: "Overview"
     url: "/"
-  - title: "Changelog"
-    url: "/changelog"
+  - title: "Content Edition"
+    url: "/content"
+  - title: "Core Edition"
+    url: "/core"

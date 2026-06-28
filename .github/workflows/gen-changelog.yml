@@ -1,0 +1,39 @@
+name: Generate docs changelog
+
+# Keep docs/content.md and docs/core.md in sync with the in-game changelog
+# (src/lua/GUIBetaBalanceChangelogData.lua). Devs only edit the Lua file; this
+# workflow regenerates the website pages and commits them back.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/lua/GUIBetaBalanceChangelogData.lua"
+      - "tools/gen-changelog.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Regenerate edition changelogs
+        run: python3 tools/gen-changelog.py
+
+      - name: Commit changes if any
+        run: |
+          if [[ -n "$(git status --porcelain docs/content.md docs/core.md)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add docs/content.md docs/core.md
+            git commit -m "docs: regenerate edition changelogs [skip ci]"
+            git push
+          else
+            echo "Changelog pages already up to date."
+          fi

@@ -831,7 +831,7 @@ else
 	  - Catpacked marines now build and weld faster 12.5%.
 	  - Nanoshield cost reduced to 2 from 5.
 	  - Nanoshield snap range decreased to 4 from 6.
-      - Nanoshield MAC priority put last.  
+      - Nanoshield MAC priority put last.
 
 	### Commander Drops
 	  - Dropping mines cost 5 tres (from 7 tres).
@@ -845,9 +845,8 @@ else
 		- Lerk: 2 (Changed)
 		- Fade: 3 (Changed)
 		- Onos: 4 (Changed)
-	  - Rage:
-	    - Replaces Carapace
-	    - Increases energy regeneration rate for 3s after taking damage (+16.67% per shell).
+	  - Carapace:
+	    - Kept as in vanilla (the Rage replacement is Content Edition only).
 	  - Aura:
 	    - No longer reveals health information (moved to Advanced Shade)
 	    - Icon is always yellow.
