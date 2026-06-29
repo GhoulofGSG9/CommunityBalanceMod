@@ -567,6 +567,9 @@ else
 
 	#TLDR of Recent Release (v3.5):
 	
+	### CBM optimizations support increased game rates based on our recommendations (see CBM discord)!
+	### Server owners test your servers, up your rates (see CBM discord for guidance)!
+	
 	## Balance Changes
 	  - Nerfs to exosuit movement and thruster.
 	  - Claw armor increased from 75 to 115.
@@ -576,7 +579,7 @@ else
 	  - Pulse nade now deals 15 from 10 damage (to one shot babblers).
 	  - Boneshield blocks shots from railgun from piercing and doing health pool damage.
 	
-	## Bugfixes and Enhanced Performance
+	##  Vanilla Bugfixes and Enhanced Performance
 	  - Vanilla bugfixes to ARC and whip ragdoll related server hitching and crashes.
       - Vanilla bugfix to welder stopping welding when accidently aiming at a target's weapon.
 	  - Vanilla bugfix to static DoTs (plasma and bile affected) that decreased target acquisition time by >0.5s.
@@ -589,7 +592,6 @@ else
 	    - Not affected by rate changes.
 		- Better for PvP (less getting stuck / phasing through people).
 		- Better when hitting geometry (many stuck spots fixed)
-	  - Note: Server owners are encouraged to try to increase game rates based on our recommendations (see CBM discord).
 
 	###Be sure to thank Katzenfleisch for his amazing work on the NS2 codebase optimizations!
 
