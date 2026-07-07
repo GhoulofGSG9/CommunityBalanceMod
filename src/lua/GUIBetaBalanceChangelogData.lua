@@ -27,6 +27,9 @@ if kCBMaddon then
 
 	#TLDR of Recent Release (v3.5):
 	
+	### CBM optimizations support increased game rates based on our recommendations (see CBM discord)!
+	### Server owners test your servers, up your rates!
+	
 	## Balance Changes
 	  - Nerfs to exosuit movement and thruster.
 	  - Claw armor increased from 75 to 115.
@@ -51,7 +54,6 @@ if kCBMaddon then
 	    - Not affected by rate changes.
 		- Better for PvP (less getting stuck / phasing through people).
 		- Better when hitting geometry (many stuck spots fixed)
-	  - Note: Server owners are encouraged to try to increase game rates based on our recommendations (see CBM discord).
 	  
 	###Be sure to thank Katzenfleisch for his amazing work on the NS2 codebase optimizations!
 
