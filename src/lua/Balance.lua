@@ -9,7 +9,7 @@
 Script.Load("lua/BalanceHealth.lua")
 Script.Load("lua/BalanceMisc.lua")
 
-kCBMaddon = true -- Enables AMAC, SPARC, SMG, Adv Obs, Adv Gate, Bio 5, and Advanced Structures; replaces carapace with rage.
+kCBMaddon = false -- Enables AMAC, SPARC, SMG, Adv Obs, Adv Gate, Bio 5, and Advanced Structures; replaces carapace with rage.
 
 kTransformResourcesTime = 15
 kTransformResourcesCost = 15

@@ -252,6 +252,18 @@ else
 			leftArmOnly    = false,
 			singleRightArmOnly = true,
 		},
+		[kExoModuleTypes.PlasmaLauncher]    = {
+			category       = kExoModuleCategories.Weapon,
+			powerCost      = 0,
+			resourceCost   = kPlasmaLauncherCost,
+			mapName        = PlasmaLauncher.kMapName,
+			armType        = kExoArmTypes.PlasmaLauncher,
+			weight         = kPlasmaLauncherWeight,
+			armorValue     = kPlasmaLauncherArmor,
+			requiredTechId = kPlasmaLauncherTech,
+			leftArmOnly    = false,
+			singleRightArmOnly = true,
+		},
 		-- Utility modules
 		[kExoModuleTypes.Thrusters]  = {
 			category       = kExoModuleCategories.Utility,
