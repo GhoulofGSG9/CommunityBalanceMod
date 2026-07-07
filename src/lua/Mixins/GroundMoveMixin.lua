@@ -596,6 +596,7 @@ local function DoStepMove(self, _, velocity, deltaTime)
         _PerformMovement(self, kUpVector, 1)
         stepAmount = self:GetOrigin().y - oldOrigin.y        
     end
+    self.performedDownTraceLastMove = false
     
     -- do the normal move
     local startOrigin = Vector(self:GetOrigin())
