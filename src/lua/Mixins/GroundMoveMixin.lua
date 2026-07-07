@@ -72,6 +72,8 @@ function GroundMoveMixin:__initmixin()
     self.onGroundClient = true
     self.timeGroundAllowed = 0
     self.timeGroundTouched = 0
+    self.timeAheadCollision = 0
+    self.performedDownTraceLastMove = false
     self.lastGroundCheck = {
         distance = 0, -- How far from the ground we checked we were
         origin = false, -- Position of the test
@@ -583,7 +585,7 @@ local function DoStepMove(self, _, velocity, deltaTime)
 
     local onGround, normal
     
-    local canSkipUpCheck = not (self.GetCrouching and self:GetCrouching())
+    local canSkipUpCheck = not (self.GetCrouching and self:GetCrouching()) and self.performedDownTraceLastMove
     if canSkipUpCheck then
         -- Shortcut the up PerformMovement(), because any issues will be catched up
         -- by the next forward PerformMovement anyway. (and kUpVector is small enough)
@@ -614,6 +616,8 @@ local function DoStepMove(self, _, velocity, deltaTime)
         end
 
         if (averageSurfaceNormal and averageSurfaceNormal.y >= 0.5) then
+            local downDistTravelled = startOrigin.y - self:GetOrigin().y
+            self.performedDownTraceLastMove = (downDistTravelled - (kUpVector.y * 0.99)) >= 0
             _SetGroundCheckCache(self, downDistance, hitEntities, averageSurfaceNormal, surfaceMaterial)
             success = true
         end
@@ -704,16 +708,19 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
         -- This allows us to skip the expensive PerformMovement() if none is found
         local distCheckEnemy = 3.25--math.max(1.5,(velocity * 0.20):GetLength())
         local distCheckFriendly = 3.25 --math.max(1.5,(velocity * 0.15):GetLength())
+        local distClosestEnemy = 999
 
+        local origin = self:GetOrigin()
         local teamNumber = self:GetTeamNumber()
         local enemyTeamNumber = GetEnemyTeamNumber(self:GetTeamNumber())
-        local playersAround = GetEntitiesWithinRange("Player", self:GetOrigin(), 4)
+        local playersAround = GetEntitiesWithinRange("Player", origin, 4)
         for _, player in ipairs(playersAround) do
             if player:GetTeamNumber() == enemyTeamNumber then
                 enemyPlayerInRange = true
             end
             if self ~= player and player:GetTeamNumber() == teamNumber then
-                local dist = self:GetOrigin():GetDistanceTo(player:GetOrigin())
+                local dist = origin:GetDistanceTo(player:GetOrigin())
+                distClosestEnemy = math.min(dist, distClosestEnemy)
                 if dist <= distCheckFriendly then
                     friendlyPlayerInRange = true
                 end
@@ -741,6 +748,7 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
                         stepAllowed = false
                         if playerHit:GetTeamNumber() == GetEnemyTeamNumber(self:GetTeamNumber()) then
                             enemyPlayerHit = true
+                            self.timeAheadCollision = Shared.GetTime()
                         end
                         --Log("%s colliding with %s", self, hitEntities[i])
                         --break
@@ -751,7 +759,8 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
             end
         end
         
-        if not stepAllowed then -- Handles PvP collisions or jumps (no move-over movement checks)
+        -- Handles PvP collisions or jumps (no move-over movement checks)
+        if not stepAllowed or self.timeAheadCollision + 0.3 > Shared.GetTime() or distClosestEnemy < 1.5 then
             
             local slowDownFraction = self.GetCollisionSlowdownFraction and self:GetCollisionSlowdownFraction() or 1
             
@@ -760,7 +769,7 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
             -- Increases deflect traces in combat
             local numTraces = enemyPlayerHit and kPvPTracesAmount or kTracesAmount
             _PerformMovement(self, velocity * deltaTime, numTraces, velocity, true, slowDownFraction * 0.5, deflectMove, nil, deltaTime)
-            
+            self.performedDownTraceLastMove = false
         else     
             DoStepMove(self, input, velocity, deltaTime)            
         end
