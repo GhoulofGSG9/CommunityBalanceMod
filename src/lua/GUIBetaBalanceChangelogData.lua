@@ -41,7 +41,7 @@ if kCBMaddon then
 	  - Fortress structures renamed to "Advanced" structures to reflect current role alignment.
 	  - Boneshield blocks shots from railgun from piercing and doing health pool damage.
 	
-	## Bugfixes and Enhanced Performance
+	## Vanilla Bugfixes and Enhanced Performance
 	  - Vanilla bugfixes to ARC and whip ragdoll related server hitching and crashes.
       - Vanilla bugfix to welder stopping welding when accidently aiming at a target's weapon.
 	  - Vanilla bugfix to static DoTs (plasma and bile affected) that decreased target acquisition time by >0.5s.
