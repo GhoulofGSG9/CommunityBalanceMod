@@ -681,67 +681,51 @@ local function FlushCollisionCallbacks(self, velocity)
 
 end
 
+function GroundMoveMixin:GetShouldDoStepOverCheck()
+    local friendlyPlayerInRange = false
+    local enemyPlayerInRange = false
+    local enemyPlayerHit = false
+    --local vanillaMoveRate = 26
+    -- Checks if players are within X mr-tick from us at current speed
+    -- This allows us to skip the expensive PerformMovement() if none is found
+    local distCheckEnemy = 1 --3.25--math.max(1.5,(velocity * 0.20):GetLength())
+    local distCheckFriendly = 1 --3.25 --math.max(1.5,(velocity * 0.15):GetLength())
+    local distClosestEnemy = 999
+
+    local origin = self:GetOrigin()
+    local teamNumber = self:GetTeamNumber()
+    local enemyTeamNumber = GetEnemyTeamNumber(self:GetTeamNumber())
+    local playersAround = GetEntitiesWithinRange("Player", origin, 2)
+    for _, player in ipairs(playersAround) do
+        if player:GetTeamNumber() == enemyTeamNumber then
+            enemyPlayerInRange = true
+        end
+        if self ~= player and player:GetTeamNumber() == teamNumber then
+            local dist = origin:GetDistanceTo(player:GetOrigin())
+            distClosestEnemy = math.min(dist, distClosestEnemy)
+            if dist <= distCheckFriendly then
+                friendlyPlayerInRange = true
+            end
+        end
+    end
+    return enemyPlayerInRange or friendlyPlayerInRange
+end
+
 function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
 
     PROFILE("GroundMoveMixin:UpdatePosition")
     
     if self.controller then
         
-        local onGround = self.onGround
-        local normal
-        local hitEntities
-        local surfaceMaterial
-
-        local stepAllowed = onGround and self:GetCanStep()
+        local stepAllowed = self.onGround and self:GetCanStep()
         local didStep = false
         local stepAmount = 0
-        local playerHit = nil
+        local hitObstacle = false
+    
+        -- check if we are allowed to step:
+        if Predict or (stepAllowed and self:GetShouldDoStepOverCheck()) then
+            local _, hitEntities = self:PerformMovement(velocity * 0.1, 1, nil, false)
 
-        -- check if we are allowed to step
-        local completedMove = false
-
-        ---------
-        local friendlyPlayerInRange = false
-        local enemyPlayerInRange = false
-        local enemyPlayerHit = false
-        --local vanillaMoveRate = 26
-        -- Checks if players are within X mr-tick from us at current speed
-        -- This allows us to skip the expensive PerformMovement() if none is found
-        local distCheckEnemy = 1 --3.25--math.max(1.5,(velocity * 0.20):GetLength())
-        local distCheckFriendly = 1 --3.25 --math.max(1.5,(velocity * 0.15):GetLength())
-        local distClosestEnemy = 999
-
-        local origin = self:GetOrigin()
-        local teamNumber = self:GetTeamNumber()
-        local enemyTeamNumber = GetEnemyTeamNumber(self:GetTeamNumber())
-        local playersAround = GetEntitiesWithinRange("Player", origin, 2)
-        for _, player in ipairs(playersAround) do
-            if player:GetTeamNumber() == enemyTeamNumber then
-                enemyPlayerInRange = true
-            end
-            if self ~= player and player:GetTeamNumber() == teamNumber then
-                local dist = origin:GetDistanceTo(player:GetOrigin())
-                distClosestEnemy = math.min(dist, distClosestEnemy)
-                if dist <= distCheckFriendly then
-                    friendlyPlayerInRange = true
-                end
-            end
-        end
-        --
-
-        if enemyPlayerInRange or friendlyPlayerInRange then
-            --local lookAheadDist = 3 --enemyPlayerInRange and distCheckEnemy or distCheckFriendly
-
-            -- This call is very important for Predict side collision (and client to a lesser extent)
-            -- It has to be done in all case for Client/Predict.
-            -- * Server inits capsule once on EntityCreate()
-            -- * Client inits capsule upon entering relevancy range
-            -- * Predict inits capsule upon impact (and is responsible for a smooth collision feeling)
-            -- It makes the client predict if it will bump into other players and create the collision controller accordingly.
-            -- If not called, then the client will rubberband in place back&forth upon colliding with a player
-
-            --completedMove, hitEntities = _PerformMovement(self, velocity * 1, 1, nil, false)
-            completedMove, hitEntities = _PerformMovement(self, velocity * 0.1, 1, nil, false)
             if stepAllowed and hitEntities then
             
                 for i = 1, #hitEntities do
@@ -757,12 +741,12 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
                         
                     end
                 end
-            
             end
+        
         end
         
         -- Handles PvP collisions or jumps (no move-over movement checks)
-        if not stepAllowed or self.timeAheadCollision + 0.3 > Shared.GetTime() or distClosestEnemy < 1.5 then
+        if not stepAllowed or self.timeAheadCollision + 0.3 > Shared.GetTime() then
             
             local slowDownFraction = self.GetCollisionSlowdownFraction and self:GetCollisionSlowdownFraction() or 1
             
@@ -787,7 +771,6 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
     SetSpeedDebugText("onGround %s", ToString(self.onGround))
 
 end
-
 -- stub
 function GroundMoveMixin:ModifyVelocity(input, velocity, deltaTime)
 end
