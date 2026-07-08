@@ -704,17 +704,17 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
         local friendlyPlayerInRange = false
         local enemyPlayerInRange = false
         local enemyPlayerHit = false
-        local vanillaMoveRate = 26
+        --local vanillaMoveRate = 26
         -- Checks if players are within X mr-tick from us at current speed
         -- This allows us to skip the expensive PerformMovement() if none is found
-        local distCheckEnemy = 3.25--math.max(1.5,(velocity * 0.20):GetLength())
-        local distCheckFriendly = 3.25 --math.max(1.5,(velocity * 0.15):GetLength())
+        local distCheckEnemy = 1 --3.25--math.max(1.5,(velocity * 0.20):GetLength())
+        local distCheckFriendly = 1 --3.25 --math.max(1.5,(velocity * 0.15):GetLength())
         local distClosestEnemy = 999
 
         local origin = self:GetOrigin()
         local teamNumber = self:GetTeamNumber()
         local enemyTeamNumber = GetEnemyTeamNumber(self:GetTeamNumber())
-        local playersAround = GetEntitiesWithinRange("Player", origin, 4)
+        local playersAround = GetEntitiesWithinRange("Player", origin, 2)
         for _, player in ipairs(playersAround) do
             if player:GetTeamNumber() == enemyTeamNumber then
                 enemyPlayerInRange = true
@@ -740,7 +740,8 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
             -- It makes the client predict if it will bump into other players and create the collision controller accordingly.
             -- If not called, then the client will rubberband in place back&forth upon colliding with a player
 
-            completedMove, hitEntities = _PerformMovement(self, velocity * 1, 1, nil, false)
+            --completedMove, hitEntities = _PerformMovement(self, velocity * 1, 1, nil, false)
+            completedMove, hitEntities = _PerformMovement(self, velocity * 0.1, 1, nil, false)
             if stepAllowed and hitEntities then
             
                 for i = 1, #hitEntities do
