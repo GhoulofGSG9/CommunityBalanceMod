@@ -170,7 +170,7 @@ function ControllerMixin:UpdateControllerFromEntity(allowTrigger)
             if self.controllerOutter then                
             --if self.controllerOutter and self:isa("Fade") then                
                 --self.controllerOutter:SetupBox(Vector(self.controllerRadius * 1.3, self.controllerHeight * 0.5, self.controllerRadius * 1.3), self.controller:GetCoords(), allowTrigger)
-                local outerOffset = 0.55
+                local outerOffset = 0.22
                 self.controllerOutter:SetupCylinder( controllerRadius + outerOffset, controllerHeight, self.controller:GetCoords(), allowTrigger )
                 --DebugCapsule(self:GetOrigin() + Vector(0, 0.5, 0), self:GetOrigin() + Vector(0, 0.5, 0), controllerRadius * 1.55, controllerHeight, 5)
             end                
