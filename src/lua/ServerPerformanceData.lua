@@ -212,6 +212,34 @@ function ServerPerformanceData.HeaderText(self)
             interp)      
 end
 
+local function OnCommandRates(client)
+    local perfData = Shared.GetServerPerformanceData()
+
+    local tickrate = perfData:GetTickrate()
+    local moverate = perfData:GetMoverate()
+    local sendrate = perfData:GetSendrate()
+    local interp = perfData:GetInterpMs()
+
+    local vTick, vMove, vSend, vInterp = 30, 26, 20, 100
+
+    -- ((New Value - Original Value) ÷ Original Value) × 100%
+    local diffTick = ((tickrate - vTick) / vTick) * 100
+    local diffMove = ((moverate - vMove) / vMove) * 100
+    local diffSend = ((sendrate - vSend) / vSend) * 100
+    local diffInterp = vInterp - interp
+
+    local msg = string.format("tickrate %d (vanilla: %d) %+d%%\nmoverate %d (vanilla: %d) %+d%%\nsendrate %d (vanilla: %d) %+d%%\ninterp %d (vanilla: %d) %+dms",
+            tickrate, vTick, diffTick,
+            moverate, vMove, diffMove,
+            sendrate, vSend, diffSend,
+            interp, vInterp, diffInterp)      
+
+    local player = client and client:GetControllingPlayer() or nil
+    if player then
+        Server.SendNetworkMessage(player, "ServerAdminPrint", { message = msg }, true)
+    end
+end
+
 local function LogPerformance()
     -- get the latest perf data, make sure it is uptodate
     local perfData = Shared.GetServerPerformanceData()
@@ -368,6 +396,10 @@ local function OnConsolePerfDbg()
     Log("perfdbg %s", dbgServerPerfData)
 end
 
+function OnConsolePerfPrintEntities()
+    Log("Entity count for teams: %s/%s/%s", #GetEntitiesForTeam("Entity", 0), #GetEntitiesForTeam("Entity", 1), #GetEntitiesForTeam("Entity", 2))
+end
+
 if not __SPD_HOOKED then
   if Server then
       Event.Hook("UpdateServer", LogPerformanceServer)
@@ -377,5 +409,7 @@ if not __SPD_HOOKED then
 
   Event.Hook("Console_perfmon", OnConsolePerfmon)
   Event.Hook("Console_perfdbg", OnConsolePerfDbg)
+  Event.Hook("Console_perfp", OnConsolePerfPrintEntities)
+  Event.Hook("Console_rates", OnCommandRates)
   __SPD_HOOKED = true
 end
