@@ -410,6 +410,8 @@ if not __SPD_HOOKED then
   Event.Hook("Console_perfmon", OnConsolePerfmon)
   Event.Hook("Console_perfdbg", OnConsolePerfDbg)
   Event.Hook("Console_perfp", OnConsolePerfPrintEntities)
+
   Event.Hook("Console_rates", OnCommandRates)
+  Event.Hook("ClientConnect", OnCommandRates)
   __SPD_HOOKED = true
 end
