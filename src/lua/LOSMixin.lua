@@ -442,7 +442,7 @@ if Server then
     
     function LOSMixin:SetIsSighted(sighted, viewer)
     
-        PROFILE("LOSMixin:SetIsSighted")
+        --PROFILE("LOSMixin:SetIsSighted")
         
         self.sighted = sighted
         if sighted then
@@ -451,9 +451,9 @@ if Server then
         
         if viewer then
         
-            if not HasMixin(viewer, "LOS") then
-                error(string.format("%s: %s added as a viewer without having LOS mixin", ToString(self), ToString(viewer)))
-            end
+            --if not HasMixin(viewer, "LOS") then
+            --    error(string.format("%s: %s added as a viewer without having LOS mixin", ToString(self), ToString(viewer)))
+            --end
             
             self.lastViewerId = viewer:GetId()
             
@@ -475,9 +475,9 @@ if Server then
         
             local viewer = Shared.GetEntity(self.lastViewerId)
             
-            if viewer and not HasMixin(viewer, "LOS") then
-                error(string.format("%s: %s added as a viewer without having LOS mixin", ToString(self), ToString(viewer)))
-            end
+            --if viewer and not HasMixin(viewer, "LOS") then
+            --    error(string.format("%s: %s added as a viewer without having LOS mixin", ToString(self), ToString(viewer)))
+            --end
             
             return viewer
             
