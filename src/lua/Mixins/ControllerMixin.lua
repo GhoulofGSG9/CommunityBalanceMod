@@ -170,7 +170,7 @@ function ControllerMixin:UpdateControllerFromEntity(allowTrigger)
             if self.controllerOutter then                
             --if self.controllerOutter and self:isa("Fade") then                
                 --self.controllerOutter:SetupBox(Vector(self.controllerRadius * 1.3, self.controllerHeight * 0.5, self.controllerRadius * 1.3), self.controller:GetCoords(), allowTrigger)
-                local outerOffset = 0.55
+                local outerOffset = 0.22
                 self.controllerOutter:SetupCylinder( controllerRadius + outerOffset, controllerHeight, self.controller:GetCoords(), allowTrigger )
                 --DebugCapsule(self:GetOrigin() + Vector(0, 0.5, 0), self:GetOrigin() + Vector(0, 0.5, 0), controllerRadius * 1.55, controllerHeight, 5)
             end                
@@ -352,7 +352,7 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
                     and not (self.kTimeLastControllerMove < trace.entity.kTimeLastControllerMove)
                     and trace.entity.GetVelocity and trace.entity:GetVelocity():GetLength() > 0
                     and self.GetVelocity and self:GetVelocity():GetLength() > 0
-                    and self:GetVelocity():GetLength() < trace.entity:GetVelocity():GetLength()
+                    and self:GetVelocity():GetLength() > trace.entity:GetVelocity():GetLength()
 
                     then
 
@@ -374,7 +374,7 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
                     self:UpdateControllerFromEntity()
                     -- Make the other move (Only its controller, never touch origin or it could get stuck when we revert)
                     --Log("1. %s", e.controller:GetPosition())
-                    completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial = e:PerformMovement(ev * deltaTime, maxTraces, ev, true, es, ed, slowDownFilterFunc, deltaTime, kSimulatedMove)
+                    completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial = e:PerformMovement(ev * deltaTime * 0.5, maxTraces, ev, true, es, ed, slowDownFilterFunc, deltaTime, kSimulatedMove)
                     --Log("2. %s", e.controller:GetPosition())
                     if self.controllerOutter then
                         self.controllerOutter:SetCollisionEnabled(false)        
