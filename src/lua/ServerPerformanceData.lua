@@ -226,7 +226,7 @@ local function OnCommandRates(client)
     local diffTick = ((tickrate - vTick) / vTick) * 100
     local diffMove = ((moverate - vMove) / vMove) * 100
     local diffSend = ((sendrate - vSend) / vSend) * 100
-    local diffInterp = vInterp - interp
+    local diffInterp = interp - vInterp
 
     local msg = string.format("tickrate %d (vanilla: %d) %+d%%\nmoverate %d (vanilla: %d) %+d%%\nsendrate %d (vanilla: %d) %+d%%\ninterp %d (vanilla: %d) %+dms",
             tickrate, vTick, diffTick,
