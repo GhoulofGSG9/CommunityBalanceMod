@@ -1284,8 +1284,16 @@ function Player:AdjustAngles(deltaTime)
 
     local angles = self:GetAngles()
     local desiredAngles = self:GetDesiredAngles(deltaTime)
-    local smoothMode = self:GetAngleSmoothingMode()
 
+    if self.anglesAdjusted == false then
+        if self.anglesAdjustedOrig == angles and self.anglesAdjustedDesired == desiredAngles then
+            --if Server then Log("HIT: %s -- %s", angles, desiredAngles) end
+            return
+        end
+    end
+
+    local origAngle = Angles(angles)
+    local smoothMode = self:GetAngleSmoothingMode()
     if desiredAngles == nil then
 
         -- Just keep the old angles
@@ -1314,6 +1322,12 @@ function Player:AdjustAngles(deltaTime)
     AnglesTo2PiRange(angles)
     self:SetAngles(angles)
 
+    local newDestAngle = Angles(angles)
+    self.anglesAdjusted = (newDestAngle ~= self.anglesAdjustedDest)
+    self.anglesAdjustedOrig = origAngle
+    self.anglesAdjustedDesired = desiredAngles
+    self.anglesAdjustedDest = newDestAngle
+
 end
 
 function Player:UpdateViewAngles(input)
@@ -1325,9 +1339,9 @@ function Player:UpdateViewAngles(input)
     end
 
     -- Update to the current view angles.
-    local viewAngles = Angles(input.pitch, input.yaw, 0)
-    self:SetViewAngles(viewAngles)
-
+    local angles = self:GetAngles()
+    angles = Angles(input.pitch, input.yaw, 0)
+    self:SetViewAngles(angles)
     self:AdjustAngles(input.time)
 
 end
