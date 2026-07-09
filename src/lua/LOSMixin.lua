@@ -37,6 +37,8 @@ local kUnitLOSDirtyDistance = kUnitMaxLOSDistance + maxEntityMoveSpeed --* 2  --
 
 local kLOSTimeout = 1
 
+local math_floor = math.floor
+
 LOSMixin.networkVars =
 {
     sighted = "boolean",
@@ -106,10 +108,10 @@ if Server then
         UpdateLOS(self)
     end
     
-	function LOSMixin:OnCloak()
+    function LOSMixin:OnCloak()
         UnsightImmediately(self)
     end
-	
+    
     -- Force the relevancy mask to be updated, so that it will be relevant to members of the same team.
     function LOSMixin:OnTeamChange()
         UnsightImmediately(self)
@@ -254,10 +256,10 @@ if Server then
             seen = GetIsParasited(self) --TODO Fix this as the kGameEffect.Parasite is not used in server context
         end
         
-		if not seen and HasMixin(self, "BlightAble") then
+        if not seen and HasMixin(self, "BlightAble") then
             seen = self:GetIsBlighted()
         end
-		
+        
         local lastViewer = self:GetLastViewer()
         
         if not seen and lastViewer then
@@ -363,31 +365,40 @@ if Server then
     
     function LOSMixin:SetAngles(angles)
     
-        local yaw = math.floor(angles.yaw * 100) / 100
-        
-        if not self.dirtyLOS and self.prevLOSYaw ~= yaw then
-        
-            self.dirtyLOS = true
-            self.prevLOSYaw = yaw
-            
+        --PROFILE("LOSMixin:SetAngles")
+
+        if self.prevLOSYaw ~= angles.yaw and not self.dirtyLOS then
+            local yaw = math_floor(angles.yaw * 100) / 100
+
+            if (self.prevFlooredLOSYaw ~= yaw) then
+                self.dirtyLOS = true
+
+                self.prevLOSYaw = angles.yaw
+                self.prevFlooredLOSYaw = yaw
+            end
         end
         
     end
     
     function LOSMixin:SetViewAngles(angles)
     
-        local yaw = math.floor(angles.yaw * 100) / 100
-        
-        if not self.dirtyLOS and self.prevViewLOSYaw ~= yaw then
-        
-            self.dirtyLOS = true
-            self.prevViewLOSYaw = yaw
-            
+        --PROFILE("LOSMixin:SetAngles")
+
+        if self.prevViewLOSYaw ~= angles.yaw and not self.dirtyLOS then
+
+            local yaw = math_floor(angles.yaw * 100) / 100
+
+            if self.prevFlooredViewLOSYaw ~= yaw then
+                self.dirtyLOS = true
+
+                self.prevViewLOSYaw = angles.yaw
+                self.prevFlooredViewLOSYaw = yaw
+            end
         end
         
     end
-	
-	function LOSMixin:OnBlighted()
+    
+    function LOSMixin:OnBlighted()
         if not self.dirtyLOS then
             self.updateLOS = true
         end
