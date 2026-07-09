@@ -1953,64 +1953,63 @@ if Client then
 
 end
 
+local math_wrap = Math.Wrap
+local math_degrees = Math.Degrees
+local math_atan2 = math.atan2
 local kUpVector = Vector(0, 1, 0)
+local function WrapAngle(value)
+    if value and value ~= 0 then
+        value = math_wrap(math_degrees(value), -180, 180)
+    else
+        value = 0
+    end
+    return value
+end
+local function SetPoseParam(viewmodel, player, key, value)
+    player:SetPoseParam(key, value)
+    if viewmodel then
+        viewmodel:SetPoseParam(key, value)
+    end
+end
 
 function SetPlayerPoseParameters(player, viewModel, headAngles)
 
-    local coords = player:GetCoords()
+    --PROFILE("Player:SetPlayerPoseParameters")
 
-    local pitch = -Math.Wrap(Math.Degrees(headAngles.pitch), -180, 180)
-
+    local pitch = -WrapAngle(headAngles.pitch)
     local landIntensity = player.landIntensity or 0
-
-    local bodyYaw = 0
-    if player.bodyYaw then
-        bodyYaw = Math.Wrap(Math.Degrees(player.bodyYaw), -180, 180)
-    end
-
-    local bodyYawRun = 0
-    if player.bodyYawRun then
-        bodyYawRun = Math.Wrap(Math.Degrees(player.bodyYawRun), -180, 180)
-    end
-
-    local headCoords = headAngles:GetCoords()
-
+    local bodyYaw = WrapAngle(player.bodyYaw)
+    local bodyYawRun = WrapAngle(player.bodyYawRun)
     local velocity = player:GetVelocityFromPolar()
+
     -- Not all players will contrain their movement to the X/Z plane only.
     if player.GetMoveSpeedIs2D and player:GetMoveSpeedIs2D() then
         velocity.y = 0
     end
 
-    local x = Math.DotProduct(headCoords.xAxis, velocity)
-    local z = Math.DotProduct(headCoords.zAxis, velocity)
-    local moveYaw = Math.Wrap(Math.Degrees( math.atan2(z,x) ), -180, 180)
+    local velocityLength = velocity:GetLength()
+    local moveSpeed = velocityLength / player:GetMaxSpeed(true)
 
-    local moveSpeed = velocity:GetLength() / player:GetMaxSpeed(true)
+    local moveYaw = 0
+    if velocityLength > 0 then
+        local headCoords = headAngles:GetCoords()
+        local x = Math.DotProduct(headCoords.xAxis, velocity)
+        local z = Math.DotProduct(headCoords.zAxis, velocity)
+        moveYaw = WrapAngle( math_atan2(z,x) )
+    end
 
     local crouchAmount = HasMixin(player, "CrouchMove") and player:GetCrouchAmount() or 0
     if player.ModifyCrouchAnimation then
         crouchAmount = player:ModifyCrouchAnimation(crouchAmount)
     end
 
-    player:SetPoseParam("move_yaw", moveYaw)
-    player:SetPoseParam("move_speed", moveSpeed)
-    player:SetPoseParam("body_pitch", pitch)
-    player:SetPoseParam("body_yaw", bodyYaw)
-    player:SetPoseParam("body_yaw_run", bodyYawRun)
-    player:SetPoseParam("crouch", crouchAmount)
-    player:SetPoseParam("land_intensity", landIntensity)
-
-    if viewModel then
-
-        viewModel:SetPoseParam("move_yaw", moveYaw)
-        viewModel:SetPoseParam("move_speed", moveSpeed)
-        viewModel:SetPoseParam("body_pitch", pitch)
-        viewModel:SetPoseParam("body_yaw", bodyYaw)
-        viewModel:SetPoseParam("body_yaw_run", bodyYawRun)
-        viewModel:SetPoseParam("crouch", crouchAmount)
-        viewModel:SetPoseParam("land_intensity", landIntensity)
-
-    end
+    SetPoseParam(viewModel, player, "move_yaw", moveYaw)
+    SetPoseParam(viewModel, player, "move_speed", moveSpeed)
+    SetPoseParam(viewModel, player, "body_pitch", pitch)
+    SetPoseParam(viewModel, player, "body_yaw", bodyYaw)
+    SetPoseParam(viewModel, player, "body_yaw_run", bodyYawRun)
+    SetPoseParam(viewModel, player, "crouch", crouchAmount)
+    SetPoseParam(viewModel, player, "land_intensity", landIntensity)
 
 end
 
