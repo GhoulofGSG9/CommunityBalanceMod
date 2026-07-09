@@ -36,7 +36,6 @@ function ControllerMixin:__initmixin()
     PROFILE("ControllerMixin:__initmixin")
     
     self.controller = nil
-    self.kTimeLastControllerMove = 0
     
     self.moveOrigOffset = Vector()
     self.moveVelocity = Vector()
@@ -79,8 +78,6 @@ local function SetNearbyPlayerControllers(self, enabled)
     for _, player in ipairs(GetEntitiesWithinRange("Player", self:GetOrigin(), 4)) do
     
         if player ~= self then
-        
-            --Log("Collisions for %s: %s (%s/%s)", player, enabled, player.controller, player.controllerOutter)
 
             if player.controllerOutter then
 
@@ -281,18 +278,9 @@ function ControllerMixin:GetIsColliding()
 
 end
 
--- TODO: nornalize, make the fastest one move first, then do our move, but don't touch them, just make us move as if they moved first
--- (no commit move, just recall the move and get a coord of where we ended up ? maybe just a set coords could work of its controller for collisions ?)
-
 --
 -- Moves by the player by the specified offset, colliding and sliding with the world.
--- slowDownFraction: 0.5s -> Takes 2s to lose all momentum, 1 -> takes 1s, 2 -> takes 0.5s, 
 --
---local minOverlapping = 5
-local kFirstCall = nil
-local kSimulatedMove = 0
-local kAdjustedMove = 1
-
 function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, slowDownFraction, deflectMove, slowDownFilterFunc, deltaTime)
 
     PROFILE("ControllerMixin:PerformMovement")
@@ -356,10 +344,6 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
                 -- Make the motion perpendicular to the surface we collided with so we slide.
                 offset = offset - offset:GetProjection(trace.normal) -- + trace.normal*0.001
 
-                --if trace.entity and trace.entity:isa("Player") then
-                --    Log("%s colliding with %s (first ? %s (%s/%s))", self, trace.entity, Shared.GetTime() > (trace.entity.kTimeLastControllerMove and trace.entity.kTimeLastControllerMove or 0), self.kTimeLastControllerMove, trace.entity.kTimeLastControllerMove)
-                --end
-
                 -- Redirect velocity if specified
                 if velocity ~= nil and slowDownFraction ~= nil then
                 
@@ -382,12 +366,12 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
                 
                 -- Defer the processing of the callbacks until after we've finished moving,
                 -- since the callbacks may modify our self an interfere with our loop
-                if e ~= nil and e.OnCapsuleTraceHit ~= nil then
+                if trace.entity ~= nil and trace.entity.OnCapsuleTraceHit ~= nil then
                 
                     if not hitEntities then
                         hitEntities = {}
                     end
-                    hitEntities[#hitEntities + 1] = e  -- Faster than table.insert
+                    hitEntities[#hitEntities + 1] = trace.entity  -- Faster than table.insert
 
                 end
                 
@@ -412,10 +396,6 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
             controllerOutter:SetCollisionEnabled(true)
         end
         
-    end
-    
-    if isMove then
-        self.kTimeLastControllerMove = Shared.GetTime()
     end
 
     -- Do the hit callbacks. (but not if we do the blank one to nornalize, isMove would be set to "1")
