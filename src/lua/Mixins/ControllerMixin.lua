@@ -38,6 +38,9 @@ function ControllerMixin:__initmixin()
     self.controller = nil
     self.kTimeLastControllerMove = 0
     
+    self.moveOrigOffset = Vector()
+    self.moveVelocity = Vector()
+    self.moveAverageSurfaceNormal = Vector()
 end
 
 function ControllerMixin:OnDestroy()
@@ -289,10 +292,14 @@ end
 local kFirstCall = nil
 local kSimulatedMove = 0
 local kAdjustedMove = 1
+
 function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, slowDownFraction, deflectMove, slowDownFilterFunc, deltaTime, correctionDone)
 
     PROFILE("ControllerMixin:PerformMovement")
-    
+
+    local controller = self.controller
+    local controllerOutter = self.controllerOutter
+
     local commitChanges = (correctionDone == kFirstCall or correctionDone == kAdjustedMove)
 
     if isMove == nil then
@@ -306,36 +313,43 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
     if slowDownFraction == nil then
         slowDownFraction = 1
     end
+
     if (deltaTime) then
         -- Vanilla move-rate per second is 26 (to make it time based, rather than tick)
         slowDownFraction = math.min(1, slowDownFraction * 26 * deltaTime)
     end
     local origSlowDownFraction = slowDownFraction
-    local origOffset = Vector(offset)
+    
+    VectorCopy(offset, self.moveOrigOffset)
+    local origOffset = self.moveOrigOffset
+
+    if (velocity) then
+        VectorCopy(velocity, self.moveVelocity)
+    end
     
     local hitEntities
     local completedMove = true
     local averageSurfaceNormal
-    local oldVelocity = velocity ~= nil and Vector(velocity) or nil
+    local oldVelocity = velocity ~= nil and self.moveVelocity or nil
     local prevXZSpeed = velocity ~= nil and velocity:GetLengthXZ()
-    local hitVelocity
     local surfaceMaterial
 
-    if self.controller then
+    if controller then
         
-        if self.controllerOutter then
-            self.controllerOutter:SetCollisionEnabled(false)        
+        if controllerOutter then
+            controllerOutter:SetCollisionEnabled(false)        
         end
         
         self:UpdateControllerFromEntity()
-        
+
+        local trace        
         local tracesPerformed = 0
+        local moveCompleted = false
+        local physicsMask = self:GetMovePhysicsMask()
+
+        while moveCompleted == false and offset:GetLengthSquared() > 0.0 and tracesPerformed < maxTraces do
         
-        
-        while offset:GetLengthSquared() > 0.0 and tracesPerformed < maxTraces do
-        
-            local trace = self.controller:Move(offset, CollisionRep.Move, CollisionRep.Move, self:GetMovePhysicsMask())
-            
+            trace = controller:Move(offset, CollisionRep.Move, CollisionRep.Move, physicsMask)
             if trace.fraction < 1 then
 
                 -- Remove the amount of the offset we've already moved.
@@ -346,20 +360,20 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
 
                 -- Normalized and make the slowest one move
                 -- (because it is the smallest possible adjustment out of the two)
-                if deltaTime and trace.entity and correctionDone == kFirstCall
+                local e = trace.entity
+                local e_velocity = e and e.GetVelocity and e:GetVelocity()
+                if deltaTime and e and correctionDone == kFirstCall
                     -- Only simulate the collidee if he hasn't moved yet this mr-tick (we are first to move)
-                    and self.kTimeLastControllerMove and trace.entity.kTimeLastControllerMove
-                    and not (self.kTimeLastControllerMove < trace.entity.kTimeLastControllerMove)
-                    and trace.entity.GetVelocity and trace.entity:GetVelocity():GetLength() > 0
+                    and self.kTimeLastControllerMove and e.kTimeLastControllerMove
+                    and not (self.kTimeLastControllerMove < e.kTimeLastControllerMove)
+                    and e.GetVelocity and e_velocity:GetLength() > 0
                     and self.GetVelocity and self:GetVelocity():GetLength() > 0
-                    and self:GetVelocity():GetLength() > trace.entity:GetVelocity():GetLength()
+                    and self:GetVelocity():GetLength() > e_velocity:GetLength()
 
                     then
 
-
-                    local e = trace.entity
                     local eo = Vector(e:GetOrigin())
-                    local ev = Vector(e:GetVelocity())
+                    local ev = Vector(e_velocity)
                     local es = e.GetCollisionSlowdownFraction and e:GetCollisionSlowdownFraction() or 1
                     local ed = e.GetDeflectMove and e:GetDeflectMove() or false
                     
@@ -368,16 +382,16 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
 
                     -- Reset our current controller collisions
                     preventRedirect = true
-                    if self.controllerOutter then
-                        self.controllerOutter:SetCollisionEnabled(true)        
+                    if controllerOutter then
+                        controllerOutter:SetCollisionEnabled(true)        
                     end
                     self:UpdateControllerFromEntity()
                     -- Make the other move (Only its controller, never touch origin or it could get stuck when we revert)
                     --Log("1. %s", e.controller:GetPosition())
-                    completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial = e:PerformMovement(ev * deltaTime * 0.5, maxTraces, ev, true, es, ed, slowDownFilterFunc, deltaTime, kSimulatedMove)
+                    completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial = e:PerformMovement(ev * deltaTime * 1, maxTraces, ev, true, es, ed, slowDownFilterFunc, deltaTime, kSimulatedMove)
                     --Log("2. %s", e.controller:GetPosition())
-                    if self.controllerOutter then
-                        self.controllerOutter:SetCollisionEnabled(false)        
+                    if controllerOutter then
+                        controllerOutter:SetCollisionEnabled(false)        
                     end
 
 
@@ -438,30 +452,21 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
                 end
                 
                 if not averageSurfaceNormal then
-                    averageSurfaceNormal = Vector(trace.normal)
+                    VectorCopy(trace.normal, self.moveAverageSurfaceNormal)
+                    averageSurfaceNormal = self.moveAverageSurfaceNormal
                 else
-                
                     averageSurfaceNormal = averageSurfaceNormal + trace.normal
-                    if averageSurfaceNormal:GetLength() > 0 then
-                        averageSurfaceNormal:Normalize()
-                    end
-                
                 end
                 
                 -- Defer the processing of the callbacks until after we've finished moving,
                 -- since the callbacks may modify our self an interfere with our loop
-                if trace.entity ~= nil and trace.entity.OnCapsuleTraceHit ~= nil then
+                if e ~= nil and e.OnCapsuleTraceHit ~= nil then
                 
-                    if hitEntities == nil then
-                        hitEntities = { trace.entity }
-                    else
-                        table.insert(hitEntities, trace.entity)
+                    if not hitEntities then
+                        hitEntities = {}
                     end
+                    hitEntities[#hitEntities + 1] = e  -- Faster than table.insert
 
-                end
-                
-                if trace.entity and trace.entity.GetVelocity and trace.entity:GetVelocity() then
-                    hitVelocity = trace.entity:GetVelocity()
                 end
                 
                 surfaceMaterial = trace.surface
@@ -469,7 +474,8 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
                 completedMove = false
                 
             else
-                offset = Vector(0, 0, 0)
+                offset.x, offset.y, offset.z = 0, 0, 0
+                moveCompleted = true
             end
             
             tracesPerformed = tracesPerformed + 1
@@ -480,8 +486,8 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
             self:UpdateOriginFromController()
         end
         
-        if self.controllerOutter then
-            self.controllerOutter:SetCollisionEnabled(true)
+        if controllerOutter then
+            controllerOutter:SetCollisionEnabled(true)
         end
         
     end
@@ -493,17 +499,6 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
     -- Do the hit callbacks. (but not if we do the blank one to nornalize, isMove would be set to "1")
     if hitEntities and isMove and commitChanges then
         
-        --[[
-        if hitVelocity and oldVelocity then
-        
-            hitVelocity.y = 0
-            local addSpeed = Clamp(oldVelocity:DotProduct(hitVelocity), 0, prevXZSpeed)
-            if addSpeed > 0 then            
-                velocity:Add(addSpeed * GetNormalizedVector(oldVelocity))
-            end
-        
-        end
-        --]]
         for _, entity in ipairs(hitEntities) do
         
             entity:OnCapsuleTraceHit(self)
@@ -526,6 +521,10 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
             
         end
         
+    end
+
+    if averageSurfaceNormal and averageSurfaceNormal:GetLength() > 0 then
+        averageSurfaceNormal:Normalize()
     end
 
     -- TODO: dont compare velocities, use some boolean
