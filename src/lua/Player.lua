@@ -414,6 +414,8 @@ function Player:OnCreate()
     self.concedeSettingsIndex = 1
     self.callingCard = kDefaultPlayerCallingCard
 
+    self.kNoUpdatesForWeaponId = -1
+
 end
 
 local function InitViewModel(self)
@@ -1810,11 +1812,17 @@ function Player:OnUpdatePoseParameters()
     if not Shared.GetIsRunningPrediction() then
 
         local viewModel = self:GetViewModelEntity()
-        if viewModel ~= nil then
+        local activeWeaponId = self:GetActiveWeaponId()
+        if self.kNoUpdatesForWeaponId ~= activeWeaponId and viewModel ~= nil then
 
             local activeWeapon = self:GetActiveWeapon()
-            if activeWeapon and activeWeapon.UpdateViewModelPoseParameters then
-                activeWeapon:UpdateViewModelPoseParameters(viewModel)
+            if activeWeapon then
+                if activeWeapon.UpdateViewModelPoseParameters then
+                    activeWeapon:UpdateViewModelPoseParameters(viewModel)
+                else
+                     -- So we don't recall GetActiveWeapon(), which does a GetEntity()
+                    self.kNoUpdatesForWeaponId = activeWeaponId
+                end
             end
 
         end
