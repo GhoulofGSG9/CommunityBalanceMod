@@ -1341,9 +1341,8 @@ function Player:UpdateViewAngles(input)
     end
 
     -- Update to the current view angles.
-    local angles = self:GetAngles()
-    angles = Angles(input.pitch, input.yaw, 0)
-    self:SetViewAngles(angles)
+    local viewAngles = Angles(input.pitch, input.yaw, 0)
+    self:SetViewAngles(viewAngles)
     self:AdjustAngles(input.time)
 
 end
