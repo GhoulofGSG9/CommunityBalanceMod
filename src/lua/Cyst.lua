@@ -383,7 +383,7 @@ function Cyst:GetIsFlameableMultiplier()
 end
 
 function Cyst:GetIsCamouflaged()
-    return self:GetIsConnected() and self:GetIsBuilt() and not self:GetIsInCombat() and GetHasTech(self, kTechId.ShadeHive)
+    return GetHasTech(self, kTechId.ShadeHive) and self:GetIsConnected() and self:GetIsBuilt() and not self:GetIsInCombat()
 end
 
 function Cyst:GetCloakInfestation()
