@@ -152,7 +152,7 @@ end
 
 local function DoesStopMove(self, move, velocity)
 
-    PROFILE("GroundMoveMixin:DoesStopMove")
+    --PROFILE("GroundMoveMixin:DoesStopMove")
 
     local wishDir = GetNormalizedVectorXZ(self:GetViewCoords().zAxis) * move.z    
     return wishDir:DotProduct(GetNormalizedVectorXZ(velocity)) < -0.8
@@ -212,7 +212,7 @@ end
 
 local function GetIsCloseToGround(self, distance)
 
-    PROFILE("GroundMoveMixin:GetIsCloseToGround")
+    --PROFILE("GroundMoveMixin:GetIsCloseToGround")
 
     local onGround = false
     local normal = nil
@@ -331,7 +331,7 @@ end
 
 function GroundMoveMixin:ModifyMaxSpeed(maxSpeedTable, input)
 
-    PROFILE("GroundMoveMixin:ModifyMaxSpeed")
+    --PROFILE("GroundMoveMixin:ModifyMaxSpeed")
 
     local backwardsSpeedScalar = 1
 
@@ -353,7 +353,7 @@ end
 
 local function AccelerateSimpleXZ(self, input, velocity, maxSpeedXZ, acceleration, deltaTime)
 
-    PROFILE("GroundMoveMixin:AccelerateSimpleXZ")
+    --PROFILE("GroundMoveMixin:AccelerateSimpleXZ")
 
     if acceleration > 0 then -- For instance, lerk have 0 fall accel
         maxSpeedXZ = math.max(velocity:GetLengthXZ(), maxSpeedXZ)
@@ -379,7 +379,7 @@ end
 
 local function ForwardControl(self, deltaTime, velocity)
 
-    PROFILE("GroundMoveMixin:ForwardControl")
+    --PROFILE("GroundMoveMixin:ForwardControl")
 
     local airControl = self:GetAirControl() * 2
 
@@ -816,7 +816,7 @@ end
 
 local function UpdateOnGround(self)
 
-    PROFILE("GroundMoveMixin:UpdateOnGround")
+    --PROFILE("GroundMoveMixin:UpdateOnGround")
 
     local onGround, _, hitEntities, surfaceMaterial = GetIsCloseToGround(self, 0.15)
     
