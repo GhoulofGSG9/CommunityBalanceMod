@@ -14,6 +14,8 @@ Script.Load("lua/Mixins/BaseMoveMixin.lua")
 GroundMoveMixin = CreateMixin(GroundMoveMixin)
 GroundMoveMixin.type = "GroundMove"
 
+local math_pi = math.pi
+local math_cos = math.cos
 local kDownSlopeFactor = math.tan(math.rad(60))
 
 local kStepHeight = 0.5
@@ -119,13 +121,20 @@ local function _GetIsStillOnSameGroundPosition(self, distance)
 end
 
 local function CosFalloff(distanceFraction)
-    local piFraction = Clamp(distanceFraction, 0, 1) * math.pi / 2
-    return math.cos(piFraction + math.pi) + 1 
+    if distanceFraction <= 0 then
+        return 0
+    end
+    if distanceFraction >= 1 then
+        return 1
+    end
+
+    local piFraction = Clamp(distanceFraction, 0, 1) * math_pi / 2
+    return math_cos(piFraction + math_pi) + 1 
 end
 
 local function GetOnGroundFraction(self)
 
-    PROFILE("GroundMoveMixin:GetOnGroundFraction")
+    --PROFILE("GroundMoveMixin:GetOnGroundFraction")
 
     local transistionTime = not self.GetGroundTransistionTime and kAirGroundTransistionTime or self:GetGroundTransistionTime()
     local groundFraction = self.onGround and Clamp( (Shared.GetTime() - self.timeGroundTouched) / transistionTime, 0, 1) or 0
