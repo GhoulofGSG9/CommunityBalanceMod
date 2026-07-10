@@ -115,6 +115,7 @@ function CloakableMixin:__initmixin()
 
     self.timeUncloaked = 0
     self.cloakRate = 0
+    self.cloakRateIsConstant = false
     self.timeInkCloakEnd = 0    
     
     -- when entity is created on client consider fully cloaked, so units wont show up for a short moment when going through a phasegate for example
@@ -171,22 +172,54 @@ function CloakableMixin:GetCloakFraction()
     return self.cloakFraction
 end
 
-local function UpdateDesiredCloakFraction(self, deltaTime)
-    
-    local timeNow = Shared.GetTime()
-    
-    if Server then
-    
-        local isAlive = HasMixin(self, "Live") and self:GetIsAlive() or true
-        local isCamouflaged = self.GetIsCamouflaged and self:GetIsCamouflaged()
-        local isShadeCloaked = timeNow < self.timeCloaked
+local function UpdateDesiredCloakFraction_Server(self, deltaTime)
+    PROFILE("CloakableMixin:UpdateDesiredCloakFraction_Server")
 
-        self.cloakRate = 0
+    local timeNow = Shared.GetTime()
+    local isCamouflaged = self.GetIsCamouflaged and self:GetIsCamouflaged()
+    local isShadeCloaked = timeNow < self.timeCloaked
+
+    self.cloakRate = 0
+    
+    -- for pre-calculation of cloaking and decloaking variables (via cloakRate)
+    if isCamouflaged then
+                    
+        if not self.cloakRateIsConstant and self:isa("Player") then
+            self.cloakRate = self:GetVeilLevel()
+        elseif not self.cloakRateIsConstant and self:isa("Babbler") then
+            local babblerParent = self:GetParent()
+            if babblerParent and HasMixin(babblerParent, "Cloakable") then
+                self.cloakRate = babblerParent.cloakRate
+            end
+        else
+            self.cloakRate = 1  -- cyst passive cloak is lvl 1
+            self.cloakRateIsConstant = true
+        end
         
-        -- for pre-calculation of cloaking and decloaking variables (via cloakRate)
-        if isCamouflaged then
-                        
-            if self:isa("Player") then
+    end
+        
+    self.cloakingDesired = false        
+    -- allow partial camouflage/cloaking when not in combat, cloakRate == 0 means fully decloak
+    self.cloakRate = isShadeCloaked and CloakableMixin.kShadeCloakRate or self.cloakRate
+    
+    -- Ink cloak is the most powerful
+    if timeNow < self.timeInkCloakEnd then
+    
+        local dealtDamageRecently = self.timeLastDamageDealt and (self.timeLastDamageDealt + CloakableMixin.kAttackInkUncloakDuration >= timeNow) or false
+        self.cloakRate = 3
+        self.cloakingDesired = not dealtDamageRecently
+        
+    -- Animate towards uncloaked if triggered
+    elseif timeNow >= self.timeUncloaked and ( not GetConcedeSequenceActive() ) then
+        --and (not HasMixin(self, "Detectable") or not self:GetIsDetected())
+        
+        -- Uncloaking takes precedence over cloaking
+
+        if isCamouflaged and (HasMixin(self, "Live") and self:GetIsAlive() or true) then
+            
+            self.cloakingDesired = self.cloakRate > 0 -- true
+            
+            --[[if self:isa("Player") then
                 self.cloakRate = self:GetVeilLevel()
             elseif self:isa("Babbler") then
                 local babblerParent = self:GetParent()
@@ -194,59 +227,34 @@ local function UpdateDesiredCloakFraction(self, deltaTime)
                     self.cloakRate = babblerParent.cloakRate
                 end
             else
-                self.cloakRate = 1  -- cyst passive cloak is lvl 1 
-            end
+                self.cloakRate = 1
+            end--]]
             
         end
-            
-        self.cloakingDesired = false        
-        -- allow partial camouflage/cloaking when not in combat, cloakRate == 0 means fully decloak
-        self.cloakRate = isShadeCloaked and CloakableMixin.kShadeCloakRate or self.cloakRate
         
-        -- Ink cloak is the most powerful
-        if timeNow < self.timeInkCloakEnd then
-        
-            local dealtDamageRecently = self.timeLastDamageDealt and (self.timeLastDamageDealt + CloakableMixin.kAttackInkUncloakDuration >= timeNow) or false
-            self.cloakRate = 3
-            self.cloakingDesired = not dealtDamageRecently
-            
-        -- Animate towards uncloaked if triggered
-        elseif timeNow >= self.timeUncloaked and ( not GetConcedeSequenceActive() ) and isAlive then
-            --and (not HasMixin(self, "Detectable") or not self:GetIsDetected())
-            
-            -- Uncloaking takes precedence over cloaking
-
-            if isCamouflaged then
-                
-                self.cloakingDesired = self.cloakRate > 0 -- true
-                
-                --[[if self:isa("Player") then
-                    self.cloakRate = self:GetVeilLevel()
-                elseif self:isa("Babbler") then
-                    local babblerParent = self:GetParent()
-                    if babblerParent and HasMixin(babblerParent, "Cloakable") then
-                        self.cloakRate = babblerParent.cloakRate
-                    end
-                else
-                    self.cloakRate = 1
-                end--]]
-                
-            end
-            
-            if isShadeCloaked then
-                self.cloakingDesired = true
-                self.cloakRate = math.max(self.cloakRate, CloakableMixin.kShadeCloakRate)
-            end
-
+        if isShadeCloaked then
+            self.cloakingDesired = true
+            self.cloakRate = math.max(self.cloakRate, CloakableMixin.kShadeCloakRate)
         end
+
+    end
+end
+
+local function UpdateDesiredCloakFraction(self, deltaTime)
     
+    PROFILE("CloakableMixin:UpdateDesiredCloakFraction")
+
+    local timeNow = Shared.GetTime()
+    
+    if Server then
+        UpdateDesiredCloakFraction_Server(self, deltaTime)
     end
     
     local newDesiredCloakFraction = self.cloakingDesired and 1 or 0
     local isInInk = self:GetIsInInk()
     
     -- Update cloaked fraction according to our speed and max speed
-    if self.GetSpeedScalar then
+    if newDesiredCloakFraction > 0 and self.GetSpeedScalar then
         -- Always cloak (visually) no matter how fast we go.
         -- allow aliens including celerity gorge to run and remain "fully cloaked" while in Ink
         -- aliens exit full cloaking @ 99.875% of max speed (130% speed in Ink)
