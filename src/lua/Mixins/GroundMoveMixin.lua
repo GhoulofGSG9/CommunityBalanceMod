@@ -159,53 +159,14 @@ local function DoesStopMove(self, move, velocity)
 
 end
 
-
---[[
-local _slowDown = 0
-local _toggle = false
-local function OnConsoleSetBounce5() _slowDown = 0.05 end
-local function OnConsoleSetBounce10() _slowDown = 0.10 end
-local function OnConsoleSetBounce15() _slowDown = 0.15 end
-local function OnConsoleSetBounce20() _slowDown = 0.20 end
-local function OnConsoleSetBounce25() _slowDown = 0.25 end
-local function OnConsoleSetBounce50() _slowDown = 0.50 end
-local function OnConsoleSetBounce75() _slowDown = 0.75 end
-local function OnConsoleSetBounce100() _slowDown = 1 end
-local function OnConsoleToggle()
-    _toggle = not _toggle
-    Log("%s", _toggle)
-end
-
-Event.Hook("Console_s5", OnConsoleSetBounce5)
-Event.Hook("Console_s10", OnConsoleSetBounce10)
-Event.Hook("Console_s15", OnConsoleSetBounce15)
-Event.Hook("Console_s20", OnConsoleSetBounce20)
-Event.Hook("Console_s25", OnConsoleSetBounce25)
-Event.Hook("Console_s50", OnConsoleSetBounce50)
-Event.Hook("Console_s75", OnConsoleSetBounce75)
-Event.Hook("Console_s100", OnConsoleSetBounce100)
-Event.Hook("Console_t", OnConsoleToggle)
---]]
-
 local function _PerformMovement(self, offset, maxTraces, velocity, isMove, slowDownFraction, deflectMove, slowDownFilterFunc, deltaTime)
-
-    local hitPlayer = nil
 
     if slowDownFraction and _toggle then
         slowDownFraction = _slowDown
     end
     local completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial = self:PerformMovement(offset, maxTraces, velocity, isMove, slowDownFraction, deflectMove, slowDownFilterFunc, deltaTime)
 
-    for i = 1, (hitEntities and #hitEntities or 0) do
-        if hitEntities[i]:isa("Player") then
-            hitPlayer = hitEntities[i]
-            --if Server then Log("%s colliding with %s", self, hitPlayer) end
-            break
-            
-        end
-    end
-
-    return completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial, hitPlayer
+    return completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial
 
 end
 
