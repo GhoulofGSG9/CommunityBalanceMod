@@ -94,7 +94,7 @@ CloakableMixin.networkVars =
     cloakingDesired = "boolean",
     uncloakSlowly  = "boolean",
     cloakRate = "integer (0 to 3)",
-	timeInkCloakEnd = "time (by 0.01)"
+    timeInkCloakEnd = "time (by 0.01)"
 }
 
 function CloakableMixin:__initmixin()
@@ -109,10 +109,13 @@ function CloakableMixin:__initmixin()
     
     self.desiredCloakFraction = 0
     self.timeCloaked = 0
+
     self.timeLastFirstCloakUpdateCheck = 0
+    self.hasCloakedOnce = false
+
     self.timeUncloaked = 0
     self.cloakRate = 0
-	self.timeInkCloakEnd = 0    
+    self.timeInkCloakEnd = 0    
     
     -- when entity is created on client consider fully cloaked, so units wont show up for a short moment when going through a phasegate for example
     self.cloakFraction = self.fullyCloaked and 1 or 0
@@ -198,7 +201,7 @@ local function UpdateDesiredCloakFraction(self, deltaTime)
             
         self.cloakingDesired = false        
         -- allow partial camouflage/cloaking when not in combat, cloakRate == 0 means fully decloak
-		self.cloakRate = isShadeCloaked and CloakableMixin.kShadeCloakRate or self.cloakRate
+        self.cloakRate = isShadeCloaked and CloakableMixin.kShadeCloakRate or self.cloakRate
         
         -- Ink cloak is the most powerful
         if timeNow < self.timeInkCloakEnd then
@@ -289,7 +292,7 @@ local function UpdateCloakState(self, deltaTime)
     PROFILE("CloakableMixin:OnUpdate")
 
     -- Do not run the expensive code next if we never cloaked, only check cloak rate for those who already got camoed
-    if (self.timeCloaked == 0 and self.timeLastFirstCloakUpdateCheck + 1.5 > Shared.GetTime()) then
+    if (self.hasCloakedOnce == false and self.timeLastFirstCloakUpdateCheck + 1.5 > Shared.GetTime()) then
         return
     end
     self.timeLastFirstCloakUpdateCheck = Shared.GetTime()
@@ -340,6 +343,7 @@ local function UpdateCloakState(self, deltaTime)
         
     end
     
+    self.hasCloakedOnce = self.hasCloakedOnce or (self.cloakFraction > 0 or self.cloakRate > 0)
 end
 
 function CloakableMixin:OnUpdate(deltaTime)
