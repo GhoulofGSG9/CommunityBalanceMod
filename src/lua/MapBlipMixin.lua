@@ -194,16 +194,28 @@ function MapBlipMixin:GetMapBlipInfo()
     local blipTeam = -1
     local isAttacked = HasMixin(self, "Combat") and self:GetIsInCombat()
     local isParasited = HasMixin(self, "ParasiteAble") and self:GetIsParasited()
+    local isPlayer = self:isa("Player")
 
     -- World entities
-    if self:isa("Door") then
+    if not isPlayer and self:isa("Cyst") then
+
+        blipType = kMinimapBlipType.Infestation
+
+        if not self:GetIsConnected() then
+            blipType = kMinimapBlipType.InfestationDying
+        end
+
+        blipTeam = self:GetTeamNumber()
+        isAttacked = false
+
+    elseif not isPlayer and self:isa("Door") then
         blipType = kMinimapBlipType.Door
-    elseif self:isa("ResourcePoint") then
+    elseif not isPlayer and self:isa("ResourcePoint") then
         blipType = kMinimapBlipType.ResourcePoint
-    elseif self:isa("TechPoint") then
+    elseif not isPlayer and self:isa("TechPoint") then
         blipType = kMinimapBlipType.TechPoint
         -- Don't display PowerPoints unless they are in an unpowered state.
-    elseif self:isa("PowerPoint") then
+    elseif not isPlayer and self:isa("PowerPoint") then
 
         if self:GetIsDisabled() then
             blipType = kMinimapBlipType.DestroyedPowerPoint
@@ -217,18 +229,7 @@ function MapBlipMixin:GetMapBlipInfo()
 
         blipTeam = self:GetTeamNumber()
 
-    elseif self:isa("Cyst") then
-
-        blipType = kMinimapBlipType.Infestation
-
-        if not self:GetIsConnected() then
-            blipType = kMinimapBlipType.InfestationDying
-        end
-
-        blipTeam = self:GetTeamNumber()
-        isAttacked = false
-
-    elseif self:isa("Hallucination") then
+    elseif not isPlayer and self:isa("Hallucination") then
 
         local hallucinatedTechId = self:GetAssignedTechId()
 
@@ -249,10 +250,11 @@ function MapBlipMixin:GetMapBlipInfo()
         -- Everything else that is supported by kMinimapBlipType.
     elseif self:GetIsVisible() then
 
-        if rawget( kMinimapBlipType, self:GetClassName() ) ~= nil then
-            blipType = kMinimapBlipType[self:GetClassName()]
+        local className = self:GetClassName()
+        if rawget( kMinimapBlipType, className ) ~= nil then
+            blipType = kMinimapBlipType[className]
         else
-            Shared.Message( "Element '"..tostring(self:GetClassName()).."' doesn't exist in the kMinimapBlipType enum" )
+            Shared.Message( "Element '"..tostring(className).."' doesn't exist in the kMinimapBlipType enum" )
         end
 
         blipTeam = HasMixin(self, "Team") and self:GetTeamNumber() or kTeamReadyRoom
@@ -263,23 +265,26 @@ function MapBlipMixin:GetMapBlipInfo()
         success = true
     end
 
-	-- %%% CBM Blips %%% --
-	if self:GetTechId() == kTechId.FortressCrag then 
+    -- %%% CBM Blips %%% --
+    local techId = self:GetTechId()
+    if isPlayer then
+        return success, blipType, blipTeam, isAttacked, isParasited
+    elseif techId == kTechId.FortressCrag then 
         blipType = kMinimapBlipType.FortressCrag
         blipTeam = self:GetTeamNumber()
         return success, blipType, blipTeam, isAttacked, isParasited
 
-    elseif self:GetTechId() == kTechId.FortressShade then 
+    elseif techId == kTechId.FortressShade then 
         blipType = kMinimapBlipType.FortressShade
         blipTeam = self:GetTeamNumber()
         return success, blipType, blipTeam, isAttacked, isParasited
 
-    elseif self:GetTechId() == kTechId.FortressShift then 
+    elseif techId == kTechId.FortressShift then 
         blipType = kMinimapBlipType.FortressShift
         blipTeam = self:GetTeamNumber()
         return success, blipType, blipTeam, isAttacked, isParasited
       
-    elseif self:GetTechId() == kTechId.FortressWhip then 
+    elseif techId == kTechId.FortressWhip then 
         local mature = self:GetIsMature()
         blipTeam = self:GetTeamNumber()
         if mature then 
@@ -289,7 +294,7 @@ function MapBlipMixin:GetMapBlipInfo()
         end
         return success, blipType, blipTeam, isAttacked, isParasited
 
-	elseif self:isa("CommandStation") then 
+    elseif self:isa("CommandStation") then 
         local occupied = not ( self:GetCommander() == nil )
         blipTeam = self:GetTeamNumber()  
 
@@ -318,51 +323,51 @@ function MapBlipMixin:GetMapBlipInfo()
         local occupied = not ( self:GetCommander() == nil )
         blipTeam = self:GetTeamNumber()  
 
-		if self.bioMassLevel == 5 then
-			if maturityLevel < 0.34 then 
-				if occupied then 
-					blipType = kMinimapBlipType.HiveFreshOccupiedFifthBio
-				else 
-					blipType = kMinimapBlipType.HiveFreshFifthBio
-				end
+        if self.bioMassLevel == 5 then
+            if maturityLevel < 0.34 then 
+                if occupied then 
+                    blipType = kMinimapBlipType.HiveFreshOccupiedFifthBio
+                else 
+                    blipType = kMinimapBlipType.HiveFreshFifthBio
+                end
 
-			elseif maturityLevel > 0.65 then 
-				if occupied then 
-					blipType = kMinimapBlipType.HiveMatureOccupiedFifthBio
-				else 
-					blipType = kMinimapBlipType.HiveMatureFifthBio
-				end
+            elseif maturityLevel > 0.65 then 
+                if occupied then 
+                    blipType = kMinimapBlipType.HiveMatureOccupiedFifthBio
+                else 
+                    blipType = kMinimapBlipType.HiveMatureFifthBio
+                end
 
-			else 
-				if occupied then 
-					blipType = kMinimapBlipType.HiveOccupiedFifthBio
-				else 
-					blipType = kMinimapBlipType.HiveFifthBio
-				end
-			end
-		else
-			if maturityLevel < 0.34 then 
-				if occupied then 
-					blipType = kMinimapBlipType.HiveFreshOccupied
-				else 
-					blipType = kMinimapBlipType.HiveFresh
-				end
+            else 
+                if occupied then 
+                    blipType = kMinimapBlipType.HiveOccupiedFifthBio
+                else 
+                    blipType = kMinimapBlipType.HiveFifthBio
+                end
+            end
+        else
+            if maturityLevel < 0.34 then 
+                if occupied then 
+                    blipType = kMinimapBlipType.HiveFreshOccupied
+                else 
+                    blipType = kMinimapBlipType.HiveFresh
+                end
 
-			elseif maturityLevel > 0.65 then 
-				if occupied then 
-					blipType = kMinimapBlipType.HiveMatureOccupied
-				else 
-					blipType = kMinimapBlipType.HiveMature
-				end
+            elseif maturityLevel > 0.65 then 
+                if occupied then 
+                    blipType = kMinimapBlipType.HiveMatureOccupied
+                else 
+                    blipType = kMinimapBlipType.HiveMature
+                end
 
-			else 
-				if occupied then 
-					blipType = kMinimapBlipType.HiveOccupied
-				else 
-					blipType = kMinimapBlipType.Hive
-				end
-			end
-		end
+            else 
+                if occupied then 
+                    blipType = kMinimapBlipType.HiveOccupied
+                else 
+                    blipType = kMinimapBlipType.Hive
+                end
+            end
+        end
 
         return success, blipType, blipTeam, isAttacked, isParasited
 
@@ -376,7 +381,7 @@ function MapBlipMixin:GetMapBlipInfo()
         end
         return success, blipType, blipTeam, isAttacked, isParasited
 
-	elseif self:isa("DIS") then
+    elseif self:isa("DIS") then
         blipTeam = self:GetTeamNumber()  
 
         if self:GetPlayIdleSound() then
@@ -398,53 +403,53 @@ function MapBlipMixin:GetMapBlipInfo()
       
         return success, blipType, blipTeam, isAttacked, isParasited
     
-	elseif self:isa("SentryBattery") then
+    elseif self:isa("SentryBattery") then
         blipTeam = self:GetTeamNumber()  
-		
-		if self:GetTechId() == kTechId.ShieldBattery then
+        
+        if techId == kTechId.ShieldBattery then
             blipType = kMinimapBlipType.ShieldedSentryBattery
         else
             blipType = kMinimapBlipType.SentryBattery
         end
       
         return success, blipType, blipTeam, isAttacked, isParasited
-			
-	elseif self:isa("Observatory") then
+            
+    elseif self:isa("Observatory") then
         blipTeam = self:GetTeamNumber()  
-		
-		if self:GetTechId() == kTechId.AdvancedObservatory then
+        
+        if techId == kTechId.AdvancedObservatory then
             blipType = kMinimapBlipType.AdvancedObservatory
         else
             blipType = kMinimapBlipType.Observatory
         end
       
         return success, blipType, blipTeam, isAttacked, isParasited
-	
-	elseif self:isa("RoboticsFactory") then
+    
+    elseif self:isa("RoboticsFactory") then
         blipTeam = self:GetTeamNumber()  
-		
-		if self:GetTechId() == kTechId.ARCRoboticsFactory then
+        
+        if techId == kTechId.ARCRoboticsFactory then
             blipType = kMinimapBlipType.ARCRoboticsFactory
         else
             blipType = kMinimapBlipType.RoboticsFactory
         end
       
         return success, blipType, blipTeam, isAttacked, isParasited
-	
-	elseif self:isa("PrototypeLab") then
+    
+    elseif self:isa("PrototypeLab") then
         blipTeam = self:GetTeamNumber()  
-		
-		if self:GetTechId() == kTechId.InfantryPrototypeLab then
+        
+        if techId == kTechId.InfantryPrototypeLab then
             blipType = kMinimapBlipType.InfantryPrototypeLab
-        elseif self:GetTechId() == kTechId.ExoPrototypeLab then
-			blipType = kMinimapBlipType.ExoPrototypeLab
-		else
+        elseif techId == kTechId.ExoPrototypeLab then
+            blipType = kMinimapBlipType.ExoPrototypeLab
+        else
             blipType = kMinimapBlipType.PrototypeLab
         end
       
         return success, blipType, blipTeam, isAttacked, isParasited
-		
-	end
+        
+    end
 
     return success, blipType, blipTeam, isAttacked, isParasited
 

@@ -14,6 +14,8 @@ Script.Load("lua/Mixins/BaseMoveMixin.lua")
 GroundMoveMixin = CreateMixin(GroundMoveMixin)
 GroundMoveMixin.type = "GroundMove"
 
+local math_pi = math.pi
+local math_cos = math.cos
 local kDownSlopeFactor = math.tan(math.rad(60))
 
 local kStepHeight = 0.5
@@ -119,13 +121,20 @@ local function _GetIsStillOnSameGroundPosition(self, distance)
 end
 
 local function CosFalloff(distanceFraction)
-    local piFraction = Clamp(distanceFraction, 0, 1) * math.pi / 2
-    return math.cos(piFraction + math.pi) + 1 
+    if distanceFraction <= 0 then
+        return 0
+    end
+    if distanceFraction >= 1 then
+        return 1
+    end
+
+    local piFraction = Clamp(distanceFraction, 0, 1) * math_pi / 2
+    return math_cos(piFraction + math_pi) + 1 
 end
 
 local function GetOnGroundFraction(self)
 
-    PROFILE("GroundMoveMixin:GetOnGroundFraction")
+    --PROFILE("GroundMoveMixin:GetOnGroundFraction")
 
     local transistionTime = not self.GetGroundTransistionTime and kAirGroundTransistionTime or self:GetGroundTransistionTime()
     local groundFraction = self.onGround and Clamp( (Shared.GetTime() - self.timeGroundTouched) / transistionTime, 0, 1) or 0
@@ -143,67 +152,28 @@ end
 
 local function DoesStopMove(self, move, velocity)
 
-    PROFILE("GroundMoveMixin:DoesStopMove")
+    --PROFILE("GroundMoveMixin:DoesStopMove")
 
     local wishDir = GetNormalizedVectorXZ(self:GetViewCoords().zAxis) * move.z    
     return wishDir:DotProduct(GetNormalizedVectorXZ(velocity)) < -0.8
 
 end
 
-
---[[
-local _slowDown = 0
-local _toggle = false
-local function OnConsoleSetBounce5() _slowDown = 0.05 end
-local function OnConsoleSetBounce10() _slowDown = 0.10 end
-local function OnConsoleSetBounce15() _slowDown = 0.15 end
-local function OnConsoleSetBounce20() _slowDown = 0.20 end
-local function OnConsoleSetBounce25() _slowDown = 0.25 end
-local function OnConsoleSetBounce50() _slowDown = 0.50 end
-local function OnConsoleSetBounce75() _slowDown = 0.75 end
-local function OnConsoleSetBounce100() _slowDown = 1 end
-local function OnConsoleToggle()
-    _toggle = not _toggle
-    Log("%s", _toggle)
-end
-
-Event.Hook("Console_s5", OnConsoleSetBounce5)
-Event.Hook("Console_s10", OnConsoleSetBounce10)
-Event.Hook("Console_s15", OnConsoleSetBounce15)
-Event.Hook("Console_s20", OnConsoleSetBounce20)
-Event.Hook("Console_s25", OnConsoleSetBounce25)
-Event.Hook("Console_s50", OnConsoleSetBounce50)
-Event.Hook("Console_s75", OnConsoleSetBounce75)
-Event.Hook("Console_s100", OnConsoleSetBounce100)
-Event.Hook("Console_t", OnConsoleToggle)
---]]
-
 local function _PerformMovement(self, offset, maxTraces, velocity, isMove, slowDownFraction, deflectMove, slowDownFilterFunc, deltaTime)
-
-    local hitPlayer = nil
 
     if slowDownFraction and _toggle then
         slowDownFraction = _slowDown
     end
     local completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial = self:PerformMovement(offset, maxTraces, velocity, isMove, slowDownFraction, deflectMove, slowDownFilterFunc, deltaTime)
 
-    for i = 1, (hitEntities and #hitEntities or 0) do
-        if hitEntities[i]:isa("Player") then
-            hitPlayer = hitEntities[i]
-            --if Server then Log("%s colliding with %s", self, hitPlayer) end
-            break
-            
-        end
-    end
-
-    return completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial, hitPlayer
+    return completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial
 
 end
 
 
 local function GetIsCloseToGround(self, distance)
 
-    PROFILE("GroundMoveMixin:GetIsCloseToGround")
+    --PROFILE("GroundMoveMixin:GetIsCloseToGround")
 
     local onGround = false
     local normal = nil
@@ -322,7 +292,7 @@ end
 
 function GroundMoveMixin:ModifyMaxSpeed(maxSpeedTable, input)
 
-    PROFILE("GroundMoveMixin:ModifyMaxSpeed")
+    --PROFILE("GroundMoveMixin:ModifyMaxSpeed")
 
     local backwardsSpeedScalar = 1
 
@@ -344,7 +314,7 @@ end
 
 local function AccelerateSimpleXZ(self, input, velocity, maxSpeedXZ, acceleration, deltaTime)
 
-    PROFILE("GroundMoveMixin:AccelerateSimpleXZ")
+    --PROFILE("GroundMoveMixin:AccelerateSimpleXZ")
 
     if acceleration > 0 then -- For instance, lerk have 0 fall accel
         maxSpeedXZ = math.max(velocity:GetLengthXZ(), maxSpeedXZ)
@@ -370,7 +340,7 @@ end
 
 local function ForwardControl(self, deltaTime, velocity)
 
-    PROFILE("GroundMoveMixin:ForwardControl")
+    --PROFILE("GroundMoveMixin:ForwardControl")
 
     local airControl = self:GetAirControl() * 2
 
@@ -807,7 +777,7 @@ end
 
 local function UpdateOnGround(self)
 
-    PROFILE("GroundMoveMixin:UpdateOnGround")
+    --PROFILE("GroundMoveMixin:UpdateOnGround")
 
     local onGround, _, hitEntities, surfaceMaterial = GetIsCloseToGround(self, 0.15)
     

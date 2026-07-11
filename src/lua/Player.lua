@@ -414,6 +414,8 @@ function Player:OnCreate()
     self.concedeSettingsIndex = 1
     self.callingCard = kDefaultPlayerCallingCard
 
+    self.kNoUpdatesForWeaponId = -1
+
 end
 
 local function InitViewModel(self)
@@ -1284,8 +1286,16 @@ function Player:AdjustAngles(deltaTime)
 
     local angles = self:GetAngles()
     local desiredAngles = self:GetDesiredAngles(deltaTime)
-    local smoothMode = self:GetAngleSmoothingMode()
 
+    if self.anglesAdjusted == false then
+        if self.anglesAdjustedOrig == angles and self.anglesAdjustedDesired == desiredAngles then
+            --if Server then Log("HIT: %s -- %s", angles, desiredAngles) end
+            return
+        end
+    end
+
+    local origAngle = Angles(angles)
+    local smoothMode = self:GetAngleSmoothingMode()
     if desiredAngles == nil then
 
         -- Just keep the old angles
@@ -1314,6 +1324,12 @@ function Player:AdjustAngles(deltaTime)
     AnglesTo2PiRange(angles)
     self:SetAngles(angles)
 
+    local newDestAngle = Angles(angles)
+    self.anglesAdjusted = (newDestAngle ~= self.anglesAdjustedDest)
+    self.anglesAdjustedOrig = origAngle
+    self.anglesAdjustedDesired = desiredAngles
+    self.anglesAdjustedDest = newDestAngle
+
 end
 
 function Player:UpdateViewAngles(input)
@@ -1327,7 +1343,6 @@ function Player:UpdateViewAngles(input)
     -- Update to the current view angles.
     local viewAngles = Angles(input.pitch, input.yaw, 0)
     self:SetViewAngles(viewAngles)
-
     self:AdjustAngles(input.time)
 
 end
@@ -1796,11 +1811,17 @@ function Player:OnUpdatePoseParameters()
     if not Shared.GetIsRunningPrediction() then
 
         local viewModel = self:GetViewModelEntity()
-        if viewModel ~= nil then
+        local activeWeaponId = self:GetActiveWeaponId()
+        if self.kNoUpdatesForWeaponId ~= activeWeaponId and viewModel ~= nil then
 
             local activeWeapon = self:GetActiveWeapon()
-            if activeWeapon and activeWeapon.UpdateViewModelPoseParameters then
-                activeWeapon:UpdateViewModelPoseParameters(viewModel)
+            if activeWeapon then
+                if activeWeapon.UpdateViewModelPoseParameters then
+                    activeWeapon:UpdateViewModelPoseParameters(viewModel)
+                else
+                     -- So we don't recall GetActiveWeapon(), which does a GetEntity()
+                    self.kNoUpdatesForWeaponId = activeWeaponId
+                end
             end
 
         end
