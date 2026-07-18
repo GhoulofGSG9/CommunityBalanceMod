@@ -331,8 +331,8 @@ kMinigunDamageType = kDamageType.Heavy
 kClawDamage = 50
 kClawDamageType = kDamageType.Structural
 
-kRailgunDamage = 35
-kRailgunChargeDamage = 35
+kRailgunDamage = 48
+kRailgunChargeDamage = 0
 kRailgunDamageType = kDamageType.Structural
 
 kMACAttackDamage = 5
