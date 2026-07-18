@@ -25,39 +25,22 @@ if kCBMaddon then
 	or start a conversation in beta-balance-feedback on the official discord to let us know 
 	you think! Below are the changes this mod introduces:
 
-	#TLDR of Recent Release (v3.5):
-	
-	### CBM optimizations support increased game rates based on our recommendations (see CBM discord)!
-	### Server owners test your servers, up your rates!
+	#TLDR of v3.6 Playtest 1:
 	
 	## Balance Changes
-	  - Nerfs to exosuit movement and thruster.
-	  - Claw armor increased from 75 to 115.
-	  - Plasma launcher sphere collisions improved and DoT application bugfixed.
-	  - Jetpack tech cost reduced from 25 to 20.
-	  - Mines can no longer be placed inside the center of gates.
-	  - Bombblers spawn further and last for 10s (from 8s).
-	  - Pulse nade now deals 15 from 10 damage (to one shot babblers).
-	  - Fortress structures renamed to "Advanced" structures to reflect current role alignment.
-	  - Boneshield blocks shots from railgun from piercing and doing health pool damage.
+	  - Railgun reworked to use ammo system.
+	  - All cloaked structures partially reveal when nearby.
+	  - Lerks can no longer spike outside relevancy range.
 	
-	## Vanilla Bugfixes and Enhanced Performance
-	  - Vanilla bugfixes to ARC and whip ragdoll related server hitching and crashes.
-      - Vanilla bugfix to welder stopping welding when accidently aiming at a target's weapon.
-	  - Vanilla bugfix to static DoTs (plasma and bile affected) that decreased target acquisition time by >0.5s.
-	  - Vanilla bugfix to cyst popping on expanding across the map.
-	  - Vanilla bugfix to nil error on phasegates.
-	  - Vanilla bugfix for mine being triggered outside of damage range and improved responsiveness of detection.
-      - Extensive lua code refactor/debottlenecking, improving client/server performance (see CBM discord for details).
-      - Vanilla bugfixes related to game rate increases.
-	  - Vanilla bugfixes to collisions:
-	    - Not affected by rate changes.
-		- Better for PvP (less getting stuck / phasing through people).
-		- Better when hitting geometry (many stuck spots fixed)
+	## Bugfixes and Game Performance Optimizations
+	  - Further fixes to collisions and movement.
+	  - Fixed marine bots not being able to target specific structures due to minimap blips.
+	  - Improved performance of line of sight functions.
+	  - Improved performance of weapon holder functions.
+	  - Improved performance of cloaking functions.
+	  - Improved performance of player functions.
 	  
-	###Be sure to thank Katzenfleisch for his amazing work on the NS2 codebase optimizations!
-
-	#TLDR of Community Balance Mod (v3.5) vs. Vanilla:
+	#TLDR of Community Balance Mod (v3.6 - PT1) vs. Vanilla:
 	
 	## MARINE
 	  - Reworks to existing marines structures (sentry, sentry battery, and prototype lab).
@@ -113,6 +96,7 @@ if kCBMaddon then
 	    - Marine tech map rearranged to better delineate tech progression and dependencies (purple lines).
 	  - Improved blueprint placement (options -> mods -> CBM: Accessibility Options).
 	  - Hotkeyed units are underlined for commanders when attacked for better visibility.
+	  - Alien structures partially uncloak when nearby.
 	  
 	### Minimap Updates
 	  - Players are able to see if a hive is at <34%, <67% or <=100% maturity
@@ -187,11 +171,11 @@ if kCBMaddon then
 	### Railgun 
 	  - Railgun reworked to be more forgiving and less "bursty".
 	  - Firing cooldown set to 1s from 1.4s.
-	  - Charge time to 1s from 2s.
-	  - Shots can be stored for 2s.
-	  - Base damage range is now 35 (0% charge) to 70 (100% charge) from 10/150.
-		- Maximum burst is 140 (280 for structures) at W0. Down from ~170 (340) in vanilla.
-		- Maximum DPS is 70 (140 for structures) at W0. Down from ~88 (176) in vanilla.
+	  - Charge system replaced with ammo system.
+	  - Base damage is now 48 from 10/150.
+		- Maximum burst is 96 (192 for structures) at W0. Down from ~170 (340) in vanilla.
+		- Maximum burst DPS is 96 (192 for structures) at W0. Up from ~88 (176) in vanilla.
+		- Maximum sustained DPS is 64 (128 for structures) at W0. Down from ~88 (176) in vanilla.
 	  - Maximum range set to 30 m.
 	  - Dual railgun now allows simultaneous firing of both arms.
 	  - Target highlighting now works on all lifeforms and alien structures (red).
@@ -459,6 +443,9 @@ if kCBMaddon then
 	  - Boneshield
 	    - Now blocks railgun shots from piercing through (still must be facing damage source).
 	    - Now prevents health pool damage of railgun shot when blocking (still must be facing damage source).
+
+	### Lerk
+	  - Spike range limited to relevancy range.
 
 	### Stab (fade)
 	  - Stab research cost reduced from 25 to 20 tres.
