@@ -735,16 +735,20 @@ end
 
 function Marine:GetMaxSpeed(possible)
 
+    PROFILE("Marine:GetMaxSpeed")
+
     if possible then
         return Marine.kRunMaxSpeed
     end
 
-    local sprintingScalar = self:GetSprintingScalar()
-    local maxSprintSpeed = Marine.kWalkMaxSpeed + ( Marine.kRunMaxSpeed - Marine.kWalkMaxSpeed ) * sprintingScalar
-    local maxSpeed = ConditionalValue( self:GetIsSprinting(), maxSprintSpeed, Marine.kWalkMaxSpeed )
+    local maxSpeed = Marine.kWalkMaxSpeed
+    if self:GetIsSprinting() then
+        maxSpeed = maxSpeed + ( Marine.kRunMaxSpeed - Marine.kWalkMaxSpeed ) * self:GetSprintingScalar()
+    end
     
     -- Take into account our weapon inventory and current weapon. Assumes a vanilla marine has a scalar of around .8.
-    local inventorySpeedScalar = self:GetInventorySpeedScalar() + .17    
+    local inventorySpeedScalar = self:GetInventorySpeedScalar() + .17
+    local slowSpeedModifier = self:GetSlowSpeedModifier()
     local useModifier = 1
 
     if self.isUsing then
@@ -758,7 +762,7 @@ function Marine:GetMaxSpeed(possible)
         maxSpeed = maxSpeed + kCatPackMoveAddSpeed
     end
     
-    return maxSpeed * self:GetSlowSpeedModifier() * inventorySpeedScalar  * useModifier
+    return maxSpeed * slowSpeedModifier * inventorySpeedScalar  * useModifier
     
 end
 
@@ -824,12 +828,12 @@ function Marine:GetPlayerStatusDesc()
     
     local weapon = self:GetWeaponInHUDSlot(1)
     if (weapon) then
-        if (weapon:isa("GrenadeLauncher")) then
-            return kPlayerStatus.GrenadeLauncher
-        elseif (weapon:isa("Rifle")) then
+        if (weapon:isa("Rifle")) then
             return kPlayerStatus.Rifle
         elseif (weapon:isa("Shotgun")) then
             return kPlayerStatus.Shotgun
+        elseif (weapon:isa("GrenadeLauncher")) then
+            return kPlayerStatus.GrenadeLauncher
         elseif (weapon:isa("Flamethrower")) then
             return kPlayerStatus.Flamethrower
         elseif (weapon:isa("HeavyMachineGun")) then
@@ -1122,7 +1126,7 @@ function Marine:OnProcessMove(input)
                     SendDamageMessage( attacker, self:GetId(), damageDone, self:GetOrigin(), damageDone )
                 end
             
-                self.timeLastPoisonDamage = Shared.GetTime()   
+                self.timeLastPoisonDamage = now
                 
             end
             
@@ -1168,8 +1172,10 @@ function Marine:GetIsStunAllowed()
     return not self.timeLastStun or self.timeLastStun + kDisruptMarineTimeout < Shared.GetTime()
 end
 
+local kMarineBodyYawTurnThreshold1 = Math.Radians(85)
+local kMarineBodyYawTurnThreshold2 = Math.Radians(25)
 function Marine:GetBodyYawTurnThreshold()
-    return -Math.Radians(85), Math.Radians(25)
+    return -kMarineBodyYawTurnThreshold1, kMarineBodyYawTurnThreshold2
 end
 
 -- %%% New CBM Functions %%% --
