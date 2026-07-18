@@ -19,14 +19,17 @@ class 'Railgun' (Entity)
 
 Railgun.kMapName = "railgun"
 
-local kChargeTime = 1 -- Changed from vanilla value 2
+local kChargeTime = 1.0 -- Changed from vanilla value 2
 -- The Railgun will automatically shoot if it is charged for too long.
 local kChargeForceShootTime = 2.5 --  vanilla value 2.5
 local kRailgunRange = 30 -- Vanilla 400
 local kRailgunSpread = Math.Radians(0)
 local kBulletSize = 0.3
 
-local kRailgunChargeTime = 1 -- Vanilla 1.4
+local kRailgunChargeTime = 1.0 -- Vanilla 1.4
+local kRailgunCellRechargeTime = 6.0
+
+local kMaxCells = 4
 
 local kChargeSound = PrecacheAsset("sound/NS2.fev/marine/heavy/railgun_charge")
 
@@ -38,7 +41,10 @@ local networkVars =
     timeChargeStarted = "time",
     railgunAttacking = "boolean",
     lockCharging = "boolean",
-    timeOfLastShot = "time"
+    timeOfLastShot = "time",
+	energyAnimation = "float (0 to 1 by 0.01)",
+	timeLastCell = "time",
+	numCells = "integer (0 to 4)"
 }
 
 AddMixinNetworkVars(TechMixin, networkVars)
@@ -62,7 +68,10 @@ function Railgun:OnCreate()
     self.railgunAttacking = false
     self.lockCharging = false
     self.timeOfLastShot = 0
-    
+	self.energyAnimation = 0
+    self.timeLastCell = Shared.GetTime()
+	self.numCells = kMaxCells
+	
     if Client then
     
         InitMixin(self, ClientWeaponEffectsMixin)
@@ -202,7 +211,11 @@ function Railgun:GetDeathIconIndex()
 end
 
 function Railgun:GetChargeAmount()
-    return self.railgunAttacking and math.min(1, (Shared.GetTime() - self.timeChargeStarted) / kChargeTime) or 0
+    return self.numCells < kMaxCells and math.min(1, (Shared.GetTime() - self.timeLastCell) / kRailgunCellRechargeTime) or 0
+end
+
+function Railgun:GetCellAmount()
+    return self.numCells
 end
 
 local function TriggerSteamEffect(self, player)
@@ -237,15 +250,17 @@ local function ExecuteShot(self, startPoint, endPoint, player)
         if capsuleTrace.entity then
 
             if not table.find(hitEntities, capsuleTrace.entity) then
+
                 table.insert(hitEntities, capsuleTrace.entity)
                 self:DoDamage(damage, capsuleTrace.entity, capsuleTrace.endPoint + hitPointOffset, direction, capsuleTrace.surface, false, false)
-				
-				if capsuleTrace.entity:isa("Onos") then
-					if capsuleTrace.entity:GetIsBoneShieldActive() and capsuleTrace.entity:GetHitsBoneShield(self, capsuleTrace.endPoint + hitPointOffset) then
-						break
-					end
+            end
+			
+			if capsuleTrace.entity:isa("Onos") then
+				if capsuleTrace.entity:GetIsBoneShieldActive() and capsuleTrace.entity:GetHitsBoneShield(self, capsuleTrace.endPoint + hitPointOffset) then
+					break
 				end
-            end		
+			end
+			
         end
 
         -- Stop looping early if we've reached the end.
@@ -329,13 +344,13 @@ end
 
 function Railgun:ProcessMoveOnWeapon(player, input)
 
-    if self.railgunAttacking then
-    
-        if (Shared.GetTime() - self.timeChargeStarted) >= kChargeForceShootTime then
-            self.railgunAttacking = false
-        end
-        
-    end
+	local timeNow = Shared.GetTime()
+	if timeNow - self.timeLastCell  >= kRailgunCellRechargeTime and self.numCells < kMaxCells then
+		self.numCells = kMaxCells
+		self.timeLastCell = timeNow
+	elseif self.numCells == kMaxCells then
+		self.timeLastCell = timeNow
+	end
     
 end
 
@@ -354,7 +369,7 @@ function Railgun:OnUpdateRender()
             local renderModel = viewModel:GetRenderModel()
             renderModel:SetMaterialParameter("chargeAmount" .. self:GetExoWeaponSlotName(), chargeAmount)
             renderModel:SetMaterialParameter("timeSinceLastShot" .. self:GetExoWeaponSlotName(), Shared.GetTime() - self.timeOfLastShot)
-            
+            renderModel:SetMaterialParameter("cellAmount" .. self:GetExoWeaponSlotName(), self.numCells)
         end
         
         local chargeDisplayUI = self.chargeDisplayUI
@@ -369,6 +384,7 @@ function Railgun:OnUpdateRender()
         
         chargeDisplayUI:SetGlobal("chargeAmount" .. self:GetExoWeaponSlotName(), chargeAmount)
         chargeDisplayUI:SetGlobal("timeSinceLastShot" .. self:GetExoWeaponSlotName(), Shared.GetTime() - self.timeOfLastShot)
+		chargeDisplayUI:SetGlobal("cellAmount" .. self:GetExoWeaponSlotName(), self.numCells)
         
     else
     
@@ -381,7 +397,7 @@ function Railgun:OnUpdateRender()
         
     end
     
-    if self.chargeSound then
+    --[[if self.chargeSound then
     
         local playing = self.chargeSound:GetIsPlaying()
         if not playing and chargeAmount > 0 then
@@ -392,7 +408,7 @@ function Railgun:OnUpdateRender()
         
         self.chargeSound:SetParameter("charge", chargeAmount, 1)
         
-    end
+    end]]
     
 end
 
@@ -400,22 +416,21 @@ function Railgun:OnTag(tagName)
 
     PROFILE("Railgun:OnTag")
     
-    if self:GetIsLeftSlot() then
-    
-        if tagName == "l_shoot" then
+	if self:GetIsLeftSlot() then
+        if tagName == "l_shoot" and self.numCells > 0 then
             Shoot(self, true)
-        elseif tagName == "l_shoot_end" then
-            self.lockCharging = false
+			if Server then	
+				self.numCells = math.max(0,self.numCells - 1)
+			end
         end
         
     elseif not self:GetIsLeftSlot() then
-    
-        if tagName == "r_shoot" then
-            Shoot(self, false)
-        elseif tagName == "r_shoot_end" then
-            self.lockCharging = false
-        end
-        
+        if tagName == "r_shoot" and self.numCells > 0 then
+			Shoot(self, false)
+			if Server then
+				self.numCells = math.max(0,self.numCells - 1)
+			end
+		end
     end
     
 end
@@ -424,7 +439,7 @@ end
 function Railgun:OnUpdateAnimationInput(modelMixin)
 
     local activity = "none"
-    if self.railgunAttacking then
+    if self.railgunAttacking and self.numCells > 0 then
         activity = "primary"
     end
     modelMixin:SetAnimationInput("activity_" .. self:GetExoWeaponSlotName(), activity)
@@ -450,7 +465,7 @@ if Client then
     
         local parent = self:GetParent()
         
-        if parent then
+        if parent and self.numCells > 0 then
 
             local attachPoint
             if parent:GetIsLocalPlayer() and not parent:GetIsThirdPerson() then
