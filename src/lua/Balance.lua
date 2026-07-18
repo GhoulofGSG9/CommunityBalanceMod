@@ -476,7 +476,7 @@ kSpikeDamage = 5
 kSpikeDamageType = kDamageType.Puncture
 kSpikeEnergyCost = 1.4
 kSpikesAttackDelay = 0.07
-kSpikesRange = 50
+kSpikesRange = 41 -- Relevancy range is 40 m (1 m buffer)
 kSpikesPerShot = 1
 
 kSporesDamageType = kDamageType.Gas

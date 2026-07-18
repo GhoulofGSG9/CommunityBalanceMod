@@ -49,10 +49,19 @@ CloakableMixin.kInvisibleFarRange =
 CloakableMixin.kSpecialMaxCloakClass =
 set {
     "Onos",
+	"Crag",
+	"Shift",
+	"Shade",
     "Whip",
     "Drifter",
+	"Hive",
+	"Tunnel",
     "Harvester",
     "Hydra",
+	"Shell",
+	"Spur",
+	"Veil",
+	"Egg",
 }
 -- most players and these classes have cloak strength capped at kPlayerMaxCloak
 CloakableMixin.kPlayerMaxCloakClass =
