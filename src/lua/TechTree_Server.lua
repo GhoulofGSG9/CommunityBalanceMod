@@ -32,6 +32,8 @@ end
 -- Send the entirety of every the tech node on team change or join. Returns true if it sent anything
 function TechTree:SendTechTreeBase(player)
 
+    PROFILE("TechTree:SendTechTreeBase")
+
     local sent = false
     if self.complete then
     
@@ -39,6 +41,7 @@ function TechTree:SendTechTreeBase(player)
         -- so players are always able to buy weapons, use commander mode, etc.
         Server.SendNetworkMessage(player, "ClearTechTree", {}, true)
 
+    --Log("Sending base to %s", player)
         for _, nodeTechId in ipairs(self.techIdList) do
 
             local techNode = self:GetTechNode(nodeTechId)
@@ -59,11 +62,13 @@ function TechTree:SendTechTreeUpdates(playerList)
 
     for _, techNode in ipairs(self.techNodesChanged:GetList()) do
     
+
         local techNodeUpdateTable = BuildTechNodeUpdateMessage(techNode)
         local removedInstances = {}
         
         for _, player in ipairs(playerList) do
         
+            --Log("Sending tech %s change to %s", techNode, player)
             Server.SendNetworkMessage(player, "TechNodeUpdate", techNodeUpdateTable, true)
             removedInstances = self:SendTechNodeInstances(player, techNode)
             
@@ -318,7 +323,9 @@ function TechTree:AddPassive(techId, prereq1, prereq2)
 end
 
 function TechTree:SetTechChanged()
+
     self.techChanged = true
+
 end
 
 -- Pre-compute stuff
@@ -432,12 +439,16 @@ function TechTree:ComputeHasTech(structureTechIdList, techIdCount)
                 -- Pre-reqs must be defined already
                 local prereq1 = node:GetPrereq1()
                 local prereq2 = node:GetPrereq2()
-                assert(prereq1 == kTechId.None or (prereq1 < techId), string.format("Prereq %s bigger then %s", EnumToString(kTechId, prereq1), EnumToString(kTechId, techId)))
-                assert(prereq2 == kTechId.None or (prereq2 < techId), string.format("Prereq %s bigger then %s", EnumToString(kTechId, prereq2), EnumToString(kTechId, techId)))
+                if not (prereq1 == kTechId.None or (prereq1 < techId)) then
+                    assert(false, string.format("Prereq %s bigger then %s", EnumToString(kTechId, prereq1), EnumToString(kTechId, techId)))
+                end
+                if not (prereq2 == kTechId.None or (prereq2 < techId)) then
+                    assert(false, string.format("Prereq %s bigger then %s", EnumToString(kTechId, prereq2), EnumToString(kTechId, techId)))
+                end
                 
                 hasTech =   node:GetResearched() and 
-                            self:GetHasTech(node:GetPrereq1()) and 
-                            self:GetHasTech(node:GetPrereq2())
+                            self:GetHasTech(prereq1) and 
+                            self:GetHasTech(prereq2)
 
             else
         
@@ -721,29 +732,31 @@ end
 --
 function TechTree:ComputeAvailability()
 
+    local hasAllTech = GetGamerules():GetAllTech()
+    local isInDevMode = Shared.GetDevMode()
     for _, nodeTechId in ipairs(self.techIdList) do
 
         local node = self:GetTechNode(nodeTechId)
         assert(node)
     
-        local newAvailableState = false
-        
-        -- Don't allow researching items that are currently being researched (unless multiples allowed)
-        if (node:GetIsResearch() or node:GetIsPlasmaManufacture()) and (self:GetHasTech(node:GetPrereq1()) and self:GetHasTech(node:GetPrereq2())) then
-            newAvailableState = node:GetCanResearch()
-        -- Disable anything with this as a prereq if no longer available
-        elseif self:GetHasTech(node:GetPrereq1()) and self:GetHasTech(node:GetPrereq2()) then
-            newAvailableState = true
-        end
-        
         -- Check for "alltech" cheat
-        if GetGamerules():GetAllTech() then
+        local newAvailableState = false
+        if (hasAllTech) then
             newAvailableState = true
         end
         
         -- Don't allow use of stuff that's unavailable
-        if LookupTechData(nodeTechId, kTechDataImplemented) == false and not Shared.GetDevMode() then
-            newAvailableState = false
+        if not newAvailableState and (LookupTechData(nodeTechId, kTechDataImplemented) ~= false or isInDevMode) then
+  
+            -- Don't allow researching items that are currently being researched (unless multiples allowed)
+            local hasBothPrereq = self:GetHasTech(node:GetPrereq1()) and self:GetHasTech(node:GetPrereq2())
+            if hasBothPrereq and (node:GetIsResearch() or node:GetIsPlasmaManufacture()) then
+                newAvailableState = node:GetCanResearch()
+            -- Disable anything with this as a prereq if no longer available
+            elseif hasBothPrereq then
+                newAvailableState = true
+            end
+            
         end
         
         if node.available ~= newAvailableState then
