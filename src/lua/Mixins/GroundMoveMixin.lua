@@ -150,11 +150,11 @@ function GroundMoveMixin:GetGroundFraction()
     return GetOnGroundFraction(self)
 end
 
-local function DoesStopMove(self, move, velocity)
+local function DoesStopMove(self, viewCoords, move, velocity)
 
     --PROFILE("GroundMoveMixin:DoesStopMove")
 
-    local wishDir = GetNormalizedVectorXZ(self:GetViewCoords().zAxis) * move.z    
+    local wishDir = GetNormalizedVectorXZ(viewCoords.zAxis) * move.z    
     return wishDir:DotProduct(GetNormalizedVectorXZ(velocity)) < -0.8
 
 end
@@ -226,7 +226,7 @@ local function GetWishDir_moveAdjust(self, viewCoords, move, simpleAcceleration,
     end
 
     -- don't punish people for using the forward key, help them
-    if not simpleAcceleration and not self.onGround and move.z ~= 0 and not DoesStopMove(self, move, velocity) then
+    if not simpleAcceleration and not self.onGround and move.z ~= 0 and not DoesStopMove(self, viewCoords, move, velocity) then
         
         if move.x ~= 0 then
             move.z = 0
@@ -274,7 +274,6 @@ local function GetWishDir(self, move, simpleAcceleration, velocity, maxSpeed)
         
     end
 
-    
     return wishDir
 
 end
@@ -336,6 +335,7 @@ local function AccelerateSimpleXZ(self, input, velocity, maxSpeedXZ, acceleratio
             
         end
     end
+
 end
 
 local function ForwardControl(self, deltaTime, velocity)
@@ -364,16 +364,16 @@ local function ForwardControl(self, deltaTime, velocity)
 
 end
 
-local function Accelerate_onGround(self, input, velocity, maxSpeed, deltaTime)
+local function Accelerate_onGround(self, wishDir, input, velocity, maxSpeed, deltaTime)
     PROFILE("GroundMoveMixin:Accelerate_onGround")
 
-    local wishDir = GetWishDir(self, input.move, false, velocity, maxSpeed)
     local prevXZSpeed = velocity:GetLengthXZ()
     
     local wishSpeed = maxSpeed
     local currentSpeed = math.min(velocity:GetLength(), velocity:DotProduct(wishDir))
     local addSpeed = wishSpeed - currentSpeed
     
+    --if Server then Log("wishSpeed=%s / wishdir=%s", wishSpeed, wishDir) end
     if addSpeed > 0 then
          
         local groundFraction = GetOnGroundFraction(self)
@@ -386,14 +386,13 @@ local function Accelerate_onGround(self, input, velocity, maxSpeed, deltaTime)
     end
 end
 
-local function Accelerate_inTheAir(self, input, useFallAccel, velocity, maxSpeed, deltaTime)
+local function Accelerate_inTheAir(self, wishDir, input, useFallAccel, velocity, maxSpeed, deltaTime)
     
     PROFILE("GroundMoveMixin:Accelerate_inTheAir")
 
     local groundFraction = 0
-    
+ 
     local wishSpeed = kMaxAirVeer
-    local wishDir = GetWishDir(self, input.move, false, velocity, maxSpeed)
     local currentSpeed = math.min(velocity:GetLength(), velocity:DotProduct(wishDir))
     local addSpeed = wishSpeed - currentSpeed
     
@@ -405,6 +404,8 @@ local function Accelerate_inTheAir(self, input, useFallAccel, velocity, maxSpeed
         ForwardControl(self, deltaTime, velocity)
     end
     
+    -- Wishdir is 0 if not moving
+    --if Server then Log("wishSpeed2=%s / wishdir=%s", wishSpeed, wishDir) end
     if addSpeed > 0 then
          
         local accel = self:GetAirControl()
@@ -446,16 +447,26 @@ local function Accelerate(self, input, velocity, deltaTime)
 
     PROFILE("GroundMoveMixin:Accelerate")
 
-    local maxSpeedTable = { maxSpeed = self:GetMaxSpeed() }
-    self:ModifyMaxSpeed(maxSpeedTable, input) -- modifies the maxSpeed if crouching for instance
-    local maxSpeed = maxSpeedTable.maxSpeed
+    local maxSpeed = self:GetMaxSpeed()
+    if input and input.move.z < 0 then
+        local maxSpeedTable = { maxSpeed = maxSpeed }
+        self:ModifyMaxSpeed(maxSpeedTable, input) -- modifies the maxSpeed if crouching for instance
+        maxSpeed = maxSpeedTable.maxSpeed
+    end
+
+    local wishDir = GetWishDir(self, input.move, false, velocity, maxSpeed)
+    if wishDir and wishDir:GetLength() == 0 then
+        --if Server then Log("wishdir 0: onGround=%s", self.onGround) end
+        return
+    end
 
     if self.onGround then
-        Accelerate_onGround(self, input, velocity, maxSpeed, deltaTime)
+        Accelerate_onGround(self, wishDir, input, velocity, maxSpeed, deltaTime)
     else
         local useFallAccel = not self.GetHasFallAccel or self:GetHasFallAccel()
-        Accelerate_inTheAir(self, input, useFallAccel, velocity, maxSpeed, deltaTime)
+        Accelerate_inTheAir(self, wishDir, input, useFallAccel, velocity, maxSpeed, deltaTime)
     end
+    
 end
 
 local function ApplyGravity(self, input, velocity, deltaTime)
