@@ -34,18 +34,18 @@ function MarineTeam:OnInitialized()
     self.activeExtractorSkin = kDefaultExtractorVariant
     self.activeMacSkin = kDefaultMarineMacVariant
     self.activeArcSkin = kDefaultMarineArcVariant
-	self.timeOfLastARCCheck = Shared.GetTime()
-	self.timeOfLastSyncCheck = Shared.GetTime()
-	self.numLinkedPowerBatteries = 0
-	self.PurificationFraction = 0
-	self.PurificationCharging = false
-	self.syncTechLevel = 0
+    self.timeOfLastARCCheck = Shared.GetTime()
+    --self.timeOfLastSyncCheck = Shared.GetTime()
+    self.numLinkedPowerBatteries = 0
+    self.PurificationFraction = 0
+    self.PurificationCharging = false
+    self.syncTechLevel = 0
     
 end
 
 function MarineTeam:ResetTeam()
-	takenInfantryPortalPoints = {}
-	
+    takenInfantryPortalPoints = {}
+    
     local commandStructure = PlayingTeam.ResetTeam(self)
     
     self.updateMarineArmor = false
@@ -161,14 +161,14 @@ function MarineTeam:Initialize(teamName, teamNumber)
     self.updateMarineArmor = false
     
     self.lastTimeNoIPsMessageSent = Shared.GetTime()
-	
-	self.numLinkedPowerBatteries = 0
     
-	self.PurificationFraction = 0
-	
-	self.PurificationCharging = false
+    self.numLinkedPowerBatteries = 0
     
-	self.syncTechLevel = 0
+    self.PurificationFraction = 0
+    
+    self.PurificationCharging = false
+    
+    self.syncTechLevel = 0
 end
 
 function MarineTeam:GetHasAbilityToRespawn()
@@ -428,17 +428,17 @@ local function GetArmorLevel(self)
 end
 
 function MarineTeam:UpdateLinkedPowerBatteryNumber()
-	local SentryBatteryList = GetEntitiesForTeam("SentryBattery", self:GetTeamNumber())
+    local SentryBatteryList = GetEntitiesForTeam("SentryBattery", self:GetTeamNumber())
 
-	local count = 0
-	for i, ent in ipairs(SentryBatteryList) do
-		if ent:GetTechId() == kTechId.ShieldBattery then
-			count = count + 1
-		end
-	end
-	
-	self:SetLinkedPowerBatteryNumber(count)
-	return SentryBatteryList
+    local count = 0
+    for i, ent in ipairs(SentryBatteryList) do
+        if ent:GetTechId() == kTechId.ShieldBattery then
+            count = count + 1
+        end
+    end
+    
+    self:SetLinkedPowerBatteryNumber(count)
+    return SentryBatteryList
 end 
 
 function MarineTeam:SetLinkedPowerBatteryNumber(newNumber)
@@ -450,10 +450,10 @@ function MarineTeam:GetLinkedPowerBatteryNumber()
 end
 
 function MarineTeam:UpdatePurificationFraction(Delta)
-	local nLPBs = self:GetLinkedPowerBatteryNumber()
-	local oldFraction = self:GetPurificationFraction()
-	local newFraction = math.min(oldFraction + kPurifcationChargeRate*nLPBs*Delta,1)
-	self:SetPurificationFraction(newFraction)
+    local nLPBs = self:GetLinkedPowerBatteryNumber()
+    local oldFraction = self:GetPurificationFraction()
+    local newFraction = math.min(oldFraction + kPurifcationChargeRate*nLPBs*Delta,1)
+    self:SetPurificationFraction(newFraction)
 end
 
 function MarineTeam:SetPurificationFraction(newFraction)
@@ -465,19 +465,17 @@ function MarineTeam:GetPurificationFraction()
 end
 
 function MarineTeam:GetPurificationCharging()
-	return self.PurificationCharging
+    return self.PurificationCharging
 end
 
 function MarineTeam:CheckARCNumber()
-	local ARCEntities = GetEntitiesForTeam("ARC", self:GetTeamNumber())
-	--local DISEntities = GetEntitiesForTeam("DIS", self:GetTeamNumber())
-	
-	--if (#DISEntities + #ARCEntities) > kMaxARCs then
-	if #ARCEntities > kMaxARCs then
-		DestroyEntity(ARCEntities[1])
-	end
-	
-	self.timeOfLastARCCheck = Shared.GetTime()
+    local ARCEntities = GetEntitiesForTeam("ARC", self:GetTeamNumber())
+    --local DISEntities = GetEntitiesForTeam("DIS", self:GetTeamNumber())
+    
+    --if (#DISEntities + #ARCEntities) > kMaxARCs then
+    if #ARCEntities > kMaxARCs then
+        DestroyEntity(ARCEntities[1])
+    end
 end
 
 function MarineTeam:Update(timePassed)
@@ -498,49 +496,49 @@ function MarineTeam:Update(timePassed)
         player:UpdateArmorAmount(armorLevel)
     end
     
-	if Shared.GetTime() >= self.timeOfLastARCCheck + 10 then
-		self:CheckARCNumber()
-	end
-	
-	if Shared.GetTime() >= self.timeOfLastSyncCheck + 1 then
-		self:UpdateSyncTechLevel()
-		self.timeOfLastSyncCheck = Shared.GetTime()
-	end
-	
-	--[[SentryBatteryList = self:UpdateLinkedPowerBatteryNumber()
-	
-	if self:GetLinkedPowerBatteryNumber() < kMaintainPurificationLPBs and self.PurificationCharging then
-		self.PurificationCharging = false
-		self:SetPurificationFraction(0)
-	
-	elseif self.PurificationCharging and self:GetPurificationFraction() < 1 then
-		self:UpdatePurificationFraction(timePassed)
-		
-		for i, ent in ipairs(SentryBatteryList) do
-			if ent:GetTechId() == kTechId.ShieldBattery then
-				ent:SetParasited()
-			end
-		end
-		
-	elseif self.PurificationCharging and self:GetPurificationFraction() == 1 then
-		local hitEntities = GetEntitiesWithMixinForTeam("Live", GetEnemyTeamNumber(self:GetTeamNumber()))
-		for _, entity in ipairs(hitEntities) do
-			if entity.SetElectrified then
-				entity:SetElectrified(kElectrifiedDuration)
-			end
-		end
-		
-		for i, ent in ipairs(SentryBatteryList) do
-			if ent:GetTechId() == kTechId.ShieldBattery then
-				ent:SetParasited()
-			end
-		end
-		
-	elseif self:GetLinkedPowerBatteryNumber() >= kMinPurificationLPBs then
-		self.PurificationCharging = true
+    if Shared.GetTime() >= self.timeOfLastARCCheck + 10 then
+        self:CheckARCNumber()
+    end
+    
+    --if Shared.GetTime() >= self.timeOfLastSyncCheck + 1 then
+    --    self:UpdateSyncTechLevel()
+    --    self.timeOfLastSyncCheck = Shared.GetTime()
+    --end
+    
+    --[[SentryBatteryList = self:UpdateLinkedPowerBatteryNumber()
+    
+    if self:GetLinkedPowerBatteryNumber() < kMaintainPurificationLPBs and self.PurificationCharging then
+        self.PurificationCharging = false
+        self:SetPurificationFraction(0)
+    
+    elseif self.PurificationCharging and self:GetPurificationFraction() < 1 then
+        self:UpdatePurificationFraction(timePassed)
+        
+        for i, ent in ipairs(SentryBatteryList) do
+            if ent:GetTechId() == kTechId.ShieldBattery then
+                ent:SetParasited()
+            end
+        end
+        
+    elseif self.PurificationCharging and self:GetPurificationFraction() == 1 then
+        local hitEntities = GetEntitiesWithMixinForTeam("Live", GetEnemyTeamNumber(self:GetTeamNumber()))
+        for _, entity in ipairs(hitEntities) do
+            if entity.SetElectrified then
+                entity:SetElectrified(kElectrifiedDuration)
+            end
+        end
+        
+        for i, ent in ipairs(SentryBatteryList) do
+            if ent:GetTechId() == kTechId.ShieldBattery then
+                ent:SetParasited()
+            end
+        end
+        
+    elseif self:GetLinkedPowerBatteryNumber() >= kMinPurificationLPBs then
+        self.PurificationCharging = true
 
-	end]]
-	
+    end]]
+    
 end
 
 function MarineTeam:GetHasPoweredPhaseGate()
@@ -564,7 +562,7 @@ function MarineTeam:InitTechTree()
     self.techTree:AddPassive(kTechId.SpawnMarine)
     self.techTree:AddPassive(kTechId.CollectResources, kTechId.Extractor)
     self.techTree:AddPassive(kTechId.Detector)
-	self.techTree:AddPassive(kTechId.PuriProtocol, kTechId.ShieldBattery)
+    self.techTree:AddPassive(kTechId.PuriProtocol, kTechId.ShieldBattery)
 
     self.techTree:AddSpecial(kTechId.TwoCommandStations)
     self.techTree:AddSpecial(kTechId.ThreeCommandStations)
@@ -581,8 +579,8 @@ function MarineTeam:InitTechTree()
     self.techTree:AddBuyNode(kTechId.Rifle,                       kTechId.None,                kTechId.None)
 
     self.techTree:AddBuildNode(kTechId.SentryBattery,             kTechId.ARCRoboticsFactory,      kTechId.None)
-	self.techTree:AddUpgradeNode(kTechId.ShieldBatteryUpgrade,    kTechId.ARCRoboticsFactory,      kTechId.PrototypeLab)
-	self.techTree:AddBuildNode(kTechId.ShieldBattery,             kTechId.SentryBattery,        kTechId.None)
+    self.techTree:AddUpgradeNode(kTechId.ShieldBatteryUpgrade,    kTechId.ARCRoboticsFactory,      kTechId.PrototypeLab)
+    self.techTree:AddBuildNode(kTechId.ShieldBattery,             kTechId.SentryBattery,        kTechId.None)
 
     self.techTree:AddOrder(kTechId.Defend)
     self.techTree:AddOrder(kTechId.FollowAndWeld)
@@ -600,63 +598,63 @@ function MarineTeam:InitTechTree()
     self.techTree:AddAction(kTechId.SelectObservatory)
 
     -- arms lab upgrades
-	self.techTree:AddSpecial(kTechId.SyncTechOne)
-	self.techTree:AddSpecial(kTechId.SyncTechTwo)
-	self.techTree:AddSpecial(kTechId.SyncTechThree)
-	self.techTree:AddSpecial(kTechId.SyncTechFour)
-	self.techTree:AddSpecial(kTechId.SyncTechFive)
-	self.techTree:AddSpecial(kTechId.SyncTechSix)
-	self.techTree:AddSpecial(kTechId.SyncTechSeven)
-	self.techTree:AddSpecial(kTechId.SyncTechEight)
-	self.techTree:AddSpecial(kTechId.SyncTechNine)
-	self.techTree:AddSpecial(kTechId.SyncTechTen)
-	self.techTree:AddSpecial(kTechId.SyncTechEleven)
-	self.techTree:AddSpecial(kTechId.SyncTechTwelve)
-	self.techTree:AddSpecial(kTechId.SyncTechThirteen)
-	self.techTree:AddSpecial(kTechId.SyncTechFourteen)
-	self.techTree:AddSpecial(kTechId.SyncTechFifteen)
-	self.techTree:AddSpecial(kTechId.SyncTechSixteen)
-	self.techTree:AddSpecial(kTechId.SyncTechSeventeen)
-	self.techTree:AddSpecial(kTechId.SyncTechEighteen)
-	self.techTree:AddSpecial(kTechId.SyncTechNineteen)
-	self.techTree:AddSpecial(kTechId.SyncTechTwenty)
-	self.techTree:AddSpecial(kTechId.SyncTechTwentyone)
+    self.techTree:AddSpecial(kTechId.SyncTechOne)
+    self.techTree:AddSpecial(kTechId.SyncTechTwo)
+    self.techTree:AddSpecial(kTechId.SyncTechThree)
+    self.techTree:AddSpecial(kTechId.SyncTechFour)
+    self.techTree:AddSpecial(kTechId.SyncTechFive)
+    self.techTree:AddSpecial(kTechId.SyncTechSix)
+    self.techTree:AddSpecial(kTechId.SyncTechSeven)
+    self.techTree:AddSpecial(kTechId.SyncTechEight)
+    self.techTree:AddSpecial(kTechId.SyncTechNine)
+    self.techTree:AddSpecial(kTechId.SyncTechTen)
+    self.techTree:AddSpecial(kTechId.SyncTechEleven)
+    self.techTree:AddSpecial(kTechId.SyncTechTwelve)
+    self.techTree:AddSpecial(kTechId.SyncTechThirteen)
+    self.techTree:AddSpecial(kTechId.SyncTechFourteen)
+    self.techTree:AddSpecial(kTechId.SyncTechFifteen)
+    self.techTree:AddSpecial(kTechId.SyncTechSixteen)
+    self.techTree:AddSpecial(kTechId.SyncTechSeventeen)
+    self.techTree:AddSpecial(kTechId.SyncTechEighteen)
+    self.techTree:AddSpecial(kTechId.SyncTechNineteen)
+    self.techTree:AddSpecial(kTechId.SyncTechTwenty)
+    self.techTree:AddSpecial(kTechId.SyncTechTwentyone)
 
     self.techTree:AddResearchNode(kTechId.Armor1,                 kTechId.ArmsLab)
     self.techTree:AddResearchNode(kTechId.Armor2,                 kTechId.Armor1, kTechId.None)
     self.techTree:AddResearchNode(kTechId.Armor3,                 kTechId.Armor2, kTechId.None)
-	self.techTree:AddResearchNode(kTechId.Weapons1,               kTechId.ArmsLab)
+    self.techTree:AddResearchNode(kTechId.Weapons1,               kTechId.ArmsLab)
     self.techTree:AddResearchNode(kTechId.Weapons2,               kTechId.Weapons1, kTechId.None)
     self.techTree:AddResearchNode(kTechId.Weapons3,               kTechId.Weapons2, kTechId.None)
-	
+    
     --self.techTree:AddSpecial(kTechId.Armor1,           kTechId.ArmsLab,  kTechId.SyncTechFive)
     --self.techTree:AddSpecial(kTechId.Armor2,           kTechId.ArmsLab,  kTechId.SyncTechTen)
     --self.techTree:AddSpecial(kTechId.Armor3,           kTechId.ArmsLab,  kTechId.SyncTechFifteen)
     --self.techTree:AddSpecial(kTechId.Weapons1,         kTechId.ArmsLab,  kTechId.SyncTechSeven)
     --self.techTree:AddSpecial(kTechId.Weapons2,         kTechId.ArmsLab,  kTechId.SyncTechTwelve)
     --self.techTree:AddSpecial(kTechId.Weapons3,         kTechId.ArmsLab,  kTechId.SyncTechSeventeen)
-	self.techTree:AddResearchNode(kTechId.NanoArmor,   kTechId.None)
+    self.techTree:AddResearchNode(kTechId.NanoArmor,   kTechId.None)
 
 
     -- Armory upgrades
-	self.techTree:AddResearchNode(kTechId.SubmachinegunTech,        kTechId.Armory,             kTechId.None)
+    self.techTree:AddResearchNode(kTechId.SubmachinegunTech,        kTechId.Armory,             kTechId.None)
     self.techTree:AddTargetedBuyNode(kTechId.Submachinegun,         kTechId.SubmachinegunTech,  kTechId.None)
     self.techTree:AddTargetedActivation(kTechId.DropSubmachinegun,  kTechId.Armory,             kTechId.None)
 
     -- Marine tier 2
     self.techTree:AddUpgradeNode(kTechId.AdvancedArmoryUpgrade,   kTechId.Armory)
-	self.techTree:AddBuildNode(kTechId.AdvancedArmory,            kTechId.Armory,  kTechId.None)
+    self.techTree:AddBuildNode(kTechId.AdvancedArmory,            kTechId.Armory,  kTechId.None)
     self.techTree:AddResearchNode(kTechId.PhaseTech,              kTechId.Observatory,        kTechId.None)
     self.techTree:AddBuildNode(kTechId.PhaseGate,                 kTechId.PhaseTech,          kTechId.Observatory, true)
 
     self.techTree:AddBuildNode(kTechId.Observatory,               kTechId.InfantryPortal, kTechId.Armory)      
-	self.techTree:AddUpgradeNode(kTechId.UpgradeObservatory,      kTechId.Observatory)
-	self.techTree:AddBuildNode(kTechId.AdvancedObservatory,       kTechId.Observatory,    kTechId.None)
+    self.techTree:AddUpgradeNode(kTechId.UpgradeObservatory,      kTechId.Observatory)
+    self.techTree:AddBuildNode(kTechId.AdvancedObservatory,       kTechId.Observatory,    kTechId.None)
     self.techTree:AddActivation(kTechId.DistressBeacon,           kTechId.Observatory)
     self.techTree:AddActivation(kTechId.ReversePhaseGate,         kTechId.None)
-	
-	self.techTree:AddResearchNode(kTechId.CargoTech, kTechId.PhaseTech, kTechId.AdvancedObservatory)
-	self.techTree:AddBuildNode(kTechId.CargoGate,    kTechId.CargoTech, kTechId.AdvancedObservatory, true)
+    
+    self.techTree:AddResearchNode(kTechId.CargoTech, kTechId.PhaseTech, kTechId.AdvancedObservatory)
+    self.techTree:AddBuildNode(kTechId.CargoGate,    kTechId.CargoTech, kTechId.AdvancedObservatory, true)
 
     -- Door actions
     self.techTree:AddBuildNode(kTechId.Door, kTechId.None, kTechId.None)
@@ -683,9 +681,9 @@ function MarineTeam:InitTechTree()
     self.techTree:AddTargetedBuyNode(kTechId.ClusterGrenade,     kTechId.GrenadeTech)
     self.techTree:AddTargetedBuyNode(kTechId.GasGrenade,         kTechId.GrenadeTech)
     self.techTree:AddTargetedBuyNode(kTechId.PulseGrenade,       kTechId.GrenadeTech)
-	self.techTree:AddPassive(kTechId.ScanGrenadeTech,       	 kTechId.GrenadeTech, kTechId.AdvancedObservatory)
-	self.techTree:AddTargetedBuyNode(kTechId.ScanGrenade,        kTechId.GrenadeTech, kTechId.AdvancedObservatory)
-	
+    self.techTree:AddPassive(kTechId.ScanGrenadeTech,            kTechId.GrenadeTech, kTechId.AdvancedObservatory)
+    self.techTree:AddTargetedBuyNode(kTechId.ScanGrenade,        kTechId.GrenadeTech, kTechId.AdvancedObservatory)
+    
     self.techTree:AddTargetedBuyNode(kTechId.Flamethrower,     kTechId.AdvancedWeaponry)
     self.techTree:AddTargetedActivation(kTechId.DropFlamethrower,    kTechId.AdvancedWeaponry)
 
@@ -704,7 +702,7 @@ function MarineTeam:InitTechTree()
     self.techTree:AddTechInheritance(kTechId.RoboticsFactory, kTechId.ARCRoboticsFactory)
 
     self.techTree:AddManufactureNode(kTechId.ARC,    kTechId.ARCRoboticsFactory,     kTechId.None, true)
-	self.techTree:AddManufactureNode(kTechId.DIS,    kTechId.ARCRoboticsFactory,     kTechId.None, true)
+    self.techTree:AddManufactureNode(kTechId.DIS,    kTechId.ARCRoboticsFactory,     kTechId.None, true)
     self.techTree:AddActivation(kTechId.ARCDeploy)
     self.techTree:AddActivation(kTechId.ARCUndeploy)
 
@@ -718,20 +716,20 @@ function MarineTeam:InitTechTree()
     self.techTree:AddBuildNode(kTechId.PrototypeLab,          kTechId.AdvancedArmory,              kTechId.None)
 
     --Exosuit with advanced Proto
-	self.techTree:AddUpgradeNode(kTechId.UpgradeToExoPrototypeLab,  kTechId.PrototypeLab)
+    self.techTree:AddUpgradeNode(kTechId.UpgradeToExoPrototypeLab,  kTechId.PrototypeLab)
     self.techTree:AddBuildNode(kTechId.ExoPrototypeLab,             kTechId.PrototypeLab,    kTechId.None)
-	self.techTree:AddResearchNode(kTechId.ExosuitTech,      		kTechId.ExoPrototypeLab, kTechId.None)
-	self.techTree:AddBuyNode(kTechId.DualMinigunExosuit,    		kTechId.ExoPrototypeLab)
-    self.techTree:AddResearchNode(kTechId.CoresExosuitTech,     	kTechId.ExoPrototypeLab, kTechId.None)
-	self.techTree:AddResearchNode(kTechId.DualMinigunTech,  		kTechId.ExoPrototypeLab, kTechId.CoresExosuitTech)
+    self.techTree:AddResearchNode(kTechId.ExosuitTech,              kTechId.ExoPrototypeLab, kTechId.None)
+    self.techTree:AddBuyNode(kTechId.DualMinigunExosuit,            kTechId.ExoPrototypeLab)
+    self.techTree:AddResearchNode(kTechId.CoresExosuitTech,         kTechId.ExoPrototypeLab, kTechId.None)
+    self.techTree:AddResearchNode(kTechId.DualMinigunTech,          kTechId.ExoPrototypeLab, kTechId.CoresExosuitTech)
     
-	-- Jetpack
-    self.techTree:AddUpgradeNode(kTechId.UpgradeToInfantryPrototypeLab,  kTechId.PrototypeLab,	  kTechId.AdvancedArmory)
-	self.techTree:AddBuildNode(kTechId.InfantryPrototypeLab,        	 kTechId.PrototypeLab,    kTechId.AdvancedArmory)
-    self.techTree:AddResearchNode(kTechId.JetpackTech,           		 kTechId.PrototypeLab,    kTechId.None)
-    self.techTree:AddBuyNode(kTechId.Jetpack,                    		 kTechId.JetpackTech, 	  kTechId.None)
-    self.techTree:AddTargetedActivation(kTechId.DropJetpack,     		 kTechId.JetpackTech, 	  kTechId.None)
-	
+    -- Jetpack
+    self.techTree:AddUpgradeNode(kTechId.UpgradeToInfantryPrototypeLab,  kTechId.PrototypeLab,    kTechId.AdvancedArmory)
+    self.techTree:AddBuildNode(kTechId.InfantryPrototypeLab,             kTechId.PrototypeLab,    kTechId.AdvancedArmory)
+    self.techTree:AddResearchNode(kTechId.JetpackTech,                   kTechId.PrototypeLab,    kTechId.None)
+    self.techTree:AddBuyNode(kTechId.Jetpack,                            kTechId.JetpackTech,     kTechId.None)
+    self.techTree:AddTargetedActivation(kTechId.DropJetpack,             kTechId.JetpackTech,     kTechId.None)
+    
     --self.techTree:AddBuyNode(kTechId.DualRailgunExosuit,  kTechId.ExosuitTech)
 
     --self.techTree:AddTargetedActivation(kTechId.DropExosuit,     kTechId.ExosuitTech, kTechId.None)
@@ -744,12 +742,12 @@ function MarineTeam:InitTechTree()
 
     self.techTree:AddActivation(kTechId.SocketPowerNode,    kTechId.None,   kTechId.None)
 
-	self.techTree:AddManufactureNode(kTechId.BattleMAC, kTechId.ARCRoboticsFactory, kTechId.None, true)
+    self.techTree:AddManufactureNode(kTechId.BattleMAC, kTechId.ARCRoboticsFactory, kTechId.None, true)
 
-	self.techTree:AddActivation(kTechId.BattleMACNanoShield,      kTechId.AdvancedMarineSupport,      kTechId.None)
+    self.techTree:AddActivation(kTechId.BattleMACNanoShield,      kTechId.AdvancedMarineSupport,      kTechId.None)
     self.techTree:AddActivation(kTechId.BattleMACCatPack,      kTechId.AdvancedMarineSupport,      kTechId.None)
     self.techTree:AddActivation(kTechId.BattleMACHealingWave,      kTechId.None,      kTechId.None)
-	self.techTree:AddActivation(kTechId.BattleMACSpeedBoost,      kTechId.None,      kTechId.None)
+    self.techTree:AddActivation(kTechId.BattleMACSpeedBoost,      kTechId.None,      kTechId.None)
 
     self.techTree:SetComplete()
 
@@ -834,7 +832,7 @@ function MarineTeam:GetTeamInfoMapName()
 end
 
 function MarineTeam:GetSyncTechLevel()
-	if GetWarmupActive() then return 21 end
+    if GetWarmupActive() then return 21 end
 
     return self.syncTechLevel
 end
@@ -846,42 +844,45 @@ function MarineTeam:SetSyncTechLevel(newSync)
     self.syncTechLevel = newSync
 end
 
+--[[
 local kSyncPipItemTechIds =
 {
-	kTechId.Armory,
-	kTechId.AdvancedArmory,
-	kTechId.Observatory, 
-	kTechId.AdvancedObservatory,
-	kTechId.RoboticsFactory, 
-	kTechId.ARCRoboticsFactory,
-	kTechId.PrototypeLab,
-	kTechId.ExoPrototypeLab,
-	kTechId.InfantryPrototypeLab,
-	kTechId.MinesTech,
-	kTechId.GrenadeTech,
-	kTechId.ShotgunTech,
-	kTechId.SubmachinegunTech,
-	kTechId.PhaseTech,
-	kTechId.DualMinigunTech,
-	kTechId.CoresExosuitTech,
-	kTechId.AdvancedMarineSupport,
+    kTechId.Armory,
+    kTechId.AdvancedArmory,
+    kTechId.Observatory, 
+    kTechId.AdvancedObservatory,
+    kTechId.RoboticsFactory, 
+    kTechId.ARCRoboticsFactory,
+    kTechId.PrototypeLab,
+    kTechId.ExoPrototypeLab,
+    kTechId.InfantryPrototypeLab,
+    kTechId.MinesTech,
+    kTechId.GrenadeTech,
+    kTechId.ShotgunTech,
+    kTechId.SubmachinegunTech,
+    kTechId.PhaseTech,
+    kTechId.DualMinigunTech,
+    kTechId.CoresExosuitTech,
+    kTechId.AdvancedMarineSupport,
 }
 
+
 function MarineTeam:UpdateSyncTechLevel()
-	
-	local newSync = 0
-	local techTree = self:GetTechTree()
+    
+    local newSync = 0
+    local techTree = self:GetTechTree()
     if techTree then
-		for _,techId in ipairs(kSyncPipItemTechIds) do
-			if techTree:GetHasTech(techId) then
-				newSync = newSync + 1
-			end		
-		end
-	end
-	
-	self:SetSyncTechLevel(newSync)
-	
-	if self.techTree then
-		self.techTree:SetTechChanged()
+        for _,techId in ipairs(kSyncPipItemTechIds) do
+            if techTree:GetHasTech(techId) then
+                newSync = newSync + 1
+            end     
+        end
+    end
+    
+    self:SetSyncTechLevel(newSync)
+    
+    if self.techTree then
+        self.techTree:SetTechChanged()
     end
 end
+--]]
