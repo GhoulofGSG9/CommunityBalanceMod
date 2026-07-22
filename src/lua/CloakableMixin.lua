@@ -282,9 +282,10 @@ local function UpdateDesiredCloakFraction(self, deltaTime)
 
         local maxCloakModifier = math.min( (isInCombat and CloakableMixin.kCombatMod or 1), (uncloakedRecently and CloakableMixin.kRecentUncloakedMod or 1), (isDetected and CloakableMixin.kDetectedMod or 1) )
 
-        local maxCloakingFraction = CloakableMixin.kSpecialMaxCloakClass[self:GetClassName()] and CloakableMixin.kSpecialMaxCloak
-                                    or (self:isa("Player") or CloakableMixin.kPlayerMaxCloakClass[self:GetClassName()]) and not self:isa("Embryo") and CloakableMixin.kPlayerMaxCloak -- embryos cloak fully
-                                    or CloakableMixin.kStructureMaxCloak
+        local className = self:GetClassName()
+        local specialMaxCloak = CloakableMixin.kSpecialMaxCloakClass[className] and CloakableMixin.kSpecialMaxCloak
+        local playerMaxCloak = (self:isa("Player") or CloakableMixin.kPlayerMaxCloakClass[className]) and not self:isa("Embryo") and CloakableMixin.kPlayerMaxCloak -- embryos cloak fully
+        local maxCloakingFraction = specialMaxCloak or playerMaxCloak or CloakableMixin.kStructureMaxCloak
 
         -- ink may improve invisibility
         maxCloakingFraction = maxCloakModifier * math.max( maxCloakingFraction, (isShadeCloaked or isInInk) and CloakableMixin.kMaxCloak or 0 )
@@ -308,6 +309,10 @@ local function UpdateCloakState(self, deltaTime)
 
     -- Account for trigger cloak, uncloak, camouflage speed
     UpdateDesiredCloakFraction(self, deltaTime)
+
+    if self.cloakFraction == self.desiredCloakFraction and self.lastTouchedEntityId == nil then
+        return
+    end
     
     -- Animate towards desired/internal cloak fraction (so we never "snap")
     local rate = (self.desiredCloakFraction > self.cloakFraction) and CloakableMixin.kCloakRate + self.cloakRate * CloakableMixin.kCloakRatePerLevel or 
