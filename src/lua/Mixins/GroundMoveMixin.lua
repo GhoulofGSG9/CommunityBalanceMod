@@ -82,7 +82,19 @@ function GroundMoveMixin:__initmixin()
         normal = false, -- Normal from position to ground
         surfaceMaterial = "" -- material hit
     }
-    
+
+-- --[[
+    self.lastWishDirInputs = { 
+        viewCoords = {
+            xAxis = Vector(),
+            yAxis = Vector(),
+            zAxis = Vector()
+        },
+        -- newViewCoords = {},
+        normedMove = Vector(), wishDir = Vector()
+    }
+    -- --]]
+
 end
 
 local function _SetGroundCheckCache(self, distance, hitEntities, normal, surfaceMaterial)
@@ -246,7 +258,8 @@ local function GetWishDir_moveAdjust(self, viewCoords, move, simpleAcceleration,
 
         end
     end
-    return GetNormalizedVector(move)
+    move:Normalize()
+    return move
 end
 
 local function GetWishDir(self, move, simpleAcceleration, velocity, maxSpeed)
@@ -254,13 +267,25 @@ local function GetWishDir(self, move, simpleAcceleration, velocity, maxSpeed)
     PROFILE("GroundMoveMixin:GetWishDir")
 
     local wishDir = nil
-    local viewCoords = self:GetViewCoords()
+    local viewCoords = self:GetViewAngles():GetCoords()
     local normedMove = GetWishDir_moveAdjust(self, viewCoords, move, simpleAcceleration, velocity, maxSpeed)
 
     if self:GetPerformsVerticalMove() then
         wishDir = viewCoords:TransformVector(normedMove)
     else
     
+        local areAxisSame = (viewCoords.xAxis == self.lastWishDirInputs.viewCoords.xAxis
+                and viewCoords.yAxis == self.lastWishDirInputs.viewCoords.yAxis
+                and viewCoords.zAxis == self.lastWishDirInputs.viewCoords.zAxis)
+
+        if areAxisSame and self.lastWishDirInputs.normedMove == normedMove then
+            return self.lastWishDirInputs.wishDir
+        end
+
+        VectorCopy(viewCoords.xAxis, self.lastWishDirInputs.viewCoords.xAxis)
+        VectorCopy(viewCoords.yAxis, self.lastWishDirInputs.viewCoords.yAxis)
+        VectorCopy(viewCoords.zAxis, self.lastWishDirInputs.viewCoords.zAxis)
+
         local local2World = viewCoords
         local2World.xAxis.y = 0
         local2World.xAxis:Normalize()
@@ -271,7 +296,10 @@ local function GetWishDir(self, move, simpleAcceleration, velocity, maxSpeed)
         wishDir = local2World:TransformVector(normedMove)
         wishDir.y = 0
         wishDir:Normalize()
-        
+
+        VectorCopy(wishDir, self.lastWishDirInputs.wishDir)
+        VectorCopy(normedMove, self.lastWishDirInputs.normedMove)
+
     end
 
     return wishDir
@@ -443,22 +471,11 @@ local function Accelerate_inTheAir(self, wishDir, input, useFallAccel, velocity,
 
 end
 
-local function Accelerate(self, input, velocity, deltaTime)
+local function Accelerate(self, input, velocity, maxSpeed, deltaTime)
 
     PROFILE("GroundMoveMixin:Accelerate")
 
-    local maxSpeed = self:GetMaxSpeed()
-    if input and input.move.z < 0 then
-        local maxSpeedTable = { maxSpeed = maxSpeed }
-        self:ModifyMaxSpeed(maxSpeedTable, input) -- modifies the maxSpeed if crouching for instance
-        maxSpeed = maxSpeedTable.maxSpeed
-    end
-
     local wishDir = GetWishDir(self, input.move, false, velocity, maxSpeed)
-    if wishDir and wishDir:GetLength() == 0 then
-        --if Server then Log("wishdir 0: onGround=%s", self.onGround) end
-        return
-    end
 
     if self.onGround then
         Accelerate_onGround(self, wishDir, input, velocity, maxSpeed, deltaTime)
@@ -837,7 +854,12 @@ function GroundMoveMixin:UpdateMove(input)
         ApplyFriction(self, input, velocity, deltaTime)
     end
     ApplyGravity(self, input, velocity, deltaTime)
-    Accelerate(self, input, velocity, deltaTime)
+
+    local maxSpeedTable = { maxSpeed = self:GetMaxSpeed() }
+    self:ModifyMaxSpeed(maxSpeedTable, input) -- modifies the maxSpeed if crouching/webbed for instance
+    if input.move:GetLength() > 0 then
+        Accelerate(self, input, velocity, maxSpeedTable.maxSpeed, deltaTime)
+    end
 
     if (velocity:GetLength() > 0) then -- No update if not moving
         self:UpdatePosition(input, velocity, deltaTime)    
