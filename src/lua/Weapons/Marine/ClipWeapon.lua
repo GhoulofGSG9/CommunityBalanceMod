@@ -121,7 +121,7 @@ function ClipWeapon:OnCreate()
     self.lastTimeSprinted = 0
     self.shooting = false
     self.attackLastRequested = 0
-    self.randIdx = math.random(0, kClipWeaponRandomArrayMaxIdx)
+    self.randIdx = math.random(0, kClipWeaponRandomArrayMaxIdx) -- Synchronised by the netvar then
     
     InitMixin(self, BulletsMixin)
     
