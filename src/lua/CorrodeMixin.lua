@@ -161,7 +161,7 @@ end
 
 local function CheckTunnelCorrode(self)
 
-    if (not self.timeLastTunnelCorrodeCheck or self.timeLastTunnelCorrodeCheck + 1 < Shared.GetTime() ) and GetIsPointInGorgeTunnel(self:GetOrigin()) then
+    if (not self.timeLastTunnelCorrodeCheck or self.timeLastTunnelCorrodeCheck + 1 < Shared.GetTime() ) and HasMixin(self, "MobileTarget") and GetIsPointInGorgeTunnel(self:GetOrigin()) then
         
         -- drain armor only
         self:DeductHealth(kGorgeArmorTunnelDamagePerSecond, nil, nil, false, true)
@@ -183,10 +183,7 @@ local function SharedUpdate(self, deltaTime)
             self.isCorroded = false   
         end
         
-        -- Prevents static entities from doing the tunnel check, they won't end up in there anyway
-        if HasMixin(self, "MobileTarget") then
-            CheckTunnelCorrode(self)
-        end
+        CheckTunnelCorrode(self)
         
     elseif Client then
         UpdateCorrodeMaterial(self)
