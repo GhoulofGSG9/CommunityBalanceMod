@@ -160,7 +160,7 @@ local function UpdateAnimationInput(self, state, graph)
 
     if self.OnUpdateAnimationInput then
 
-        PROFILE("BaseModelMixin:OnUpdateAnimationInput")
+        --PROFILE("BaseModelMixin:OnUpdateAnimationInput")
         self:OnUpdateAnimationInput(self)
 
         AnimationGraphState_SetInputValues(state, graph, self.animationInputValues)
