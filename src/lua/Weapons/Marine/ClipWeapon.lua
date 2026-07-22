@@ -337,11 +337,12 @@ end
 
 function ClipWeapon:GetIsPrimaryAttackAllowed(player)
 
-    if not player then
+    if not player or not self:GetIsDeployed() then
         return false
     end    
 
-    local sprintedRecently = (Shared.GetTime() - self.lastTimeSprinted) < kMaxTimeToSprintAfterAttack
+    local now = Shared.GetTime()
+    local sprintedRecently = (now - self.lastTimeSprinted) < kMaxTimeToSprintAfterAttack
     local attackAllowed = (not self:GetPrimaryAttackRequiresPress() or not player:GetPrimaryAttackLastFrame())
     attackAllowed = attackAllowed and (not self:GetIsReloading() or self:GetPrimaryCanInterruptReload())
     
@@ -349,7 +350,7 @@ function ClipWeapon:GetIsPrimaryAttackAllowed(player)
     -- For weapons that fire immediately upon press, this is the same as ROF. For weapons with a delay from start
     -- of attack until actual attack ... it is not.
     if attackAllowed and self.GetPrimaryMinFireDelay then
-        attackAllowed = (Shared.GetTime() - self.timeAttackFired) >= self:GetPrimaryMinFireDelay()
+        attackAllowed = (now - self.timeAttackFired) >= self:GetPrimaryMinFireDelay()
         
         if not attackAllowed and self.OnMaxFireRateExceeded then
             self:OnMaxFireRateExceeded()
@@ -357,7 +358,7 @@ function ClipWeapon:GetIsPrimaryAttackAllowed(player)
         
     end
     
-    return self:GetIsDeployed() and not sprintedRecently and attackAllowed
+    return not sprintedRecently and attackAllowed
 
 end
 
@@ -594,10 +595,10 @@ end
 
 function ClipWeapon:CanReload()
 
-    return self.ammo > 0 and
+    return self.deployed and self.ammo > 0 and
            self.clip < self:GetClipSize() and
-           not self.reloading and 
-           self.deployed
+           not self.reloading
+           
     
 end
 
