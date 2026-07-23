@@ -281,10 +281,11 @@ end
 --
 -- Moves by the player by the specified offset, colliding and sliding with the world.
 --
-function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, slowDownFraction, deflectMove, slowDownFilterFunc, deltaTime)
+function ControllerMixin:PerformMovement(o, maxTraces, velocity, isMove, slowDownFraction, deflectMove, slowDownFilterFunc, deltaTime)
 
     PROFILE("ControllerMixin:PerformMovement")
 
+    local offset = Vector(o) -- Do not modify parameter which is passed by ref (so caller can use constant)
     local controller = self.controller
     local controllerOutter = self.controllerOutter
 
@@ -308,16 +309,18 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
     
     VectorCopy(offset, self.moveOrigOffset)
     local origOffset = self.moveOrigOffset
+    local oldVelocity = nil
+    local prevXZSpeed = nil
 
     if (velocity) then
         VectorCopy(velocity, self.moveVelocity)
+        oldVelocity = self.moveVelocity
+        prevXZSpeed = self.moveVelocity:GetLengthXZ()
     end
     
     local hitEntities
     local completedMove = true
     local averageSurfaceNormal
-    local oldVelocity = velocity ~= nil and self.moveVelocity or nil
-    local prevXZSpeed = velocity ~= nil and velocity:GetLengthXZ()
     local surfaceMaterial
 
     if controller then
@@ -328,16 +331,17 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
         
         self:UpdateControllerFromEntity()
 
-        local trace        
         local tracesPerformed = 0
-        local moveCompleted = false
         local physicsMask = self:GetMovePhysicsMask()
 
-        while moveCompleted == false and offset:GetLengthSquared() > 0.0 and tracesPerformed < maxTraces do
+        while offset:GetLengthSquared() > 0.0 and tracesPerformed < maxTraces do
         
-            trace = controller:Move(offset, CollisionRep.Move, CollisionRep.Move, physicsMask)
-            if trace.fraction < 1 then
+            local trace = controller:Move(offset, CollisionRep.Move, CollisionRep.Move, physicsMask)
 
+            completedMove = (trace.fraction >= 1)
+            if completedMove then
+                break
+            else
                 -- Remove the amount of the offset we've already moved.
                 offset = offset * (1 - trace.fraction)
                 
@@ -374,14 +378,7 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity, isMove, sl
                     hitEntities[#hitEntities + 1] = trace.entity  -- Faster than table.insert
 
                 end
-                
                 surfaceMaterial = trace.surface
-                
-                completedMove = false
-                
-            else
-                offset.x, offset.y, offset.z = 0, 0, 0
-                moveCompleted = true
             end
             
             tracesPerformed = tracesPerformed + 1

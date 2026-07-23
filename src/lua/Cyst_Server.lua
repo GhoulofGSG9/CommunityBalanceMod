@@ -302,15 +302,11 @@ end
 
 function Cyst:ServerUpdate()
 
-    if not self:GetIsAlive() then
-        return
-    end
+    local now = Shared.GetTime()
 
     if self.bursted then
-        self.bursted = self.timeBursted + Cyst.kBurstDuration > Shared.GetTime()
+        self.bursted = self.timeBursted + Cyst.kBurstDuration > now
     end
-
-    local now = Shared.GetTime()
 
     if now > self.nextUpdate then
 

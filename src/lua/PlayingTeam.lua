@@ -133,8 +133,8 @@ function PlayingTeam:OnInitialized()
     
     self.teamResources = 0
     self.totalTeamResourcesCollected = 0
-	
-	self:AddTeamResources(kPlayingTeamInitialTeamRes)	
+    
+    self:AddTeamResources(kPlayingTeamInitialTeamRes)   
     
     self.ejectCommVoteManager:Reset()
     self.concedeVoteManager:Reset()
@@ -284,7 +284,7 @@ local function GetIsResearchRelevant(techId)
         relevantResearchIds[kTechId.GrenadeTech] = 2
         relevantResearchIds[kTechId.MinesTech] = 2
         relevantResearchIds[kTechId.ShotgunTech] = 2
-		relevantResearchIds[kTechId.SubmachinegunTech] = 2
+        relevantResearchIds[kTechId.SubmachinegunTech] = 2
         relevantResearchIds[kTechId.HeavyMachineGunTech] = 2
         relevantResearchIds[kTechId.ExosuitTech] = 3
         relevantResearchIds[kTechId.JetpackTech] = 3
@@ -320,7 +320,7 @@ local function GetIsResearchRelevant(techId)
         relevantResearchIds[kTechId.Umbra] = 1
         relevantResearchIds[kTechId.BoneShield] = 1
         relevantResearchIds[kTechId.WebTech] = 1
-		relevantResearchIds[kTechId.BabblerBombAbility] = 1
+        relevantResearchIds[kTechId.BabblerBombAbility] = 1
 
     end
 

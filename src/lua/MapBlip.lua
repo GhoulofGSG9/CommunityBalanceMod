@@ -169,6 +169,8 @@ end
 
 -- Called (server side) when a mapblips owner has changed its map-blip dependent state
 local math_atan2 = math.atan2
+local blipSetAngle = Angles(0, 0, 0) -- prevents GC trashing
+local blipSetOrigin = Vector(0, 0, 0) -- prevents GC trashing
 function MapBlip:Update(owner)
     PROFILE("MapBlip:Update")
 
@@ -185,13 +187,13 @@ function MapBlip:Update(owner)
         local fowardNormal = owner:GetCoords().zAxis
         local yaw = 0
 
-        if isPlayer then
-            yaw = math.atan2(fowardNormal.x, fowardNormal.z)
-        else
-            yaw = ConditionalValue(owner:isa("PowerPoint") or owner:isa("Hive"), 0, math.atan2(fowardNormal.x, fowardNormal.z))
+        if isPlayer or not (owner:isa("PowerPoint") or owner:isa("Hive")) then
+            yaw = math_atan2(fowardNormal.x, fowardNormal.z)
+            blipSetAngle.yaw = yaw
+            self:SetAngles(blipSetAngle)
         end
         
-        self:SetAngles(Angles(0, yaw, 0))
+
 
         local origin
         if owner.GetPositionForMinimap then
@@ -203,7 +205,10 @@ function MapBlip:Update(owner)
         if origin then
         
             -- always use zero y-origin (for now, if you want to use it for long-range hivesight, add it back
-            self:SetOrigin(Vector(origin.x, 0, origin.z))
+            blipSetOrigin.x = origin.x
+            blipSetOrigin.y = 0
+            blipSetOrigin.z = origin.z
+            self:SetOrigin(blipSetOrigin)
             
             self:UpdateRelevancy(owner)
 
@@ -329,10 +334,10 @@ if Client then
         return color
     end
 
-    -- only update the mapblips team on the client every 25 ms to decrease costs of update routine
+    -- only update the mapblips team on the client every X ms to decrease costs of update routine
     -- At least make sure to only run this once every frame per mapblip
     -- Todo: Increase interval further?
-    MapBlip.kClientBlipTeamUpdateInterval = 0.025
+    MapBlip.kClientBlipTeamUpdateInterval = 0.010
     function MapBlip:UpdateMapBlipTeam(minimap)
         local now = Shared.GetTime()
         if now < self.nextClientMapBlipTeamUpdate then --likely

@@ -84,6 +84,8 @@ function MapBlipMixin:__initmixin()
 
     self.lastBlipOrigin = Vector(0,0,0)
     self.lastBlipAngleYaw = 0
+    self.blipIsPlayer = nil
+    self.blipClassName = nil
 
     -- Check if the new entity should have a map blip to represent it.
     local success, blipType, blipTeam, isInCombat = self:GetMapBlipInfo()
@@ -189,12 +191,17 @@ function MapBlipMixin:GetMapBlipInfo()
         return self:OnGetMapBlipInfo()
     end
 
+    if self.blipIsPlayer == nil then
+         self.blipIsPlayer = self:isa("Player")
+         self.blipClassName = self:GetClassName()
+    end
+
     local success = false
     local blipType = kMinimapBlipType.Undefined
     local blipTeam = -1
     local isAttacked = HasMixin(self, "Combat") and self:GetIsInCombat()
     local isParasited = HasMixin(self, "ParasiteAble") and self:GetIsParasited()
-    local isPlayer = self:isa("Player")
+    local isPlayer = self.blipIsPlayer
 
     -- World entities
     if not isPlayer and self:isa("Cyst") then
@@ -250,7 +257,8 @@ function MapBlipMixin:GetMapBlipInfo()
         -- Everything else that is supported by kMinimapBlipType.
     elseif self:GetIsVisible() then
 
-        local className = self:GetClassName()
+        local className = self.blipClassName or self:GetClassName()
+
         if rawget( kMinimapBlipType, className ) ~= nil then
             blipType = kMinimapBlipType[className]
         else
