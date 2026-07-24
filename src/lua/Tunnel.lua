@@ -715,9 +715,11 @@ end
 
 function Tunnel:OnUpdatePoseParameters()
 
-    self:SetPoseParam("intensity_yn", self.flinchBAmount)
-    self:SetPoseParam("intensity_yp", self.flinchAAmount)
-    self:SetPoseParam("intensity", self.flinchTotalAmount)
+    self:SetPoseParams({
+        {"intensity_yn", self.flinchBAmount},
+        {"intensity_yp", self.flinchAAmount},
+        {"intensity", self.flinchTotalAmount}
+    })
 
 end
 
