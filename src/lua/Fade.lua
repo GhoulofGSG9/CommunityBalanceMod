@@ -617,9 +617,11 @@ function Fade:OnUpdateAnimationInput(modelMixin)
             modelMixin:SetAnimationInput("move", "teleport")
         end
     else
-        local weapon = self:GetActiveWeapon()
-        if weapon ~= nil and weapon.OnUpdateAnimationInput and weapon:GetMapName() == Metabolize.kMapName then
-            weapon:OnUpdateAnimationInput(modelMixin)
+        if self:GetActiveWeaponName() == Metabolize.kMapName then
+            local weapon = self:GetActiveWeapon()
+            if weapon ~= nil and weapon.OnUpdateAnimationInput then
+                weapon:OnUpdateAnimationInput(modelMixin)
+            end
         end
     end
 
