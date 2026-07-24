@@ -190,6 +190,10 @@ end
 
 function PredictedProjectileShooterMixin:OnEntityChange(oldId)
 
+    if oldId == nil then
+        return
+    end
+    
     for _, projectileId in ipairs(self.predictedProjectilesList:GetList()) do
 
         local entry = self.predictedProjectiles[projectileId]
