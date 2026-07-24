@@ -1009,6 +1009,18 @@ function BaseModelMixin:SetPoseParam(name, value)
 
 end
 
+function BaseModelMixin:SetPoseParams(params)
+
+    local model = Shared_GetModel(self.modelIndex)
+    if model ~= nil then
+        for i, p in ipairs(params) do
+            local paramIndex = Model_GetPoseParamIndex(model, p[1])
+            PoseParams_Set(self.poseParams, paramIndex, p[2])
+        end
+    end
+
+end
+
 function BaseModelMixin:GetAttachPointIndex(attachPointName)
     PROFILE("BaseModelMixin:GetAttachPointIndex")
     local model = Shared_GetModel(self.modelIndex)
