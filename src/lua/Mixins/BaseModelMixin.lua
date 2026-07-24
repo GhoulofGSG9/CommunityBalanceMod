@@ -68,7 +68,6 @@ end
 
 local _enableBoneUpdating = true
 local _enablePoseParams   = true
-local kCachedIndex = {}
 
 BaseModelMixin = CreateMixin( BaseModelMixin )
 BaseModelMixin.type = "BaseModel"
@@ -721,6 +720,8 @@ function BaseModelMixin:__initmixin()
         self.lastPhysicsUpdateTime = 0
     end
 
+    self.kCachedIndex = {}
+
 end
 
 -- Initialize fields (ClientModelMixin initializes in Client, ModelMixin only initializes in Server)
@@ -806,7 +807,7 @@ end
 function BaseModelMixin:OnDestroy()
 
     if self.modelIndex then
-        kCachedIndex[self.modelIndex] = nil
+        self.kCachedIndex[self.modelIndex] = nil
     end
     DestroyRenderModel(self)
     DestroyPhysicsModel(self)
@@ -997,13 +998,13 @@ end
 function BaseModelMixin:GetPoseParam(name)
 
     local model = Shared_GetModel(self.modelIndex)
-    if kCachedIndex[self.modelIndex] == nil then
-        kCachedIndex[self.modelIndex] = {}
+    if self.kCachedIndex[self.modelIndex] == nil then
+        self.kCachedIndex[self.modelIndex] = {}
     end
 
     local paramIndex = -1
     if model ~= nil then
-        local c = kCachedIndex[self.modelIndex]
+        local c = self.kCachedIndex[self.modelIndex]
         paramIndex = c[name] or Model_GetPoseParamIndex(model, name)
         if c[name] == nil then
             c[name] = paramIndex
@@ -1024,16 +1025,16 @@ end
 function BaseModelMixin:SetPoseParam(name, value)
 
     local model = Shared_GetModel(self.modelIndex)
-    if kCachedIndex[self.modelIndex] == nil then
-        kCachedIndex[self.modelIndex] = {}
+    if self.kCachedIndex[self.modelIndex] == nil then
+        self.kCachedIndex[self.modelIndex] = {}
     end
     if model ~= nil then
-        local c = kCachedIndex[self.modelIndex]
+        local c = self.kCachedIndex[self.modelIndex]
         local paramIndex = c[name] or Model_GetPoseParamIndex(model, name)
         if c[name] == nil then
             c[name] = paramIndex
         end
-        --assert(Model_GetPoseParamIndex(model, name) == kCachedIndex[self.modelIndex][name])
+        --assert(Model_GetPoseParamIndex(model, name) == self.kCachedIndex[self.modelIndex][name])
         -- Note, API will properly handle -1 paramIndex value
         PoseParams_Set(self.poseParams, paramIndex, value)
     end
@@ -1043,18 +1044,18 @@ end
 function BaseModelMixin:SetPoseParams(params)
 
     local model = Shared_GetModel(self.modelIndex)
-    if kCachedIndex[self.modelIndex] == nil then
-        kCachedIndex[self.modelIndex] = {}
+    if self.kCachedIndex[self.modelIndex] == nil then
+        self.kCachedIndex[self.modelIndex] = {}
     end
     if model ~= nil then
-        local c = kCachedIndex[self.modelIndex]
+        local c = self.kCachedIndex[self.modelIndex]
         for i, p in ipairs(params) do
             local paramIndex = c[p[1]] or Model_GetPoseParamIndex(model, p[1])
             if c[p[1]] == nil then
                 c[p[1]] = paramIndex
             end
 
-            --assert(Model_GetPoseParamIndex(model, p[1]) == kCachedIndex[self.modelIndex][p[1]])
+            --assert(Model_GetPoseParamIndex(model, p[1]) == self.kCachedIndex[self.modelIndex][p[1]])
             PoseParams_Set(self.poseParams, paramIndex, p[2])
         end
     end
