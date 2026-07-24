@@ -908,6 +908,7 @@ function BaseModelMixin:SetModel(modelName, graphName)
 
     local prevModelIndex = self.modelIndex
 
+    self.kCachedIndex = {}
     if modelName == nil then
         self.modelIndex = 0
     else
