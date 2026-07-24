@@ -136,7 +136,7 @@ end
 local origin = Vector()
 function ControllerMixin:UpdateControllerFromEntity(allowTrigger)
 
-    PROFILE("ControllerMixin:UpdateControllerFromEntity")
+    -- PROFILE("ControllerMixin:UpdateControllerFromEntity")
 
     if allowTrigger == nil then
         allowTrigger = true
