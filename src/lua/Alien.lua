@@ -464,6 +464,13 @@ end
     see a jitter in th energy bar as we receive the new regen rate from the server. (It depends on netvars as well)
 --]]
 function Alien:GetEnergy()
+
+    PROFILE("Alien:GetEnergy")
+
+    if (self.abilityEnergyOnChange == self:GetMaxEnergy()) then
+        return self.abilityEnergyOnChange -- No computation if we are at max already
+    end
+
     local rate = self:GetRecuperationRate()
     if self.lastEnergyRate ~= rate then
         -- we assume we ask for energy enough times that the change in energy rate
