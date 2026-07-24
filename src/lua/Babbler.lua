@@ -1550,8 +1550,10 @@ elseif Client then
         
         end
         
-        self:SetPoseParam("move_speed", moveSpeed)
-        self:SetPoseParam("move_yaw", moveYaw)
+        self:SetPoseParams({
+            {"move_speed", moveSpeed},
+            {"move_yaw", moveYaw}
+        })
         
     end
     
