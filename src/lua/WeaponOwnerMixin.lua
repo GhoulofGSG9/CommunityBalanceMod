@@ -38,6 +38,7 @@ WeaponOwnerMixin.networkVars =
 {
     processMove = "boolean",
     activeWeaponId = "entityid",
+    activeWeaponMapName = "string (31)",
     timeOfLastWeaponSwitch = "time",
     weaponsWeight = "float (0 to " .. WeaponOwnerMixin.kMaxWeaponsWeight .. " by 0.01)",
     quickSwitchSlot = "integer (0 to 10)",
