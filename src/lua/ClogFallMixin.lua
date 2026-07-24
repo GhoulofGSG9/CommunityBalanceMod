@@ -67,7 +67,7 @@ if Server then
 
     function ClogFallMixin:OnEntityChange(oldId, newId)
 
-        if table.removevalue(self.connectedClogs, oldId) then
+        if #self.connectedClogs > 0 and oldId and table.removevalue(self.connectedClogs, oldId) then
             if newId then
                 table.insert(self.connectedClogs, newId)
             end
