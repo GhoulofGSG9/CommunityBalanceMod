@@ -648,8 +648,9 @@ function Fade:ModifyAttackSpeed(attackSpeedTable)
     attackSpeedTable.attackSpeed = attackSpeedTable.attackSpeed * 1.06
 end
 --]]
+local kEngagementPointOffset = Vector(0, 0.8, 0)
 function Fade:GetEngagementPointOverride()
-    return self:GetOrigin() + Vector(0, 0.8, 0)
+    return self:GetOrigin() + kEngagementPointOffset
 end
 
 --[[
@@ -661,7 +662,7 @@ end
 
 function Fade:OverrideVelocityGoal(velocityGoal)
     
-    if not self:GetIsOnGround() and self:GetCrouching() then
+    if self:GetCrouching() and not self:GetIsOnGround() then
         velocityGoal:Scale(0)
     end
     
@@ -682,7 +683,7 @@ function Fade:OnGroundChanged(onGround, impactForce, normal, velocity)
         self.landedAfterBlink = true
 
         local client = self.GetClient and self:GetClient()
-        if self:GetIsAlive() and client and client:GetIsVirtual() then
+        if client and client:GetIsVirtual() and self:GetIsAlive() then
         --notify FadeBot it touched ground immediately after blinking, queue jump
             self.client.bot.brain:OnGroundLanded()
         end
