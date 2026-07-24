@@ -802,7 +802,7 @@ end
 
 function BaseModelMixin:OnUpdate(deltaTime)
 
-    PROFILE("BaseModelMixin:OnUpdate")
+    --PROFILE("BaseModelMixin:OnUpdate")
 
     if Server and self.fullyUpdated then
         SynchronizeAnimation(self)
@@ -829,7 +829,7 @@ end
 
 function BaseModelMixin:OnProcessIntermediate(input)
 
-    PROFILE("BaseModelMixin:OnProcessIntermediate")
+    --PROFILE("BaseModelMixin:OnProcessIntermediate")
 
     UpdateAnimationState(self, true, false)
     self:MarkPhysicsDirty()
@@ -838,7 +838,7 @@ end
 
 function BaseModelMixin:ProcessMoveOnModel()
 
-    PROFILE("BaseModelMixin:ProcessMoveOnModel")
+    --PROFILE("BaseModelMixin:ProcessMoveOnModel")
 
     UpdateAnimationState(self, true, true)
     self:MarkPhysicsDirty()
@@ -1067,7 +1067,7 @@ function BaseModelMixin:GetAttachPointCoords(attachPoint)
 end
 
 function BaseModelMixin:GetAttachPointOrigin(attachPointName)
-    PROFILE("BaseModelMixin:GetAttachPointOrigin")
+    --PROFILE("BaseModelMixin:GetAttachPointOrigin")
     local attachPointIndex = self:GetAttachPointIndex(attachPointName)
     local origin
     local success = false
@@ -1260,7 +1260,7 @@ if Client then
     -- single-threaded preparation phase
     function BaseModelMixin:OnPreparePhysics()
 
-        PROFILE("BaseModelMixin:OnPreparePhysics")
+        --PROFILE("BaseModelMixin:OnPreparePhysics")
 
         self.lastPhysicsUpdateTime = Shared.GetTime()
 
@@ -1289,9 +1289,7 @@ end -- mass update
 
 
 function BaseModelMixin:OnUpdatePhysics()
-    PROFILE("BaseModelMixin:OnUpdatePhysics")
-
-    self.lastPhysicsUpdateTime = Shared.GetTime()
+    --PROFILE("BaseModelMixin:OnUpdatePhysics")
 
     if self.GetCanSkipPhysics and self:GetCanSkipPhysics() then
 
@@ -1299,6 +1297,7 @@ function BaseModelMixin:OnUpdatePhysics()
 
     end
 
+    self.lastPhysicsUpdateTime = Shared.GetTime()
     if self.fullyUpdated then
 
         SynchronizeAnimation(self)
@@ -1315,7 +1314,7 @@ end
 
 function BaseModelMixin:UpdatePhysicsModel()
 
-    PROFILE("BaseModelMixin:UpdatePhysicsModel")
+    --PROFILE("BaseModelMixin:UpdatePhysicsModel")
 
     -- Create a physics model if necessary.
     if (self.physicsModelIndex ~= self.modelIndex) and self:GetPhysicsModelAllowed() then
