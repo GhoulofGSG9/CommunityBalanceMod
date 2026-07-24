@@ -249,7 +249,7 @@ end
 
 function Onos:GetPlayFootsteps()
 
-    if GetHasCamouflageUpgrade(self) and self:GetCrouching() then
+    if self:GetCrouching() and GetHasCamouflageUpgrade(self) then
        return false
     end
 
@@ -653,7 +653,7 @@ function Onos:UpdateRumbleSound()
 
         if rumbleSound then
 
-            if GetHasCamouflageUpgrade(self) and self:GetCrouching() then
+            if self:GetCrouching() and GetHasCamouflageUpgrade(self) then
                 rumbleSound:SetParameter("speed", 0, 1)
             else 
                 rumbleSound:SetParameter("speed", self:GetSpeedScalar(), 1)
