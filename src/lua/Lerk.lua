@@ -690,10 +690,16 @@ function Lerk:OnUpdatePoseParameters()
     
     Alien.OnUpdatePoseParameters(self)
     
+    --[[
     local activeAbility = self:GetActiveWeapon()
     local activeAbilityIsSpores = activeAbility ~= nil and activeAbility:isa("Spores")
     self:SetPoseParam("spore", activeAbilityIsSpores and 1 or 0)
-    
+    --]]
+
+
+    local activeAbilityIsSpores = (self:GetActiveWeaponName() == Spores.kMapName)
+    self:SetPoseParam("spore", (activeAbilityIsSpores) and 1 or 0)
+     
 end
 
 function Lerk:OnUpdateAnimationInput(modelMixin)
