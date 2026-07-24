@@ -368,9 +368,9 @@ function Rifle:OnUpdateAnimationInput(modelMixin)
     
     ClipWeapon.OnUpdateAnimationInput(self, modelMixin)
     
-    modelMixin:SetAnimationInput("gl", false)
-    modelMixin:SetAnimationInput("reload_speed", 1)
-    modelMixin:SetAnimationInput("skip_draw", self.skipDraw)
+    modelMixin:SetAnimationInputConstant("gl", false)
+    modelMixin:SetAnimationInputConstant("reload_speed", 1)
+    modelMixin:SetAnimationInput("skip_draw", self.skipDraw) -- true right when we spawn
 
 end
 
