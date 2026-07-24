@@ -32,6 +32,7 @@ end
 function Alien:OnProcessMove(input)
     PROFILE("Alien:OnProcessMove")
     
+    local now = Shared.GetTime()
     self.hasAdrenalineUpgrade = GetHasAdrenalineUpgrade(self)
     
 
@@ -39,7 +40,7 @@ function Alien:OnProcessMove(input)
     self:GetEnergy()
 
     -- need to clear this value or spectators would see the hatch effect every time they cycle through players
-    if self.hatched and self.creationTime + 3 < Shared.GetTime() then
+    if self.hatched and self.creationTime + 3 < now then
         self.hatched = false
     end
     
@@ -52,9 +53,9 @@ function Alien:OnProcessMove(input)
         -- Calculate two and three hives so abilities for abilities
         UpdateAbilityAvailability(self, self:GetTierOneTechId(), self:GetTierTwoTechId(), self:GetTierThreeTechId())
 
-        self.enzymed = self.timeWhenEnzymeExpires > Shared.GetTime()
-        self.electrified = self.timeElectrifyEnds > Shared.GetTime()
-		self.stormed = self.timeWhenStormExpires > Shared.GetTime() 
+        self.enzymed = self.timeWhenEnzymeExpires > now
+        self.electrified = self.timeElectrifyEnds > now
+		self.stormed = self.timeWhenStormExpires > now
 		
         self:UpdateAutoHeal()
 	end
@@ -75,7 +76,7 @@ function Alien:UpdateAutoHeal()
 
     PROFILE("Alien:UpdateAutoHeal")
 
-    if self:GetIsHealable() and ( not self.timeLastAlienAutoHeal or self.timeLastAlienAutoHeal + kAlienRegenerationTime <= Shared.GetTime() ) then
+    if ( not self.timeLastAlienAutoHeal or self.timeLastAlienAutoHeal + kAlienRegenerationTime <= Shared.GetTime() ) and self:GetIsHealable() then
 
         local healRate = 1
         local shellLevel = self:GetShellLevel()
