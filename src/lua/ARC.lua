@@ -303,9 +303,10 @@ function ARC:Deploy(commander)
 		self:TriggerEffects("arc_deploying")
 	
 	end
+
 end
 
-function ARC:UnDeploy()
+function ARC:UnDeploy(commander)
 
 end
 
@@ -329,6 +330,7 @@ function ARC:PerformActivation(techId, position, normal, commander)
         self:TriggerEffects("arc_stop_charge")
         self:TriggerEffects("arc_undeploying")
         
+        self:UnDeploy(commander)
         return true, true
         
     end  
