@@ -975,10 +975,12 @@ end
 
 function Drifter:OnUpdatePoseParameters()
 
-    PROFILE("Drifter:OnUpdatePoseParameters")
+    --PROFILE("Drifter:OnUpdatePoseParameters")
 
-    self:SetPoseParam("move_speed", self.moveSpeedParam)
-    self:SetPoseParam("move_yaw", 90)
+    self:SetPoseParams({
+        {"move_speed", self.moveSpeedParam},
+        {"move_yaw", 90}
+    })
 
 end
 
