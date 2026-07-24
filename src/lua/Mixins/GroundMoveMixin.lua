@@ -766,7 +766,9 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
         
     end
     
-    SetSpeedDebugText("onGround %s", ToString(self.onGround))
+    if gSpeedDebug then
+        SetSpeedDebugText("onGround %s", ToString(self.onGround))
+    end
 
 end
 -- stub
