@@ -153,7 +153,7 @@ if Server then
     end
     
     local function SharedUpdate(self)
-        PROFILE("TechMixin:SharedUpdate")
+        --PROFILE("TechMixin:SharedUpdate")
         if not self.techAdded and self.techId ~= kTechId.None then
             self:UpdateTechAvailability()
         end
