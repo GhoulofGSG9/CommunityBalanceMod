@@ -165,6 +165,12 @@ local function UpdateAnimationInput(self, state, graph)
         self:OnUpdateAnimationInput(self)
 
         AnimationGraphState_SetInputValues(state, graph, self.animationInputValues)
+
+        for _, name in ipairs(self.animationInputValuesToClear) do
+            --Log("%s: Clearing constant %s", self, name)
+            self.animationInputValues[name] = nil
+        end
+        self.animationInputValuesToClear = {}
     end
 
 end
@@ -708,6 +714,9 @@ function BaseModelMixin:__initmixin()
     self.passedTags = PassedTags()
     self.animationInputValues = { }
 
+    self.animationInputValuesConstant = { }
+    self.animationInputValuesToClear = { }
+
     if Client then
         self.lastPhysicsUpdateTime = 0
     end
@@ -1208,6 +1217,14 @@ function BaseModelMixin:SetAnimationInput(name, value)
     end
 
     self.animationInputValues[name] = value
+end
+
+function BaseModelMixin:SetAnimationInputConstant(name, value)
+    if self.animationInputValuesConstant[name] == nil then
+        self:SetAnimationInput(name, value)
+        table.insert(self.animationInputValuesToClear, name)
+        self.animationInputValuesConstant[name] = true
+    end
 end
 
 -- use when you want to find out how fast a model is moving on the client screen
