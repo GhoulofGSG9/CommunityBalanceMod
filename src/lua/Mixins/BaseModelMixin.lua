@@ -129,7 +129,7 @@ local function DestroyPhysicsModel(self)
 end
 
 local function CaptureAnimationState(self)
-    PROFILE("BaseModelMixin:CaptureAnimationState")
+    --PROFILE("BaseModelMixin:CaptureAnimationState")
     local state = self.animationState
 
     self.animationGraphNode = state:GetCurrentNode(0)
@@ -200,7 +200,7 @@ local function UpdateAnimationState(self, allowedOnClient, transition)
 
     if allowed and model ~= nil and graph ~= nil then
 
-        PROFILE("BaseModelMixin:UpdateAnimationState")
+        --PROFILE("BaseModelMixin:UpdateAnimationState")
 
         local prevTime = Shared_GetPreviousTime()
         local time = Shared_GetTime()
@@ -275,7 +275,7 @@ end
 
 local function SynchronizeAnimation(self, syncNodesOnServer)
 
-    PROFILE("BaseModelMixin:SynchronizeAnimation")
+    --PROFILE("BaseModelMixin:SynchronizeAnimation")
 
     -- Sync the graph with the network state.
     local graph = Shared_GetAnimationGraph(self.animationGraphIndex)
@@ -317,7 +317,7 @@ local function UpdatePoseParameters(self, forceUpdate)
 
     if self.OnUpdatePoseParameters and (self.fullyUpdated or forceUpdate) then
 
-        PROFILE("BaseModelMixin:OnUpdatePoseParameters")
+        --PROFILE("BaseModelMixin:OnUpdatePoseParameters")
         if _enablePoseParams then
             self:OnUpdatePoseParameters(self)
         else
@@ -353,7 +353,7 @@ end
 
 local function UpdatePhysicsModelCoords(self, forceUpdate)
 
-    PROFILE("BaseModelMixin:UpdatePhysicsModelCoords")
+    --PROFILE("BaseModelMixin:UpdatePhysicsModelCoords")
 
     if (self.fullyUpdated or forceUpdate) and self.physicsModel ~= nil then
 
@@ -374,7 +374,7 @@ end
 
 local function UpdateBoneCoords(self, forceUpdate)
 
-    PROFILE("BaseModelMixin:UpdateBoneCoords")
+    --PROFILE("BaseModelMixin:UpdateBoneCoords")
 
     if not (self.fullyUpdated or forceUpdate) then
         return
@@ -382,11 +382,13 @@ local function UpdateBoneCoords(self, forceUpdate)
 
     UpdatePoseParameters(self, forceUpdate)
 
-    local model = Shared_GetModel(self.modelIndex)
     local physicsType = self.physicsType
 
-    if model ~= nil and physicsType ~= _dynamicPhysicsType then
-        AnimationGraphState_GetBoneCoords(self.animationState, model, self.poseParams, self.boneCoords)
+    if physicsType ~= _dynamicPhysicsType then
+        local model = Shared_GetModel(self.modelIndex)
+        if model ~= nil then
+            AnimationGraphState_GetBoneCoords(self.animationState, model, self.poseParams, self.boneCoords)
+        end
     end
 
     self:UpdateModelCoords()
@@ -405,7 +407,7 @@ end
 
 local function SetHighlight(self)
 
-    PROFILE("BaseModelMixin:SetHighlight")
+    --PROFILE("BaseModelMixin:SetHighlight")
     if self:GetIsHighlightEnabled() ~= nil then
         local highlightAmount = self:GetIsHighlightEnabled()
         self._renderModel:SetMaterialParameter("highlight", highlightAmount)
@@ -1022,7 +1024,7 @@ function BaseModelMixin:SetPoseParams(params)
 end
 
 function BaseModelMixin:GetAttachPointIndex(attachPointName)
-    PROFILE("BaseModelMixin:GetAttachPointIndex")
+    --PROFILE("BaseModelMixin:GetAttachPointIndex")
     local model = Shared_GetModel(self.modelIndex)
 
     if model ~= nil then
@@ -1039,7 +1041,7 @@ end
 --
 function BaseModelMixin:GetAttachPointCoords(attachPoint)
 
-    PROFILE("BaseModelMixin:GetAttachPointCoords")
+    --PROFILE("BaseModelMixin:GetAttachPointCoords")
 
     local attachPointIndex = attachPoint
     if type(attachPointIndex) == "string" then
@@ -1198,7 +1200,7 @@ end
 
 function BaseModelMixin:OnUpdateRender()
 
-    PROFILE("BaseModelMixin:OnUpdateRender")
+    --PROFILE("BaseModelMixin:OnUpdateRender")
 
     UpdateRenderModel(self)
     -- BaseModelMixinDebugSpeed(self)
