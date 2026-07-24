@@ -50,6 +50,7 @@ function WeaponOwnerMixin:__initmixin()
     
     self.processMove = true
     self.activeWeaponId = Entity.invalidId
+    self.activeWeaponMapName = ""
     self.timeOfLastWeaponSwitch = 0
     self.weaponsWeight = 0
     self.quickSwitchSlot = 1
@@ -207,6 +208,7 @@ function WeaponOwnerMixin:SetActiveWeapon(weaponMapName, keepQuickSwitchSlot)
             
             -- Set active first so proper anim plays
             self.activeWeaponId = newWeapon:GetId()
+            self.activeWeaponMapName = newWeapon:GetMapName()
             
             newWeapon:OnDraw(self, previousWeaponName)
             
@@ -325,8 +327,11 @@ function WeaponOwnerMixin:SelectNextWeaponInDirection(direction)
     
 end
 
+-- TODO: Use this on all the places in the code where we fetch the weapon instead (faster)
 function WeaponOwnerMixin:GetActiveWeaponName()
 
+    return self.activeWeaponMapName
+--[[
     local activeWeaponName = ""
     local activeWeapon = self:GetActiveWeapon()
     
@@ -335,7 +340,7 @@ function WeaponOwnerMixin:GetActiveWeaponName()
     end
     
     return activeWeaponName
-    
+    --]]
 end
 
 function WeaponOwnerMixin:GetActiveWeaponId()
@@ -470,6 +475,7 @@ function WeaponOwnerMixin:RemoveWeapon(weapon)
     if removingActive then
     
         self.activeWeaponId = Entity.invalidId
+        self.activeWeaponMapName = ""
         self:SelectNextWeaponInDirection(1)
         
     end
@@ -487,6 +493,7 @@ end
 function WeaponOwnerMixin:DestroyWeapons()
 
     self.activeWeaponId = Entity.invalidId
+    self.activeWeaponMapName = ""
 
     for _, weapon in ipairs(self:GetWeapons()) do
         DestroyEntity(weapon)
