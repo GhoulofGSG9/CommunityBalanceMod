@@ -454,6 +454,10 @@ end
 
 function MAC:OnEntityChange(oldId, newId)
 
+    if oldId == nil then
+        return
+    end
+
     local currentOrder = self:GetCurrentOrder()
 
     -- Smth happened with our target
