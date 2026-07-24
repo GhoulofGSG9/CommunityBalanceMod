@@ -149,7 +149,7 @@ function Fade:OnCreate()
 
     if Client then
         InitMixin(self, RailgunTargetMixin)
-		InitMixin(self, BlowtorchTargetMixin)
+        InitMixin(self, BlowtorchTargetMixin)
         InitMixin(self, FilteredCinematicMixin)
     end
     
@@ -339,30 +339,30 @@ end
 
 function Fade:GetAirFriction()
 
-	local currentSpeed = self:GetVelocityLength()
-	local baseFriction = 0.17
+    local currentSpeed = self:GetVelocityLength()
+    local baseFriction = 0.17
 
-	if self:GetIsBlinking() then
+    if self:GetIsBlinking() then
 
-		return 0
+        return 0
 
-	elseif GetHasCelerityUpgrade(self) or self.stormed then
+    elseif GetHasCelerityUpgrade(self) or self.stormed then
 
-		if currentSpeed > kBlinkMaxSpeedCelerity then
-			return kFastMovingAirFriction
-		end
+        if currentSpeed > kBlinkMaxSpeedCelerity then
+            return kFastMovingAirFriction
+        end
 
-		return baseFriction - self:GetSpurLevel() * 0.01
+        return baseFriction - self:GetSpurLevel() * 0.01
 
-	elseif currentSpeed > kBlinkMaxSpeedBase then
+    elseif currentSpeed > kBlinkMaxSpeedBase then
 
-		return kFastMovingAirFriction
+        return kFastMovingAirFriction
 
-	else
+    else
 
-		return baseFriction
+        return baseFriction
 
-	end
+    end
 end
 
 function Fade:ModifyVelocity(input, velocity, deltaTime)
@@ -546,7 +546,7 @@ function Fade:OnProcessMove(input)
 
     if not self:GetHasMetabolizeAnimationDelay() and self.previousweapon ~= nil and not self:GetIsBlinking() then
 
-        if self:GetActiveWeapon():GetMapName() == Metabolize.kMapName then
+        if self:GetActiveWeaponName() == Metabolize.kMapName then
             self:SetActiveWeapon(self.previousweapon)
         end
 
