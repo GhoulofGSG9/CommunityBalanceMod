@@ -165,24 +165,20 @@ end
 
 function Spores:OnTag(tagName)
 
-    PROFILE("LerkUmbra:OnTag")
+    PROFILE("LerkSpores:OnTag")
 
-    if tagName == "hit" then
-    
+    if Server and tagName == "hit" then
+        
         local player = self:GetParent()
         
         if player then
-            
-            if Server then
                 
-                if player:GetEnergy() >= self:GetEnergyCost() then
-                    CreateSporeCloud(self, player:GetModelOrigin(), player)                    
-                    player:TriggerEffects("spores_attack")
-                    player:DeductAbilityEnergy(self:GetEnergyCost())
-                end
-                
+            if player:GetEnergy() >= self:GetEnergyCost() then
+                CreateSporeCloud(self, player:GetModelOrigin(), player)                    
+                player:TriggerEffects("spores_attack")
+                player:DeductAbilityEnergy(self:GetEnergyCost())
             end
-            
+                
         end
         
     end
@@ -193,7 +189,6 @@ function Spores:OnUpdateAnimationInput(modelMixin)
 
     PROFILE("Spikes:OnUpdateAnimationInput")
     
-
     if not self:GetIsSecondaryBlocking() then
     
         modelMixin:SetAnimationInput("ability", "spores")
