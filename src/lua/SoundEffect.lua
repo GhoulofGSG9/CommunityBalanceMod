@@ -308,10 +308,10 @@ if Server then
     
     local function SharedUpdate(self)
     
-        PROFILE("SoundEffect:SharedUpdate")
+        --PROFILE("SoundEffect:SharedUpdate")
         
         -- If the assetLength is < 0, it is a looping sound and needs to be manually destroyed.
-        if not self:GetIsMapEntity() and self.playing and self.assetLength >= 0 then
+        if self.playing and self.assetLength >= 0 and not self:GetIsMapEntity() then
         
             -- Add in a bit of time to make sure the Client has had enough time to fully play.
             local endTime = self.startTime + self.assetLength + kSoundEndBufferTime
@@ -358,7 +358,7 @@ if Client then
     --]]
     local function SharedUpdate(self)
     
-        PROFILE("SoundEffect:SharedUpdate")
+        --PROFILE("SoundEffect:SharedUpdate")
         
         if self.predictorId ~= Entity.invalidId then
         
