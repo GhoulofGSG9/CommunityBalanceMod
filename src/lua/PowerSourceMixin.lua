@@ -106,7 +106,7 @@ if Server then
 
     function PowerSourceMixin:OnEntityChange(oldId, newId)
 
-        if self.powerConsumerIds:Remove(oldId) then
+        if oldId and self.powerConsumerIds:Remove(oldId) then
             
             if newId and newId ~= Entity.invalidId then
             
