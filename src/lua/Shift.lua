@@ -723,7 +723,7 @@ if Server then
     
     function Shift:OnEntityChange(oldId, newId)
         
-        if #self.shiftEggs > 0 and table.icontains(self.shiftEggs, oldId) then
+        if oldId and #self.shiftEggs > 0 and table.icontains(self.shiftEggs, oldId) then
             table.removevalue(self.shiftEggs, oldId)
         end
         
