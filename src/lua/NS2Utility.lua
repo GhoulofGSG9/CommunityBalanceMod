@@ -424,13 +424,15 @@ function HandleHitEffect(position, doer, surface, target, showtracer, altMode, d
 
     end
 
-    -- Don't play the hit cinematic, those are made for third person.
-    if target ~= Client.GetLocalPlayer() then
-        GetEffectManager():TriggerEffects("damage", tableParams)
-    end
+    if damage and damage > 0 then
+        -- Don't play the hit cinematic, those are made for third person.
+        if target ~= Client.GetLocalPlayer() then
+            GetEffectManager():TriggerEffects("damage", tableParams)
+        end
 
-    -- Always play sound effect.
-    GetEffectManager():TriggerEffects("damage_sound", tableParams)
+        -- Always play sound effect.
+        GetEffectManager():TriggerEffects("damage_sound", tableParams)
+    end
 
     if showtracer == true and doer then
 
@@ -2003,13 +2005,20 @@ function SetPlayerPoseParameters(player, viewModel, headAngles)
         crouchAmount = player:ModifyCrouchAnimation(crouchAmount)
     end
 
-    SetPoseParam(viewModel, player, "move_yaw", moveYaw)
-    SetPoseParam(viewModel, player, "move_speed", moveSpeed)
-    SetPoseParam(viewModel, player, "body_pitch", pitch)
-    SetPoseParam(viewModel, player, "body_yaw", bodyYaw)
-    SetPoseParam(viewModel, player, "body_yaw_run", bodyYawRun)
-    SetPoseParam(viewModel, player, "crouch", crouchAmount)
-    SetPoseParam(viewModel, player, "land_intensity", landIntensity)
+    local params = {
+        {"move_yaw", moveYaw},
+        {"move_speed", moveSpeed},
+        {"body_pitch", pitch},
+        {"body_yaw", bodyYaw},
+        {"body_yaw_run", bodyYawRun},
+        {"crouch", crouchAmount},
+        {"land_intensity", landIntensity}
+    }
+
+    player:SetPoseParams(params)
+    if viewModel then
+        viewModel:SetPoseParams(params)
+    end
 
 end
 
