@@ -563,7 +563,7 @@ end
 
 function Player:OnEntityChange(oldEntityId, newEntityId)
 
-    if Client then
+    if Client and oldEntityId then
 
         if self:GetId() == oldEntityId then
             -- If this player is changing is any way, just assume the
