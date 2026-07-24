@@ -327,7 +327,7 @@ end
 
 function Weapon:GetIsActive()
     local parent = self:GetParent()
-    return (parent ~= nil and (parent.GetActiveWeapon) and (parent:GetActiveWeapon() == self))
+    return (parent ~= nil and (parent.GetActiveWeaponId) and (parent:GetActiveWeaponId() == self:GetId()))
 end
 
 -- Max degrees that weapon can swing left or right
