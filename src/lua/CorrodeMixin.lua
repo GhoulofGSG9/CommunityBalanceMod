@@ -159,16 +159,16 @@ local function UpdateCorrodeMaterial(self)
     
 end
 
-local function CheckTunnelCorrode(self)
+local function CheckTunnelCorrode(self, currentTime)
 
-    if (not self.timeLastTunnelCorrodeCheck or self.timeLastTunnelCorrodeCheck + 1 < Shared.GetTime() ) and HasMixin(self, "MobileTarget") and GetIsPointInGorgeTunnel(self:GetOrigin()) then
+    if (not self.timeLastTunnelCorrodeCheck or self.timeLastTunnelCorrodeCheck + 1 < currentTime ) and HasMixin(self, "MobileTarget") and GetIsPointInGorgeTunnel(self:GetOrigin()) then
         
         -- drain armor only
         self:DeductHealth(kGorgeArmorTunnelDamagePerSecond, nil, nil, false, true)
         
         self.isCorroded = true
-        self.timeCorrodeStarted = Shared.GetTime()
-        self.timeLastTunnelCorrodeCheck = Shared.GetTime()
+        self.timeCorrodeStarted = currentTime
+        self.timeLastTunnelCorrodeCheck = currentTime
         --
     end
 
@@ -179,11 +179,12 @@ local function SharedUpdate(self, deltaTime)
 
     if Server then
     
-        if self.isCorroded and self.timeCorrodeStarted + kCorrodeShaderDuration < Shared.GetTime() then        
+        local now = Shared.GetTime()
+        if self.isCorroded and self.timeCorrodeStarted + kCorrodeShaderDuration < now then        
             self.isCorroded = false   
         end
         
-        CheckTunnelCorrode(self)
+        CheckTunnelCorrode(self, now)
         
     elseif Client then
         UpdateCorrodeMaterial(self)
