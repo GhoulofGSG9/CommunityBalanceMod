@@ -521,13 +521,15 @@ end
 
 function ARC:OnUpdatePoseParameters()
 
-    PROFILE("ARC:OnUpdatePoseParameters")
+    --PROFILE("ARC:OnUpdatePoseParameters")
     
-    self:SetPoseParam(kArcPitchParam, self.barrelPitchDegrees)
-    self:SetPoseParam(kArcYawParam , self.barrelYawDegrees)
-    self:SetPoseParam(ARC.kArcForwardTrackYawParam , self.forwardTrackYawDegrees)
-    self:SetPoseParam(ARC.kArcForwardTrackPitchParam , self.forwardTrackPitchDegrees)
-    
+    self:SetPoseParams({
+        {kArcPitchParam, self.barrelPitchDegrees},
+        {kArcYawParam , self.barrelYawDegrees},
+        {ARC.kArcForwardTrackYawParam, self.forwardTrackYawDegrees},
+        {ARC.kArcForwardTrackPitchParam, self.forwardTrackPitchDegrees}
+    })
+
 end
 
 function ARC:OnUpdate(deltaTime)
