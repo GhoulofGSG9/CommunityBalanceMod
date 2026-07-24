@@ -88,12 +88,12 @@ local networkVars =
         
         -- used for rooting/unrooting
         unblockTime = "time",
-		
-		frenzy = "boolean",
+        
+        frenzy = "boolean",
         enervating = "boolean",
-		
-		infestationSpeedCharge = "float",
-		electrified = "boolean"
+        
+        infestationSpeedCharge = "float",
+        electrified = "boolean"
     }
 
 AddMixinNetworkVars(UpgradableMixin, networkVars)
@@ -123,14 +123,14 @@ function Whip:OnCreate()
     InitMixin(self, AlienStructureMoveMixin, { kAlienStructureMoveSound = kWhipWalkingSound })
     InitMixin(self, ConsumeMixin)
     InitMixin(self, BiomassHealthMixin)
-	
+    
     self.attackYaw = 0
     
     self.slapping = false
     self.bombarding = false
     self.lastAttackStart = 0
-	self.ManualTargetBombard = false
-	self.ValidManualTarget = false
+    self.ManualTargetBombard = false
+    self.ValidManualTarget = false
 
     self.rooted = true
     self.moving = false
@@ -145,22 +145,22 @@ function Whip:OnCreate()
 
         self.targetId = Entity.invalidId
         self.nextAttackTime = 0
-		
+        
         self.timeFrenzyEnd = 0
         self.timeEnervateEnd = 0
-		
-		    self.infestationSpeedCharge = 0
-		    self.electrified = false
-		    self.timeElectrifyEnds = 0
-		
+        
+            self.infestationSpeedCharge = 0
+            self.electrified = false
+            self.timeElectrifyEnds = 0
+        
     end
 
     if Client then
         InitMixin(self, RailgunTargetMixin)
-		InitMixin(self, BlowtorchTargetMixin)
+        InitMixin(self, BlowtorchTargetMixin)
     end
 
-	self.timeOfLastFortressWhipAbility = 0
+    self.timeOfLastFortressWhipAbility = 0
     self.frenzy = false
     self.enervating = false
     self.attackSpeed = kDefaultAttackSpeed
@@ -182,10 +182,10 @@ function Whip:OnInitialized()
         self.slapTargetSelector = TargetSelector():Init(self, Whip.kRange, true, targetTypes)
         self.bombardTargetSelector = TargetSelector():Init(self, kWhipBombardRange, true, targetTypes)
         
-		if not HasMixin(self, "MapBlip") then
+        if not HasMixin(self, "MapBlip") then
             InitMixin(self, MapBlipMixin)
         end 
-		
+        
     end
     
     InitMixin(self, DoorMixin)
@@ -220,15 +220,15 @@ function Whip:GetMaxSpeed()
         return  kWhipMoveSpeed * (0.75 + 1.0 * self.infestationSpeedCharge/kWhipMaxInfestationCharge)
     end
     
-	if self:GetTechId() == kTechId.FortressWhip then
-		return kWhipMoveSpeed * (0.75 + 0.5 * self.infestationSpeedCharge/kWhipMaxInfestationCharge)
-	end
+    if self:GetTechId() == kTechId.FortressWhip then
+        return kWhipMoveSpeed * (0.75 + 0.5 * self.infestationSpeedCharge/kWhipMaxInfestationCharge)
+    end
 
-	if self.electrified then
-		return kWhipMoveSpeed * 0.5
-	end
+    if self.electrified then
+        return kWhipMoveSpeed * 0.5
+    end
 
-	return  kWhipMoveSpeed * 1.25
+    return  kWhipMoveSpeed * 1.25
 end
 
 -- ---  RepositionMixin
@@ -292,16 +292,23 @@ function Whip:OnUpdatePoseParameters()
         yaw = 90 + yaw
     end
     
-    self:SetPoseParam("attack_yaw", yaw)
-    self:SetPoseParam("move_speed", self.move_speed)
+    local ballParam = self:GetHasUpgrade(kTechId.WhipBombard) and 1.0 or 0.0
+    self:SetPoseParams({
+        {"attack_yaw", yaw},
+        {"move_speed", self.move_speed},
+        {kWhipWhipBallParam, ballParam}
+    })
     
+    --[[
     if self:GetHasUpgrade(kTechId.WhipBombard) then
         self:SetPoseParam(kWhipWhipBallParam, 1.0)
     else
         self:SetPoseParam(kWhipWhipBallParam, 0)
     end
+    --]]
     
 end
+
 
 function Whip:OnUpdateAnimationInput(modelMixin)
 
@@ -377,28 +384,28 @@ end
 
 function Whip:OnOrderGiven(order)
     if order ~= nil and (order:GetType() == kTechId.Attack or order:GetType() == kTechId.SetTarget) then
-		local targetEnt = Shared.GetEntity(order:GetParam())
+        local targetEnt = Shared.GetEntity(order:GetParam())
         if targetEnt then
-			if self:GetCanAttackTarget(self.slapTargetSelector, targetEnt, maxRangeSquared) and self:ValidateTarget(targetEnt) then
-				self.targetId = order:GetParam()
-				self.ValidManualTarget = true
-				self.ManualTargetBombard = false
-			elseif self:GetCanAttackTarget(self.bombardTargetSelector, targetEnt, maxRangeSquared) and self:GetIsMature() and self:ValidateTarget(targetEnt) then
-				self.targetId = order:GetParam()
-				self.ValidManualTarget = true
-				self.ManualTargetBombard = true
-			else
-				self.ValidManualTarget = false
-				self.ManualTargetBombard = false
-			end
-		else
-			self:CompletedCurrentOrder()
-			self.ManualTargetBombard = false
-			self.ValidManualTarget = false
+            if self:GetCanAttackTarget(self.slapTargetSelector, targetEnt, maxRangeSquared) and self:ValidateTarget(targetEnt) then
+                self.targetId = order:GetParam()
+                self.ValidManualTarget = true
+                self.ManualTargetBombard = false
+            elseif self:GetCanAttackTarget(self.bombardTargetSelector, targetEnt, maxRangeSquared) and self:GetIsMature() and self:ValidateTarget(targetEnt) then
+                self.targetId = order:GetParam()
+                self.ValidManualTarget = true
+                self.ManualTargetBombard = true
+            else
+                self.ValidManualTarget = false
+                self.ManualTargetBombard = false
+            end
+        else
+            self:CompletedCurrentOrder()
+            self.ManualTargetBombard = false
+            self.ValidManualTarget = false
         end
-	end
-	
-	--This will cancel Consume if it is running.
+    end
+    
+    --This will cancel Consume if it is running.
     if self:GetIsConsuming() then
         self:CancelResearch()
     end
@@ -431,30 +438,30 @@ end
 function Whip:GetTechButtons(techId)
 
     local techButtons = { kTechId.None, kTechId.Move, kTechId.Attack, kTechId.Slap,
-						  kTechId.None, kTechId.None, kTechId.None, kTechId.Consume }
+                          kTechId.None, kTechId.None, kTechId.None, kTechId.Consume }
     
-	if kCBMaddon then
+    if kCBMaddon then
         techButtons[5] = kTechId.FortressWhipCragPassive
-		techButtons[6] = kTechId.FortressWhipShiftPassive
-		techButtons[7] = kTechId.FortressWhipShadePassive
+        techButtons[6] = kTechId.FortressWhipShiftPassive
+        techButtons[7] = kTechId.FortressWhipShadePassive
     end
-	
+    
     if self:GetIsMature() then
         techButtons[4] = kTechId.WhipBombard
     end
-	
-	if self:GetTechId() == kTechId.FortressWhip and kCBMaddon then
+    
+    if self:GetTechId() == kTechId.FortressWhip and kCBMaddon then
         techButtons[1] = kTechId.FortressWhipAbility
-    end	
+    end 
     
     if self.moving then
         techButtons[2] = kTechId.Stop
     end
     
-	if self:GetTechId() == kTechId.Whip and GetHasTech(self, kTechId.FortressWhip) then
+    if self:GetTechId() == kTechId.Whip and GetHasTech(self, kTechId.FortressWhip) then
         techButtons[5] = kTechId.None
-		techButtons[6] = kTechId.None
-		techButtons[7] = kTechId.None
+        techButtons[6] = kTechId.None
+        techButtons[7] = kTechId.None
     end
         
     if self:GetTechId() == kTechId.Whip and self:GetResearchingId() ~= kTechId.UpgradeToFortressWhip and kCBMaddon then
@@ -534,33 +541,33 @@ function Whip:OnUpdate(deltaTime)
         
         self:UpdateRootState()           
         self:UpdateOrders(deltaTime)
-		self.electrified = self.timeElectrifyEnds > Shared.GetTime()
-		
-		if GetHasTech(self, kTechId.ShadeHive) and self:GetTechId() == kTechId.FortressWhip then
-			self.camouflaged = not self:GetIsInCombat()
-		end
+        self.electrified = self.timeElectrifyEnds > Shared.GetTime()
+        
+        if GetHasTech(self, kTechId.ShadeHive) and self:GetTechId() == kTechId.FortressWhip then
+            self.camouflaged = not self:GetIsInCombat()
+        end
         
         -- CQ: move_speed is used to animate the whip speed.
         -- As GetMaxSpeed is constant, this just toggles between 0 and fixed value depending on moving
         -- Doing it right should probably involve saving the previous origin and calculate the speed
         -- depending on how fast we move
-		
-		if self.frenzy and self.electrified then
-			self.electrified = false
-			self.timeElectrifyEnds = Shared.GetTime()
-		end
-		
-		if self.electrified then
-			self.infestationSpeedCharge = 0
-		else
-			if self:GetGameEffectMask(kGameEffect.OnInfestation) then
-				self.timeOfLastInfestion = Shared.GetTime()
-				self.infestationSpeedCharge = math.max(0, math.min(kWhipMaxInfestationCharge, self.infestationSpeedCharge + 2.0*deltaTime))
-			else
-				self.infestationSpeedCharge = math.max(0, math.min(kWhipMaxInfestationCharge, self.infestationSpeedCharge - deltaTime))
-			end
-		end
-		
+        
+        if self.frenzy and self.electrified then
+            self.electrified = false
+            self.timeElectrifyEnds = Shared.GetTime()
+        end
+        
+        if self.electrified then
+            self.infestationSpeedCharge = 0
+        else
+            if self:GetGameEffectMask(kGameEffect.OnInfestation) then
+                self.timeOfLastInfestion = Shared.GetTime()
+                self.infestationSpeedCharge = math.max(0, math.min(kWhipMaxInfestationCharge, self.infestationSpeedCharge + 2.0*deltaTime))
+            else
+                self.infestationSpeedCharge = math.max(0, math.min(kWhipMaxInfestationCharge, self.infestationSpeedCharge - deltaTime))
+            end
+        end
+        
         self.move_speed = self.moving and ( self:GetMaxSpeed() / kWhipMaxMoveSpeedParam ) or 0
         self.frenzy = Shared.GetTime() < self.timeFrenzyEnd
         self.enervating = Shared.GetTime() < self.timeEnervateEnd
@@ -628,7 +635,7 @@ function Whip:TriggerFortressWhipAbility(commander)
 
     if Server then
         self:StartFrenzy()  -- on Whip_Server.lua
-		self:Enervate()
+        self:Enervate()
     end
     return true
 end
@@ -717,9 +724,9 @@ if Server then
 
             end
             
-			local team = self:GetTeam()
-			local bioMassLevel = team and team.GetBioMassLevel and team:GetBioMassLevel() or 0
-			self:UpdateHealthAmount(bioMassLevel)
+            local team = self:GetTeam()
+            local bioMassLevel = team and team.GetBioMassLevel and team:GetBioMassLevel() or 0
+            self:UpdateHealthAmount(bioMassLevel)
         end
     end
 
@@ -727,60 +734,60 @@ end
 
 if Client then
     
-	function Whip:GetShowElectrifyEffect()
-		return self.electrified
-	end
-	
+    function Whip:GetShowElectrifyEffect()
+        return self.electrified
+    end
+    
     function Whip:OnUpdateRender()
     
-		local model = self:GetRenderModel()
-		local electrified = self:GetShowElectrifyEffect()
+        local model = self:GetRenderModel()
+        local electrified = self:GetShowElectrifyEffect()
 
-		if model then
-			if self.electrifiedClient ~= electrified then
-			
-				if electrified then
-					self.electrifiedMaterial = AddMaterial(model, Alien.kElectrifiedThirdpersonMaterialName)
-					self.electrifiedMaterial:SetParameter("elecAmount",  1.5)
-				else
-					if RemoveMaterial(model, self.electrifiedMaterial) then
-						self.electrifiedMaterial = nil
-					end
-				end
-				self.electrifiedClient = electrified
-			end
-		end
-		
-		if not self.fortressWhipMaterial and self:GetTechId() == kTechId.FortressWhip then
+        if model then
+            if self.electrifiedClient ~= electrified then
+            
+                if electrified then
+                    self.electrifiedMaterial = AddMaterial(model, Alien.kElectrifiedThirdpersonMaterialName)
+                    self.electrifiedMaterial:SetParameter("elecAmount",  1.5)
+                else
+                    if RemoveMaterial(model, self.electrifiedMaterial) then
+                        self.electrifiedMaterial = nil
+                    end
+                end
+                self.electrifiedClient = electrified
+            end
+        end
+        
+        if not self.fortressWhipMaterial and self:GetTechId() == kTechId.FortressWhip then
 
-			if model and model:GetReadyForOverrideMaterials() then
-			
-				model:ClearOverrideMaterials()
+            if model and model:GetReadyForOverrideMaterials() then
+            
+                model:ClearOverrideMaterials()
 
-				model:SetOverrideMaterial( 0, kWhipFortressWhipMaterial )
+                model:SetOverrideMaterial( 0, kWhipFortressWhipMaterial )
 
-				model:SetMaterialParameter("highlight", 0.91)
+                model:SetMaterialParameter("highlight", 0.91)
 
-				self.fortressWhipMaterial = true
-			end
-			
-		end
-				 
-	   
-		if model then
-			local localPlayer = Client.GetLocalPlayer()
-			local isVisible = not (HasMixin(self, "Cloakable") and self:GetIsCloaked() and GetAreEnemies(self, localPlayer))
-			
-			if self.frenzy and isVisible then
-				if not self.enzymedMaterial then
-					self.enzymedMaterial = AddMaterial(model, kWhipEnzymedMaterialName)
-				end
-			else
-				if RemoveMaterial(model, self.enzymedMaterial) then
-					self.enzymedMaterial = nil
-				end
-			end
-		end 
+                self.fortressWhipMaterial = true
+            end
+            
+        end
+                 
+       
+        if model then
+            local localPlayer = Client.GetLocalPlayer()
+            local isVisible = not (HasMixin(self, "Cloakable") and self:GetIsCloaked() and GetAreEnemies(self, localPlayer))
+            
+            if self.frenzy and isVisible then
+                if not self.enzymedMaterial then
+                    self.enzymedMaterial = AddMaterial(model, kWhipEnzymedMaterialName)
+                end
+            else
+                if RemoveMaterial(model, self.enzymedMaterial) then
+                    self.enzymedMaterial = nil
+                end
+            end
+        end 
     end
 end
 
