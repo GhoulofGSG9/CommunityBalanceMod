@@ -555,7 +555,7 @@ if Server then
 
     function Babbler:OnEntityChange(oldId, newId)
 
-        if oldId == self.targetId and newId then
+        if oldId == self.targetId then
             local target = newId and Shared.GetEntity(newId)
 
             if target and HasMixin(target, "Live") and target:GetIsAlive() then
