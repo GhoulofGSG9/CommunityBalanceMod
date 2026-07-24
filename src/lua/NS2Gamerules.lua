@@ -389,7 +389,7 @@ if Server then
         end
         
         -- Keep server map entities up to date
-        local index = table.find(Server.mapLoadLiveEntityValues, oldId)
+        local index = oldId and table.find(Server.mapLoadLiveEntityValues, oldId)
         if index then
         
             table.removevalue(Server.mapLoadLiveEntityValues, oldId)
