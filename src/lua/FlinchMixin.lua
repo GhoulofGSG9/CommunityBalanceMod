@@ -202,7 +202,7 @@ end
 
 function FlinchMixin:OnUpdateAnimationInput(modelMixin)
 
-    PROFILE("FlinchMixin:OnUpdateAnimationInput")
+    -- PROFILE("FlinchMixin:OnUpdateAnimationInput")
     
     if self:GetMixinConstants().kPlayFlinchAnimations then
         modelMixin:SetAnimationInput("flinch", self.flinchIntensity > 0)
