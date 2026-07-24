@@ -184,7 +184,7 @@ end
 
 function FlinchMixin:OnUpdatePoseParameters()
 
-    PROFILE("FlinchMixin:OnUpdatePoseParameters")
+    --PROFILE("FlinchMixin:OnUpdatePoseParameters")
     
     if self:GetMixinConstants().kPlayFlinchAnimations then
 		self:SetPoseParam("intensity", self:GetFlinchIntensity())
