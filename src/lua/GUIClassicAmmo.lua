@@ -118,56 +118,6 @@ function GUIClassicAmmo:Update(deltaTime)
 		else
 			self.ammoText:SetColor(kAmmoColor)
 		end
-		
-		if activeWeapon:isa("ExoWeaponHolder") then
-            local leftWeapon = Shared.GetEntity(activeWeapon.leftWeaponId)
-            local rightWeapon = Shared.GetEntity(activeWeapon.rightWeaponId)
-            local highestCharge = -1
-			local Mode = "None"
-
-            if leftWeapon:isa("PlasmaLauncher") then
-                if leftWeapon:GetChargeAmount() > highestCharge then
-                    highestCharge = leftWeapon:GetChargeAmount()
-					Mode = leftWeapon:GetMode()
-                end
-            end
-            
-            if rightWeapon:isa("PlasmaLauncher") then
-                if rightWeapon:GetChargeAmount() > highestCharge then
-                    highestCharge = rightWeapon:GetChargeAmount()
-					Mode = rightWeapon:GetMode()
-                end
-            end
-			
-							
-			if Mode == "MultiShot" then
-				if highestCharge < kPlasmaMultiEnergyCost then
-					colorAmtC = 1
-					colorAmtM = 0.25
-					colorAmtY = 0.25
-				else
-					colorAmtC = 0.25
-					colorAmtM = 1
-					colorAmtY = 1
-				end
-			elseif Mode == "Bomb" then
-				if highestCharge < kPlasmaBombEnergyCost then
-					colorAmtC = 1
-					colorAmtM = 0.25
-					colorAmtY = 0.25
-				else
-					colorAmtC = 1
-					colorAmtM = 0.25
-					colorAmtY = 1
-				end
-			else
-				colorAmtC = 1
-				colorAmtM = 1
-				colorAmtY = 1
-			end
-				
-			self.ammoText:SetColor(Color(colorAmtC, colorAmtM, colorAmtY, 1))   -- Replace colorAmt w/ 1 for solid color
-        end
 	end
 end
 

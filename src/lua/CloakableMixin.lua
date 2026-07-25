@@ -49,10 +49,19 @@ CloakableMixin.kInvisibleFarRange =
 CloakableMixin.kSpecialMaxCloakClass =
 set {
     "Onos",
+	"Crag",
+	"Shift",
+	"Shade",
     "Whip",
     "Drifter",
+	"Hive",
+	"TunnelEntrance",
     "Harvester",
     "Hydra",
+	"Shell",
+	"Spur",
+	"Veil",
+	"Egg",
 }
 -- most players and these classes have cloak strength capped at kPlayerMaxCloak
 CloakableMixin.kPlayerMaxCloakClass =
@@ -570,7 +579,7 @@ function CloakableMixin:GetIsInInk()
 end
 
 function CloakableMixin:GetInvisibleRange()
-    return CloakableMixin.kInvisibleFarRange[self.cloakRate] or CloakableMixin.kInvisibleFarRange[1]
+    return (CloakableMixin.kSpecialMaxCloakClass[self:GetClassName()] and not self:isa("Onos") and 1.0) or CloakableMixin.kInvisibleFarRange[self.cloakRate] or CloakableMixin.kInvisibleFarRange[1]
 end
 
 function CloakableMixin:OverrideCheckVisibilty(viewer)

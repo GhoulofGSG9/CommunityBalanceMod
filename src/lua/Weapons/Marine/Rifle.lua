@@ -22,7 +22,8 @@ Rifle.kMapName = "rifle"
 Rifle.kModelName = PrecacheAsset("models/marine/rifle/rifle.model")
 local kViewModels = GenerateMarineViewModelPaths("rifle")
 
-local kRange = 100
+local kRange = kRelevancyRangeCap
+
 -- 4 degrees in NS1
 local kSpread = Math.Radians(2.8)
 

@@ -83,17 +83,6 @@ function GetWeaponReserveAmmoFraction(weapon)
 end
 
 -- %%% New CBM Functions %%% --
-local function checkLeftWeaponAmmo(leftWeapon)
-    local leftAmmo = -1
-    if leftWeapon:isa("Railgun") or leftWeapon:isa("PlasmaLauncher") then
-        leftAmmo = leftWeapon:GetChargeAmount() * 100
-    elseif leftWeapon:isa("Minigun") then
-        leftAmmo = leftWeapon.heatAmount * 100
-    end
-
-    return leftAmmo
-end
-
 local function checkLeftWeaponFraction(leftWeapon, fraction)
     if leftWeapon:isa("Minigun") then
         fraction = (fraction + leftWeapon.heatAmount) / 2.0
@@ -159,17 +148,41 @@ function GetWeaponAmmoString(weapon)
             local rightWeapon = Shared.GetEntity(weapon.rightWeaponId)
             local leftAmmo = -1
             local rightAmmo = -1
-            if rightWeapon:isa("Railgun") or rightWeapon:isa("PlasmaLauncher") then
+			local leftShots = -1
+			local rightShots = -1
+
+			if leftWeapon:isa("Railgun") then
+				leftAmmo = leftWeapon:GetChargeAmount() * 100
+				leftShots = leftWeapon:GetCellAmount()
+			elseif leftWeapon:isa("PlasmaLauncher") then
+				leftAmmo = leftWeapon:GetChargeAmount() * 100
+				leftShots = math.max(0, math.floor(leftWeapon:GetChargeAmount()/kPlasmaBombEnergyCost))
+			elseif leftWeapon:isa("Minigun") then
+				leftAmmo = leftWeapon.heatAmount * 100
+			end
+			
+            if rightWeapon:isa("Railgun")then
                 rightAmmo = rightWeapon:GetChargeAmount() * 100
-                leftAmmo = checkLeftWeaponAmmo(leftWeapon)
+				rightShots = rightWeapon:GetCellAmount()
+			elseif rightWeapon:isa("PlasmaLauncher")then
+				rightAmmo = rightWeapon:GetChargeAmount() * 100
+				rightShots = math.max(0, math.floor(rightWeapon:GetChargeAmount()/kPlasmaBombEnergyCost))
             elseif rightWeapon:isa("Minigun") then
                 rightAmmo = rightWeapon.heatAmount * 100
-                leftAmmo = checkLeftWeaponAmmo(leftWeapon)
             end
+			
             if leftAmmo > -1 and rightAmmo > -1 then
-                ammo = string.format("%d%% / %d%%", leftAmmo, rightAmmo)
+				if leftShots > -1 or rightShots > -1 then
+					ammo = string.format("%d%% / %d%% (%s/%s)", leftAmmo, rightAmmo, leftShots, rightShots)
+				else
+					ammo = string.format("%d%% / %d%%", leftAmmo, rightAmmo)
+				end
             elseif rightAmmo > -1 then
-                ammo = string.format("%d%%", rightAmmo)
+				if rightShots > -1 then
+					ammo = string.format("%d%% (%s)", rightAmmo, rightShots)
+				else
+					ammo = string.format("%d%%", rightAmmo)
+				end
             end
         elseif weapon:isa("Builder") or weapon:isa("Welder") and PlayerUI_GetUnitStatusPercentage() > 0 then
             ammo = string.format("%d%%", PlayerUI_GetUnitStatusPercentage())
