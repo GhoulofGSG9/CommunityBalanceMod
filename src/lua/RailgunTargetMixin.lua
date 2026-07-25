@@ -42,7 +42,7 @@ function RailgunTargetMixin:OnUpdate(deltaTime)
     if self.isRailgunTarget ~= isTarget and model then
     
         if isTarget then
-            EquipmentOutline_AddModel(model, kEquipmentOutlineColor.Red)
+            EquipmentOutline_AddModel(model, kEquipmentOutlineColor.TSFBlue)
         else
             EquipmentOutline_RemoveModel(model)
         end
