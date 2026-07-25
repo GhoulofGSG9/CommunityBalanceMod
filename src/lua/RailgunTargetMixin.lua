@@ -13,7 +13,7 @@ RailgunTargetMixin.type = "RailgunTarget"
 
 --PrecacheAsset("cinematics/vfx_materials/highlightmodel.surface_shader")
 
-local kRailgunTargetDuration = 0.3
+local kRailgunTargetDuration = 0.2
 local kHighlightmodel_Material = PrecacheAsset("cinematics/vfx_materials/highlightmodel.material")
 
 RailgunTargetMixin.expectedMixins =

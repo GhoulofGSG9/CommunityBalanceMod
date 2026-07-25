@@ -7,15 +7,15 @@ Script.Load("lua/AchievementGiverMixin.lua")
 Script.Load("lua/EffectsMixin.lua")
 Script.Load("lua/Weapons/ClientWeaponEffectsMixin.lua")
 
-Script.Load("lua/Weapons/PlasmaBallT1.lua")
-Script.Load("lua/Weapons/PlasmaBallT2.lua")
+--Script.Load("lua/Weapons/PlasmaBallT1.lua") -- Unused now so don't waste network space by loading.
+--Script.Load("lua/Weapons/PlasmaBallT2.lua") -- Unused now so don't waste network space by loading.
 Script.Load("lua/Weapons/PlasmaBallT3.lua")
 
 class 'PlasmaLauncher'(Entity)
 
 PlasmaLauncher.kMapName = "PlasmaLauncher"
 
-local kPlasmaRange = 40
+local kPlasmaRange = kRelevancyRangeCap
 local kPlasmaSpread = 0 --Math.Radians(3)
 
 local kChargeSound = PrecacheAsset("sound/NS2.fev/marine/heavy/railgun_charge")
