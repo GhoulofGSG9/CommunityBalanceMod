@@ -75,6 +75,12 @@ local kMaxJumpForce = 15
 local kMinJumpForce = 5
 local kTurnSpeed = math.pi
 
+local Math_DotProduct = Math.DotProduct
+local Math_Wrap = Math.Wrap
+local Math_Degrees = Math.Degrees
+
+local math_atan2 = math.atan2
+
 local kBabblerBombDeathRange = 6
 local kBabblerBombDeathDamage = 50
 
@@ -455,9 +461,10 @@ function Babbler:OnUpdate(deltaTime)
 
     if Server and self.babblerOffMap then
         if self.babblerOffMap then -- Move toward destination to get back into the map we left like a coward
-            local direction = (self.babblerOffMapRecoveryOrig - self:GetOrigin()):GetUnit()
+            local orig = self:GetOrigin()
+            local direction = (self.babblerOffMapRecoveryOrig - orig):GetUnit()
 
-            self:SetOrigin(self:GetOrigin() + direction * deltaTime * kBabblerRunSpeed)
+            self:SetOrigin(orig + direction * deltaTime * kBabblerRunSpeed)
             self:SetGroundMoveType(true)
         end
     end
@@ -610,8 +617,8 @@ if Server then
 
         self:SetGroundMoveType(true)
 
-        local prevY = self:GetOrigin().y
         local prevOrig = self:GetOrigin()
+        local prevY = prevOrig.y
 
         local done = self:MoveToTarget(PhysicsMask.AIMovement, targetPos, kBabblerRunSpeed, deltaTime)
 
@@ -655,9 +662,10 @@ if Server then
 
     function Babbler:GetBabblerBall()
 
-        for _, ball in ipairs(GetEntitiesForTeamWithinRange("BabblerPheromone", self:GetTeamNumber(), self:GetOrigin(), 20)) do
+        local orig = self:GetOrigin()
+        for _, ball in ipairs(GetEntitiesForTeamWithinRange("BabblerPheromone", self:GetTeamNumber(), orig, 20)) do
 
-            if ball:GetOwner() == self:GetOwner() and (ball:GetOrigin() - self:GetOrigin()):GetLength() > 4 then
+            if ball:GetOwner() == self:GetOwner() and (ball:GetOrigin() - orig):GetLength() > 4 then
                 return ball
             end
 
@@ -672,7 +680,7 @@ if Server then
         local origin = self:GetOrigin()
         local searchRange = 7
         local targetPos
-        local randomTarget = self:GetOrigin() + Vector(math.random() * 4 - 2, 0, math.random() * 4 - 2)
+        local randomTarget = origin + Vector(math.random() * 4 - 2, 0, math.random() * 4 - 2)
 
         if math.random() < 0.2 then
             targetPos = randomTarget
@@ -723,8 +731,9 @@ if Server then
         self:Jump(Vector( (math.random() * 3) - 1.5, 3 + math.random() * 2, (math.random() * 3) - 1.5 ))
     end
 
+    local kOffMapOffset = Vector(0, 0.001, 0)
     function Babbler:GetIsBabblerOffMap()
-        local orig = self:GetOrigin() + Vector(0, 0.001, 0)
+        local orig = self:GetOrigin() + kOffMapOffset
         local ground = GetGroundAt(self, orig, PhysicsMask.AIMovement)
         local babblerOffMap = (ground == orig)
 
@@ -1482,16 +1491,17 @@ elseif Client then
         
         if self.lastOrigin then
         
+            local orig = self:GetOrigin()
             if not self.moveDirection then
                 self.moveDirection = Vector(0, 0, 0)
             end
             
-            local moveDirection = GetNormalizedVectorXZ(self:GetOrigin() - self.lastOrigin)
+            local moveDirection = GetNormalizedVectorXZ(orig - self.lastOrigin)
             
             local target = self:GetTarget()
             if target then
                 local targetPosition = target:GetOrigin()
-                moveDirection = GetNormalizedVectorXZ(targetPosition - self:GetOrigin())
+                moveDirection = GetNormalizedVectorXZ(targetPosition - orig)
             end
             
             -- smooth out turning of babblers
@@ -1499,7 +1509,7 @@ elseif Client then
             self.moveDirection:Normalize()
             
             if deltaTime > 0 then
-                self.clientVelocity = (self:GetOrigin() - self.lastOrigin) / deltaTime
+                self.clientVelocity = (orig - self.lastOrigin) / deltaTime
             end
             
         end
@@ -1542,16 +1552,18 @@ elseif Client then
 
             local coords = self:GetCoords()
             local moveDirection = ConditionalValue(self.clientVelocity:GetLengthXZ() > 0, GetNormalizedVectorXZ(self.clientVelocity), self.moveDirection)
-            local x = Math.DotProduct(coords.xAxis, moveDirection)
-            local z = Math.DotProduct(coords.zAxis, moveDirection)
+            local x = Math_DotProduct(coords.xAxis, moveDirection)
+            local z = Math_DotProduct(coords.zAxis, moveDirection)
             
-            moveYaw = Math.Wrap(Math.Degrees( math.atan2(z,x) ), -180, 180) + 180
+            moveYaw = Math_Wrap(Math_Degrees( math_atan2(z,x) ), -180, 180) + 180
             moveSpeed = Clamp(self.clientVelocity:GetLength() / kBabblerRunSpeed, 0, 1)
         
         end
         
-        self:SetPoseParam("move_speed", moveSpeed)
-        self:SetPoseParam("move_yaw", moveYaw)
+        self:SetPoseParams({
+            {"move_speed", moveSpeed},
+            {"move_yaw", moveYaw}
+        })
         
     end
     

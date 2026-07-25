@@ -563,7 +563,7 @@ end
 
 function Player:OnEntityChange(oldEntityId, newEntityId)
 
-    if Client then
+    if Client and oldEntityId then
 
         if self:GetId() == oldEntityId then
             -- If this player is changing is any way, just assume the
@@ -1892,7 +1892,7 @@ function Player:GetIsMoveable()
 end
 
 function Player:GetIsIdle()
-    return self:GetVelocityLength() < 0.1 and not self.moveButtonPressed
+    return not self.moveButtonPressed and self:GetVelocityLength() < 0.1
 end
 
 function Player:GetPlayIdleSound()
@@ -2515,12 +2515,10 @@ kStepTagNames["step_crouch"] = true
 function Player:OnTag(tagName)
 
     PROFILE("Player:OnTag")
-    local crouching = HasMixin(self, "CrouchMove") and self:GetCrouching()
-
     -- Log("%s: tag %s (%s)", self, tagName, kStepTagNames[tagName])
 
     -- Filter out crouch steps from playing at inappropriate times.
-    if tagName == "step_crouch" and not crouching then
+    if tagName == "step_crouch" and not (HasMixin(self, "CrouchMove") and self:GetCrouching()) then
         return
     end
 

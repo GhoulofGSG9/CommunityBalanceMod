@@ -129,7 +129,7 @@ local function DestroyPhysicsModel(self)
 end
 
 local function CaptureAnimationState(self)
-    PROFILE("BaseModelMixin:CaptureAnimationState")
+    --PROFILE("BaseModelMixin:CaptureAnimationState")
     local state = self.animationState
 
     self.animationGraphNode = state:GetCurrentNode(0)
@@ -164,6 +164,12 @@ local function UpdateAnimationInput(self, state, graph)
         self:OnUpdateAnimationInput(self)
 
         AnimationGraphState_SetInputValues(state, graph, self.animationInputValues)
+
+        for _, name in ipairs(self.animationInputValuesToClear) do
+            --Log("%s: Clearing constant %s", self, name)
+            self.animationInputValues[name] = nil
+        end
+        self.animationInputValuesToClear = {}
     end
 
 end
@@ -200,7 +206,7 @@ local function UpdateAnimationState(self, allowedOnClient, transition)
 
     if allowed and model ~= nil and graph ~= nil then
 
-        PROFILE("BaseModelMixin:UpdateAnimationState")
+        --PROFILE("BaseModelMixin:UpdateAnimationState")
 
         local prevTime = Shared_GetPreviousTime()
         local time = Shared_GetTime()
@@ -275,7 +281,7 @@ end
 
 local function SynchronizeAnimation(self, syncNodesOnServer)
 
-    PROFILE("BaseModelMixin:SynchronizeAnimation")
+    --PROFILE("BaseModelMixin:SynchronizeAnimation")
 
     -- Sync the graph with the network state.
     local graph = Shared_GetAnimationGraph(self.animationGraphIndex)
@@ -317,7 +323,7 @@ local function UpdatePoseParameters(self, forceUpdate)
 
     if self.OnUpdatePoseParameters and (self.fullyUpdated or forceUpdate) then
 
-        PROFILE("BaseModelMixin:OnUpdatePoseParameters")
+        --PROFILE("BaseModelMixin:OnUpdatePoseParameters")
         if _enablePoseParams then
             self:OnUpdatePoseParameters(self)
         else
@@ -353,7 +359,7 @@ end
 
 local function UpdatePhysicsModelCoords(self, forceUpdate)
 
-    PROFILE("BaseModelMixin:UpdatePhysicsModelCoords")
+    --PROFILE("BaseModelMixin:UpdatePhysicsModelCoords")
 
     if (self.fullyUpdated or forceUpdate) and self.physicsModel ~= nil then
 
@@ -374,7 +380,7 @@ end
 
 local function UpdateBoneCoords(self, forceUpdate)
 
-    PROFILE("BaseModelMixin:UpdateBoneCoords")
+    --PROFILE("BaseModelMixin:UpdateBoneCoords")
 
     if not (self.fullyUpdated or forceUpdate) then
         return
@@ -382,11 +388,13 @@ local function UpdateBoneCoords(self, forceUpdate)
 
     UpdatePoseParameters(self, forceUpdate)
 
-    local model = Shared_GetModel(self.modelIndex)
     local physicsType = self.physicsType
 
-    if model ~= nil and physicsType ~= _dynamicPhysicsType then
-        AnimationGraphState_GetBoneCoords(self.animationState, model, self.poseParams, self.boneCoords)
+    if physicsType ~= _dynamicPhysicsType then
+        local model = Shared_GetModel(self.modelIndex)
+        if model ~= nil then
+            AnimationGraphState_GetBoneCoords(self.animationState, model, self.poseParams, self.boneCoords)
+        end
     end
 
     self:UpdateModelCoords()
@@ -405,7 +413,7 @@ end
 
 local function SetHighlight(self)
 
-    PROFILE("BaseModelMixin:SetHighlight")
+    --PROFILE("BaseModelMixin:SetHighlight")
     if self:GetIsHighlightEnabled() ~= nil then
         local highlightAmount = self:GetIsHighlightEnabled()
         self._renderModel:SetMaterialParameter("highlight", highlightAmount)
@@ -705,9 +713,14 @@ function BaseModelMixin:__initmixin()
     self.passedTags = PassedTags()
     self.animationInputValues = { }
 
+    self.animationInputValuesConstant = { }
+    self.animationInputValuesToClear = { }
+
     if Client then
         self.lastPhysicsUpdateTime = 0
     end
+
+    self.kCachedIndex = {}
 
 end
 
@@ -793,6 +806,9 @@ end
 
 function BaseModelMixin:OnDestroy()
 
+    if self.modelIndex then
+        self.kCachedIndex[self.modelIndex] = nil
+    end
     DestroyRenderModel(self)
     DestroyPhysicsModel(self)
 
@@ -800,7 +816,7 @@ end
 
 function BaseModelMixin:OnUpdate(deltaTime)
 
-    PROFILE("BaseModelMixin:OnUpdate")
+    --PROFILE("BaseModelMixin:OnUpdate")
 
     if Server and self.fullyUpdated then
         SynchronizeAnimation(self)
@@ -827,7 +843,7 @@ end
 
 function BaseModelMixin:OnProcessIntermediate(input)
 
-    PROFILE("BaseModelMixin:OnProcessIntermediate")
+    --PROFILE("BaseModelMixin:OnProcessIntermediate")
 
     UpdateAnimationState(self, true, false)
     self:MarkPhysicsDirty()
@@ -836,7 +852,7 @@ end
 
 function BaseModelMixin:ProcessMoveOnModel()
 
-    PROFILE("BaseModelMixin:ProcessMoveOnModel")
+    --PROFILE("BaseModelMixin:ProcessMoveOnModel")
 
     UpdateAnimationState(self, true, true)
     self:MarkPhysicsDirty()
@@ -892,6 +908,7 @@ function BaseModelMixin:SetModel(modelName, graphName)
 
     local prevModelIndex = self.modelIndex
 
+    self.kCachedIndex = {}
     if modelName == nil then
         self.modelIndex = 0
     else
@@ -982,9 +999,17 @@ end
 function BaseModelMixin:GetPoseParam(name)
 
     local model = Shared_GetModel(self.modelIndex)
+    if self.kCachedIndex[self.modelIndex] == nil then
+        self.kCachedIndex[self.modelIndex] = {}
+    end
+
     local paramIndex = -1
     if model ~= nil then
-        paramIndex = Model_GetPoseParamIndex(model, name)
+        local c = self.kCachedIndex[self.modelIndex]
+        paramIndex = c[name] or Model_GetPoseParamIndex(model, name)
+        if c[name] == nil then
+            c[name] = paramIndex
+        end
     end
     -- Note, API will properly handle -1 paramIndex value
     return self.poseParams:Get(paramIndex)
@@ -1001,16 +1026,45 @@ end
 function BaseModelMixin:SetPoseParam(name, value)
 
     local model = Shared_GetModel(self.modelIndex)
+    if self.kCachedIndex[self.modelIndex] == nil then
+        self.kCachedIndex[self.modelIndex] = {}
+    end
     if model ~= nil then
-        local paramIndex = Model_GetPoseParamIndex(model, name)
+        local c = self.kCachedIndex[self.modelIndex]
+        local paramIndex = c[name] or Model_GetPoseParamIndex(model, name)
+        if c[name] == nil then
+            c[name] = paramIndex
+        end
+        --assert(Model_GetPoseParamIndex(model, name) == self.kCachedIndex[self.modelIndex][name])
         -- Note, API will properly handle -1 paramIndex value
         PoseParams_Set(self.poseParams, paramIndex, value)
     end
 
 end
 
+function BaseModelMixin:SetPoseParams(params)
+
+    local model = Shared_GetModel(self.modelIndex)
+    if self.kCachedIndex[self.modelIndex] == nil then
+        self.kCachedIndex[self.modelIndex] = {}
+    end
+    if model ~= nil then
+        local c = self.kCachedIndex[self.modelIndex]
+        for i, p in ipairs(params) do
+            local paramIndex = c[p[1]] or Model_GetPoseParamIndex(model, p[1])
+            if c[p[1]] == nil then
+                c[p[1]] = paramIndex
+            end
+
+            --assert(Model_GetPoseParamIndex(model, p[1]) == self.kCachedIndex[self.modelIndex][p[1]])
+            PoseParams_Set(self.poseParams, paramIndex, p[2])
+        end
+    end
+
+end
+
 function BaseModelMixin:GetAttachPointIndex(attachPointName)
-    PROFILE("BaseModelMixin:GetAttachPointIndex")
+    --PROFILE("BaseModelMixin:GetAttachPointIndex")
     local model = Shared_GetModel(self.modelIndex)
 
     if model ~= nil then
@@ -1027,7 +1081,7 @@ end
 --
 function BaseModelMixin:GetAttachPointCoords(attachPoint)
 
-    PROFILE("BaseModelMixin:GetAttachPointCoords")
+    --PROFILE("BaseModelMixin:GetAttachPointCoords")
 
     local attachPointIndex = attachPoint
     if type(attachPointIndex) == "string" then
@@ -1053,7 +1107,7 @@ function BaseModelMixin:GetAttachPointCoords(attachPoint)
 end
 
 function BaseModelMixin:GetAttachPointOrigin(attachPointName)
-    PROFILE("BaseModelMixin:GetAttachPointOrigin")
+    --PROFILE("BaseModelMixin:GetAttachPointOrigin")
     local attachPointIndex = self:GetAttachPointIndex(attachPointName)
     local origin
     local success = false
@@ -1167,6 +1221,14 @@ function BaseModelMixin:SetAnimationInput(name, value)
     self.animationInputValues[name] = value
 end
 
+function BaseModelMixin:SetAnimationInputConstant(name, value)
+    if self.animationInputValuesConstant[name] == nil then
+        self:SetAnimationInput(name, value)
+        table.insert(self.animationInputValuesToClear, name)
+        self.animationInputValuesConstant[name] = true
+    end
+end
+
 -- use when you want to find out how fast a model is moving on the client screen
 -- useful for finding sources of jittering
 function BaseModelMixinDebugSpeed(self)
@@ -1186,7 +1248,7 @@ end
 
 function BaseModelMixin:OnUpdateRender()
 
-    PROFILE("BaseModelMixin:OnUpdateRender")
+    --PROFILE("BaseModelMixin:OnUpdateRender")
 
     UpdateRenderModel(self)
     -- BaseModelMixinDebugSpeed(self)
@@ -1246,7 +1308,7 @@ if Client then
     -- single-threaded preparation phase
     function BaseModelMixin:OnPreparePhysics()
 
-        PROFILE("BaseModelMixin:OnPreparePhysics")
+        --PROFILE("BaseModelMixin:OnPreparePhysics")
 
         self.lastPhysicsUpdateTime = Shared.GetTime()
 
@@ -1275,9 +1337,7 @@ end -- mass update
 
 
 function BaseModelMixin:OnUpdatePhysics()
-    PROFILE("BaseModelMixin:OnUpdatePhysics")
-
-    self.lastPhysicsUpdateTime = Shared.GetTime()
+    --PROFILE("BaseModelMixin:OnUpdatePhysics")
 
     if self.GetCanSkipPhysics and self:GetCanSkipPhysics() then
 
@@ -1285,6 +1345,7 @@ function BaseModelMixin:OnUpdatePhysics()
 
     end
 
+    self.lastPhysicsUpdateTime = Shared.GetTime()
     if self.fullyUpdated then
 
         SynchronizeAnimation(self)
@@ -1301,7 +1362,7 @@ end
 
 function BaseModelMixin:UpdatePhysicsModel()
 
-    PROFILE("BaseModelMixin:UpdatePhysicsModel")
+    --PROFILE("BaseModelMixin:UpdatePhysicsModel")
 
     -- Create a physics model if necessary.
     if (self.physicsModelIndex ~= self.modelIndex) and self:GetPhysicsModelAllowed() then

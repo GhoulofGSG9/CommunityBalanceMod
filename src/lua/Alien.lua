@@ -443,9 +443,9 @@ function Alien:GetAbilityInterfaceData()
     return { }
 end
 
-local function CalcEnergy(self, rate)
+local function CalcEnergy(self, rate, maxEnergy)
     local dt = Shared.GetTime() - self.timeAbilityEnergyChanged
-    local result = Clamp(self.abilityEnergyOnChange + dt * rate, 0, self:GetMaxEnergy())
+    local result = Clamp(self.abilityEnergyOnChange + dt * rate, 0, maxEnergy)
     return result
 end
 
@@ -464,15 +464,23 @@ end
     see a jitter in th energy bar as we receive the new regen rate from the server. (It depends on netvars as well)
 --]]
 function Alien:GetEnergy()
+
+    PROFILE("Alien:GetEnergy")
+
+    local maxEnergy = self:GetMaxEnergy()
+    if (self.abilityEnergyOnChange == maxEnergy) then
+        return self.abilityEnergyOnChange -- No computation if we are at max already
+    end
+
     local rate = self:GetRecuperationRate()
     if self.lastEnergyRate ~= rate then
         -- we assume we ask for energy enough times that the change in energy rate
         -- will hit on the same tick they occure (or close enough)
-        self.abilityEnergyOnChange = CalcEnergy(self, self.lastEnergyRate)
+        self.abilityEnergyOnChange = CalcEnergy(self, self.lastEnergyRate, maxEnergy)
         self.timeAbilityEnergyChanged = Shared.GetTime()
     end
     self.lastEnergyRate = rate
-    return CalcEnergy(self, rate)
+    return CalcEnergy(self, rate, maxEnergy)
 end
 
 function Alien:AddEnergy(energy)

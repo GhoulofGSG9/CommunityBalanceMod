@@ -54,9 +54,11 @@ end
 
 function ResourceTower:OnSighted(sighted)
 
-    local attached = self:GetAttached()
-    if attached and sighted then
-        attached.showObjective = true
+    if sighted then
+        local attached = self:GetAttached()
+        if attached then
+            attached.showObjective = true
+        end
     end
 
 end

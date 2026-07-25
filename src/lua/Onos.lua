@@ -249,7 +249,7 @@ end
 
 function Onos:GetPlayFootsteps()
 
-    if GetHasCamouflageUpgrade(self) and self:GetCrouching() then
+    if self:GetCrouching() and GetHasCamouflageUpgrade(self) then
        return false
     end
 
@@ -491,7 +491,7 @@ function Onos:HandleButtons(input)
 
     Alien.HandleButtons(self, input)
     
-    if self.movementModiferState then    
+    if self.movementModiferState then   
         self:TriggerCharge(input.move)        
     else
     
@@ -653,7 +653,7 @@ function Onos:UpdateRumbleSound()
 
         if rumbleSound then
 
-            if GetHasCamouflageUpgrade(self) and self:GetCrouching() then
+            if self:GetCrouching() and GetHasCamouflageUpgrade(self) then
                 rumbleSound:SetParameter("speed", 0, 1)
             else 
                 rumbleSound:SetParameter("speed", self:GetSpeedScalar(), 1)
@@ -800,16 +800,20 @@ end
 
 function Onos:OnUpdatePoseParameters(viewModel)
 
-    PROFILE("Onos:OnUpdatePoseParameters")
+    --PROFILE("Onos:OnUpdatePoseParameters")
     
     Alien.OnUpdatePoseParameters(self, viewModel)
 
     if self:GetIsBoneShieldActive() then
 
         local mSpeed = Clamp( 1 - self:GetSpeedScalar(), 0.75, 1 )
-        self:SetPoseParam("move_speed", mSpeed)
-        self:SetPoseParam("stoop", 0.68)
-        self:SetPoseParam("crouch", 0)
+        local params = {
+            {"move_speed", mSpeed},
+            {"stoop", 0.68},
+            {"crouch", 0}
+        }
+
+        self:SetPoseParams(params)
 
     else
         self:SetPoseParam("stoop", self.stoopIntensity)
@@ -986,10 +990,13 @@ end
 
 function Onos:GetIsBoneShieldActive()
 
-    local activeWeapon = self:GetActiveWeapon()
-    if activeWeapon and activeWeapon:isa("BoneShield") and activeWeapon.primaryAttacking then
-        return true
-    end    
+    if self:GetActiveWeaponName() == BoneShield.kMapName then
+
+        local activeWeapon = self:GetActiveWeapon()
+        if activeWeapon and activeWeapon.primaryAttacking then
+            return true
+        end
+    end
     return false
     
 end

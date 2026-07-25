@@ -254,6 +254,11 @@ function CommandStructure:LoginPlayer(player,forced)
         end
     end
     
+
+    if HasMixin(self, "MapBlip") then 
+        self:MarkBlipDirty()
+    end
+
     return commanderPlayer
     
 end
@@ -284,7 +289,7 @@ function CommandStructure:OnUse(player, _, useSuccessTable)
                         self.playerIdStartedLogin = player:GetId()                        
                         self.occupied = true
                         csUseSuccess = true
-                        
+
                         -- TODO: trigger client side in OnTag
                         self:TriggerEffects(self:isa("Hive") and "hive_login" or "commandstation_login")
                         
@@ -315,14 +320,15 @@ function CommandStructure:OnEntityChange(oldEntityId, _)
     
         self.occupied = false
         self.commanderId = Entity.invalidId
+
+        if HasMixin(self, "MapBlip") then 
+            self:MarkBlipDirty()
+        end
         
     elseif self.objectiveInfoEntId == oldEntityId then
         self.objectiveInfoEntId = Entity.invalidId
     end
-    
-	if HasMixin(self, "MapBlip") then 
-         self:MarkBlipDirty()
-    end
+
 end
 
 --[[
@@ -395,6 +401,10 @@ function CommandStructure:Logout()
         
         -- TODO: trigger client side in OnTag
         self:TriggerEffects(self:isa("Hive") and "hive_logout" or "commandstation_logout")
+
+        if HasMixin(self, "MapBlip") then 
+            self:MarkBlipDirty()
+        end
 
     end
 

@@ -13,10 +13,6 @@ local kMoveParam = "move_speed"
 
 function ARC:OnEntityChange(oldId)
 
-    if HasMixin(self, "MapBlip") then 
-        self:MarkBlipDirty()
-    end
-
     if self.targetedEntity == oldId then
         self.targetedEntity = Entity.invalidId
     end   
@@ -367,6 +363,10 @@ function ARC:OnTag(tagName)
             self:SetMaxArmor(kARCDeployedArmor)
             self:SetArmor(self.deployedArmor)
 
+            if HasMixin(self, "MapBlip") then 
+                self:MarkBlipDirty()
+            end
+
         end
     elseif tagName == "undeploy_end" then
         if self.deployMode ~= ARC.kDeployMode.Undeployed then
@@ -378,6 +378,11 @@ function ARC:OnTag(tagName)
 
             self:SetMaxArmor(kARCArmor)
             self:SetArmor(self.undeployedArmor)
+
+            if HasMixin(self, "MapBlip") then 
+                self:MarkBlipDirty()
+            end
+
         end
     end
     

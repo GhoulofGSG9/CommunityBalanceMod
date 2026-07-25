@@ -22,7 +22,7 @@ function BulletsMixin:__initmixin()
 end
 
 function BulletsMixin:ApplyBulletStats(target, weaponAccuracyGroupOverride, numBullets)
-    PROFILE("BulletsMixin:ApplyBulletGameplayEffects")
+    PROFILE("BulletsMixin:ApplyBulletStats")
 
     -- Handle Stats
     if Server and numBullets > 0 then

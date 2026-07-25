@@ -86,6 +86,7 @@ Lerk.kIdleSoundMinSpeed = 11.5 -- also is max speed that can be temporarily reac
 Lerk.kIdleSoundMinPlayLength = 3 -- also is max speed that can be temporarily reached by flapping while holding on the brakes
 Lerk.kIdleSoundMinSilenceLength = 5 -- also is max speed that can be temporarily reached by flapping while holding on the brakes
 
+local math_pi = math.pi
 
 local kViewOffsetHeight = 0.5
 Lerk.XZExtents = 0.4
@@ -208,7 +209,7 @@ end
 
 function Lerk:ModifyGravityForce(gravityTable)
 
-    if self.gliding or self:GetIsWallGripping() or self:GetIsOnGround() or self.wasHoldingGlide then
+    if self.gliding or self.wasHoldingGlide or self:GetIsWallGripping() or self:GetIsOnGround() then
         gravityTable.gravity = 0
         
     elseif self:GetCrouching() then
@@ -247,7 +248,7 @@ function Lerk:GetDesiredAngles()
         -- Normally angles always seem to be +/- 1/2pi as expected...
         -- If our view pitch is greater than pi, just ignore any clamping here.  We are only looking to keep the lerk model from pitching downwards too much
         --Print(ToString(Server and "Server: " or (Client and "Client: " or "Predict: ")).."viewPitch: "..ToString(self.viewPitch))
-        if self.viewPitch < math.pi then
+        if self.viewPitch < math_pi then
             desiredAngles.pitch = math.min(self.viewPitch, 0.4)
         else
             desiredAngles.pitch = self.viewPitch
@@ -690,10 +691,16 @@ function Lerk:OnUpdatePoseParameters()
     
     Alien.OnUpdatePoseParameters(self)
     
+    --[[
     local activeAbility = self:GetActiveWeapon()
     local activeAbilityIsSpores = activeAbility ~= nil and activeAbility:isa("Spores")
     self:SetPoseParam("spore", activeAbilityIsSpores and 1 or 0)
-    
+    --]]
+
+
+    local activeAbilityIsSpores = (self:GetActiveWeaponName() == Spores.kMapName)
+    self:SetPoseParam("spore", (activeAbilityIsSpores) and 1 or 0)
+     
 end
 
 function Lerk:OnUpdateAnimationInput(modelMixin)

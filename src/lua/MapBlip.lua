@@ -395,7 +395,7 @@ if Client then
     end
 
     function MapBlip:GetMapBlipTeam(minimap)
-        PROFILE("MapBlip:GetMapBlipTeam")
+        --PROFILE("MapBlip:GetMapBlipTeam")
 
         self:UpdateMapBlipTeam(minimap)
 

@@ -23,6 +23,7 @@ Rifle.kModelName = PrecacheAsset("models/marine/rifle/rifle.model")
 local kViewModels = GenerateMarineViewModelPaths("rifle")
 
 local kRange = kRelevancyRangeCap
+
 -- 4 degrees in NS1
 local kSpread = Math.Radians(2.8)
 
@@ -368,9 +369,9 @@ function Rifle:OnUpdateAnimationInput(modelMixin)
     
     ClipWeapon.OnUpdateAnimationInput(self, modelMixin)
     
-    modelMixin:SetAnimationInput("gl", false)
-    modelMixin:SetAnimationInput("reload_speed", 1)
-    modelMixin:SetAnimationInput("skip_draw", self.skipDraw)
+    modelMixin:SetAnimationInputConstant("gl", false)
+    modelMixin:SetAnimationInputConstant("reload_speed", 1)
+    modelMixin:SetAnimationInput("skip_draw", self.skipDraw) -- true right when we spawn
 
 end
 

@@ -773,7 +773,7 @@ end
 
 function LiveMixin:OnUpdateAnimationInput(modelMixin)
 
-    PROFILE("LiveMixin:OnUpdateAnimationInput")
+    --PROFILE("LiveMixin:OnUpdateAnimationInput")
 
     if self.OnUpdateAnimationInputLiveMixinOverride then
         self:OnUpdateAnimationInputLiveMixinOverride(modelMixin)

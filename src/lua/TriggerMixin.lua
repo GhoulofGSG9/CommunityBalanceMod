@@ -215,7 +215,9 @@ end
 
 function TriggerMixin:OnEntityChange(oldId, newId)
 
-    self.insideTriggerEntities:Remove(oldId)
+    if oldId then
+        self.insideTriggerEntities:Remove(oldId)
+    end
     
 end
 

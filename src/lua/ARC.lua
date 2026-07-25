@@ -303,9 +303,10 @@ function ARC:Deploy(commander)
 		self:TriggerEffects("arc_deploying")
 	
 	end
+
 end
 
-function ARC:UnDeploy()
+function ARC:UnDeploy(commander)
 
 end
 
@@ -329,6 +330,7 @@ function ARC:PerformActivation(techId, position, normal, commander)
         self:TriggerEffects("arc_stop_charge")
         self:TriggerEffects("arc_undeploying")
         
+        self:UnDeploy(commander)
         return true, true
         
     end  
@@ -521,13 +523,15 @@ end
 
 function ARC:OnUpdatePoseParameters()
 
-    PROFILE("ARC:OnUpdatePoseParameters")
+    --PROFILE("ARC:OnUpdatePoseParameters")
     
-    self:SetPoseParam(kArcPitchParam, self.barrelPitchDegrees)
-    self:SetPoseParam(kArcYawParam , self.barrelYawDegrees)
-    self:SetPoseParam(ARC.kArcForwardTrackYawParam , self.forwardTrackYawDegrees)
-    self:SetPoseParam(ARC.kArcForwardTrackPitchParam , self.forwardTrackPitchDegrees)
-    
+    self:SetPoseParams({
+        {kArcPitchParam, self.barrelPitchDegrees},
+        {kArcYawParam , self.barrelYawDegrees},
+        {ARC.kArcForwardTrackYawParam, self.forwardTrackYawDegrees},
+        {ARC.kArcForwardTrackPitchParam, self.forwardTrackPitchDegrees}
+    })
+
 end
 
 function ARC:OnUpdate(deltaTime)
