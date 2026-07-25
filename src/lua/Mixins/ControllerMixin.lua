@@ -338,8 +338,7 @@ function ControllerMixin:PerformMovement(o, maxTraces, velocity, isMove, slowDow
         
             local trace = controller:Move(offset, CollisionRep.Move, CollisionRep.Move, physicsMask)
 
-            completedMove = (trace.fraction >= 1)
-            if completedMove then
+            if trace.fraction >= 1 then
                 break
             else
                 -- Remove the amount of the offset we've already moved.
@@ -379,6 +378,7 @@ function ControllerMixin:PerformMovement(o, maxTraces, velocity, isMove, slowDow
 
                 end
                 surfaceMaterial = trace.surface
+                completedMove = false
             end
             
             tracesPerformed = tracesPerformed + 1
