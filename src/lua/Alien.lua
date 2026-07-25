@@ -520,18 +520,6 @@ function Alien:GetLifeformEnergyRechargeRate()
 
 end
 
-function Alien:GetRecuperationRate()
-
-    local scalar = ConditionalValue(self:GetIsOnFire(), kOnFireEnergyRecuperationScalar, 1)
-    scalar = scalar * (self.electrified and kElectrifiedEnergyRecuperationScalar or 1)
-
-    local rate = self:GetLifeformEnergyRechargeRate()
-    rate = rate * scalar
-
-    return rate
-
-end
-
 function Alien:OnGiveUpgrade(techId)
 end
 
@@ -807,12 +795,14 @@ function Alien:GetIsStormed()
 end
 
 function Alien:GetRecuperationRate()
-    local scalar = ConditionalValue(self:GetGameEffectMask(kGameEffect.OnFire), kOnFireEnergyRecuperationScalar, 1)
+    local scalar = ConditionalValue(self:GetIsOnFire(), kOnFireEnergyRecuperationScalar, 1)
     scalar = scalar * (self.electrified and kElectrifiedEnergyRecuperationScalar or 1)
 
-    local canHaveResilienceBoost = self:GetHasUpgrade(kTechId.Resilience) and Shared.GetTime() < self.resilienceTimeEnd
-    local shellCount = self:GetShellLevel()
-    scalar = scalar * ConditionalValue(canHaveResilienceBoost, 1 + ((1.25 / 3) * shellCount), 1)
+    local canHaveResilienceBoost = Shared.GetTime() < self.resilienceTimeEnd and self:GetHasUpgrade(kTechId.Resilience)
+    if canHaveResilienceBoost then
+        local shellCount = self:GetShellLevel()
+        scalar = scalar * (1 + ((1.25 / 3) * shellCount))
+    end
 
     local rate = self:GetLifeformEnergyRechargeRate()
     rate = rate * scalar
