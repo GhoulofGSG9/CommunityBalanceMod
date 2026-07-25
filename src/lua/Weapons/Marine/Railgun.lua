@@ -72,7 +72,7 @@ function Railgun:OnCreate()
     self.timeOfLastShot = 0
     self.energyAnimation = 0
     self.timeLastReload = Shared.GetTime()
-    self.numCells = kMaxCells
+    self.numCells = 0
     self.ReloadLastFrame = false
     self.isReloading = false
     
