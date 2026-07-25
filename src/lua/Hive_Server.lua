@@ -186,9 +186,10 @@ end
 
 local function UpdateHealing(self)
 
-    if GetIsUnitActive(self) and not self:GetGameEffectMask(kGameEffect.OnFire) then
+    if self.timeOfLastHeal == nil or Shared.GetTime() > (self.timeOfLastHeal + Hive.kHealthUpdateTime) then
+        self.timeOfLastHeal = Shared.GetTime()
 
-        if self.timeOfLastHeal == nil or Shared.GetTime() > (self.timeOfLastHeal + Hive.kHealthUpdateTime) then
+        if not self:GetIsOnFire() and GetIsUnitActive(self) then
 
             -- Heal players and egg, so we can't spot an embryo (evolving alien) easily by shooting
             -- an egg and check for the hive regen to apply.
@@ -206,8 +207,6 @@ local function UpdateHealing(self)
                     end
 
                 end
-
-                self.timeOfLastHeal = Shared.GetTime()
 
             end
         end
