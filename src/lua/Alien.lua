@@ -522,7 +522,7 @@ end
 
 function Alien:GetRecuperationRate()
 
-    local scalar = ConditionalValue(self:GetGameEffectMask(kGameEffect.OnFire), kOnFireEnergyRecuperationScalar, 1)
+    local scalar = ConditionalValue(self:GetIsOnFire(), kOnFireEnergyRecuperationScalar, 1)
     scalar = scalar * (self.electrified and kElectrifiedEnergyRecuperationScalar or 1)
 
     local rate = self:GetLifeformEnergyRechargeRate()
