@@ -479,14 +479,14 @@ if not Server then -- Already defined in Alien_Server.lua
 
 end
 
-function Alien:UpdateEnergy()
+function Alien:UpdateEnergy(force)
 
     PROFILE("Alien:UpdateEnergy")
 
-    -- No computation if we are at max already
+    -- No computation if we are at max already, unless we had a change (add/set/deduct)
     local maxEnergy = self:GetMaxEnergy()
-    if (self.abilityEnergyOnChange == maxEnergy) then
-        return self.abilityEnergyOnChange -- No computation if we are at max already
+    if (not force and self.lastEnergyValue == maxEnergy) then
+        return
     end
 
     local rate = self:GetRecuperationRate()
@@ -504,13 +504,13 @@ function Alien:AddEnergy(energy)
     assert(energy >= 0)
     self.abilityEnergyOnChange = Clamp(self:GetEnergy() + energy, 0, self:GetMaxEnergy())
     self.timeAbilityEnergyChanged = Shared.GetTime()
-    self:UpdateEnergy()
+    self:UpdateEnergy(true)
 end
 
 function Alien:SetEnergy(energy)
     self.abilityEnergyOnChange = Clamp(energy, 0, self:GetMaxEnergy())
     self.timeAbilityEnergyChanged = Shared.GetTime()
-    self:UpdateEnergy()
+    self:UpdateEnergy(true)
 end
 
 function Alien:DeductAbilityEnergy(energyCost)
@@ -521,7 +521,7 @@ function Alien:DeductAbilityEnergy(energyCost)
 
         self.abilityEnergyOnChange = Clamp(self:GetEnergy() - energyCost, 0, maxEnergy)
         self.timeAbilityEnergyChanged = Shared.GetTime()
-        self:UpdateEnergy()
+        self:UpdateEnergy(true)
     end
 
 end
