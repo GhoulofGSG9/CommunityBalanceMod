@@ -75,8 +75,8 @@ if Server then
             return
         end
         
-        if HasMixin(self, "Fire") and self:GetIsOnFire() then
-            self:SetGameEffectMask(kGameEffect.OnFire, false)
+        if HasMixin(self, "Fire") then
+            self:Extinguish()
         end
     
         self.dragsDouse = state
