@@ -171,7 +171,7 @@ function Alien:OnCreate()
     self.timeAbilityEnergyChanged = Shared.GetTime()
     self.abilityEnergyOnChange = self:GetMaxEnergy()
     self.lastEnergyRate = self:GetRecuperationRate()
-    self:UpdateEnergy()
+    self.lastEnergyValue = self.abilityEnergyOnChange
 
     self.darkVisionOn = false
 
@@ -470,7 +470,7 @@ function Alien:GetEnergy()
     return self.lastEnergyValue
 end
 
-if not Server then
+if not Server then -- Already defined in Alien_Server.lua
 
     function Alien:OnProcessMove(input)
         self:UpdateEnergy()
@@ -485,9 +485,9 @@ function Alien:UpdateEnergy()
 
     -- No computation if we are at max already
     local maxEnergy = self:GetMaxEnergy()
-    --if (self.abilityEnergyOnChange == maxEnergy) then
-    --    return self.abilityEnergyOnChange -- No computation if we are at max already
-    --end
+    if (self.abilityEnergyOnChange == maxEnergy) then
+        return self.abilityEnergyOnChange -- No computation if we are at max already
+    end
 
     local rate = self:GetRecuperationRate()
     if self.lastEnergyRate ~= rate then
