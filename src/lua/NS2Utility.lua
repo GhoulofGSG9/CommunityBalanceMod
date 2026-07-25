@@ -96,7 +96,7 @@ end
 function GetWeaponAmmoFraction(weapon)
     local fraction = -1
     
-	if weapon and weapon:isa("Weapon") then
+    if weapon and weapon:isa("Weapon") then
         if weapon:isa("ClipWeapon") then
             fraction = weapon:GetClip()/weapon:GetClipSize()
         elseif weapon:isa("GrenadeThrower") then
@@ -119,7 +119,7 @@ function GetWeaponAmmoFraction(weapon)
             fraction = PlayerUI_GetUnitStatusPercentage()/100
         end
     end
-	
+    
     return fraction
 end
 
@@ -148,41 +148,41 @@ function GetWeaponAmmoString(weapon)
             local rightWeapon = Shared.GetEntity(weapon.rightWeaponId)
             local leftAmmo = -1
             local rightAmmo = -1
-			local leftShots = -1
-			local rightShots = -1
+            local leftShots = -1
+            local rightShots = -1
 
-			if leftWeapon:isa("Railgun") then
-				leftAmmo = leftWeapon:GetChargeAmount() * 100
-				leftShots = leftWeapon:GetCellAmount()
-			elseif leftWeapon:isa("PlasmaLauncher") then
-				leftAmmo = leftWeapon:GetChargeAmount() * 100
-				leftShots = math.max(0, math.floor(leftWeapon:GetChargeAmount()/kPlasmaBombEnergyCost))
-			elseif leftWeapon:isa("Minigun") then
-				leftAmmo = leftWeapon.heatAmount * 100
-			end
-			
+            if leftWeapon:isa("Railgun") then
+                leftAmmo = leftWeapon:GetChargeAmount() * 100
+                leftShots = leftWeapon:GetCellAmount()
+            elseif leftWeapon:isa("PlasmaLauncher") then
+                leftAmmo = leftWeapon:GetChargeAmount() * 100
+                leftShots = math.max(0, math.floor(leftWeapon:GetChargeAmount()/kPlasmaBombEnergyCost))
+            elseif leftWeapon:isa("Minigun") then
+                leftAmmo = leftWeapon.heatAmount * 100
+            end
+            
             if rightWeapon:isa("Railgun")then
                 rightAmmo = rightWeapon:GetChargeAmount() * 100
-				rightShots = rightWeapon:GetCellAmount()
-			elseif rightWeapon:isa("PlasmaLauncher")then
-				rightAmmo = rightWeapon:GetChargeAmount() * 100
-				rightShots = math.max(0, math.floor(rightWeapon:GetChargeAmount()/kPlasmaBombEnergyCost))
+                rightShots = rightWeapon:GetCellAmount()
+            elseif rightWeapon:isa("PlasmaLauncher")then
+                rightAmmo = rightWeapon:GetChargeAmount() * 100
+                rightShots = math.max(0, math.floor(rightWeapon:GetChargeAmount()/kPlasmaBombEnergyCost))
             elseif rightWeapon:isa("Minigun") then
                 rightAmmo = rightWeapon.heatAmount * 100
             end
-			
+            
             if leftAmmo > -1 and rightAmmo > -1 then
-				if leftShots > -1 or rightShots > -1 then
-					ammo = string.format("%d%% / %d%% (%s/%s)", leftAmmo, rightAmmo, leftShots, rightShots)
-				else
-					ammo = string.format("%d%% / %d%%", leftAmmo, rightAmmo)
-				end
+                if leftShots > -1 or rightShots > -1 then
+                    ammo = string.format("%d%% / %d%% (%s/%s)", leftAmmo, rightAmmo, leftShots, rightShots)
+                else
+                    ammo = string.format("%d%% / %d%%", leftAmmo, rightAmmo)
+                end
             elseif rightAmmo > -1 then
-				if rightShots > -1 then
-					ammo = string.format("%d%% (%s)", rightAmmo, rightShots)
-				else
-					ammo = string.format("%d%%", rightAmmo)
-				end
+                if rightShots > -1 then
+                    ammo = string.format("%d%% (%s)", rightAmmo, rightShots)
+                else
+                    ammo = string.format("%d%%", rightAmmo)
+                end
             end
         elseif weapon:isa("Builder") or weapon:isa("Welder") and PlayerUI_GetUnitStatusPercentage() > 0 then
             ammo = string.format("%d%%", PlayerUI_GetUnitStatusPercentage())
@@ -437,15 +437,13 @@ function HandleHitEffect(position, doer, surface, target, showtracer, altMode, d
 
     end
 
-    if damage and damage > 0 then
-        -- Don't play the hit cinematic, those are made for third person.
-        if target ~= Client.GetLocalPlayer() then
-            GetEffectManager():TriggerEffects("damage", tableParams)
-        end
-
-        -- Always play sound effect.
-        GetEffectManager():TriggerEffects("damage_sound", tableParams)
+    -- Don't play the hit cinematic, those are made for third person.
+    if target ~= Client.GetLocalPlayer() then
+        GetEffectManager():TriggerEffects("damage", tableParams)
     end
+
+    -- Always play sound effect.
+    GetEffectManager():TriggerEffects("damage_sound", tableParams)
 
     if showtracer == true and doer then
 
@@ -2440,7 +2438,7 @@ function CanEntityDoDamageTo(attacker, target, cheats, devMode, friendlyFire, da
         teamsOK = GetAreEnemies(attacker, target) or friendlyFire
     end
 
-	if not cheats and not friendlyFire then 
+    if not cheats and not friendlyFire then 
 
         -- only arcs are able to deal splash damage
         if target:isa("ARC") and damageType == kDamageType.Splash then
@@ -2862,7 +2860,7 @@ function BuildClassToGrid()
 
     ClassToGrid["Player"] = { 7, 8 }
 
-	-- %%% CBM Stuff %%% --
+    -- %%% CBM Stuff %%% --
     ClassToGrid["CommandStationOccupied"] = { 2, 4 }
     ClassToGrid["WhipMature"] = { 4, 7 }
     ClassToGrid["DrifterEgg"] = { 7, 3 }
@@ -2878,14 +2876,14 @@ function BuildClassToGrid()
     ClassToGrid["HiveFreshOccupiedFifthBio"] = { 5, 2 }
     ClassToGrid["HiveOccupiedFifthBio"] = { 6, 2 }
     ClassToGrid["HiveMatureOccupiedFifthBio"] = { 7, 2 }
-	ClassToGrid["ExoPrototypeLab"] = { 4, 5 }
-	ClassToGrid["FortressWhipMature"] = { 4, 1 }
+    ClassToGrid["ExoPrototypeLab"] = { 4, 5 }
+    ClassToGrid["FortressWhipMature"] = { 4, 1 }
     ClassToGrid["FortressCrag"] = { 2, 7 }
     ClassToGrid["FortressWhip"] = { 4, 8 }
     ClassToGrid["FortressShade"] = { 5, 1 }
     ClassToGrid["FortressShift"] = { 3, 4 }
-	ClassToGrid["Submachinegun"] = { 3, 2 } -- Same as jetpackmarine?
-	ClassToGrid["BattleMAC"] = { 4, 2 }
+    ClassToGrid["Submachinegun"] = { 3, 2 } -- Same as jetpackmarine?
+    ClassToGrid["BattleMAC"] = { 4, 2 }
 
     return ClassToGrid
 
@@ -3123,11 +3121,11 @@ function GetTexCoordsForTechId(techId)
         gTechIdPosition[kTechId.ClusterGrenade] = kDeathMessageIcon.ClusterGrenade
         gTechIdPosition[kTechId.GasGrenade] = kDeathMessageIcon.GasGrenade
         gTechIdPosition[kTechId.PulseGrenade] = kDeathMessageIcon.PulseGrenade
-		gTechIdPosition[kTechId.ScanGrenade] = kDeathMessageIcon.ScanGrenade
+        gTechIdPosition[kTechId.ScanGrenade] = kDeathMessageIcon.ScanGrenade
         gTechIdPosition[kTechId.Exo] = kDeathMessageIcon.Crush
         gTechIdPosition[kTechId.PowerSurge] = kDeathMessageIcon.EMPBlast
-		gTechIdPosition[kTechId.Submachinegun] = kDeathMessageIcon.Submachinegun
-		
+        gTechIdPosition[kTechId.Submachinegun] = kDeathMessageIcon.Submachinegun
+        
         -- alien abilities
         gTechIdPosition[kTechId.Bite] = kDeathMessageIcon.Bite
         gTechIdPosition[kTechId.Leap] = kDeathMessageIcon.Leap
@@ -3156,8 +3154,8 @@ function GetTexCoordsForTechId(techId)
         gTechIdPosition[kTechId.Gore] = kDeathMessageIcon.Gore
         gTechIdPosition[kTechId.Stomp] = kDeathMessageIcon.Stomp
         gTechIdPosition[kTechId.BoneShield] = kDeathMessageIcon.BoneShield
-		gTechIdPosition[kTechId.BabblerBombAbility] = kDeathMessageIcon.Babbler
-		
+        gTechIdPosition[kTechId.BabblerBombAbility] = kDeathMessageIcon.Babbler
+        
         --gTechIdPosition[kTechId.GorgeTunnelTech] = kDeathMessageIcon.GorgeTunnel
 
     end
@@ -3753,4 +3751,3 @@ end
 function GetWarmupActive()
     return warmupActive
 end
-
