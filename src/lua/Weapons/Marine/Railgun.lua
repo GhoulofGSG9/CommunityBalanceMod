@@ -42,11 +42,11 @@ local networkVars =
     railgunAttacking = "boolean",
     lockCharging = "boolean",
     timeOfLastShot = "time",
-	energyAnimation = "float (0 to 1 by 0.01)",
-	timeLastReload = "time",
-	numCells = "integer (0 to 4)",
-	ReloadLastFrame = "boolean",
-	isReloading = "boolean",
+    energyAnimation = "float (0 to 1 by 0.01)",
+    timeLastReload = "time",
+    numCells = "integer (0 to 4)",
+    ReloadLastFrame = "boolean",
+    isReloading = "boolean",
 }
 
 AddMixinNetworkVars(TechMixin, networkVars)
@@ -70,12 +70,12 @@ function Railgun:OnCreate()
     self.railgunAttacking = false
     self.lockCharging = false
     self.timeOfLastShot = 0
-	self.energyAnimation = 0
+    self.energyAnimation = 0
     self.timeLastReload = Shared.GetTime()
-	self.numCells = kMaxCells
-	self.ReloadLastFrame = false
-	self.isReloading = false
-	
+    self.numCells = kMaxCells
+    self.ReloadLastFrame = false
+    self.isReloading = false
+    
     if Client then
     
         InitMixin(self, ClientWeaponEffectsMixin)
@@ -258,13 +258,13 @@ local function ExecuteShot(self, startPoint, endPoint, player)
                 table.insert(hitEntities, capsuleTrace.entity)
                 self:DoDamage(damage, capsuleTrace.entity, capsuleTrace.endPoint + hitPointOffset, direction, capsuleTrace.surface, false, false)
             end
-			
-			if capsuleTrace.entity:isa("Onos") then
-				if capsuleTrace.entity:GetIsBoneShieldActive() and capsuleTrace.entity:GetHitsBoneShield(self, capsuleTrace.endPoint + hitPointOffset) then
-					break
-				end
-			end
-			
+            
+            if capsuleTrace.entity:isa("Onos") then
+                if capsuleTrace.entity:GetIsBoneShieldActive() and capsuleTrace.entity:GetHitsBoneShield(self, capsuleTrace.endPoint + hitPointOffset) then
+                    break
+                end
+            end
+            
         end
 
         -- Stop looping early if we've reached the end.
@@ -348,23 +348,23 @@ end
 
 function Railgun:ProcessMoveOnWeapon(player, input)
 
-	local timeNow = Shared.GetTime()
-	local reloadPressed = bit.band(input.commands, Move.Reload) ~= 0
+    local timeNow = Shared.GetTime()
+    local reloadPressed = bit.band(input.commands, Move.Reload) ~= 0
 
-	if (not self.ReloadLastFrame and reloadPressed and self.numCells < kMaxCells) or self.numCells < 1 then
-		if self.isReloading == false then
-			self.timeLastReload = timeNow
-		end
-		self.isReloading = true	
-	end
-		
-	if self.isReloading then
-		if timeNow - self.timeLastReload >= kRailgunCellRechargeTime then
-			self.numCells = kMaxCells
-			self.isReloading = false
-		end
-	end
-	
+    if (not self.ReloadLastFrame and reloadPressed and self.numCells < kMaxCells) or self.numCells < 1 then
+        if self.isReloading == false then
+            self.timeLastReload = timeNow
+        end
+        self.isReloading = true 
+    end
+        
+    if self.isReloading then
+        if timeNow - self.timeLastReload >= kRailgunCellRechargeTime then
+            self.numCells = kMaxCells
+            self.isReloading = false
+        end
+    end
+    
     self.ReloadLastFrame = reloadPressed
 end
 
@@ -398,7 +398,7 @@ function Railgun:OnUpdateRender()
         
         chargeDisplayUI:SetGlobal("chargeAmount" .. self:GetExoWeaponSlotName(), chargeAmount)
         chargeDisplayUI:SetGlobal("timeSinceLastShot" .. self:GetExoWeaponSlotName(), Shared.GetTime() - self.timeOfLastShot)
-		chargeDisplayUI:SetGlobal("cellAmount" .. self:GetExoWeaponSlotName(), self.numCells)
+        chargeDisplayUI:SetGlobal("cellAmount" .. self:GetExoWeaponSlotName(), self.numCells)
         
     else
     
@@ -412,8 +412,8 @@ function Railgun:OnUpdateRender()
     end
     
     if self.chargeSound then
-		if self:GetPrimaryAttacking() and self.numCells >= 1 and not self.chargeSound:GetIsPlaying() then
-			self.chargeSound:Start()
+        if self:GetPrimaryAttacking() and self.numCells >= 1 and not self.chargeSound:GetIsPlaying() then
+            self.chargeSound:Start()
         end
     end
     
@@ -423,23 +423,23 @@ function Railgun:OnTag(tagName)
 
     PROFILE("Railgun:OnTag")
     
-	if self:GetIsLeftSlot() then
+    if self:GetIsLeftSlot() then
         if tagName == "l_shoot" and self.numCells > 0 then
             Shoot(self, true)
-			if Server then	
-				self.numCells = math.max(0,self.numCells - 1)
-				self.isReloading = false
-			end
+            if Server then  
+                self.numCells = math.max(0,self.numCells - 1)
+                self.isReloading = false
+            end
         end
         
     elseif not self:GetIsLeftSlot() then
         if tagName == "r_shoot" and self.numCells > 0 then
-			Shoot(self, false)
-			if Server then
-				self.numCells = math.max(0,self.numCells - 1)
-				self.isReloading = false
-			end
-		end
+            Shoot(self, false)
+            if Server then
+                self.numCells = math.max(0,self.numCells - 1)
+                self.isReloading = false
+            end
+        end
     end
     
 end
@@ -486,11 +486,11 @@ if Client then
             CreateMuzzleCinematic(self, kMuzzleEffectName, kMuzzleEffectName, attachPoint, parent, nil, true)
         end
         
-		if self.chargeSound then
-			if self.chargeSound:GetIsPlaying() then
-				self.chargeSound:Stop()
-			end
-		end
+        if self.chargeSound then
+            if self.chargeSound:GetIsPlaying() then
+                self.chargeSound:Stop()
+            end
+        end
     end
     
     function Railgun:GetSecondaryAttacking()
@@ -515,34 +515,46 @@ if Client then
     
             -- trace and highlight first target
             local filter = EntityFilterAllButMixin("RailgunTarget")
-			local viewAngles = player:GetViewAngles()
-			local shootCoords = viewAngles:GetCoords()			
+            local viewAngles = player:GetViewAngles()
+            local shootCoords = viewAngles:GetCoords()          
             local startPoint = player:GetEyePos()
-			local spreadDirection = CalculateSpread(shootCoords, 0, NetworkRandom) -- Assume spread is zero...
+            local spreadDirection = CalculateSpread(shootCoords, 0, NetworkRandom) -- Assume spread is zero...
             local endPoint = startPoint + spreadDirection * kRailgunRange
             local trace = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.Bullets, EntityFilterAllButIsa("Tunnel"))
-			
-			local direction = (endPoint - startPoint):GetUnit()
+            
+            if trace.entity then
+                trace.entity:SetRailgunTarget()
+                self.railgunTargetId = trace.entity:GetId()
+                return
+            end
+
+            local direction = (endPoint - startPoint):GetUnit()
             local extents = GetDirectedExtentsForDiameter(direction, kBulletSize)
+            local distance = (trace.endPoint - startPoint):GetLength()
+            local distIncrement = 1.5
+            local maxAttempts = 20 -- Just for edge cases
             
             self.railgunTargetId = nil
             
-			-- Looping is required to deal with capsule getting stuck on geometry.
-			for _ = 1, 20 do
-				local capsuleTrace = Shared.TraceBox(extents, startPoint, trace.endPoint, CollisionRep.Damage, PhysicsMask.Bullets, filter)
-				if capsuleTrace.entity then
-					capsuleTrace.entity:SetRailgunTarget()
-					self.railgunTargetId = capsuleTrace.entity:GetId()
-					break
-				end
+            -- Looping is required to deal with capsule getting stuck on geometry.
+            for _ = 1, maxAttempts do
+                local capsuleTrace = Shared.TraceBox(extents, startPoint, trace.endPoint, CollisionRep.Damage, PhysicsMask.Bullets, filter)
+                -- If we found an entity, leave
+                if capsuleTrace.entity then
+                    capsuleTrace.entity:SetRailgunTarget()
+                    self.railgunTargetId = capsuleTrace.entity:GetId()
+                    break
+                end
 
-				if (capsuleTrace.endPoint - trace.endPoint):GetLength() <= extents.x then
-					break
-				end
+                -- If we reached the endpoint, leave
+                if (capsuleTrace.endPoint - trace.endPoint):GetLength() <= distIncrement then
+                    break
+                end
 
-				startPoint = Vector(capsuleTrace.endPoint) + direction * extents.x * 3
-			end
-		end
+                VectorCopy(capsuleTrace.endPoint, startPoint)
+                startPoint = startPoint + direction * distIncrement
+            end
+        end
     end
     
     function Railgun:GetTargetId()
