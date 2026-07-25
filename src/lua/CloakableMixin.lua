@@ -574,7 +574,7 @@ function CloakableMixin:GetIsInInk()
 end
 
 function CloakableMixin:GetInvisibleRange()
-    return (CloakableMixin.kSpecialMaxCloakClass[self:GetClassName()] and 1.00) or CloakableMixin.kInvisibleFarRange[self.cloakRate] or CloakableMixin.kInvisibleFarRange[1]
+    return (CloakableMixin.kSpecialMaxCloakClass[self:GetClassName()] and not self:isa("Onos") and 1.0) or CloakableMixin.kInvisibleFarRange[self.cloakRate] or CloakableMixin.kInvisibleFarRange[1]
 end
 
 function CloakableMixin:OverrideCheckVisibilty(viewer)
