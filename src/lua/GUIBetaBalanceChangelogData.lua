@@ -29,7 +29,7 @@ if kCBMaddon then
 	
 	## Balance Changes
 	  - Railgun reworked to use ammo / reload system.
-	  - Fixed vanilla bug with railgunTargetMixin (enemy highlight) and increased refresh rate.
+	  - Fixed vanilla bug with railgunTargetMixin (enemy highlight), increased refresh rate, and changed color back to TSF blue.
 	  - Updated classic ammo counter system to display avaliable shots for railgun and plasma launcher.
 	  - All cloaked structures partially reveal when within 1 m.
 	  - Lerks can no longer hit spikes outside relevancy range.
@@ -45,6 +45,13 @@ if kCBMaddon then
 	  - Improved performance of cloaking functions.
 	  - Improved performance of player functions.
 	  - Improved performance of minimap blips.
+	  - Improved performance and refactored fire related functions.
+	  - Improved performance of energy functions.
+	  - Improved performance of animation input related functions.
+	  - Improved performance of entity change functions.
+	  - Improved performance of phase gate functions.
+	  
+	### Be sure to thank Katzenfleisch for the performance optimizations!
 	  
 	#TLDR of Community Balance Mod (v3.6 - PT2) vs. Vanilla:
 	
@@ -188,7 +195,7 @@ if kCBMaddon then
 		- Maximum sustained DPS is 64 (128 for structures) at W0. Down from ~88 (176) in vanilla.
 	  - Maximum range set to 30 m.
 	  - Dual railgun now allows simultaneous firing of both arms.
-	  - Target highlighting now works on all lifeforms and alien structures (red).
+	  - Target highlighting now works on all lifeforms and alien structures (TSF blue).
 	  - Target highlighting now matches the maximum range of the railgun.
 	  - Target highlighting now refreshes faster.
 	  
