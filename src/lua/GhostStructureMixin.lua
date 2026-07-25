@@ -34,9 +34,6 @@ function GhostStructureMixin:__initmixin()
 
     -- init the entity in ghost structure mode
     self.isGhostStructure = true
-    if Client then
-        self.kStructureOpacity = -1
-    end
 
 end
 
@@ -145,29 +142,24 @@ local function SharedUpdate(self)
 
         if self:GetIsGhostStructure() then
 
-            if (self.kStructureOpacity ~= 0) then
-                self:SetOpacity(0, "ghostStructure")
-                self.kStructureOpacity = 0
-            end
-
+            self:SetOpacity(0, "ghostStructure") -- Model can change due to skin dynamically, need to reapply this
             if not self.ghostStructureMaterial and HasMixin(self, "Model") then
-                self.ghostStructureMaterial = AddMaterial(self:GetRenderModel(), kGhoststructureMaterial)
+                local model = self:GetRenderModel()
+                if model then
+                    self.ghostStructureMaterial = AddMaterial(model, kGhoststructureMaterial)
+                    
+                end
             end
 
         else
 
-            if (self.kStructureOpacity ~= 1) then
-                self:SetOpacity(1, "ghostStructure")
-                self.kStructureOpacity = 1
-            end
-
+            self:SetOpacity(1, "ghostStructure")
             if self.ghostStructureMaterial and HasMixin(self, "Model") and RemoveMaterial(self:GetRenderModel(), self.ghostStructureMaterial) then
                 self.ghostStructureMaterial = nil
+                
             end
 
         end
-
-        --end
 
     end
 
