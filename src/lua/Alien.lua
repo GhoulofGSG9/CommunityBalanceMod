@@ -171,6 +171,7 @@ function Alien:OnCreate()
     self.timeAbilityEnergyChanged = Shared.GetTime()
     self.abilityEnergyOnChange = self:GetMaxEnergy()
     self.lastEnergyRate = self:GetRecuperationRate()
+    self.lastEnergyValue = self.abilityEnergyOnChange
 
     self.darkVisionOn = false
 
@@ -466,10 +467,26 @@ end
 function Alien:GetEnergy()
 
     PROFILE("Alien:GetEnergy")
+    return self.lastEnergyValue
+end
 
+if not Server then -- Already defined in Alien_Server.lua
+
+    function Alien:OnProcessMove(input)
+        self:UpdateEnergy()
+        Player.OnProcessMove(self, input)
+    end
+
+end
+
+function Alien:UpdateEnergy(force)
+
+    PROFILE("Alien:UpdateEnergy")
+
+    -- No computation if we are at max already, unless we had a change (add/set/deduct)
     local maxEnergy = self:GetMaxEnergy()
-    if (self.abilityEnergyOnChange == maxEnergy) then
-        return self.abilityEnergyOnChange -- No computation if we are at max already
+    if (not force and self.lastEnergyValue == maxEnergy) then
+        return
     end
 
     local rate = self:GetRecuperationRate()
@@ -480,18 +497,20 @@ function Alien:GetEnergy()
         self.timeAbilityEnergyChanged = Shared.GetTime()
     end
     self.lastEnergyRate = rate
-    return CalcEnergy(self, rate, maxEnergy)
+    self.lastEnergyValue = CalcEnergy(self, rate, maxEnergy)
 end
 
 function Alien:AddEnergy(energy)
     assert(energy >= 0)
     self.abilityEnergyOnChange = Clamp(self:GetEnergy() + energy, 0, self:GetMaxEnergy())
     self.timeAbilityEnergyChanged = Shared.GetTime()
+    self:UpdateEnergy(true)
 end
 
 function Alien:SetEnergy(energy)
     self.abilityEnergyOnChange = Clamp(energy, 0, self:GetMaxEnergy())
     self.timeAbilityEnergyChanged = Shared.GetTime()
+    self:UpdateEnergy(true)
 end
 
 function Alien:DeductAbilityEnergy(energyCost)
@@ -502,7 +521,7 @@ function Alien:DeductAbilityEnergy(energyCost)
 
         self.abilityEnergyOnChange = Clamp(self:GetEnergy() - energyCost, 0, maxEnergy)
         self.timeAbilityEnergyChanged = Shared.GetTime()
-
+        self:UpdateEnergy(true)
     end
 
 end
@@ -517,18 +536,6 @@ function Alien:GetLifeformEnergyRechargeRate()
     local adrenalineRechargeRate = self:GetAdrenalineEnergyRechargeRate()
     local finalRate = adrenalineRechargeRate * spurLevelFactor + Alien.kEnergyRecuperationRate * (1.0 - spurLevelFactor)
     return finalRate
-
-end
-
-function Alien:GetRecuperationRate()
-
-    local scalar = ConditionalValue(self:GetGameEffectMask(kGameEffect.OnFire), kOnFireEnergyRecuperationScalar, 1)
-    scalar = scalar * (self.electrified and kElectrifiedEnergyRecuperationScalar or 1)
-
-    local rate = self:GetLifeformEnergyRechargeRate()
-    rate = rate * scalar
-
-    return rate
 
 end
 
@@ -807,12 +814,14 @@ function Alien:GetIsStormed()
 end
 
 function Alien:GetRecuperationRate()
-    local scalar = ConditionalValue(self:GetGameEffectMask(kGameEffect.OnFire), kOnFireEnergyRecuperationScalar, 1)
+    local scalar = ConditionalValue(self:GetIsOnFire(), kOnFireEnergyRecuperationScalar, 1)
     scalar = scalar * (self.electrified and kElectrifiedEnergyRecuperationScalar or 1)
 
-    local canHaveResilienceBoost = self:GetHasUpgrade(kTechId.Resilience) and Shared.GetTime() < self.resilienceTimeEnd
-    local shellCount = self:GetShellLevel()
-    scalar = scalar * ConditionalValue(canHaveResilienceBoost, 1 + ((1.25 / 3) * shellCount), 1)
+    local canHaveResilienceBoost = Shared.GetTime() < self.resilienceTimeEnd and self:GetHasUpgrade(kTechId.Resilience)
+    if canHaveResilienceBoost then
+        local shellCount = self:GetShellLevel()
+        scalar = scalar * (1 + ((1.25 / 3) * shellCount))
+    end
 
     local rate = self:GetLifeformEnergyRechargeRate()
     rate = rate * scalar

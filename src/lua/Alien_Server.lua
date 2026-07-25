@@ -35,9 +35,7 @@ function Alien:OnProcessMove(input)
     local now = Shared.GetTime()
     self.hasAdrenalineUpgrade = GetHasAdrenalineUpgrade(self)
     
-
-    -- Update energy (server)
-    self:GetEnergy()
+    self:UpdateEnergy()
 
     -- need to clear this value or spectators would see the hatch effect every time they cycle through players
     if self.hatched and self.creationTime + 3 < now then

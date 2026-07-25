@@ -126,7 +126,7 @@ local function DamageEntity(self, player, targetEntity)
 
 end
 
-local function HealEntity(_, player, targetEntity)
+local function HealEntity(self, player, targetEntity)
     
     -- Heal players by base amount plus a scaleable amount so it's effective vs. small and large targets.
     local health = kHealsprayDamage + targetEntity:GetMaxHealth() * kHealPlayerPercent / 100.0
@@ -151,8 +151,8 @@ local function HealEntity(_, player, targetEntity)
     end
     
     -- Put out entities on fire sometimes.
-    if HasMixin(targetEntity, "GameEffects") and math.random() < kSprayDouseOnFireChance then
-        targetEntity:SetGameEffectMask(kGameEffect.OnFire, false)
+    if HasMixin(targetEntity, "Fire") and targetEntity:GetIsOnFire() and math.random() < kSprayDouseOnFireChance then
+        targetEntity:Extinguish()
     end
     
     -- If the entity has maturity, take off some of the remaining maturity time.

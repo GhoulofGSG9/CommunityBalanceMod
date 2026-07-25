@@ -69,20 +69,21 @@ if Server then
         local now = Shared.GetTime()
         local rangeCheckThrottleRate = 0.3 -- Low enough in case of beacon/spawn
         local rangeCheckDist = rangeCheckThrottleRate * 30 -- Safe margin
-        local performCheck = not self.kLastPhaseInRangeCheck or self.kLastPhaseInRangeCheck + rangeCheckThrottleRate < Shared.GetTime()
+        local performCheck = not self.kLastPhaseInRangeCheck or self.kLastPhaseInRangeCheck + rangeCheckThrottleRate < now
         if performCheck and self:GetCanPhase() then
 
-            local gatesNearby = GetEntitiesForTeamWithinRange("PhaseGate", self:GetTeamNumber(), self:GetOrigin(), rangeCheckDist)
+            local orig = self:GetOrigin()
+            local gatesNearby = GetEntitiesForTeamWithinRange("PhaseGate", self:GetTeamNumber(), orig, rangeCheckDist)
             if #gatesNearby == 0 then
                 self.kLastPhaseInRangeCheck = now -- Prevents calling this mixing for the next Xs
                 return
             end
 
             for _, phaseGate in ipairs(gatesNearby) do
-                local distToGate = self:GetOrigin():GetDistanceTo(phaseGate:GetOrigin())
+                local distToGate = orig:GetDistanceTo(phaseGate:GetOrigin())
                 if distToGate < kPhaseCheckRadius and phaseGate:GetIsDeployed() and GetIsUnitActive(phaseGate) and phaseGate:Phase(self) then
                     -- If we can found a phasegate we can phase through, inform the server
-                    self.timeOfLastPhase = Shared.GetTime()
+                    self.timeOfLastPhase = now
                     local id = self:GetId()
                     Server.SendNetworkMessage(self:GetClient(), "OnPhase", { phaseGateId = phaseGate:GetId(), phasedEntityId = id or Entity.invalidId }, true)
                     return
@@ -124,17 +125,25 @@ if Client then
 end
 
 function PhaseGateUserMixin:GetCanPhase()
-	
+
+    PROFILE("PhaseGateUserMixin:GetCanPhase")
+
+    local t = Shared.GetTime()	
 	local kPhaseDelay = 2
-	local AdvGates = GetHasTech(self, kTechId.AdvancedObservatory) 
-	if AdvGates then
-		kPhaseDelay = 1.5
-	end
+    local hasPhasedRecently = t <= self.timeOfLastPhase + kPhaseDelay
+    if not hasPhasedRecently then
+        return true
+    end
+
+    local kAdvPhaseDelay = 1.5
+	if GetHasTech(self, kTechId.AdvancedObservatory) then
+        kPhaseDelay = kAdvPhaseDelay
+    end
 
     if Server then
-        return self:GetIsAlive() and Shared.GetTime() > self.timeOfLastPhase + kPhaseDelay and not GetConcedeSequenceActive()
+        return t > self.timeOfLastPhase + kPhaseDelay and self:GetIsAlive() and not GetConcedeSequenceActive()
     else
-        return self:GetIsAlive() and Shared.GetTime() > self.timeOfLastPhase + kPhaseDelay
+        return t > self.timeOfLastPhase + kPhaseDelay and self:GetIsAlive()
     end
     
 end

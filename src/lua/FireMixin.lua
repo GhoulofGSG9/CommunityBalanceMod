@@ -84,9 +84,7 @@ end
 
 function FireMixin:OnDestroy()
 
-    if self:GetIsOnFire() then
-        self:SetGameEffectMask(kGameEffect.OnFire, false)
-    end
+    self:Extinguish()
     
     if Server then
     
@@ -105,7 +103,9 @@ function FireMixin:SetOnFire(attacker, doer)
             return
         end
         
-        self:SetGameEffectMask(kGameEffect.OnFire, true)
+        self.isOnFire = true
+        self:SetGameEffectMask(kGameEffect.OnFire, self.isOnFire)
+        
         
         if attacker then
             self.fireAttackerId = attacker:GetId()
@@ -120,8 +120,6 @@ function FireMixin:SetOnFire(attacker, doer)
         self.timeBurnRefresh = time
         self.timeLastFireDamageUpdate = time
 
-        self.isOnFire = true
-        
         --Flat restriction to single-shot player burn time. ideally will diminish "burn-out" deaths
         if self:isa("Player") then
             self.timeBurnDuration = kFlamethrowerBurnDuration
@@ -133,13 +131,22 @@ function FireMixin:SetOnFire(attacker, doer)
     
 end
 
+function FireMixin:Extinguish()
+    if self:GetIsOnFire() then
+        self.isOnFire = false
+        self:SetGameEffectMask(kGameEffect.OnFire, self.isOnFire)
+    end
+end
+
 function FireMixin:GetIsOnFire()
 
-    if Client then
+    return self.isOnFire
+    --[[if Client then
         return self.isOnFire
     end
     
     return self:GetGameEffectMask(kGameEffect.OnFire)
+    --]]
     
 end
 
@@ -214,7 +221,7 @@ function FireMixin:UpdateFireState()
 
         -- See if we put ourselves out
         if time - self.timeBurnRefresh > self.timeBurnDuration then
-            self:SetGameEffectMask(kGameEffect.OnFire, false)
+            self:Extinguish()
         end
     end
 
