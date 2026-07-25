@@ -161,7 +161,12 @@ function FireMixin:UpdateFireState()
         self:_UpdateClientFireEffects()
     end
 
-    if Server and self:GetIsOnFire() then
+    if Server then
+
+        if not self:GetIsOnFire() then
+            return false
+        end
+
         local time = Shared.GetTime()
         if self:GetIsAlive() and (not self.timeLastFireDamageUpdate or self.timeLastFireDamageUpdate + kBurnUpdateRate <= time) then
 
@@ -211,7 +216,6 @@ function FireMixin:UpdateFireState()
         if time - self.timeBurnRefresh > self.timeBurnDuration then
             self:SetGameEffectMask(kGameEffect.OnFire, false)
         end
-
     end
 
     return self:GetIsOnFire() -- remove timed callback when we are not burning
