@@ -89,6 +89,7 @@ local networkVars =
     -- from when it last changed with a constant regen added
     timeAbilityEnergyChanged = "compensated time",
     abilityEnergyOnChange = "compensated float (0 to " .. math.ceil(kAbilityMaxEnergy) .. " by 0.05 [] )",
+    lastEnergyValue = "compensated float (0 to " .. math.ceil(kAbilityMaxEnergy) .. " by 0.05 [] )",
 
     movementModiferState = "compensated boolean",
 
