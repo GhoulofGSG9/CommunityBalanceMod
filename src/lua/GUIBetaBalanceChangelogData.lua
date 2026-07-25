@@ -35,6 +35,7 @@ if kCBMaddon then
 	  - Lerks can no longer hit spikes outside relevancy range.
 	  - Clip weapons and exos can no longer to hit outside of relevancy range.
 	  - Adjusted drifter "snap" range to 1.5 from 3 m.
+	  - Exo thrusters use 3x the fuel when off the ground instead of 2x the fuel.
 	
 	## Bugfixes and Game Performance Optimizations
 	  - Further fixes to collisions and movement.
@@ -171,7 +172,7 @@ if kCBMaddon then
 		  - Min 25% activation energy required and initial 12.5% fuel cost when activated.
 		  - Vertical boost automatically activates upon holding space bar and stacks with base jump.
 		  - Vertical boost has high initial acceleration, but slows down over time.
-		  - Flying uses twice the amount of energy as moving along the ground.
+		  - Flying uses triple the amount of energy as moving along the ground.
 	  - Settings to make duals fire both arms upon primary attack (options -> mods -> CBM: Accessibility Options)
 
 	### Railgun 
