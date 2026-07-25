@@ -25,12 +25,17 @@ if kCBMaddon then
 	or start a conversation in beta-balance-feedback on the official discord to let us know 
 	you think! Below are the changes this mod introduces:
 
-	#TLDR of v3.6 Playtest 1:
+	#TLDR of v3.6 Playtest 2:
 	
 	## Balance Changes
-	  - Railgun reworked to use ammo system.
-	  - All cloaked structures partially reveal when nearby.
-	  - Lerks can no longer spike outside relevancy range.
+	  - Railgun reworked to use ammo / reload system.
+	  - Fixed vanilla bug with railgunTargetMixin (enemy highlight) and increased refresh rate.
+	  - Updated classic ammo counter system to display avaliable shots for railgun and plasma launcher.
+	  - All cloaked structures partially reveal when within 1 m.
+	  - Lerks can no longer hit spikes outside relevancy range.
+	  - Clip weapons and exos can no longer to hit outside of relevancy range.
+	  - Adjusted drifter "snap" range to 1.5 from 3 m.
+	  - Exo thrusters use 3x the fuel when off the ground instead of 2x the fuel.
 	
 	## Bugfixes and Game Performance Optimizations
 	  - Further fixes to collisions and movement.
@@ -39,8 +44,9 @@ if kCBMaddon then
 	  - Improved performance of weapon holder functions.
 	  - Improved performance of cloaking functions.
 	  - Improved performance of player functions.
+	  - Improved performance of minimap blips.
 	  
-	#TLDR of Community Balance Mod (v3.6 - PT1) vs. Vanilla:
+	#TLDR of Community Balance Mod (v3.6 - PT2) vs. Vanilla:
 	
 	## MARINE
 	  - Reworks to existing marines structures (sentry, sentry battery, and prototype lab).
@@ -97,6 +103,7 @@ if kCBMaddon then
 	  - Improved blueprint placement (options -> mods -> CBM: Accessibility Options).
 	  - Hotkeyed units are underlined for commanders when attacked for better visibility.
 	  - Alien structures partially uncloak when nearby.
+	  - Capped weapon range to relevancy range.
 	  
 	### Minimap Updates
 	  - Players are able to see if a hive is at <34%, <67% or <=100% maturity
@@ -165,13 +172,16 @@ if kCBMaddon then
 		  - Min 25% activation energy required and initial 12.5% fuel cost when activated.
 		  - Vertical boost automatically activates upon holding space bar and stacks with base jump.
 		  - Vertical boost has high initial acceleration, but slows down over time.
-		  - Flying uses twice the amount of energy as moving along the ground.
+		  - Flying uses triple the amount of energy as moving along the ground.
 	  - Settings to make duals fire both arms upon primary attack (options -> mods -> CBM: Accessibility Options)
 
 	### Railgun 
 	  - Railgun reworked to be more forgiving and less "bursty".
 	  - Firing cooldown set to 1s from 1.4s.
-	  - Charge system replaced with ammo system.
+	  - Charge system replaced with ammo / reload system.
+	  - 4 ammo per railgun that reload automatically upon reaching zero ammo remaining.
+	  - Can manually reload earlier by pressing reload key.
+	    - Incomplete manual reload will cancel upon firing.
 	  - Base damage is now 48 from 10/150.
 		- Maximum burst is 96 (192 for structures) at W0. Down from ~170 (340) in vanilla.
 		- Maximum burst DPS is 96 (192 for structures) at W0. Up from ~88 (176) in vanilla.
@@ -180,6 +190,7 @@ if kCBMaddon then
 	  - Dual railgun now allows simultaneous firing of both arms.
 	  - Target highlighting now works on all lifeforms and alien structures (red).
 	  - Target highlighting now matches the maximum range of the railgun.
+	  - Target highlighting now refreshes faster.
 	  
 	### Claw 
 	  - Reintroduced into the game.
@@ -443,9 +454,6 @@ if kCBMaddon then
 	  - Boneshield
 	    - Now blocks railgun shots from piercing through (still must be facing damage source).
 	    - Now prevents health pool damage of railgun shot when blocking (still must be facing damage source).
-
-	### Lerk
-	  - Spike range limited to relevancy range.
 
 	### Stab (fade)
 	  - Stab research cost reduced from 25 to 20 tres.

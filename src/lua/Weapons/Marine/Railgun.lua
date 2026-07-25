@@ -27,7 +27,7 @@ local kRailgunSpread = Math.Radians(0)
 local kBulletSize = 0.3
 
 local kRailgunChargeTime = 1.0 -- Vanilla 1.4
-local kRailgunCellRechargeTime = 6.0
+local kRailgunCellRechargeTime = 3.0
 
 local kMaxCells = 4
 
@@ -43,8 +43,10 @@ local networkVars =
     lockCharging = "boolean",
     timeOfLastShot = "time",
 	energyAnimation = "float (0 to 1 by 0.01)",
-	timeLastCell = "time",
-	numCells = "integer (0 to 4)"
+	timeLastReload = "time",
+	numCells = "integer (0 to 4)",
+	ReloadLastFrame = "boolean",
+	isReloading = "boolean",
 }
 
 AddMixinNetworkVars(TechMixin, networkVars)
@@ -69,8 +71,10 @@ function Railgun:OnCreate()
     self.lockCharging = false
     self.timeOfLastShot = 0
 	self.energyAnimation = 0
-    self.timeLastCell = Shared.GetTime()
+    self.timeLastReload = Shared.GetTime()
 	self.numCells = kMaxCells
+	self.ReloadLastFrame = false
+	self.isReloading = false
 	
     if Client then
     
@@ -211,7 +215,7 @@ function Railgun:GetDeathIconIndex()
 end
 
 function Railgun:GetChargeAmount()
-    return self.numCells < kMaxCells and math.min(1, (Shared.GetTime() - self.timeLastCell) / kRailgunCellRechargeTime) or 0
+    return self.isReloading and math.min(1, (Shared.GetTime() - self.timeLastReload) / kRailgunCellRechargeTime) or 0
 end
 
 function Railgun:GetCellAmount()
@@ -345,13 +349,23 @@ end
 function Railgun:ProcessMoveOnWeapon(player, input)
 
 	local timeNow = Shared.GetTime()
-	if timeNow - self.timeLastCell  >= kRailgunCellRechargeTime and self.numCells < kMaxCells then
-		self.numCells = kMaxCells
-		self.timeLastCell = timeNow
-	elseif self.numCells == kMaxCells then
-		self.timeLastCell = timeNow
+	local reloadPressed = bit.band(input.commands, Move.Reload) ~= 0
+
+	if (not self.ReloadLastFrame and reloadPressed and self.numCells < kMaxCells) or self.numCells < 1 then
+		if self.isReloading == false then
+			self.timeLastReload = timeNow
+		end
+		self.isReloading = true	
 	end
-    
+		
+	if self.isReloading then
+		if timeNow - self.timeLastReload >= kRailgunCellRechargeTime then
+			self.numCells = kMaxCells
+			self.isReloading = false
+		end
+	end
+	
+    self.ReloadLastFrame = reloadPressed
 end
 
 function Railgun:OnUpdateRender()
@@ -397,18 +411,11 @@ function Railgun:OnUpdateRender()
         
     end
     
-    --[[if self.chargeSound then
-    
-        local playing = self.chargeSound:GetIsPlaying()
-        if not playing and chargeAmount > 0 then
-            self.chargeSound:Start()
-        elseif playing and chargeAmount <= 0 then
-            self.chargeSound:Stop()
+    if self.chargeSound then
+		if self:GetPrimaryAttacking() and self.numCells >= 1 and not self.chargeSound:GetIsPlaying() then
+			self.chargeSound:Start()
         end
-        
-        self.chargeSound:SetParameter("charge", chargeAmount, 1)
-        
-    end]]
+    end
     
 end
 
@@ -421,6 +428,7 @@ function Railgun:OnTag(tagName)
             Shoot(self, true)
 			if Server then	
 				self.numCells = math.max(0,self.numCells - 1)
+				self.isReloading = false
 			end
         end
         
@@ -429,6 +437,7 @@ function Railgun:OnTag(tagName)
 			Shoot(self, false)
 			if Server then
 				self.numCells = math.max(0,self.numCells - 1)
+				self.isReloading = false
 			end
 		end
     end
@@ -477,6 +486,11 @@ if Client then
             CreateMuzzleCinematic(self, kMuzzleEffectName, kMuzzleEffectName, attachPoint, parent, nil, true)
         end
         
+		if self.chargeSound then
+			if self.chargeSound:GetIsPlaying() then
+				self.chargeSound:Stop()
+			end
+		end
     end
     
     function Railgun:GetSecondaryAttacking()
@@ -501,29 +515,34 @@ if Client then
     
             -- trace and highlight first target
             local filter = EntityFilterAllButMixin("RailgunTarget")
+			local viewAngles = player:GetViewAngles()
+			local shootCoords = viewAngles:GetCoords()			
             local startPoint = player:GetEyePos()
-            local endPoint = startPoint + player:GetViewCoords().zAxis * kRailgunRange * 1.11 -- modified this line
+			local spreadDirection = CalculateSpread(shootCoords, 0, NetworkRandom) -- Assume spread is zero...
+            local endPoint = startPoint + spreadDirection * kRailgunRange
             local trace = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.Bullets, EntityFilterAllButIsa("Tunnel"))
-            local direction = (endPoint - startPoint):GetUnit()
-            
+			
+			local direction = (endPoint - startPoint):GetUnit()
             local extents = GetDirectedExtentsForDiameter(direction, kBulletSize)
             
             self.railgunTargetId = nil
             
-            if trace.fraction < 1 then
-                
-                local capsuleTrace = Shared.TraceBox(extents, startPoint, trace.endPoint, CollisionRep.Damage, PhysicsMask.Bullets, filter)
-                if capsuleTrace.entity then
-                
-                    capsuleTrace.entity:SetRailgunTarget()
-                    self.railgunTargetId = capsuleTrace.entity:GetId()
-                    
-                end
-            
-            end
-        
-        end
-    
+			-- Looping is required to deal with capsule getting stuck on geometry.
+			for _ = 1, 20 do
+				local capsuleTrace = Shared.TraceBox(extents, startPoint, trace.endPoint, CollisionRep.Damage, PhysicsMask.Bullets, filter)
+				if capsuleTrace.entity then
+					capsuleTrace.entity:SetRailgunTarget()
+					self.railgunTargetId = capsuleTrace.entity:GetId()
+					break
+				end
+
+				if (capsuleTrace.endPoint - trace.endPoint):GetLength() <= extents.x then
+					break
+				end
+
+				startPoint = Vector(capsuleTrace.endPoint) + direction * extents.x * 3
+			end
+		end
     end
     
     function Railgun:GetTargetId()

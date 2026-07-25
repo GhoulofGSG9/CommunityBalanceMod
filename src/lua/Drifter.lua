@@ -76,6 +76,8 @@ Drifter.kTouchRange = 1.5 -- Model max extents for "touch" uncloaking
 Drifter.kEnzymeRange = 22
 
 local kDrifterSelfOrderRange = 12
+local kDrifterPVESnapRange = 1.5
+local kDrifterAlienSnapRange = 2.0
 
 Drifter.kFov = 360
 
@@ -468,8 +470,8 @@ function Drifter:OnOverrideOrder(order)
     end
 
     local origin = order:GetLocation()
-    local nearbyPVE = GetEntitiesWithMixinForTeamWithinRange("Construct", self:GetTeamNumber(), origin, kDrifterSelfOrderRange / 4)
-    local nearbyAliens = GetEntitiesForTeamWithinRange("Alien", self:GetTeamNumber(), origin, kDrifterSelfOrderRange / 5)
+    local nearbyPVE = GetEntitiesWithMixinForTeamWithinRange("Construct", self:GetTeamNumber(), origin, kDrifterPVESnapRange)
+    local nearbyAliens = GetEntitiesForTeamWithinRange("Alien", self:GetTeamNumber(), origin, kDrifterAlienSnapRange)
     Shared.SortEntitiesByDistance(origin, nearbyPVE)
     Shared.SortEntitiesByDistance(origin, nearbyAliens)
 

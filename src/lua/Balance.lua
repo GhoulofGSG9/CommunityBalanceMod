@@ -11,6 +11,8 @@ Script.Load("lua/BalanceMisc.lua")
 
 kCBMaddon = true -- Enables AMAC, SPARC, SMG, Adv Obs, Adv Gate, Bio 5, and Advanced Structures; replaces carapace with rage.
 
+kRelevancyRangeCap = 41 -- Relevancy range is 40 m, so 1 m buffer
+
 kTransformResourcesTime = 15
 kTransformResourcesCost = 15
 kTransformResourcesRate = 1
@@ -261,7 +263,7 @@ kHeavyMachineGunDamage = 7
 kHeavyMachineGunDamageType = kDamageType.MachineGun
 kHeavyMachineGunClipSize = 100
 kHeavyMachineGunClipNum = 4
-kHeavyMachineGunRange = 100
+kHeavyMachineGunRange = kRelevancyRangeCap
 kHeavyMachineGunSecondaryRange = 1.1
 kHeavyMachineGunSpread = Math.Radians(3.2)
 
@@ -476,7 +478,7 @@ kSpikeDamage = 5
 kSpikeDamageType = kDamageType.Puncture
 kSpikeEnergyCost = 1.4
 kSpikesAttackDelay = 0.07
-kSpikesRange = 41 -- Relevancy range is 40 m (1 m buffer)
+kSpikesRange = kRelevancyRangeCap
 kSpikesPerShot = 1
 
 kSporesDamageType = kDamageType.Gas

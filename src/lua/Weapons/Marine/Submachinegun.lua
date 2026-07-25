@@ -30,7 +30,7 @@ Submachinegun.kDamageFalloffStart = 12 -- in meters, full damage closer than thi
 Submachinegun.kDamageFalloffEnd = 24 -- in meters, minimum damage further than this, gradient between start/end.
 Submachinegun.kDamageFalloffReductionFactor = 0.8 -- 20% reduction
 
-local kRange = 50
+local kRange = kRelevancyRangeCap
 -- 4 degrees in NS1
 local kSpread = Math.Radians(4.8)
 
