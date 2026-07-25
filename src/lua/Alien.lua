@@ -171,6 +171,7 @@ function Alien:OnCreate()
     self.timeAbilityEnergyChanged = Shared.GetTime()
     self.abilityEnergyOnChange = self:GetMaxEnergy()
     self.lastEnergyRate = self:GetRecuperationRate()
+    self:UpdateEnergy()
 
     self.darkVisionOn = false
 
@@ -466,11 +467,27 @@ end
 function Alien:GetEnergy()
 
     PROFILE("Alien:GetEnergy")
+    return self.lastEnergyValue
+end
 
-    local maxEnergy = self:GetMaxEnergy()
-    if (self.abilityEnergyOnChange == maxEnergy) then
-        return self.abilityEnergyOnChange -- No computation if we are at max already
+if not Server then
+
+    function Alien:OnProcessMove(input)
+        self:UpdateEnergy()
+        Player.OnProcessMove(self, input)
     end
+
+end
+
+function Alien:UpdateEnergy()
+
+    PROFILE("Alien:UpdateEnergy")
+
+    -- No computation if we are at max already
+    local maxEnergy = self:GetMaxEnergy()
+    --if (self.abilityEnergyOnChange == maxEnergy) then
+    --    return self.abilityEnergyOnChange -- No computation if we are at max already
+    --end
 
     local rate = self:GetRecuperationRate()
     if self.lastEnergyRate ~= rate then
@@ -480,18 +497,20 @@ function Alien:GetEnergy()
         self.timeAbilityEnergyChanged = Shared.GetTime()
     end
     self.lastEnergyRate = rate
-    return CalcEnergy(self, rate, maxEnergy)
+    self.lastEnergyValue = CalcEnergy(self, rate, maxEnergy)
 end
 
 function Alien:AddEnergy(energy)
     assert(energy >= 0)
     self.abilityEnergyOnChange = Clamp(self:GetEnergy() + energy, 0, self:GetMaxEnergy())
     self.timeAbilityEnergyChanged = Shared.GetTime()
+    self:UpdateEnergy()
 end
 
 function Alien:SetEnergy(energy)
     self.abilityEnergyOnChange = Clamp(energy, 0, self:GetMaxEnergy())
     self.timeAbilityEnergyChanged = Shared.GetTime()
+    self:UpdateEnergy()
 end
 
 function Alien:DeductAbilityEnergy(energyCost)
@@ -502,7 +521,7 @@ function Alien:DeductAbilityEnergy(energyCost)
 
         self.abilityEnergyOnChange = Clamp(self:GetEnergy() - energyCost, 0, maxEnergy)
         self.timeAbilityEnergyChanged = Shared.GetTime()
-
+        self:UpdateEnergy()
     end
 
 end
