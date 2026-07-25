@@ -505,6 +505,8 @@ if Client then
         return self.railgunAttacking
     end
 
+    local kFilterRailgunTarget = EntityFilterAllButMixin("RailgunTarget")
+    local kFilterTunnel = EntityFilterAllButIsa("Tunnel")
     function Railgun:OnProcessMove(input)
 
         Entity.OnProcessMove(self, input)
@@ -514,13 +516,13 @@ if Client then
         if player then
     
             -- trace and highlight first target
-            local filter = EntityFilterAllButMixin("RailgunTarget")
+            local filter = kFilterRailgunTarget
             local viewAngles = player:GetViewAngles()
             local shootCoords = viewAngles:GetCoords()          
             local startPoint = player:GetEyePos()
             local spreadDirection = CalculateSpread(shootCoords, 0, NetworkRandom) -- Assume spread is zero...
             local endPoint = startPoint + spreadDirection * kRailgunRange
-            local trace = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.Bullets, EntityFilterAllButIsa("Tunnel"))
+            local trace = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.Bullets, kFilterTunnel)
             
             if trace.entity then
                 trace.entity:SetRailgunTarget()
