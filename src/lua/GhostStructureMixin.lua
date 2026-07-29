@@ -152,11 +152,10 @@ local function SharedUpdate(self)
             end
 
         else
-
-            self:SetOpacity(1, "ghostStructure")
+            
             if self.ghostStructureMaterial and HasMixin(self, "Model") and RemoveMaterial(self:GetRenderModel(), self.ghostStructureMaterial) then
                 self.ghostStructureMaterial = nil
-                
+                self:SetOpacity(1, "ghostStructure") -- Structures are opaque by default, just change it back to 1 after the blueprint set to 0
             end
 
         end
