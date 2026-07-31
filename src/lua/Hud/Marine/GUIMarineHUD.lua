@@ -150,7 +150,7 @@ function GUIMarineHUD:Initialize()
     self.cachedHudDetail = Client.GetHudDetail()
     
     self.lastArmorLevel = 0
-    self.lastWeaponsLevel = 0
+    self.lastWeaponLevel = 0
     self.lastPassiveUpgradeCheck = 0
     self.lastPowerState = 0
     self.lastNanoShieldState = false
