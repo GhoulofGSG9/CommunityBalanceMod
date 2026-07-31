@@ -153,7 +153,6 @@ function GetWeaponAmmoString(weapon)
 
             if leftWeapon:isa("Railgun") then
                 leftAmmo = leftWeapon:GetChargeAmount() * 100
-                leftShots = leftWeapon:GetCellAmount()
             elseif leftWeapon:isa("PlasmaLauncher") then
                 leftAmmo = leftWeapon:GetChargeAmount() * 100
                 leftShots = math.max(0, math.floor(leftWeapon:GetChargeAmount()/kPlasmaBombEnergyCost))
@@ -163,7 +162,6 @@ function GetWeaponAmmoString(weapon)
             
             if rightWeapon:isa("Railgun")then
                 rightAmmo = rightWeapon:GetChargeAmount() * 100
-                rightShots = rightWeapon:GetCellAmount()
             elseif rightWeapon:isa("PlasmaLauncher")then
                 rightAmmo = rightWeapon:GetChargeAmount() * 100
                 rightShots = math.max(0, math.floor(rightWeapon:GetChargeAmount()/kPlasmaBombEnergyCost))
