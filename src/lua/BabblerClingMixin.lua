@@ -29,6 +29,9 @@ local kBabblerAttachPoints =
     "babbler_attach6",
 }
 
+BabblerClingMixin.kAmountDonatedForPoints = 4
+BabblerClingMixin.kDonationScoreAdded = 1
+
 local kMaxShield = kBabblerShieldMaxAmount
 BabblerClingMixin.networkVars =
 {
@@ -124,6 +127,16 @@ if Server then
             self.attachedBabblers[babbler:GetId()] = freeAttachPoint
             self.numBabblers = self.numBabblers + 1
             self.babblerShieldRemaining = self.babblerShieldRemaining + self.babblerShieldPerBabbler
+
+            -- Do not count babblers you attach on yourself
+            local previousOwner = babbler:GetOwner()
+            if previousOwner ~= self then
+                local amountGiven = 1
+                previousOwner:AddContinuousScore("BabblerDonation", amountGiven, BabblerClingMixin.kAmountDonatedForPoints, BabblerClingMixin.kDonationScoreAdded)
+                --Log("%s detaching from %s and attaching to %s", babbler, babbler:GetOwner(), self)
+            --else
+                --Log("%s reattaching to self:%s/%s", babbler, babbler:GetOwner(), self)
+            end
 
             babbler:SetParent(self)
             babbler:SetOwner(self)
