@@ -29,7 +29,7 @@ local kBabblerAttachPoints =
     "babbler_attach6",
 }
 
-BabblerClingMixin.kAmountDonatedForPoints = 4
+BabblerClingMixin.kAmountDonatedForPoints = 6
 BabblerClingMixin.kDonationScoreAdded = 1
 
 local kMaxShield = kBabblerShieldMaxAmount
