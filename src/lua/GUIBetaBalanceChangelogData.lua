@@ -25,17 +25,19 @@ if kCBMaddon then
 	or start a conversation in beta-balance-feedback on the official discord to let us know 
 	you think! Below are the changes this mod introduces:
 
-	#TLDR of v3.6 Playtest 2:
+	#TLDR of v3.6 Playtest 3:
 	
 	## Balance Changes
-	  - Railgun reworked to use ammo / reload system.
+	  - Railgun reworked to use heat system.
 	  - Fixed vanilla bug with railgunTargetMixin (enemy highlight), increased refresh rate, and changed color back to TSF blue.
-	  - Updated classic ammo counter system to display avaliable shots for railgun and plasma launcher.
+	  - Exo thrusters use 3x the fuel when off the ground instead of 2x the fuel.
+	  - Updated classic ammo counter system to display avaliable shots for plasma launcher.
+	  - AMAC given minor rework to lower skill floor and reduce power ceiling.
 	  - All cloaked structures partially reveal when within 1 m.
 	  - Lerks can no longer hit spikes outside relevancy range.
 	  - Clip weapons and exos can no longer to hit outside of relevancy range.
-	  - Adjusted drifter "snap" range to 1.5 from 3 m.
-	  - Exo thrusters use 3x the fuel when off the ground instead of 2x the fuel.
+	  - Adjusted drifter "snap" range to 2 from 3 m.
+	  - Giving babblers can now give score.
 	
 	## Bugfixes and Game Performance Optimizations
 	  - Further fixes to collisions and movement.
@@ -183,16 +185,14 @@ if kCBMaddon then
 	  - Settings to make duals fire both arms upon primary attack (options -> mods -> CBM: Accessibility Options)
 
 	### Railgun 
-	  - Railgun reworked to be more forgiving and less "bursty".
+	  - Railgun reworked to be more forgiving and deal less burst damage.
 	  - Firing cooldown set to 1s from 1.4s.
-	  - Charge system replaced with ammo / reload system.
-	  - 4 ammo per railgun that reload automatically upon reaching zero ammo remaining.
-	  - Can manually reload earlier by pressing reload key.
-	    - Incomplete manual reload will cancel upon firing.
+	  - Charge system replaced with heat system.
 	  - Base damage is now 48 from 10/150.
 		- Maximum burst is 96 (192 for structures) at W0. Down from ~170 (340) in vanilla.
 		- Maximum burst DPS is 96 (192 for structures) at W0. Up from ~88 (176) in vanilla.
-		- Maximum sustained DPS is 64 (128 for structures) at W0. Down from ~88 (176) in vanilla.
+		- Maximum sustained DPS avoiding overheating is 57 (114 for structures) at W0. Down from ~88 (176) in vanilla.
+	  - Lockout time due to overheat time is 5s.
 	  - Maximum range set to 30 m.
 	  - Dual railgun now allows simultaneous firing of both arms.
 	  - Target highlighting now works on all lifeforms and alien structures (TSF blue).
@@ -335,30 +335,16 @@ if kCBMaddon then
 	  - Has purple map icon and custom skin.
 	  - 400 Health.
 	  - 200 Armor.
-	  - Cost 15 tres.
+	  - Cost 10 tres.
 	  - 20 Supply.
+	  - AMACs can be recycled.
 	  - Has 100 energy cap (starts at 25).
 	  - Repair is 60/s and construction efficiency is 60%.
-	  - Regenerates 1 energy / sec.
+	  - Regenerates 5 energy / sec.
 	  - Base speed is 8 (6 in combat).
-	  - Has three commander abilities:
-		- Healing Field: Heals players in AoE over duration (~50 HP total).
-		- Catalyst Field: Catpacks players in AoE.
-		- Shield Field: Nanoshields players in AoE.
-	  - Healing Field: (Green Cinematic)
-		- Cost 20 energy and 1 tres.
-		- 10 sec cooldown.
-		- Lasts 5s.
-	  - Catalyst Field: (Red Cinematic)
-		- Cost 50 energy and 3 tres.
-		- 10 sec cooldown.
-		- Lasts 5s.
-		- Requires Advanced Support.
-	  - Shield Field: (Blue Cinematic)
-		- Cost 85 energy and 3 tres.
-		- 10 sec cooldown
-		- Lasts 3s
-		- Requires Advanced Support.
+	  - Has two abilities:
+		- Healing Field: Heals marine players in AoE (5 HP per second).
+		- Deploy catpacks: Catpacks nearby damaged marine players (costs 25 energy each).
 
 	### Sentry
 	  - Attack cone increased to 360 degrees from 135 degrees.

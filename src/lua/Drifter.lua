@@ -76,7 +76,7 @@ Drifter.kTouchRange = 1.5 -- Model max extents for "touch" uncloaking
 Drifter.kEnzymeRange = 22
 
 local kDrifterSelfOrderRange = 12
-local kDrifterPVESnapRange = 1.5
+local kDrifterPVESnapRange = 2.0
 local kDrifterAlienSnapRange = 2.0
 
 Drifter.kFov = 360
