@@ -1167,20 +1167,20 @@ kBattleMACCombatMoveSpeed = 6
 kBattleMACHealth = 400   		-- MAC is 300
 kBattleMACArmor = 200    		-- MAC is 50
 kBattleMACPointValue = 5		-- MAC is WhoCares
-kBattleMACCost = 15				-- MAC is 3
-kBattleMACInitialEnergy = 25
+kBattleMACCost = 10				-- MAC is 3
+kBattleMACInitialEnergy = 50
 kBattleMACMaxEnergy = 100
-kBattleMACEnergyRate = 1
+kBattleMACEnergyRate = 5
 kBattleMACBuildTime = 20
 kBattleMACConstructEfficacy = .6
 
-kBattleMACkCatPackDuration = 5
-kBattleMACkNanoShieldDuration = 3
+kBattleMACkCatPackDuration = 2.5
+kBattleMACkNanoShieldDuration = 3 -- (depreciated)
 kBattleMACkHealingWaveDuration = 5
 kBattleMACkSpeedBoostDuration = 3 -- (depreciated)
 
 kBattleMACAbilityRadius = 6
-kBattleMACHealingWaveAmount = 5 -- Per tick ?
+kBattleMACHealingWaveAmount = 5 -- per second
 
 kHealingWaveCost = 1
 kCatPackFieldCost = 3 

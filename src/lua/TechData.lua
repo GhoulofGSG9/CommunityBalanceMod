@@ -5047,20 +5047,20 @@ function BuildTechData()
 		
 		{		
 			[kTechDataId] = kTechId.BattleMACCatPack,
-			[kTechDataResearchTimeKey] = 45, -- Research time in seconds
+			--[kTechDataResearchTimeKey] = 45, -- Research time in seconds
 			[kTechDataDisplayName] = "Catalyst Field",
 			[kTechDataTooltipInfo] = "BMACCP_TOOLTIP",
-			[kTechDataCooldown] = kCatPackFieldCooldown,
-            [kTechDataCostKey] = kCatPackFieldCost,
+			--[kTechDataCooldown] = kCatPackFieldCooldown,
+            --[kTechDataCostKey] = kCatPackFieldCost,
 		},
 		
 		{		
 			[kTechDataId] = kTechId.BattleMACHealingWave,
-			[kTechDataResearchTimeKey] = 45, -- Research time in seconds
+			--[kTechDataResearchTimeKey] = 45, -- Research time in seconds
 			[kTechDataDisplayName] = "Healing Field",
 			[kTechDataTooltipInfo] = "BMACHW_TOOLTIP",
-			[kTechDataCooldown] = kHealingWaveCooldown,
-            [kTechDataCostKey] = kHealingWaveCost,
+			--[kTechDataCooldown] = kHealingWaveCooldown,
+            --[kTechDataCostKey] = kHealingWaveCost,
 		},
 	
         {		
