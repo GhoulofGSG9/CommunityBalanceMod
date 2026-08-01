@@ -86,6 +86,8 @@ local kDefaultAttackSpeed = 1
 local networkVars =
 {
     -- The alien energy used for all alien weapons and abilities (instead of ammo)
+	timeAbilityEnergyChanged = "compensated time",
+    abilityEnergyOnChange = "compensated float (0 to " .. math.ceil(kAbilityMaxEnergy) .. " by 0.05 [] )",
     lastEnergyValue = "compensated float (0 to " .. math.ceil(kAbilityMaxEnergy) .. " by 0.05 [] )",
 
     movementModiferState = "compensated boolean",
