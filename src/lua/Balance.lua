@@ -1179,7 +1179,7 @@ kBattleMACkNanoShieldDuration = 3 -- (depreciated)
 kBattleMACkHealingWaveDuration = 5
 kBattleMACkSpeedBoostDuration = 3 -- (depreciated)
 
-kBattleMACAbilityRadius = 6
+kBattleMACAbilityRadius = 5.05
 kBattleMACHealingWaveAmount = 5 -- per second
 
 kHealingWaveCost = 1
