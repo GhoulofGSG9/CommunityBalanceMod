@@ -21,6 +21,7 @@ BattleMAC.kHoverHeight = 0.4    -- MAC is 0.5
 
 BattleMAC.kRepairHealthPerSecond = 60
 BattleMAC.kConstructRate = 0.4
+BattleMAC.kHealingCooldown = 0.5
 
 BattleMAC.kRolloutSpeed = 5
 BattleMAC.kCapsuleHeight = 0.2
@@ -30,7 +31,7 @@ BattleMAC.kModelScale = 0.9 -- 1 normally
 
  -- Energy cost to activate
 BattleMAC.kNanoShieldActivationCost = 85 
-BattleMAC.kCatPackActivationCost = 50
+BattleMAC.kCatPackActivationCost = 25
 BattleMAC.kHealingWaveActivationCost = 20
 BattleMAC.kSpeedBoostActivationCost = 30
 
@@ -68,8 +69,7 @@ function BattleMAC:OnCreate()
     self.catpackActive = false
     self.healingActive = false
 	self.BattleMACMaterial = false
-
- 
+	self.lastHealTime = 0
 end
 
 function BattleMAC:OnInitialized()
@@ -284,14 +284,14 @@ function BattleMAC:GetTechAllowed(techId, techNode, player)
     
     if techId == kTechId.Move or (techId == kTechId.HoldPosition and not self:IsUsingShortLeash()) or techId == kTechId.Stop then
         allowed = true
-    elseif techId == kTechId.Patrol then
+    elseif techId == kTechId.Patrol or techId == kTechId.Recycle then
         allowed = true
     elseif techId == kTechId.BattleMACNanoShield and self:HasEnoughEnergy(BattleMAC.kNanoShieldActivationCost)  then
 		return allowed, canAfford
-    elseif techId == kTechId.BattleMACCatPack and self:HasEnoughEnergy(BattleMAC.kCatPackActivationCost)  then
+    --[[elseif techId == kTechId.BattleMACCatPack and self:HasEnoughEnergy(BattleMAC.kCatPackActivationCost)  then
         return allowed, canAfford
     elseif techId == kTechId.BattleMACHealingWave and self:HasEnoughEnergy(BattleMAC.kHealingWaveActivationCost) then
-		return allowed, canAfford
+		return allowed, canAfford]]
     elseif techId == kTechId.BattleMACSpeedBoost and self:HasEnoughEnergy(BattleMAC.kSpeedBoostActivationCost) then
         return allowed, canAfford
 	else
@@ -304,7 +304,7 @@ end
 
 function BattleMAC:GetTechButtons(techId)
     return { kTechId.Move, kTechId.Stop, kTechId.HoldPosition, kTechId.Patrol, --kTechId.BattleMACSpeedBoost,
-             kTechId.BattleMACHealingWave, kTechId.BattleMACNanoShield, kTechId.BattleMACCatPack, kTechId.None }
+             kTechId.BattleMACHealingWave, kTechId.BattleMACCatPack, kTechId.None, kTechId.None }
 end
 
 function BattleMAC:ActivateNanoField(position)
@@ -402,7 +402,7 @@ function BattleMAC:ShouldShowAbilityFieldEffect()
         return true
     end
 
-    return self.healingActive or self.catpackActive or self.nanoshieldActive
+    return true --self.healingActive or self.catpackActive or self.nanoshieldActive
 end
 
 -- function BattleMAC:RechargeEnergy(deltaTime)
@@ -460,7 +460,7 @@ function BattleMAC:OnUpdateRender()
 		end
 		
         -- Only draw when within 15 meters
-        if (playerPos - macPos):GetLength() <= 15 then
+        --[[if (playerPos - macPos):GetLength() <= 15 then
             local time = Shared.GetTime()
             
             -- Cast a ray downward to find the ground
@@ -493,7 +493,7 @@ function BattleMAC:OnUpdateRender()
 					hasActiveAbility = true
 				end
             end
-        end
+        end]]
     end
 end
 
@@ -536,21 +536,45 @@ function BattleMAC:ApplyNanoShieldToNearbyEntities()
 end
 
 function BattleMAC:ApplyHealingToNearbyEntities()
-    local entities = GetEntitiesWithMixinForTeamWithinRange("Live", self:GetTeamNumber(), self:GetOrigin(), BattleMAC.kAbilityRadius)
+    PROFILE("BattleMAC:ApplyHealingToNearbyEntities")
+	
+	local entities = GetEntitiesWithMixinForTeamWithinRange("Live", self:GetTeamNumber(), self:GetOrigin(), BattleMAC.kAbilityRadius)
     
     for _, entity in ipairs(entities) do
         if HasMixin(entity, "Live") and entity:GetIsAlive() and entity:GetHealth() < entity:GetMaxHealth() and entity:isa("Player") then
-            entity:AddHealth(BattleMAC.kHealingAmount * 0.1, false, false, nil, nil) -- Apply healing (scaled for the update interval)
+            entity:AddHealth(BattleMAC.kHealingAmount * 0.1, false, false, nil, nil)
             entity:TriggerEffects("marine_medpack", { effecthostcoords = entity:GetCoords() })
         end
     end
 end
 
+function BattleMAC:ApplyGroupedHealingToNearbyEntities()
+    PROFILE("BattleMAC:ApplyHealingToNearbyEntities")
+	
+	local entities = GetEntitiesWithMixinForTeamWithinRange("Live", self:GetTeamNumber(), self:GetOrigin(), BattleMAC.kAbilityRadius)
+    
+    for _, entity in ipairs(entities) do
+        if HasMixin(entity, "Live") and entity:GetIsAlive() and entity:GetHealth() < entity:GetMaxHealth() and entity:isa("Player") then
+            entity:AddHealth(BattleMAC.kHealingAmount * BattleMAC.kHealingCooldown, false, false, nil, nil)
+            entity:TriggerEffects("marine_medpack", { effecthostcoords = entity:GetCoords() })
+			if self:HasEnoughEnergy(BattleMAC.kCatPackActivationCost) and HasMixin(entity,"CatPack") and GetHasTech(self, kTechId.AdvancedMarineSupport) then
+				if not entity:GetHasCatPackBoost() then
+					entity:ApplyCatPack(BattleMAC.kCatPackDuration) -- Catpack doesn't have a duration variable...
+					self:SetEnergy(self:GetEnergy() - BattleMAC.kCatPackActivationCost)
+				end
+			end
+        end
+    end
+end
+
 function BattleMAC:OnUpdate(deltaTime)
+	PROFILE("BattleMAC:OnUpdate")
+	
     MAC.OnUpdate(self, deltaTime)
 
     if Server and self:GetIsAlive() then
-
+		
+		--[[
         -- NanoShield drain
         if self.nanoshieldActive then
 			self:ApplyNanoShieldToNearbyEntities()
@@ -562,8 +586,14 @@ function BattleMAC:OnUpdate(deltaTime)
         end
         
         -- Healing wave drain
-        if self.healingActive then
-			self:ApplyHealingToNearbyEntities()
+        if self.healingActive and self.lastHealTime + 0.2 <= Shared.GetTime() then
+			self:ApplyHealingToNearbyEntities(deltaTime)
+			self.lastHealTime = Shared.GetTime()
+        end]]
+
+        if self.lastHealTime + BattleMAC.kHealingCooldown <= Shared.GetTime() then
+			self:ApplyGroupedHealingToNearbyEntities()
+			self.lastHealTime = Shared.GetTime()
         end
         
     end
@@ -640,7 +670,7 @@ function BattleMAC:ProcessConstruct(deltaTime, orderTarget, orderLocation)
 end
 
 function BattleMAC:GetCanRecycleOverride()
-    return false
+    return true
 end
 
 Shared.LinkClassToMap("BattleMAC", BattleMAC.kMapName, networkVars)

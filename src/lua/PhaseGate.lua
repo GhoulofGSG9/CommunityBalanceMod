@@ -390,7 +390,7 @@ function PhaseGate:Phase(user)
 		local canHaveNanoshield = self.gateAdvanced and destinationPhaseGate.gateCharge > 0 and Shared.GetTime() < destinationPhaseGate.damagedTimeEnd
 		if user:isa("Player") and canHaveNanoshield then
 			if not user:GetHasCatPackBoost() then
-				user:ApplyCatPack(2)
+				user:ApplyCatPack()
 				destinationPhaseGate.gateCharge = destinationPhaseGate.gateCharge - 1
 			end
         end

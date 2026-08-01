@@ -744,10 +744,10 @@ function MarineTeam:InitTechTree()
 
     self.techTree:AddManufactureNode(kTechId.BattleMAC, kTechId.ARCRoboticsFactory, kTechId.None, true)
 
-    self.techTree:AddActivation(kTechId.BattleMACNanoShield,      kTechId.AdvancedMarineSupport,      kTechId.None)
-    self.techTree:AddActivation(kTechId.BattleMACCatPack,      kTechId.AdvancedMarineSupport,      kTechId.None)
-    self.techTree:AddActivation(kTechId.BattleMACHealingWave,      kTechId.None,      kTechId.None)
-    self.techTree:AddActivation(kTechId.BattleMACSpeedBoost,      kTechId.None,      kTechId.None)
+    self.techTree:AddActivation(kTechId.BattleMACNanoShield,  kTechId.AdvancedMarineSupport,      kTechId.None)
+    self.techTree:AddPassive(kTechId.BattleMACCatPack,        kTechId.AdvancedMarineSupport) --self.techTree:AddActivation(kTechId.BattleMACCatPack,      kTechId.AdvancedMarineSupport,      kTechId.None)
+    self.techTree:AddPassive(kTechId.BattleMACHealingWave,    kTechId.None)	 --self.techTree:AddActivation(kTechId.BattleMACHealingWave,      kTechId.None,      kTechId.None)
+    self.techTree:AddActivation(kTechId.BattleMACSpeedBoost,  kTechId.None,      kTechId.None)
 
     self.techTree:SetComplete()
 
