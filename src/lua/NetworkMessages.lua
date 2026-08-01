@@ -74,7 +74,7 @@ local kHiveSkillGraphMessage = {
     gameMinute = "float (0 to 1023 by 0.01)",
     joined = "boolean",
     teamNumber = "integer (1 to 2)",
-    steamId = "integer",z
+    steamId = "integer",
 }
 Shared.RegisterNetworkMessage("HiveSkillGraph", kHiveSkillGraphMessage)
 
