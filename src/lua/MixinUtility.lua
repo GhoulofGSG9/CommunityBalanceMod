@@ -92,13 +92,17 @@ end
 -- This will add the mixin network vars to the passed in network var
 -- table. It will do nothing if the mixin does not have network vars.
 --
-function AddMixinNetworkVars(theMixin, networkVars)
+function AddMixinNetworkVars(theMixin, networkVars, overwrite)
     if theMixin.networkVars then
 
         for varName, varType in pairs(theMixin.networkVars) do
 
-            if networkVars[varName] ~= nil then
+            if networkVars[varName] ~= nil and overwrite == nil then
                 error("Variable " .. varName .. " already exists in network vars while adding mixin " .. theMixin.type)
+            end
+
+            if networkVars[varName] ~= nil and overwrite == false then
+                Log("Explicit skip of variable " .. varName .. " previously defined in network vars while adding mixin " .. theMixin.type)
             end
 
             networkVars[varName] = varType
