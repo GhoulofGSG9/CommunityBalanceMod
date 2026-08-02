@@ -631,8 +631,6 @@ function LiveMixin:AddHealth(health, playSound, noArmor, hideEffect, healer, use
 
     if self.OnAddHealth then self:OnAddHealth() end
 
-    self.healedFromSelf = healer == self
-
     -- TakeDamage should be used for negative values.
     assert(health >= 0)
 
@@ -656,6 +654,8 @@ function LiveMixin:AddHealth(health, playSound, noArmor, hideEffect, healer, use
     end
 
     if self:AmountDamaged(useEHP) > 0 then
+
+        self.healedFromSelf = healer == self
 
         -- Add health first, then armor if we're full
         local healthAdded = math.min(health, self:GetMaxHealth() - self:GetHealth())
