@@ -17,11 +17,17 @@ FilmSpectator.kMapName = "filmspectator"
 local kDollySpeed = .4 -- Amount per key press
 local oldPosition = 0
 
+local kMaxSpecSpeed = 20 -- Based on debugspeed
+
 local networkVars =
 {
-    -- We want these at full precision for smooth camera motion/
-    m_origin = "interpolated compensated vector",
-    m_angles = "interpolated compensated angles",
+    -- We want these at full precision for smooth camera motion, and private because nobody sees specs
+    m_origin = "private interpolated compensated vector",
+    m_angles = "private interpolated compensated angles",
+
+    velocityLength = "private compensated interpolated float (0 to " .. kMaxSpecSpeed .. " by 0.4 [ 2 ])", -- overwrites BaseMoveMixin and makes it private for specs
+    viewYaw        = "private compensated interpolated angle", -- overwrites CameraHolderMixin and makes it private for specs
+
     dollySpeed = "vector",
     dollyMode = "boolean",
     dollyViewAngles = "vector",
@@ -29,8 +35,8 @@ local networkVars =
     lockOnTarget = "vector",
 }
 
-AddMixinNetworkVars(CameraHolderMixin, networkVars)
-AddMixinNetworkVars(BaseMoveMixin, networkVars)
+AddMixinNetworkVars(CameraHolderMixin, networkVars, false)
+AddMixinNetworkVars(BaseMoveMixin, networkVars, false)
 
 function FilmSpectator:OnCreate()
 
