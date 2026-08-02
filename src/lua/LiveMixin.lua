@@ -229,8 +229,6 @@ function LiveMixin:SetArmor(armor, hideEffect)
             self.timeLastVisuallyHealed = time
         end
 
-        self.timeLastHealed = time
-
     end
 
 end
