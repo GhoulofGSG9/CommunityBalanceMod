@@ -38,7 +38,7 @@ local networkVars =
     
     ammo = "integer (0 to 511)",
     clip = "integer (0 to 200)",
-    randIdx = "integer (0 to 511)",
+    randIdx = "private integer (0 to 511)",
     
     reloading = "compensated boolean",
     reloaded = "compensated boolean",
