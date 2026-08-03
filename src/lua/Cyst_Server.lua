@@ -355,6 +355,10 @@ function Cyst:GetUpdatesRate()
     return kUpdateIntervalMinimal
 end
 
+function Cyst:GetSleepUpdatesRate()
+    return kUpdateIntervalMinimal
+end
+
 function Cyst:OnUpdate(deltaTime)
 
     PROFILE("Cyst:OnUpdate")
