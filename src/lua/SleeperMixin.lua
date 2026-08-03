@@ -18,7 +18,8 @@ SleeperMixin.expectedCallbacks = {
 
 SleeperMixin.optionalCallbacks = {
     GetMinimumAwakeTime = "Return a custom time the entity has to remain awake until it is allowed to sleep.",
-    GetUpdatesRate = "Return the rate at which to set the OnUpdate rate at."
+    GetUpdatesRate = "Return the rate at which to set the OnUpdate rate at.",
+    GetSleepUpdatesRate = "Return the rate at which to set the OnUpdate rate at when sleeping",
 }
 
 SleeperMixin.timeNextSleeperUpdate = {}
@@ -39,11 +40,13 @@ SleeperMixin.currentDeltaTimeIndex = 1
 SleeperMixin.kNumDeltaTimes = 12 -- store the last 10 deltaTimes and get average out of those
 
 -- update this amount of sleepers at high tick rate. it would be better to save the actual computation time required and translate that to an entity amount
-SleeperMixin.kNumUpdates = 30
+SleeperMixin.kNumUpdates = 25
 
 SleeperMixin.kMinimumAwakeTime = 3
 
 local function ComputerAverageDeltaTime(currentDeltaTime)
+
+    PROFILE("SleeperMixin:ComputerAverageDeltaTime")
 
     if currentDeltaTime then
 
@@ -85,6 +88,8 @@ end
 
 local function InternalWakeUp(self)
 
+    PROFILE("SleeperMixin:InternalWakeUp")
+
     --Print("wakeup %s", self:GetClassName())
     local rate = self.GetUpdatesRate and self:GetUpdatesRate() or kRealTimeUpdateRate
     self:SetUpdates(true, rate)
@@ -101,6 +106,8 @@ end
 local sleepingEnabled = true
 
 local function InternalGetCanSleep(self)
+
+    PROFILE("SleeperMixin:InternalGetCanSleep")
 
     local canSleep = sleepingEnabled and self.GetCanSleep
 
@@ -161,10 +168,10 @@ function SleeperOnUpdateServer(deltaTime)
 
         if entityDeltaTime >= 0 then
 
-            entity = entity or Shared.GetEntity(entityId)
+            entity = Shared.GetEntity(entityId)
             if entity then
 
-                local rate = entity.GetUpdatesRate and entity:GetUpdatesRate() or kUpdateIntervalLow
+                local rate = entity.GetSleepUpdatesRate and entity:GetSleepUpdatesRate() or kUpdateIntervalLow
 
                 --Log("Updating %s with a rate of %s", entity, rate)
                 entity:OnUpdate(rate + entityDeltaTime)
@@ -194,6 +201,8 @@ end
 
 function SleeperMixin.CheckDirtyTable()
 
+    PROFILE("SleeperMixin:CheckDirtyTable")
+
     for _, entityId in ipairs(SleeperMixin.sleepersDirty:GetList()) do
     
         local entity = Shared.GetEntity(entityId)
@@ -222,6 +231,8 @@ end
 
 -- remove awake entities from list and add sleeping entities
 function SleeperMixin.CheckAll()
+
+    PROFILE("SleeperMixin:CheckAll")
 
     for _, entity in ipairs(GetEntitiesWithMixin("Sleeper")) do
     
