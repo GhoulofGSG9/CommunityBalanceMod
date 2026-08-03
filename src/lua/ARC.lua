@@ -164,6 +164,7 @@ function ARC:OnCreate()
         
         self.targetPosition = nil
         self.targetedEntity = Entity.invalidId
+        self:SetUpdates(true, self:GetUpdatesRate())
         
     elseif Client then
         InitMixin(self, CommanderGlowMixin)
@@ -173,8 +174,6 @@ function ARC:OnCreate()
     self.deployMode = ARC.kDeployMode.Undeployed
     
     self:SetLagCompensated(true)
-
-    self:SetUpdates(true, kRealTimeUpdateRate)
     
 end
 
@@ -263,8 +262,14 @@ function ARC:GetSpeedLimitAnglesOverride()
     return { ARC.kMaxSpeedLimitAngle, ARC.kNoSpeedLimitAngle }
 end
 
+--
+-- Sleeper mixin callbacks
+--
+function ARC:GetUpdatesRate()
+    return kRealTimeUpdateRate
+end
 function ARC:GetCanSleep()
-    return self.mode == ARC.kMode.Stationary
+    return self.mode == ARC.kMode.Stationary and not self:GetHasOrder()
 end
 
 function ARC:GetDeathIconIndex()
