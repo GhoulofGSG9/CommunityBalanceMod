@@ -31,7 +31,6 @@ Script.Load("lua/UmbraMixin.lua")
 Script.Load("lua/DouseMixin.lua")
 Script.Load("lua/MapBlipMixin.lua")
 Script.Load("lua/TeleportMixin.lua")
-Script.Load("lua/SleeperMixin.lua")
 Script.Load("lua/CombatMixin.lua")
 Script.Load("lua/CatalystMixin.lua")
 Script.Load("lua/EggVariantMixin.lua")
@@ -183,7 +182,6 @@ function Egg:OnInitialized()
         end
         
         InitMixin(self, StaticTargetMixin)
-        InitMixin(self, SleeperMixin)
         
         self:AddTimedCallback( Egg.UpdateSpawnedFlag, Egg.kSpawnAnimLen )
         
