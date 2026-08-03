@@ -164,7 +164,7 @@ function Hydra:OnCreate()
     if Server then
         InitMixin(self, InfestationTrackerMixin)
 
-        self:SetUpdates(true, kDefaultUpdateRate)
+        self:SetUpdates(true, self:GetUpdatesRate())
 		self.electrified = false
 		self.timeElectrifyEnds = 0
     end
@@ -359,6 +359,12 @@ function Hydra:GetDamagedAlertId()
     return kTechId.AlienAlertStructureUnderAttack
 end
 
+--
+-- Sleeper mixin callbacks
+--
+function Hydra:GetUpdatesRate()
+    return kDefaultUpdateRate
+end
 function Hydra:GetCanSleep()
     return not self.alerting and not self.attacking
 end
