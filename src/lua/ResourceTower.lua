@@ -21,7 +21,6 @@ Script.Load("lua/EntityChangeMixin.lua")
 Script.Load("lua/ConstructMixin.lua")
 Script.Load("lua/ScriptActor.lua")
 Script.Load("lua/RagdollMixin.lua")
-Script.Load("lua/SleeperMixin.lua")
 Script.Load("lua/ObstacleMixin.lua")
 Script.Load("lua/CombatMixin.lua")
 Script.Load("lua/SpawnBlockMixin.lua")
@@ -90,7 +89,6 @@ function ResourceTower:OnInitialized()
     
     if Server then
     
-        InitMixin(self, SleeperMixin)
         InitMixin(self, StaticTargetMixin)
         
     end
@@ -99,10 +97,6 @@ end
 
 function ResourceTower:GetReceivesStructuralDamage()
     return true
-end
-
-function ResourceTower:GetCanSleep()
-    return false
 end
 
 function ResourceTower:GetEngagementPointOverride()
