@@ -51,6 +51,7 @@ Clog.kRadius = 0.67
 
 local kClogRelevancyCheckRate = 5
 local kClogRelevancyDurationMin = 15
+local kClogNeargyRevealDist = 6
 
 AddMixinNetworkVars(TechMixin, networkVars)
 AddMixinNetworkVars(TeamMixin, networkVars)
@@ -153,7 +154,7 @@ if Server then
         local teamNumber = self:GetTeamNumber()
         local enemyTeamNumber = GetEnemyTeamNumber(teamNumber)
         if attacker and HasMixin(attacker, "Team") and attacker:GetTeamNumber() == enemyTeamNumber then
-            for _, c in ipairs(GetEntitiesWithinRange("Clog", self:GetOrigin(), 6)) do
+            for _, c in ipairs(GetEntitiesWithinRange("Clog", self:GetOrigin(), kClogNeargyRevealDist)) do
                 c:SetExcludeRelevancyMask(kDefaultMaskBoth)
                 c.timeOfRelevancyReset = now + kClogRelevancyDurationMin
                 --Print("Upgrading relevancy for %s", self)
