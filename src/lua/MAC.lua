@@ -492,7 +492,7 @@ function MAC:GetTurnSpeedOverride()
 end
 
 function MAC:GetCanSleep()
-    return self:GetCurrentOrder() == nil
+    return not self:GetHasOrder()
 end
 
 function MAC:GetMinimumAwakeTime()
