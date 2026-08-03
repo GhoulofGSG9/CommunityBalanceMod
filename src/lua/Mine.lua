@@ -94,7 +94,7 @@ function Mine:OnCreate()
         -- init after OwnerMixin since 'OnEntityChange' is expected callback
         InitMixin(self, SleeperMixin)
         
-        self:SetUpdates(true, kDefaultUpdateRate)
+        self:SetUpdates(true, self:GetUpdatesRate())
     
     end
 
@@ -309,9 +309,13 @@ if Server then
     end
     
     --
-    -- Go to sleep my sweet little mine if there are no entities nearby.
+    -- Sleeper mixin callbacks
     --
+    function Mine:GetUpdatesRate()
+        return kUpdateIntervalLow
+    end
     function Mine:GetCanSleep()
+        -- Go to sleep my sweet little mine if there are no entities nearby.
         return self:GetNumberOfEntitiesInTrigger() == 0
     end
     
