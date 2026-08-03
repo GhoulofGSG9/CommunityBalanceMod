@@ -174,13 +174,13 @@ function Drifter:OnCreate()
     InitMixin(self, ConsumeMixin)
     InitMixin(self, ResearchMixin)
 
-    self:SetUpdates(true, kRealTimeUpdateRate)
     self:SetLagCompensated(true)
     self:SetPhysicsType(PhysicsType.Kinematic)
     self:SetPhysicsGroup(PhysicsGroup.SmallStructuresGroup)
 
     if Server then
         self:UpdateIncludeRelevancyMask()
+        self:SetUpdates(true, self:GetUpdatesRate())
     elseif Client then
         InitMixin(self, UnitStatusMixin)
     end
@@ -292,8 +292,11 @@ function Drifter:SetIncludeRelevancyMask(includeMask)
 
 end
 
+function Drifter:GetUpdatesRate()
+    return kRealTimeUpdateRate
+end
 function Drifter:GetCanSleep()
-    return self:GetCurrentOrder() == nil
+    return not self:GetHasOrder()
 end
 
 function Drifter:GetExtentsOverride()
