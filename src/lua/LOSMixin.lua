@@ -237,9 +237,17 @@ if Server then
             return false
         end
 
+        -- We see the entity we shot
         if viewer.targetIdLastHit == entity:GetId() then
             if viewer.timeLastHit + kLOSCombatTimeout > now then
                 return true -- Always see, raytrace was already done by the weapon we used to damage
+            end
+        end
+
+        -- PvE with visibility see their attacker (hives/drifters for instance, they have 360 pov)
+        if not viewer:isa("Player") then
+            if entity.targetIdLastHit == viewer:GetId() and entity.timeLastHit + kLOSCombatTimeout > now then
+                return true
             end
         end
 
@@ -262,8 +270,7 @@ if Server then
         end
         
         -- If close enough to a non player entity, we see it no matter what.
-        local isPlayer = entity:isa("Player")
-        if not isPlayer and dist < (kUnitMinLOSDistance * kUnitMinLOSDistance) then
+        if not entity:isa("Player") and dist < (kUnitMinLOSDistance * kUnitMinLOSDistance) then
             return true
         end
         
