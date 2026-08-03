@@ -1685,13 +1685,9 @@ function Player:UpdateMaxMoveSpeed(deltaTime)
     --ASSERT(deltaTime >= 0)
 
     -- Only recover max speed when on the ground
-    if self.GetIsOnGround and self:GetIsOnGround() then
+    if self.slowAmount > 0 and self.GetIsOnGround and self:GetIsOnGround() then
 
-        local absDelta = self.slowAmount - deltaTime
-        if absDelta < 0 then
-            absDelta = -absDelta
-        end
-        self.slowAmount = absDelta
+        self.slowAmount = math.max(0, self.slowAmount - deltaTime)
 
     end
 
