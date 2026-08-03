@@ -1416,7 +1416,7 @@ end
 
 -- Computes line of sight to entity, set considerObstacles to true to check if any other entity is blocking LOS
 local toEntity = Vector()
-function GetCanSeeEntity(seeingEntity, targetEntity, considerObstacles, obstaclesFilter)
+function GetCanSeeEntity(seeingEntity, targetEntity, considerObstacles, obstaclesFilter, skipTrace)
 
     PROFILE("NS2Utility:GetCanSeeEntity")
 
@@ -1468,17 +1468,23 @@ function GetCanSeeEntity(seeingEntity, targetEntity, considerObstacles, obstacle
 
         if withinFOV then
 
-            local filter = EntityFilterAllButIsa("Door")-- EntityFilterAll()
-            if considerObstacles then
-                -- Weapons don't block FOV
-                filter = obstaclesFilter or EntityFilterTwoAndIsa(seeingEntity, targetEntity, "Weapon")
-            end
-
-            -- See if there's something blocking our view of the entity.
-            local trace = Shared.TraceRay(eyePos, targetOrigin, CollisionRep.LOS, PhysicsMask.All, filter)
-
-            if trace.fraction == 1 then
+            if skipTrace then
                 seen = true
+            else
+
+                local filter = EntityFilterAllButIsa("Door")-- EntityFilterAll()
+                if considerObstacles then
+                    -- Weapons don't block FOV
+                    filter = obstaclesFilter or EntityFilterTwoAndIsa(seeingEntity, targetEntity, "Weapon")
+                end
+
+                -- See if there's something blocking our view of the entity.
+                local trace = Shared.TraceRay(eyePos, targetOrigin, CollisionRep.LOS, PhysicsMask.All, filter)
+
+                if trace.fraction == 1 then
+                    seen = true
+                end
+
             end
 
         end
