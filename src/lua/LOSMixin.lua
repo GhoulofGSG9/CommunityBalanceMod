@@ -116,6 +116,8 @@ if Server then
 
     local kHitRayLongRangeWeapons = {
         -- Marines
+        [kTechId.Axe] = true,
+        [kTechId.Welder] = true,
         [kTechId.Pistol] = true,
         [kTechId.Rifle] = true,
         [kTechId.Submachinegun] = true,
@@ -123,6 +125,8 @@ if Server then
         [kTechId.HeavyMachineGun] = true,
         [kTechId.Minigun] = true,
         [kTechId.Railgun] = true,
+        [kTechId.Claw] = true,
+        
         -- Aliens
         [kTechId.Spikes] = true,
         [kTechId.Parasite] = true,
@@ -251,7 +255,7 @@ if Server then
         end
         
         -- Check if this entity is beyond our vision radius.
-        local maxDist = HasMixin(entity, "Cloakable") and entity:GetInvisibleRange() or viewer:GetVisionRadius()
+        local maxDist = (HasMixin(entity, "Cloakable") and entity:GetIsCloaked()) and entity:GetInvisibleRange() or viewer:GetVisionRadius()
         local dist = (entity:GetOrigin() - viewer:GetOrigin()):GetLengthSquared()
         if dist > (maxDist * maxDist) then      --FIXME This should be a per-instance constant (i.e. computed at MixinInit time)
             return false
