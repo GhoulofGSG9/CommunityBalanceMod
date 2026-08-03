@@ -172,7 +172,11 @@ function SelectableMixin:GetIsSelected(teamNumber)
     if Client then
         selected = GetSelectedClient(self, teamNumber)    
     else
-        selected = bit_band(self.selectionMask, teamNumber) ~= 0
+        if teamNumber then
+            selected = bit_band(self.selectionMask, teamNumber) ~= 0
+        else
+            selected = self.selectionMask ~= 0
+        end
     end
     
     return selected
