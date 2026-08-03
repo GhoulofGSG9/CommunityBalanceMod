@@ -408,7 +408,7 @@ if Server then
         if not self.dirtyLOS and (self.prevLOSorigin - origin):GetLengthSquared() > 0.3 then
         
             self.dirtyLOS = true
-            self.prevLOSorigin = Vector(origin)
+            VectorCopy(origin, self.prevLOSorigin)
             
         end
         
