@@ -582,18 +582,4 @@ function CloakableMixin:GetInvisibleRange()
     return (CloakableMixin.kSpecialMaxCloakClass[self:GetClassName()] and not self:isa("Onos") and 1.0) or CloakableMixin.kInvisibleFarRange[self.cloakRate] or CloakableMixin.kInvisibleFarRange[1]
 end
 
-function CloakableMixin:OverrideCheckVisibilty(viewer)
-
-    if self.fullyCloaked then
-        -- Check if this entity is beyond our turn invisible range.
-        local maxDist = self:GetInvisibleRange()
-        local dist = (self:GetOrigin() - viewer:GetOrigin()):GetLengthSquared()
-        if GetAreEnemies(self, viewer) and dist > (maxDist * maxDist) then
-            return false
-        end
-    end
-    
-    return GetCanSeeEntity(viewer, self)
-
-end
 
