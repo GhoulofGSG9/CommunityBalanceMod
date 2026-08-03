@@ -36,6 +36,8 @@ local kUnitLOSDirtyDistance = kUnitMaxLOSDistance + maxEntityMoveSpeed --* 2  --
 --local kLookForEnemiesRate = 0.5
 
 local kLOSTimeout = 1
+local kLOSCombatTimeout = 1.25
+local kLOSPvETimeout = 2
 
 local math_floor = math.floor
 
@@ -46,6 +48,8 @@ LOSMixin.networkVars =
 }
 
 local function UpdateLOS(self)
+
+    PROFILE("UpdateLOS")
 
     local mask = bit.bor(kRelevantToTeam1Unit, kRelevantToTeam2Unit, kRelevantToReadyRoom)
     
@@ -91,7 +95,14 @@ function LOSMixin:__initmixin()
         UpdateLOS(self)
         self.oldSighted = true
         self.lastViewerId = Entity.invalidId
+
+        -- To skip LOS traces for combat
+        self.timeLastHit = 0
+        self.targetIdLastHit = Entity.invalidId
         
+        -- To skip LOS traces on PvE
+        self.timeLastSightedWithTrace = 0
+        self.origLastSightedWithTrace = Vector(0,0,0)
     end
     
 end
@@ -102,12 +113,51 @@ end
 
 -- Remainder is server only.
 if Server then
+
+    local kHitRayLongRangeWeapons = {
+        -- Marines
+        [kTechId.Axe] = true,
+        [kTechId.Welder] = true,
+        [kTechId.Pistol] = true,
+        [kTechId.Rifle] = true,
+        [kTechId.Submachinegun] = true,
+        [kTechId.Shotgun] = true,
+        [kTechId.HeavyMachineGun] = true,
+        [kTechId.Minigun] = true,
+        [kTechId.Railgun] = true,
+        [kTechId.Claw] = true,
+        
+        -- Aliens
+        [kTechId.Spikes] = true,
+        [kTechId.Parasite] = true,
+        --[kTechId.Spit] = true -- Is a projectile, not an instant hit (could be out of LoS when it hits)
+
+        -- Aliens melee
+        [kTechId.Bite] = true,
+        [kTechId.LerkBite] = true,
+        [kTechId.Swipe] = true,
+        [kTechId.Stab] = true,
+        [kTechId.Gore] = true,        
+    }
+    -- If we damaged an enemy with a weapon that requires us to have direct LOS
+    -- then assume target is visible anyway.
+    function LOSMixin:OnTakeDamage(_, attacker, doer)
+        local weaponTechId = doer and doer:GetTechId()
+
+        if attacker and weaponTechId and kHitRayLongRangeWeapons[weaponTechId] then
+            local range = attacker:GetOrigin():GetDistanceTo(self:GetOrigin())
+            if range <= kUnitMaxLOSDistance then
+                attacker.timeLastHit = Shared.GetTime()
+                attacker.targetIdLastHit = self:GetId()
+            end
+        end
+    end
     
     local function UnsightImmediately(self)
         self:SetIsSighted(false)
         UpdateLOS(self)
     end
-    
+
     function LOSMixin:OnCloak()
         UnsightImmediately(self)
     end
@@ -161,6 +211,7 @@ if Server then
     local function GetCanSee(viewer, entity)
         
         -- SA: We now allow marines to build ghosts anywhere - so make sure they're blind. Otherwise they can sorta scout.
+        local now = Shared.GetTime()
         if HasMixin(viewer, "GhostStructure") then
             return false
         end
@@ -185,10 +236,19 @@ if Server then
         if dead then
             return false
         end
-        
-        -- Anything cloaked is invisible to us.
-        if (HasMixin(entity, "Cloakable") and entity:GetIsCloaked()) then
-            return false
+
+        -- We see the entity we shot
+        if viewer.targetIdLastHit == entity:GetId() then
+            if viewer.timeLastHit + kLOSCombatTimeout > now then
+                return true -- Always see, raytrace was already done by the weapon we used to damage
+            end
+        end
+
+        -- PvE with visibility see their attacker (hives/drifters for instance, they have 360 pov)
+        if not viewer:isa("Player") then
+            if entity.targetIdLastHit == viewer:GetId() and entity.timeLastHit + kLOSCombatTimeout > now then
+                return true
+            end
         end
 
         -- Scans ignore the vertical component
@@ -203,7 +263,7 @@ if Server then
         end
         
         -- Check if this entity is beyond our vision radius.
-        local maxDist = viewer:GetVisionRadius()
+        local maxDist = (HasMixin(entity, "Cloakable") and entity:GetIsCloaked()) and entity:GetInvisibleRange() or viewer:GetVisionRadius()
         local dist = (entity:GetOrigin() - viewer:GetOrigin()):GetLengthSquared()
         if dist > (maxDist * maxDist) then      --FIXME This should be a per-instance constant (i.e. computed at MixinInit time)
             return false
@@ -214,7 +274,15 @@ if Server then
             return true
         end
         
-        return GetCanSeeEntity(viewer, entity)
+        -- Looser check for PvE, no need to retrace everytime (checks orig for pve that moves/teleports)
+        local skipTrace = not player and entity.timeLastSightedWithTrace and entity.timeLastSightedWithTrace + kLOSPvETimeout > now and entity:GetOrigin() == entity.origLastSightedWithTrace
+        local rval = GetCanSeeEntity(viewer, entity, nil, nil, skipTrace)
+
+        if not player and rval and not skipTrace then
+            entity.timeLastSightedWithTrace = now
+            VectorCopy(entity:GetOrigin(), entity.origLastSightedWithTrace)
+        end
+        return rval
         
     end
     
@@ -226,6 +294,7 @@ if Server then
             return
         end
         
+        local now = Shared.GetTime()
         local entities = Shared.GetEntitiesWithTagInRange("LOS", self:GetOrigin(), self:GetVisionRadius())
         
         for e = 1, #entities do
@@ -314,14 +383,14 @@ if Server then
                 self.timeUpdateLOS = nil
                 
             else
-                self.timeUpdateLOS = Shared.GetTime() + kLOSTimeout
+                self.timeUpdateLOS = now + kLOSTimeout
             end
             
             self.oldSighted = self.sighted
             
         end
         
-        if self.timeUpdateLOS and self.timeUpdateLOS < Shared.GetTime() then
+        if self.timeUpdateLOS and self.timeUpdateLOS < now then
         
             UpdateLOS(self)
             self.timeUpdateLOS = nil
@@ -346,7 +415,7 @@ if Server then
         if not self.dirtyLOS and (self.prevLOSorigin - origin):GetLengthSquared() > 0.3 then
         
             self.dirtyLOS = true
-            self.prevLOSorigin = Vector(origin)
+            VectorCopy(origin, self.prevLOSorigin)
             
         end
         
@@ -397,7 +466,7 @@ if Server then
         end
         
     end
-    
+
     function LOSMixin:OnBlighted()
         if not self.dirtyLOS then
             self.updateLOS = true
@@ -465,6 +534,10 @@ if Server then
     
         if oldId == self.lastViewerId then
             self.lastViewerId = Entity.invalidId
+        end
+
+        if oldId == self.targetIdLastHit then
+            self.targetIdLastHit = Entity.invalidId
         end
         
     end
