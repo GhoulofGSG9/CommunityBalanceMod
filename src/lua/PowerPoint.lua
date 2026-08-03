@@ -30,7 +30,6 @@ Script.Load("lua/ConstructMixin.lua")
 Script.Load("lua/CombatMixin.lua")
 Script.Load("lua/UnitStatusMixin.lua")
 
-Script.Load("lua/SleeperMixin.lua")
 Script.Load("lua/ScriptActor.lua")
 Script.Load("lua/NanoShieldMixin.lua")
 Script.Load("lua/PowerSourceMixin.lua")
@@ -254,7 +253,6 @@ function PowerPoint:OnInitialized()
         end
         
         InitMixin(self, StaticTargetMixin)
-        InitMixin(self, SleeperMixin)
         InitMixin(self, InfestationTrackerMixin)
         
     elseif Client then
@@ -268,9 +266,6 @@ function PowerPoint:OnInitialized()
     
 end
 
-function PowerPoint:GetCanSleep()
-    return true
-end
 function PowerPoint:RequirePrimedNodes()
     return false
 end
