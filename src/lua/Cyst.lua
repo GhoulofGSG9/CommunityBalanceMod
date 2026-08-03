@@ -329,6 +329,8 @@ function Cyst:OnInitialized()
         self:AddTimedCallback(self.UpdateInfestationCloaking, 0.2)
         self:AddTimedCallback(self.ScanForNearbyEnemy, kEnemyDetectInterval)
         
+        self:SetUpdates(true, self:GetUpdatesRate())
+
     elseif Client then    
     
         InitMixin(self, UnitStatusMixin)
