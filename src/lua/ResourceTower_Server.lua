@@ -69,23 +69,23 @@ end
 
 function ResourceTower:OnUpdate(deltaTime)
 
-    --PROFILE("ResourceTower:OnUpdate")
+    PROFILE("ResourceTower:OnUpdate")
 
     ScriptActor.OnUpdate(self, deltaTime)
 
-    if not self.timeLastCollected then
-        self.timeLastCollected = Shared.GetTime()
+    local now = Shared.GetTime()
+    if not self.timeLastCollected and self:GetIsCollecting() then
+        self.timeLastCollected = now
     end
 
-    if self.timeLastCollected + kResourceTowerResourceInterval < Shared.GetTime() then
-    
+    if self.timeLastCollected and self.timeLastCollected + kResourceTowerResourceInterval < now then
         if self:GetIsCollecting() then
             self:CollectResources()
-            self.timeLastCollected = Shared.GetTime()
+            self.timeLastCollected = now
         else
             self.timeLastCollected = nil
         end
-        
     end
+
 
 end
