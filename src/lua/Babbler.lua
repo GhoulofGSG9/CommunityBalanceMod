@@ -1500,12 +1500,13 @@ elseif Client then
                 self.moveDirection = Vector(0, 0, 0)
             end
             
-            local moveDirection = GetNormalizedVectorXZ(orig - self.lastOrigin)
-            
+            local moveDirection = nil
             local target = self:GetTarget()
             if target then
                 local targetPosition = target:GetOrigin()
                 moveDirection = GetNormalizedVectorXZ(targetPosition - orig)
+            else
+                moveDirection = GetNormalizedVectorXZ(orig - self.lastOrigin)
             end
             
             -- smooth out turning of babblers
