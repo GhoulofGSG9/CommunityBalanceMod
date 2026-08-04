@@ -1096,11 +1096,15 @@ if Server then
 
     function Babbler:UpdateTargetPosition()
 
+        if self.moveType ~= kBabblerMoveType.Cling then
+            return
+        end
+
         local target = self:GetTarget()
 
         if target and not target:isa("AlienSpectator") then
 
-            if self.moveType == kBabblerMoveType.Cling and target.GetFreeBabblerAttachPointOrigin then
+            if target.GetFreeBabblerAttachPointOrigin then
 
                 self.targetPosition = target:GetFreeBabblerAttachPointOrigin()
                 -- If there are no free attach points, stop trying to cling.
