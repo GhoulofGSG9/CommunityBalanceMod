@@ -363,7 +363,7 @@ function Babbler:UpdateBabbler(deltaTime)
         end
     end
 
-    if not self:GetIsAlive() or self:GetIsClinged() then
+    if self:GetIsClinged() or not self:GetIsAlive() then
        return
     end
 
