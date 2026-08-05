@@ -139,7 +139,6 @@ function Whip:OnCreate()
 
     -- to prevent collision with whip bombs
     self:SetPhysicsGroup(PhysicsGroup.WhipGroup)
-    self:SetUpdates(true, kRealTimeUpdateRate)
     
     if Server then
 
@@ -149,10 +148,12 @@ function Whip:OnCreate()
         self.timeFrenzyEnd = 0
         self.timeEnervateEnd = 0
         
-            self.infestationSpeedCharge = 0
-            self.electrified = false
-            self.timeElectrifyEnds = 0
+        self.infestationSpeedCharge = 0
+        self.electrified = false
+        self.timeElectrifyEnds = 0
         
+        self:SetUpdates(true, self:GetUpdatesRate())
+
     end
 
     if Client then
@@ -241,8 +242,11 @@ function Whip:OverrideRepositioningSpeed()
 end
 
 -- --- SleeperMixin
+function Whip:GetUpdatesRate()
+    return kRealTimeUpdateRate
+end
 function Whip:GetCanSleep()
-    return not self.moving
+    return not self.moving and not self:GetHasOrder()
 end
 
 function Whip:GetMinimumAwakeTime()

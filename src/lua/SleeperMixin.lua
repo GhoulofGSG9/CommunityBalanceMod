@@ -17,10 +17,14 @@ SleeperMixin.expectedCallbacks = {
 }
 
 SleeperMixin.optionalCallbacks = {
-    GetMinimumAwakeTime = "Return a custom time the entity has to remain awake until it is allowed to sleep."
+    GetMinimumAwakeTime = "Return a custom time the entity has to remain awake until it is allowed to sleep.",
+    GetUpdatesRate = "Return the rate at which to set the OnUpdate rate at.",
+    GetSleepUpdatesRate = "Return the rate at which to set the OnUpdate rate at when sleeping",
 }
 
-SleeperMixin.timeLastSleeperUpdate = {}
+SleeperMixin.timeNextSleeperUpdate = {}
+SleeperMixin.lastSleeperOrigin = {}
+
 SleeperMixin.sleepers = unique_set()
 SleeperMixin.sleepersDirty = unique_set()
 
@@ -36,11 +40,13 @@ SleeperMixin.currentDeltaTimeIndex = 1
 SleeperMixin.kNumDeltaTimes = 12 -- store the last 10 deltaTimes and get average out of those
 
 -- update this amount of sleepers at high tick rate. it would be better to save the actual computation time required and translate that to an entity amount
-SleeperMixin.kNumUpdates = 30
+SleeperMixin.kNumUpdates = 25
 
 SleeperMixin.kMinimumAwakeTime = 3
 
 local function ComputerAverageDeltaTime(currentDeltaTime)
+
+    PROFILE("SleeperMixin:ComputerAverageDeltaTime")
 
     if currentDeltaTime then
 
@@ -74,19 +80,26 @@ local function InternalSleep(self)
     SleeperMixin.sleepers:Insert(self:GetId())
 
     -- Todo make class instance var
-    SleeperMixin.timeLastSleeperUpdate[self:GetId()] = Shared.GetTime()
+    local rate = self.GetUpdatesRate and self:GetUpdatesRate() or kRealTimeUpdateRate
+    SleeperMixin.timeNextSleeperUpdate[self:GetId()] = Shared.GetTime() + rate
+    SleeperMixin.lastSleeperOrigin[self:GetId()] = self:GetOrigin()
 
 end
 
 local function InternalWakeUp(self)
 
+    PROFILE("SleeperMixin:InternalWakeUp")
+
     --Print("wakeup %s", self:GetClassName())
-    self:SetUpdates(true, kRealTimeUpdateRate)
+    local rate = self.GetUpdatesRate and self:GetUpdatesRate() or kRealTimeUpdateRate
+    self:SetUpdates(true, rate)
     self.sleeping = false
     self.timeLastWakeUp = Shared.GetTime()
 
-    SleeperMixin.sleepers:Remove(self:GetId())
-    SleeperMixin.timeLastSleeperUpdate[self:GetId()] = nil
+    local id = self:GetId()
+    SleeperMixin.sleepers:Remove(id)
+    SleeperMixin.timeNextSleeperUpdate[id] = nil
+    SleeperMixin.lastSleeperOrigin[id] = nil
 
 end
 
@@ -94,12 +107,19 @@ local sleepingEnabled = true
 
 local function InternalGetCanSleep(self)
 
+    PROFILE("SleeperMixin:InternalGetCanSleep")
+
     local canSleep = sleepingEnabled and self.GetCanSleep
 
     if canSleep then
-        canSleep = self:GetCanSleep()
+        -- Can only sleep if not moving
+        local id = self:GetId()
+        local lastOrig = SleeperMixin.lastSleeperOrigin[id]
+        local hasMoved = lastOrig and lastOrig ~= self:GetOrigin()
+        local isSelected = HasMixin(self, "Selectable") and self:GetIsSelected()
         local awakeTime = SleeperMixin.kMinimumAwakeTime
 
+        canSleep = not hasMoved and not isSelected and self:GetCanSleep()
         if canSleep then
             if self.GetMinimumAwakeTime then
                 awakeTime = self:GetMinimumAwakeTime()
@@ -117,15 +137,15 @@ function SleeperOnUpdateServer(deltaTime)
 
     PROFILE("SleeperMixin:OnUpdateServer")
 
+    local now = Shared.GetTime()
     SleeperMixin.CheckDirtyTable()
     ComputerAverageDeltaTime(deltaTime)
     --Print("average deltaTime: %s", tostring(SleeperMixin.averageDeltaTime))
 
-    if SleeperMixin.timeLastCheckAll + 2 < Shared.GetTime() then
+    if SleeperMixin.timeLastCheckAll + 2 < now then
         SleeperMixin.CheckAll()
-        SleeperMixin.timeLastCheckAll = Shared.GetTime()
+        SleeperMixin.timeLastCheckAll = now
     end
-
 
     -- Change time slot to be based on total frame time
     local numMaxUpdates = math.ceil((SleeperMixin.kDeltaTimeToleranz / SleeperMixin.averageDeltaTime) * SleeperMixin.kNumUpdates)
@@ -137,26 +157,41 @@ function SleeperOnUpdateServer(deltaTime)
     -- update sleepers from list
     for index = SleeperMixin.currentIndex, lastIndex do
     
+        local entity = nil
         local entityId = SleeperMixin.sleepers:GetValueAtIndex(index)
-        local entity = Shared.GetEntity(entityId)
+        if SleeperMixin.timeNextSleeperUpdate[entityId] == nil then
+            SleeperMixin.timeNextSleeperUpdate[entityId] = now
+            SleeperMixin.lastSleeperOrigin[entityId] = Vector(0,0,0)
+        end
 
-        if entity then
+        local entityDeltaTime = now - SleeperMixin.timeNextSleeperUpdate[entityId]
 
-            entity:OnUpdate(Shared.GetTime() - SleeperMixin.timeLastSleeperUpdate[entityId])
-            SleeperMixin.timeLastSleeperUpdate[entityId] = Shared.GetTime()
+        if entityDeltaTime >= 0 then
 
-            if not InternalGetCanSleep(entity) then
-                entity:WakeUp()
+            entity = Shared.GetEntity(entityId)
+            if entity then
+
+                local rate = entity.GetSleepUpdatesRate and entity:GetSleepUpdatesRate() or kUpdateIntervalLow
+
+                --Log("Updating %s with a rate of %s", entity, rate)
+                entity:OnUpdate(rate + entityDeltaTime)
+
+                if not InternalGetCanSleep(entity) then
+                    entity:WakeUp()
+                end
+
+                SleeperMixin.timeNextSleeperUpdate[entityId] = now + rate
+                VectorCopy(entity:GetOrigin(), SleeperMixin.lastSleeperOrigin[entityId])
+
+            else
+                SleeperMixin.sleepersDirty:Insert(entityId)
             end
-
-        else
-            SleeperMixin.sleepersDirty:Insert(entityId)
         end
 
     end
 
     if lastIndex >= numSleepers then
-        SleeperMixin.timeLastUpdateCompleted = Shared.GetTime()
+        SleeperMixin.timeLastUpdateCompleted = now
         SleeperMixin.currentIndex = 1
     else
         SleeperMixin.currentIndex = lastIndex + 1
@@ -165,6 +200,8 @@ function SleeperOnUpdateServer(deltaTime)
 end
 
 function SleeperMixin.CheckDirtyTable()
+
+    PROFILE("SleeperMixin:CheckDirtyTable")
 
     for _, entityId in ipairs(SleeperMixin.sleepersDirty:GetList()) do
     
@@ -181,7 +218,8 @@ function SleeperMixin.CheckDirtyTable()
 
             end
         else
-            SleeperMixin.timeLastSleeperUpdate[entityId] = nil
+            SleeperMixin.timeNextSleeperUpdate[entityId] = nil
+            SleeperMixin.lastSleeperOrigin[entityId] = nil
             SleeperMixin.sleepers:Remove(entityId)
         end
 
@@ -193,6 +231,8 @@ end
 
 -- remove awake entities from list and add sleeping entities
 function SleeperMixin.CheckAll()
+
+    PROFILE("SleeperMixin:CheckAll")
 
     for _, entity in ipairs(GetEntitiesWithMixin("Sleeper")) do
     

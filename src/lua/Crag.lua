@@ -171,7 +171,6 @@ function Crag:OnCreate()
     self.healWaveActive = false
 	self.fortressCragAbilityActive = false
     self.fortressCragMaterial = false
-    self:SetUpdates(true, Crag.kThinkInterval)
     
     if Server then
         InitMixin(self, InfestationTrackerMixin)
@@ -277,7 +276,7 @@ function Crag:GetDamagedAlertId()
 end
 
 function Crag:GetCanSleep()
-    return not self.healingActive and not self.healWaveActive
+    return not self.healingActive and not self.healWaveActive and not self:GetHasOrder()
 end
 
 function Crag:GetHealTargets()
@@ -351,13 +350,13 @@ function Crag:TryHeal(target)
 end
 
 function Crag:UpdateHealing()    
-    if not self:GetIsOnFire() and ( self.timeOfLastHeal == 0 or (Shared.GetTime() > self.timeOfLastHeal + Crag.kHealInterval) ) then    
+    if ( self.timeOfLastHeal == 0 or (Shared.GetTime() > self.timeOfLastHeal + Crag.kHealInterval) ) and not self:GetIsOnFire() then
         self:PerformHealing()
     end
 end
 
 function Crag:UpdateMucous()
-	if not self:GetIsOnFire() and self.healWaveActive then
+	if self.healWaveActive and not self:GetIsOnFire() then
 		if (self.timeOfLastHealWavePulse == 0 or (Shared.GetTime() > self.timeOfLastHealWavePulse + Crag.kHealWaveInterval)) then
 			--Activate shield on any 'mucousable' ents nearby
 			for _, unit in ipairs(GetEntitiesWithMixinForTeamWithinRange("Mucousable", self:GetTeamNumber(), self:GetOrigin(), Crag.kHealRadius)) do
@@ -419,7 +418,7 @@ function Crag:OnUpdate(deltaTime)
 
     if Server then
 		
-		self.electrified = self.timeElectrifyEnds > Shared.GetTime()
+		self.electrified = self.timeElectrifyEnds > time
 		
         if GetIsUnitActive(self) then
 			
@@ -428,7 +427,7 @@ function Crag:OnUpdate(deltaTime)
 				self.healWaveActive = time < self.timeOfLastHealWave + Crag.kHealWaveDuration and self.timeOfLastHealWave > 0
 				self.infestationSpeedCharge = 0
 			else
-				if (self:GetTechId() == kTechId.FortressCrag) and GetHasTech(self, kTechId.CragHive) and not self.moving then
+				if not self.moving and (self:GetTechId() == kTechId.FortressCrag) and GetHasTech(self, kTechId.CragHive) then
 					self:PerformDouse()
 				end
 			
@@ -437,7 +436,7 @@ function Crag:OnUpdate(deltaTime)
 				self.healWaveActive = time < self.timeOfLastHealWave + Crag.kHealWaveDuration and self.timeOfLastHealWave > 0
 				
 				if self:GetGameEffectMask(kGameEffect.OnInfestation) then
-					self.timeOfLastInfestion = Shared.GetTime()
+					self.timeOfLastInfestion = time
 					self.infestationSpeedCharge = math.max(0, math.min(Crag.kMaxInfestationCharge, self.infestationSpeedCharge + 2.0*deltaTime))
 				else
 					self.infestationSpeedCharge = math.max(0, math.min(Crag.kMaxInfestationCharge, self.infestationSpeedCharge - deltaTime))

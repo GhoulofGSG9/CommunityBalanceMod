@@ -33,6 +33,7 @@ Script.Load("lua/ConstructMixin.lua")
 Script.Load("lua/ResearchMixin.lua")
 Script.Load("lua/ScriptActor.lua")
 Script.Load("lua/RagdollMixin.lua")
+Script.Load("lua/SleeperMixin.lua")
 Script.Load("lua/FireMixin.lua")
 Script.Load("lua/ObstacleMixin.lua")
 Script.Load("lua/CatalystMixin.lua")
@@ -321,6 +322,7 @@ function Shift:OnInitialized()
     if Server then
     
         InitMixin(self, StaticTargetMixin)
+        InitMixin(self, SleeperMixin)
         InitMixin(self, RepositioningMixin)
         InitMixin(self, SupplyUserMixin)
     
@@ -369,6 +371,10 @@ end
 
 function Shift:GetDamagedAlertId()
     return kTechId.AlienAlertStructureUnderAttack
+end
+
+function Shift:GetCanSleep()
+    return not self:GetHasOrder()
 end
 
 function Shift:GetReceivesStructuralDamage()

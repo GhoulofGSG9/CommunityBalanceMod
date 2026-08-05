@@ -211,11 +211,11 @@ function PowerPoint:OnCreate()
     InitMixin(self, NanoShieldMixin)
     InitMixin(self, WeldableMixin)
     InitMixin(self, ParasiteMixin)
-	InitMixin(self, BlightMixin)
+    InitMixin(self, BlightMixin)
     
     if Client then
         InitMixin(self, CommanderGlowMixin)
-		InitMixin(self, BlowtorchTargetMixin)
+        InitMixin(self, BlowtorchTargetMixin)
     end
     
     self:SetLagCompensated(false)
@@ -225,7 +225,7 @@ function PowerPoint:OnCreate()
     self.lightMode = kLightMode.Normal
     self.powerState = PowerPoint.kPowerState.unsocketed
     self.AttachedBattery = false
-	
+    
     if Client then 
         self:AddTimedCallback(PowerPoint.OnTimedUpdate, kUpdateIntervalLow)
     end
@@ -563,8 +563,8 @@ if Server then
             local amount = kWelderPowerRepairRate * elapsedTime
             welded = (self:AddHealth(amount) > 0)
 
-		elseif entity:isa("BattleMAC") then
-			welded = self:AddHealth(BattleMAC.kRepairHealthPerSecond * elapsedTime)  > 0
+        elseif entity:isa("BattleMAC") then
+            welded = self:AddHealth(BattleMAC.kRepairHealthPerSecond * elapsedTime)  > 0
 
         elseif entity:isa("MAC") then
             welded = self:AddHealth(MAC.kRepairHealthPerSecond * elapsedTime) > 0
@@ -582,8 +582,8 @@ if Server then
 
             if self:GetLightMode() == kLightMode.LowPower and self:GetIsPowering() and not GetTeamInfoEntity(self:GetTeamNumber()).PurificationCharging then
                 self:SetLightMode(kLightMode.Normal)
-			elseif self:GetLightMode() == kLightMode.LowPower and self:GetIsPowering() and self.AttachedBattery and GetTeamInfoEntity(self:GetTeamNumber()).PurificationCharging then
-				self:SetLightMode(kLightMode.Purification)
+            elseif self:GetLightMode() == kLightMode.LowPower and self:GetIsPowering() and self.AttachedBattery and GetTeamInfoEntity(self:GetTeamNumber()).PurificationCharging then
+                self:SetLightMode(kLightMode.Purification)
             end
 
         end
@@ -606,7 +606,7 @@ if Server then
         end
 
         if welded then
-            self:AddAttackTime(-0.1)
+            self:AddAttackTime(-(elapsedTime * 3))
         end
 
     end
@@ -707,7 +707,7 @@ if Server then
             local healthScalar = self:GetHealthScalar()
             if healthScalar < self.kDamagedPercentage then
                 self:SetLightMode(kLightMode.LowPower)
-			else
+            else
                 self:SetLightMode(kLightMode.Damaged)
             end
         end
@@ -832,7 +832,7 @@ local function CreateEffects(self)
             model:ClearOverrideMaterials()
         end
     end
-	
+    
     if lightMode == kLightMode.LowPower and not self.lowPowerEffect and isBuilt then
     
         self.lowPowerEffect = Client.CreateCinematic(RenderScene.Zone_Default)
@@ -853,14 +853,14 @@ local function CreateEffects(self)
         self.noPowerDongleEffect:SetCoords(Coords.GetIdentity())
         self.noPowerDongleEffect:SetAttachPoint( self:GetAttachPointIndex(kDongleAttachmentPoint) )
         self.noPowerDongleEffect:SetRepeatStyle(Cinematic.Repeat_Loop)
-		
-	elseif lightMode == kLightMode.Purification and not self.PurificationEffect and isBuilt then
-		
+        
+    elseif lightMode == kLightMode.Purification and not self.PurificationEffect and isBuilt then
+        
         self.PurificationEffect = Client.CreateCinematic(RenderScene.Zone_Default)
         self.PurificationEffect:SetCinematic(kPurificationEffect)
         self.PurificationEffect:SetRepeatStyle(Cinematic.Repeat_Loop)
         self.PurificationEffect:SetCoords(self:GetCoords())
-		
+        
     end
     
     if self:GetPowerState() == PowerPoint.kPowerState.socketed and self:GetIsBuilt() and self:GetIsVisible() then
@@ -898,8 +898,8 @@ local function DeleteEffects(self)
         self.timeCreatedLowPower = nil
         
     end
-	
-	if lightMode ~= kLightMode.Purification and self.PurificationEffect then
+    
+    if lightMode ~= kLightMode.Purification and self.PurificationEffect then
     
         Client.DestroyCinematic(self.PurificationEffect)
         self.PurificationEffect = nil
@@ -922,16 +922,16 @@ end
 if Server then
     function PowerPoint:OnUpdate(deltaTime)
 
-        self:AddAttackTime(-0.1)
-		
+        self:AddAttackTime(-(deltaTime * 3))
+        
         if self:GetLightMode() == kLightMode.Damaged and self:GetAttackTime() == 0 and not self:GetLightMode() == kLightMode.Purification then
             self:SetLightMode(kLightMode.Normal)
-		end
-		
-		if self.AttachedBattery and self:GetLightMode() == kLightMode.Normal and GetTeamInfoEntity(self:GetTeamNumber()).PurificationCharging then
-			self:SetLightMode(kLightMode.Purification)
-		elseif self:GetLightMode() == kLightMode.Purification and (not GetTeamInfoEntity(self:GetTeamNumber()).PurificationCharging or not self.AttachedBattery) then
-			self:SetLightMode(kLightMode.Normal)
+        end
+        
+        if self.AttachedBattery and self:GetLightMode() == kLightMode.Normal and GetTeamInfoEntity(self:GetTeamNumber()).PurificationCharging then
+            self:SetLightMode(kLightMode.Purification)
+        elseif self:GetLightMode() == kLightMode.Purification and (not GetTeamInfoEntity(self:GetTeamNumber()).PurificationCharging or not self.AttachedBattery) then
+            self:SetLightMode(kLightMode.Normal)
         end
                 
     end
@@ -988,7 +988,7 @@ function PowerPoint:OnGetIsSelectableOveride(result, byTeamNumber)
 end
 
 function PowerPoint:SetAttachedBattery(ent)
-	self.AttachedBattery = ent
+    self.AttachedBattery = ent
 end
 
 Shared.LinkClassToMap("PowerPoint", PowerPoint.kMapName, networkVars)

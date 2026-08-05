@@ -39,6 +39,7 @@ Script.Load("lua/ConstructMixin.lua")
 Script.Load("lua/ResearchMixin.lua")
 Script.Load("lua/ScriptActor.lua")
 Script.Load("lua/RagdollMixin.lua")
+Script.Load("lua/SleeperMixin.lua")
 Script.Load("lua/CommAbilities/Alien/ShadeInk.lua")
 Script.Load("lua/FireMixin.lua")
 Script.Load("lua/ObstacleMixin.lua")
@@ -191,6 +192,7 @@ function Shade:OnInitialized()
     if Server then
     
         InitMixin(self, StaticTargetMixin)
+        InitMixin(self, SleeperMixin)
         InitMixin(self, RepositioningMixin)
         InitMixin(self, SupplyUserMixin)
 
@@ -255,6 +257,10 @@ end
 
 function Shade:GetDamagedAlertId()
     return kTechId.AlienAlertStructureUnderAttack
+end
+
+function Shade:GetCanSleep()
+    return not self:GetHasOrder()
 end
 
 function Shade:GetCanDie(byDeathTrigger)

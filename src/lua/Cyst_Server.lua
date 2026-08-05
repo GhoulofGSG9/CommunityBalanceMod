@@ -289,20 +289,21 @@ function Cyst:UpdateHealthScalar()
     self.healthScalar = 1 - Clamp(((self:GetDistanceToHive() - kMinCystScalingDistance) / kMaxCystScalingDistance), 0, 1)
 end
 
-function Cyst:TriggerDamage()
+function Cyst:TriggerDamage(deltaTime)
 
     if self:GetCystParent() == nil then
 
-        local damage = kCystUnconnectedDamage * Cyst.kThinkTime
+        local damage = kCystUnconnectedDamage * deltaTime
         self:DeductHealth(damage, self)
 
     end
 
 end
 
-function Cyst:ServerUpdate()
+function Cyst:ServerUpdate(deltaTime)
 
     local now = Shared.GetTime()
+    local lastUpdate = self.nextUpdate - Cyst.kThinkTime
 
     if self.bursted then
         self.bursted = self.timeBursted + Cyst.kBurstDuration > now
@@ -338,19 +339,29 @@ function Cyst:ServerUpdate()
             self:MarkBlipDirty()
         end
 
-        -- avoid clumping; don't use now when calculating next think time (large kThinkTime)
-        self.nextUpdate = self.nextUpdate + Cyst.kThinkTime
-
         -- Take damage if not connected
         if not self.connected and not self:GetIsCatalysted() and (now - self:GetCreationTime()) > 1 then
-            self:TriggerDamage()
+            self:TriggerDamage(now - lastUpdate)
         end
+
+        -- avoid clumping; don't use now when calculating next think time (large kThinkTime)
+        self.nextUpdate = self.nextUpdate + Cyst.kThinkTime
 
     end
 
 end
 
+function Cyst:GetUpdatesRate()
+    return kUpdateIntervalMinimal
+end
+
+function Cyst:GetSleepUpdatesRate()
+    return kUpdateIntervalMinimal
+end
+
 function Cyst:OnUpdate(deltaTime)
+
+    PROFILE("Cyst:OnUpdate")
 
     ScriptActor.OnUpdate(self, deltaTime)
 
