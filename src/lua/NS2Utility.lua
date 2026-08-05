@@ -1481,7 +1481,7 @@ function GetCanSeeEntity(seeingEntity, targetEntity, considerObstacles, obstacle
                 -- See if there's something blocking our view of the entity.
                 local trace = Shared.TraceRay(eyePos, targetOrigin, CollisionRep.LOS, PhysicsMask.All, filter)
 
-                if trace.fraction >= 0.95 then -- Not 100% because some models don't touch the origin-point (like the shift which is elevated)
+                if trace.fraction >= 0.975 then -- Not 100% because some models don't touch the origin-point (like the shift which is elevated)
                     seen = true
                 end
 
