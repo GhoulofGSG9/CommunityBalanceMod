@@ -139,7 +139,7 @@ end
 
 function StabBlink:OnTag(tagName)
 
-    PROFILE("SwipeBlink:OnTag")
+    PROFILE("StabBlink:OnTag")
     
     if tagName == "stab_start" then
     
