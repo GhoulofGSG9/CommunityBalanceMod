@@ -139,7 +139,6 @@ end
 
 function Gore:Attack(player)
     
-    local now = Shared.GetTime()
     local didHit = false
     local impactPoint
     local target
