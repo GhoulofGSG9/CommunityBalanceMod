@@ -416,6 +416,8 @@ function Player:OnCreate()
 
     self.kNoUpdatesForWeaponId = -1
 
+    self.desiredAngles = Angles()
+
 end
 
 local function InitViewModel(self)
@@ -1244,12 +1246,11 @@ end
 
 function Player:GetDesiredAngles(deltaTime)
 
-    local desiredAngles = Angles()
-    desiredAngles.pitch = 0
-    desiredAngles.roll = self.viewRoll
-    desiredAngles.yaw = self.viewYaw
+    self.desiredAngles.pitch = 0
+    self.desiredAngles.roll = self.viewRoll
+    self.desiredAngles.yaw = self.viewYaw
 
-    return desiredAngles
+    return self.desiredAngles
 
 end
 
@@ -1292,6 +1293,9 @@ function Player:AdjustAngles(deltaTime)
     end
     if not self.anglesAdjustedOrig then
         self.anglesAdjustedOrig = Angles()
+    end
+    if not self.anglesAdjustedDesired then
+        self.anglesAdjustedDesired = Angles()
     end
 
     --
@@ -1339,7 +1343,10 @@ function Player:AdjustAngles(deltaTime)
     --
 
     self.anglesAdjusted = (angles ~= self.anglesAdjustedDest)
-    self.anglesAdjustedDesired = desiredAngles
+    self.anglesAdjustedDesired.yaw = desiredAngles.yaw
+    self.anglesAdjustedDesired.pitch = desiredAngles.pitch
+    self.anglesAdjustedDesired.roll = desiredAngles.roll
+    
     self.anglesAdjustedDest.yaw = angles.yaw
     self.anglesAdjustedDest.pitch = angles.pitch
     self.anglesAdjustedDest.roll = angles.roll
