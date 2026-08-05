@@ -49,6 +49,10 @@ local networkVars =
 
 Clog.kRadius = 0.67
 
+local kClogRelevancyCheckRate = 5
+local kClogRelevancyDurationMin = 15
+local kClogNeargyRevealDist = 6
+
 AddMixinNetworkVars(TechMixin, networkVars)
 AddMixinNetworkVars(TeamMixin, networkVars)
 AddMixinNetworkVars(LiveMixin, networkVars)
@@ -95,19 +99,10 @@ function Clog:OnInitialized()
     self:UpdatePhysicsBoundingBox() -- manually update bound box b/c this is a simple physics object -- not from a mesh-model.
     
     if Server then
-    
-        local mask = bit.bor(kRelevantToTeam1Unit, kRelevantToTeam2Unit, kRelevantToReadyRoom)
-        
-        if self:GetTeamNumber() == 1 then
-            mask = bit.bor(mask, kRelevantToTeam1Commander)
-        elseif self:GetTeamNumber() == 2 then
-            mask = bit.bor(mask, kRelevantToTeam2Commander)
-        end
-        
-        self:SetExcludeRelevancyMask(mask)
-        
+        Clog_ResetRelevancy(self, nil, true)
+        self:AddTimedCallback(Clog_ResetRelevancy, kClogRelevancyCheckRate)
     end
-    
+
 end
 
 function Clog:GetSimplePhysicsBodyType()
@@ -116,6 +111,60 @@ end
 
 function Clog:GetSimplePhysicsBodySize()
     return Clog.kRadius
+end
+
+if Server then
+
+    local kDefaultMask = bit.bor(kRelevantToTeam1Unit, kRelevantToTeam2Unit, kRelevantToReadyRoom)
+    local kDefaultMaskTeam1 = bit.bor(kRelevantToTeam1Unit, kRelevantToTeam2Unit, kRelevantToTeam1Commander, kRelevantToReadyRoom)
+    local kDefaultMaskTeam2 = bit.bor(kRelevantToTeam1Unit, kRelevantToTeam2Unit, kRelevantToTeam2Commander, kRelevantToReadyRoom)
+    local kDefaultMaskBoth = bit.bor(kDefaultMaskTeam1, kDefaultMaskTeam2)
+    function Clog_ResetRelevancy(self, delay, force)
+
+        if not self:GetIsAlive() then
+            return false
+        end
+
+        local t = self.timeOfRelevancyReset
+        if force or (t and t < Shared.GetTime()) then
+            local mask = kDefaultMask
+            
+            if self:GetTeamNumber() == 1 then
+                mask = kDefaultMaskTeam1
+            elseif self:GetTeamNumber() == 2 then
+                mask = kDefaultMaskTeam2
+            end
+            self:SetExcludeRelevancyMask(mask)
+            self.timeOfRelevancyReset = nil
+            --Print("Reset to default for %s", self)
+        end
+        return true
+    end
+
+    -- Includes other team commander
+    -- since clog are very light entitythey don't have LOSMixin
+    -- This is a good enough and light solution (if damage or collision)
+    function Clog:UpdateRelevancy(attacker)
+
+        local now = Shared.GetTime()
+        if self.timeOfRelevancyReset and self.timeOfRelevancyReset > now + kClogRelevancyDurationMin/3 then
+            return -- Do not set relevancy non-stop, only redo a round if we are close to expire
+        end
+
+        local teamNumber = self:GetTeamNumber()
+        local enemyTeamNumber = GetEnemyTeamNumber(teamNumber)
+        if attacker and HasMixin(attacker, "Team") and attacker:GetTeamNumber() == enemyTeamNumber then
+            for _, c in ipairs(GetEntitiesWithinRange("Clog", self:GetOrigin(), kClogNeargyRevealDist)) do
+                c:SetExcludeRelevancyMask(kDefaultMaskBoth)
+                c.timeOfRelevancyReset = now + kClogRelevancyDurationMin
+                --Print("Upgrading relevancy for %s", self)
+            end
+        end
+    end
+
+    function Clog:OnTakeDamage(_, attacker, _, _)
+        self:UpdateRelevancy(attacker)
+    end
 end
 
 local function ClearRenderModel(self)
@@ -275,6 +324,9 @@ function Clog:GetEffectParams(tableParams)
 end
 
 function Clog:OnCapsuleTraceHit(entity)
+    if Server then
+        self:UpdateRelevancy(entity)
+    end
 end
 
 -- simple solution for now to avoid griefing
