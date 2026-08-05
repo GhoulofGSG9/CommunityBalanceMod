@@ -38,6 +38,7 @@ local kUnitLOSDirtyDistance = kUnitMaxLOSDistance + maxEntityMoveSpeed --* 2  --
 local kLOSTimeout = 1
 local kLOSCombatTimeout = 1.25
 local kLOSPvETimeout = 2
+local kLOSPvPTimeout = 0.35
 
 local math_floor = math.floor
 
@@ -142,7 +143,7 @@ if Server then
     -- If we damaged an enemy with a weapon that requires us to have direct LOS
     -- then assume target is visible anyway.
     function LOSMixin:OnTakeDamage(_, attacker, doer)
-        local weaponTechId = doer and doer:GetTechId()
+        local weaponTechId = doer and doer.GetTechId and doer:GetTechId()
 
         if attacker and weaponTechId and kHitRayLongRangeWeapons[weaponTechId] then
             local range = attacker:GetOrigin():GetDistanceTo(self:GetOrigin())
@@ -275,10 +276,12 @@ if Server then
         end
         
         -- Looser check for PvE, no need to retrace everytime (checks orig for pve that moves/teleports)
-        local skipTrace = not player and entity.timeLastSightedWithTrace and entity.timeLastSightedWithTrace + kLOSPvETimeout > now and entity:GetOrigin() == entity.origLastSightedWithTrace
+        local isEntityPlayer = entity:isa("Player")
+        local skipDuration = isEntityPlayer and kLOSPvPTimeout or kLOSPvETimeout
+        local skipTrace = entity.timeLastSightedWithTrace and entity.timeLastSightedWithTrace + skipDuration > now
         local rval = GetCanSeeEntity(viewer, entity, nil, nil, skipTrace)
 
-        if not player and rval and not skipTrace then
+        if rval and not skipTrace then
             entity.timeLastSightedWithTrace = now
             VectorCopy(entity:GetOrigin(), entity.origLastSightedWithTrace)
         end
