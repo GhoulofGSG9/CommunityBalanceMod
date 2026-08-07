@@ -416,6 +416,8 @@ function Player:OnCreate()
 
     self.kNoUpdatesForWeaponId = -1
 
+    self.desiredAngles = Angles()
+
 end
 
 local function InitViewModel(self)
@@ -1244,12 +1246,11 @@ end
 
 function Player:GetDesiredAngles(deltaTime)
 
-    local desiredAngles = Angles()
-    desiredAngles.pitch = 0
-    desiredAngles.roll = self.viewRoll
-    desiredAngles.yaw = self.viewYaw
+    self.desiredAngles.pitch = 0
+    self.desiredAngles.roll = self.viewRoll
+    self.desiredAngles.yaw = self.viewYaw
 
-    return desiredAngles
+    return self.desiredAngles
 
 end
 
@@ -1287,6 +1288,18 @@ function Player:AdjustAngles(deltaTime)
     local angles = self:GetAngles()
     local desiredAngles = self:GetDesiredAngles(deltaTime)
 
+    if not self.anglesAdjustedDest then
+        self.anglesAdjustedDest = Angles()
+    end
+    if not self.anglesAdjustedOrig then
+        self.anglesAdjustedOrig = Angles()
+    end
+    if not self.anglesAdjustedDesired then
+        self.anglesAdjustedDesired = Angles()
+    end
+
+    --
+
     if self.anglesAdjusted == false then
         if self.anglesAdjustedOrig == angles and self.anglesAdjustedDesired == desiredAngles then
             --if Server then Log("HIT: %s -- %s", angles, desiredAngles) end
@@ -1294,14 +1307,17 @@ function Player:AdjustAngles(deltaTime)
         end
     end
 
-    local origAngle = Angles(angles)
+    self.anglesAdjustedOrig.yaw = angles.yaw
+    self.anglesAdjustedOrig.pitch = angles.pitch
+    self.anglesAdjustedOrig.roll = angles.roll
+
+    --local origAngle = Angles(angles)
     local smoothMode = self:GetAngleSmoothingMode()
     if desiredAngles == nil then
 
         -- Just keep the old angles
 
     elseif smoothMode == "euler" then
-
 
         angles.yaw = SlerpRadians(angles.yaw, desiredAngles.yaw, self:GetAngleSmoothRate() * deltaTime )
         angles.roll = SlerpRadians(angles.roll, desiredAngles.roll, self:GetRollSmoothRate() * deltaTime )
@@ -1324,14 +1340,20 @@ function Player:AdjustAngles(deltaTime)
     AnglesTo2PiRange(angles)
     self:SetAngles(angles)
 
-    local newDestAngle = Angles(angles)
-    self.anglesAdjusted = (newDestAngle ~= self.anglesAdjustedDest)
-    self.anglesAdjustedOrig = origAngle
-    self.anglesAdjustedDesired = desiredAngles
-    self.anglesAdjustedDest = newDestAngle
+    --
+
+    self.anglesAdjusted = (angles ~= self.anglesAdjustedDest)
+    self.anglesAdjustedDesired.yaw = desiredAngles.yaw
+    self.anglesAdjustedDesired.pitch = desiredAngles.pitch
+    self.anglesAdjustedDesired.roll = desiredAngles.roll
+    
+    self.anglesAdjustedDest.yaw = angles.yaw
+    self.anglesAdjustedDest.pitch = angles.pitch
+    self.anglesAdjustedDest.roll = angles.roll
 
 end
 
+local kViewAngle = Angles(0,0,0)
 function Player:UpdateViewAngles(input)
 
     PROFILE("Player:UpdateViewAngles")
@@ -1341,8 +1363,10 @@ function Player:UpdateViewAngles(input)
     end
 
     -- Update to the current view angles.
-    local viewAngles = Angles(input.pitch, input.yaw, 0)
-    self:SetViewAngles(viewAngles)
+    kViewAngle.pitch = input.pitch
+    kViewAngle.yaw = input.yaw
+    kViewAngle.roll = 0
+    self:SetViewAngles(kViewAngle)
     self:AdjustAngles(input.time)
 
 end

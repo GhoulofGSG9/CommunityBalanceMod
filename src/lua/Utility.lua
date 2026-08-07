@@ -1020,6 +1020,10 @@ end
 
 function SlerpRadians(current, target, rate)
 
+    if current == target then
+        return target
+    end
+
     -- normalize the current and target angles to between -pi to pi
     current = ((current + math_pi) % two_math_pi) - math_pi
     target = ((target + math_pi) % two_math_pi) - math_pi

@@ -328,29 +328,38 @@ function Babbler:GetVelocity()
     
 end
 
+local kDefaultMask = bit.bor(kRelevantToTeam1Unit, kRelevantToTeam2Unit, kRelevantToReadyRoom)
+local kDefaultMaskTeam1 = bit.bor(kRelevantToTeam1Unit, kRelevantToTeam2Unit, kRelevantToTeam1Commander, kRelevantToReadyRoom)
+local kDefaultMaskTeam2 = bit.bor(kRelevantToTeam1Unit, kRelevantToTeam2Unit, kRelevantToTeam2Commander, kRelevantToReadyRoom)
+local kDefaultMaskBoth = bit.bor(kDefaultMaskTeam1, kDefaultMaskTeam2)
 function Babbler:UpdateRelevancy()
+
+    PROFILE("Babbler:UpdateRelevancy")
 
     local owner = self:GetOwner()
     local sighted = owner ~= nil and (owner:GetOrigin() - self:GetOrigin()):GetLengthSquared() < 16 and (HasMixin(owner, "LOS") and owner:GetIsSighted())
 
-    local mask = bit.bor(kRelevantToTeam1Unit, kRelevantToTeam2Unit, kRelevantToReadyRoom)
+    local mask = kDefaultMask
 
     local teamNumber = self:GetTeamNumber()
     if teamNumber == 1 then
-        mask = bit.bor(mask, kRelevantToTeam1Commander)
+        mask = kDefaultMaskTeam1
         if sighted then
-            mask = bit.bor(mask, kRelevantToTeam2Commander)
+            mask = kDefaultMaskBoth
         end
     end
 
     if teamNumber == 2 then
-        mask = bit.bor(mask, kRelevantToTeam2Commander)
+        mask = kDefaultMaskTeam2
         if sighted then
-            mask = bit.bor(mask, kRelevantToTeam1Commander)
+            mask = kDefaultMaskBoth
         end
     end
     
-    self:SetExcludeRelevancyMask( mask )
+    if self.lastSetRelevancyMask ~= mask then
+        self:SetExcludeRelevancyMask( mask )
+        self.lastSetRelevancyMask = mask
+    end
 
 end
 
@@ -665,7 +674,7 @@ if Server then
         local orig = self:GetOrigin()
         for _, ball in ipairs(GetEntitiesForTeamWithinRange("BabblerPheromone", self:GetTeamNumber(), orig, 20)) do
 
-            if ball:GetOwner() == self:GetOwner() and (ball:GetOrigin() - orig):GetLength() > 4 then
+            if (ball:GetOrigin() - orig):GetLength() > 4 and ball:GetOwner() == self:GetOwner() then
                 return ball
             end
 

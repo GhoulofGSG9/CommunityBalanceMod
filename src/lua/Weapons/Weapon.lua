@@ -339,12 +339,10 @@ function Weapon:GetSwingSensitivity()
     return .5
 end
 
+local kWeaponRelevancyMask = bit.bor(kRelevantToTeam1Unit, kRelevantToTeam2Unit, kRelevantToReadyRoom, kRelevantToTeam1Commander, kRelevantToTeam2Commander)
 function Weapon:SetRelevancy()
 
-    local mask = bit.bor(kRelevantToTeam1Unit, kRelevantToTeam2Unit, kRelevantToReadyRoom)
-    mask = bit.bor(mask, kRelevantToTeam1Commander, kRelevantToTeam2Commander)
-    
-    self:SetExcludeRelevancyMask(mask)
+    self:SetExcludeRelevancyMask(kWeaponRelevancyMask)
     
 end
 

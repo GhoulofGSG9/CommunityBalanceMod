@@ -46,6 +46,7 @@ function MapBlip:OnCreate()
     self.isParasited = false
     
     self:UpdateRelevancy()
+    self:SetRelevancyDistance(Math.infinity)
     
     if Client then
         InitMixin(self, MinimapMappableMixin)
@@ -80,9 +81,9 @@ end
 
 local kMaskRelevantToBothTeam = bit.bor(kRelevantToTeam1, kRelevantToTeam2)
 function MapBlip:UpdateRelevancy(owner)
-
-    self:SetRelevancyDistance(Math.infinity)
     
+    PROFILE("MapBlip:UpdateRelevancy")
+
     local mask = 0
     local isSighted = false
 
@@ -100,7 +101,10 @@ function MapBlip:UpdateRelevancy(owner)
         end
     end
     
-    self:SetExcludeRelevancyMask( mask )
+    if self.lastSetRelevancyMask ~= mask then
+        self:SetExcludeRelevancyMask( mask )
+        self.lastSetRelevancyMask = mask
+    end
 
 end
 
@@ -143,7 +147,7 @@ end
 
 function MapBlip:GetIsSighted(owner)
 
-    owner = owner or Shared.GetEntity(self.ownerEntityId)
+    owner = owner or (self.ownerEntityId ~= Entity.invalidId and Shared.GetEntity(self.ownerEntityId) or nil)
     
     if owner then
     
