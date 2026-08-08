@@ -27,20 +27,14 @@ local kRailgunSpread = Math.Radians(0)
 local kBulletSize = 0.3
 
 local kRailgunChargeTime = 1.0 -- Vanilla 1.4
-local kRailgunShotHeat = 0.56 -- Change also in RailgunGUI
-local kRailgunCoolDownRate = 0.33
-local kRailgunOverheatCoolDownRate = 0.2
+local kRailgunCellRechargeTime = 3.0
+
+local kMaxCells = 4
 
 local kChargeSound = PrecacheAsset("sound/NS2.fev/marine/heavy/railgun_charge")
 
 local precached1 = PrecacheAsset("cinematics/vfx_materials/alien_frag.surface_shader")
 local precached2 = PrecacheAsset("cinematics/vfx_materials/decals/railgun_hole.surface_shader")
-local kOverheatedSoundName = PrecacheAsset("sound/NS2.fev/marine/heavy/overheated")
-
--- NOTE(Salads): The railgun exo has different attach point names for both viewmodel and the regular model. FIXME
-local kFirstPersonAttachPoints = { [ExoWeaponHolder.kSlotNames.Left] = "fxnode_l_railgun_muzzle", [ExoWeaponHolder.kSlotNames.Right] = "fxnode_r_railgun_muzzle" }
-local kThirdPersonAttachPoints = { [ExoWeaponHolder.kSlotNames.Left] = "fxnode_lrailgunmuzzle", [ExoWeaponHolder.kSlotNames.Right] = "fxnode_rrailgunmuzzle" }
-local kMuzzleEffectName = PrecacheAsset("cinematics/marine/railgun/muzzle_flash.cinematic")
 
 local networkVars =
 {
@@ -49,9 +43,10 @@ local networkVars =
     lockCharging = "boolean",
     timeOfLastShot = "time",
     energyAnimation = "float (0 to 1 by 0.01)",
-    heatAmount = "float (0 to 1 by 0.01)",
-    overheated = "private boolean",
-	timeOverheated = "time",
+    timeLastReload = "time",
+    numCells = "integer (0 to 4)",
+    ReloadLastFrame = "boolean",
+    isReloading = "boolean",
 }
 
 AddMixinNetworkVars(TechMixin, networkVars)
@@ -76,11 +71,10 @@ function Railgun:OnCreate()
     self.lockCharging = false
     self.timeOfLastShot = 0
     self.energyAnimation = 0
-	
-	self.heatAmount = 0
-	self.overheated = false
-	
-	self.timeOverheated = 0
+    self.timeLastReload = Shared.GetTime()
+    self.numCells = 0
+    self.ReloadLastFrame = false
+    self.isReloading = false
     
     if Client then
     
@@ -221,7 +215,11 @@ function Railgun:GetDeathIconIndex()
 end
 
 function Railgun:GetChargeAmount()
-    return self.heatAmount or 0
+    return self.isReloading and math.min(1, (Shared.GetTime() - self.timeLastReload) / kRailgunCellRechargeTime) or 0
+end
+
+function Railgun:GetCellAmount()
+    return self.numCells
 end
 
 local function TriggerSteamEffect(self, player)
@@ -317,21 +315,13 @@ local function Shoot(self, leftSide)
         
         if Client then
             TriggerSteamEffect(self, player)
-							
-			local attachPoint
-			if player:GetIsLocalPlayer() and not player:GetIsThirdPerson() then
-				attachPoint = kFirstPersonAttachPoints[self:GetExoWeaponSlot()]
-			else
-				attachPoint = kThirdPersonAttachPoints[self:GetExoWeaponSlot()]
-			end
-
-			CreateMuzzleCinematic(self, kMuzzleEffectName, kMuzzleEffectName, attachPoint, player, nil, true)		
         end
         
         self:LockGun()
         self.lockCharging = true
         
-    end    
+    end
+    
 end
 
 if Server then
@@ -358,14 +348,24 @@ end
 
 function Railgun:ProcessMoveOnWeapon(player, input)
 
-	local dt = input.time
-	local addAmount = self.overheated and -(dt * kRailgunOverheatCoolDownRate) or -(dt * kRailgunCoolDownRate)
-	self.heatAmount = math.min(1, math.max(0, self.heatAmount + addAmount))
-	
-	if self.overheated and self.heatAmount == 0 then
-		self.overheated = false
-	end	
-	
+    local timeNow = Shared.GetTime()
+    local reloadPressed = bit.band(input.commands, Move.Reload) ~= 0
+
+    if (not self.ReloadLastFrame and reloadPressed and self.numCells < kMaxCells) or self.numCells < 1 then
+        if self.isReloading == false then
+            self.timeLastReload = timeNow
+        end
+        self.isReloading = true 
+    end
+        
+    if self.isReloading then
+        if timeNow - self.timeLastReload >= kRailgunCellRechargeTime then
+            self.numCells = kMaxCells
+            self.isReloading = false
+        end
+    end
+    
+    self.ReloadLastFrame = reloadPressed
 end
 
 function Railgun:OnUpdateRender()
@@ -374,8 +374,6 @@ function Railgun:OnUpdateRender()
     
     local chargeAmount = self:GetChargeAmount()
     local parent = self:GetParent()
-	local numOverheated = self.overheated and 1 or 0
-	
     if parent and parent:GetIsLocalPlayer() then
     
         local viewModel = parent:GetViewModelEntity()
@@ -385,7 +383,7 @@ function Railgun:OnUpdateRender()
             local renderModel = viewModel:GetRenderModel()
             renderModel:SetMaterialParameter("chargeAmount" .. self:GetExoWeaponSlotName(), chargeAmount)
             renderModel:SetMaterialParameter("timeSinceLastShot" .. self:GetExoWeaponSlotName(), Shared.GetTime() - self.timeOfLastShot)
-			renderModel:SetMaterialParameter("overheated" .. self:GetExoWeaponSlotName(), numOverheated)
+            renderModel:SetMaterialParameter("cellAmount" .. self:GetExoWeaponSlotName(), self.numCells)
         end
         
         local chargeDisplayUI = self.chargeDisplayUI
@@ -400,7 +398,8 @@ function Railgun:OnUpdateRender()
         
         chargeDisplayUI:SetGlobal("chargeAmount" .. self:GetExoWeaponSlotName(), chargeAmount)
         chargeDisplayUI:SetGlobal("timeSinceLastShot" .. self:GetExoWeaponSlotName(), Shared.GetTime() - self.timeOfLastShot)
-        chargeDisplayUI:SetGlobal("overheated" .. self:GetExoWeaponSlotName(), numOverheated)
+        chargeDisplayUI:SetGlobal("cellAmount" .. self:GetExoWeaponSlotName(), self.numCells)
+        
     else
     
         if self.chargeDisplayUI then
@@ -413,7 +412,7 @@ function Railgun:OnUpdateRender()
     end
     
     if self.chargeSound then
-        if self:GetPrimaryAttacking() and not self.overheated and not self.chargeSound:GetIsPlaying() then
+        if self:GetPrimaryAttacking() and self.numCells >= 1 and not self.chargeSound:GetIsPlaying() then
             self.chargeSound:Start()
         end
     end
@@ -425,43 +424,31 @@ function Railgun:OnTag(tagName)
     PROFILE("Railgun:OnTag")
     
     if self:GetIsLeftSlot() then
-        if tagName == "l_shoot" and not self.overheated then
+        if tagName == "l_shoot" and self.numCells > 0 then
             Shoot(self, true)
             if Server then  
-                self.heatAmount = math.max(0,self.heatAmount + kRailgunShotHeat)
+                self.numCells = math.max(0,self.numCells - 1)
                 self.isReloading = false
             end
         end
         
     elseif not self:GetIsLeftSlot() then
-        if tagName == "r_shoot" and not self.overheated then
+        if tagName == "r_shoot" and self.numCells > 0 then
             Shoot(self, false)
             if Server then
-                self.heatAmount = math.max(0,self.heatAmount + kRailgunShotHeat)
+                self.numCells = math.max(0,self.numCells - 1)
                 self.isReloading = false
             end
         end
     end
     
-	if self.heatAmount == 1 then
-		self.overheated = true
-		self.timeOverheated = Shared.GetTime()
-		local player = self:GetParent()
-		if self:GetIsLeftSlot() then
-            player:TriggerEffects("minigun_overheated_left")
-        elseif self:GetIsRightSlot() then    
-            player:TriggerEffects("minigun_overheated_right")
-        end
-		StartSoundEffectForPlayer(kOverheatedSoundName, player)		
-	end
-	
 end
 
 
 function Railgun:OnUpdateAnimationInput(modelMixin)
 
     local activity = "none"
-    if self.railgunAttacking and not self.overheated then
+    if self.railgunAttacking and self.numCells > 0 then
         activity = "primary"
     end
     modelMixin:SetAnimationInput("activity_" .. self:GetExoWeaponSlotName(), activity)
@@ -477,8 +464,28 @@ function Railgun:UpdateViewModelPoseParameters(viewModel)
 end
 
 if Client then
- 
-	function Railgun:OnClientPrimaryAttackEnd()
+
+    -- NOTE(Salads): The railgun exo has different attach point names for both viewmodel and the regular model. FIXME
+    local kFirstPersonAttachPoints = { [ExoWeaponHolder.kSlotNames.Left] = "fxnode_l_railgun_muzzle", [ExoWeaponHolder.kSlotNames.Right] = "fxnode_r_railgun_muzzle" }
+    local kThirdPersonAttachPoints = { [ExoWeaponHolder.kSlotNames.Left] = "fxnode_lrailgunmuzzle", [ExoWeaponHolder.kSlotNames.Right] = "fxnode_rrailgunmuzzle" }
+    local kMuzzleEffectName = PrecacheAsset("cinematics/marine/railgun/muzzle_flash.cinematic")
+
+    function Railgun:OnClientPrimaryAttackEnd()
+    
+        local parent = self:GetParent()
+        
+        if parent and self.numCells > 0 then
+
+            local attachPoint
+            if parent:GetIsLocalPlayer() and not parent:GetIsThirdPerson() then
+                attachPoint = kFirstPersonAttachPoints[self:GetExoWeaponSlot()]
+            else
+                attachPoint = kThirdPersonAttachPoints[self:GetExoWeaponSlot()]
+            end
+
+            CreateMuzzleCinematic(self, kMuzzleEffectName, kMuzzleEffectName, attachPoint, parent, nil, true)
+        end
+        
         if self.chargeSound then
             if self.chargeSound:GetIsPlaying() then
                 self.chargeSound:Stop()

@@ -17,25 +17,21 @@ local shootSquares = { }
 local cooldownSquares = { }
 local time = 0
 
-function UpdateCharge(dt, chargeAmount, timeSinceLastShot, overheated)
+function UpdateCharge(dt, chargeAmount, timeSinceLastShot, cellAmount)
 
     PROFILE("GUIRailgun:UpdateCharge")
-	local colorAmtM = 1.0
-	local colorAmtY = 1.0
-	if overheated == 1 then
-		local pulseAmt = (1 + math.cos(time * 20)) * 0.5
-		colorAmtM = pulseAmt * 0.5
-		colorAmtY = pulseAmt * 0.5
-	elseif chargeAmount > 0.46 then
-		colorAmtM = 0.5
-		colorAmtY = 0.0
-	end
-	
-	chargeCircle:GetLeftSide():SetColor(Color(1, colorAmtM, colorAmtY, 1))
-	chargeCircle:GetRightSide():SetColor(Color(1, colorAmtM, colorAmtY, 1))
+    
+    local pulseAmt = (1 + math.cos(time * 20)) * 0.5
+    local colorAmt = chargeAmount >= 1 and (pulseAmt * 0.5) or 1
+    chargeCircle:GetLeftSide():SetColor(Color(1, colorAmt, colorAmt, 1))
+    chargeCircle:GetRightSide():SetColor(Color(1, colorAmt, colorAmt, 1))
 	
     for s = 1, #cooldownSquares do
-        cooldownSquares[s]:SetIsVisible(timeSinceLastShot < (s * 1.0 / 4))
+		if s <= cellAmount then
+			cooldownSquares[s]:SetIsVisible(true)
+		else
+			cooldownSquares[s]:SetIsVisible(false)
+		end
     end
     
     chargeCircle:SetPercentage(chargeAmount)

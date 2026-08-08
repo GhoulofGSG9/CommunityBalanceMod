@@ -11,10 +11,10 @@
 -- Global state that can be externally set to adjust the display.
 chargeAmountleft = 0
 timeSinceLastShotleft = 0
-overheatedleft = 0
+cellAmountleft= 0
 
 function Update(dt)
-    UpdateCharge(dt, chargeAmountleft, timeSinceLastShotleft, overheatedleft)
+    UpdateCharge(dt, chargeAmountleft, timeSinceLastShotleft, cellAmountleft)
 end
 
 Script.Load("lua/GUIRailgun.lua")
