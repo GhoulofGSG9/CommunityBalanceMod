@@ -268,7 +268,7 @@ local function Unstick(client, origin)
 
             local viewDist = trace2.endPoint:GetDistanceTo(src2)
             -- Still move if view dist is block, but very little and random dir to prevent exploits
-            local displAmount = trace2.fraction == 1 and 0.3 or (0.05 + (math.random(0, 1) * -0.1) )
+            local displAmount = trace2.fraction == 1 and 0.35 or (0.05 + (math.random(0, 1) * -0.1) )
 
             --Log("-- %s - %s - %s", trace2.fraction, viewDist, displAmount)
             player:SetOrigin(src1 + forwardDirection * displAmount)
