@@ -204,22 +204,86 @@ local function Unstick(client, origin)
         local height, radius = GetTraceCapsuleFromExtents( bounds )
         local resourceNear
         local i = 1
+		
+        local filter = EntityFilterAll()
+		
+        if not spawn then
+            --Log("1- Using vanilla unstuck")
+    		repeat
+                spawn = GetRandomSpawnForCapsule( height, radius, origin, 1, 8, EntityFilterAll() )
 
-        repeat
-            spawn = GetRandomSpawnForCapsule( height, radius, origin, 2, 10, EntityFilterAll() )
+                if spawn then
+                    resourceNear = #GetEntitiesWithinRange( "ResourcePoint", spawn, 2 ) > 0
+                end
 
-            if spawn then
-                resourceNear = #GetEntitiesWithinRange( "ResourcePoint", spawn, 2 ) > 0
-            end
+                i = i + 1
+            until not resourceNear or i > 100
+        end
+		
+        --[[ -- Path unstuck, effective when near pathing mesh but could lead to exploits
+        if not spawn then
+    		local source = nil
+    		local nrt = FindNearestEntityId("TechPoint", player:GetOrigin())
+    		
+    		-- If no spawn is found, use pathing to try to find a valid unstuck spot.
+    		if nrt then
+    			local rt = Shared.GetEntity(nrt)
+    			if rt then
+    			   source = rt:GetOrigin() + Vector(0, 1, 0)
+                   DebugCapsule(source, source, 0.2, 0.2, 10)
+    			end
+    		end
 
-            i = i + 1
-        until not resourceNear or i > 100
+    		if source then
+    			local points = PointArray()
+                
+    			Pathing.GetPathPoints(source, player:GetEngagementPoint(), points)
+                Log("2- Using pathing unstuck with %s points", #points)
+    			for i = #points, math.max(1, #points - 10), -2 do
+                    DebugCapsule(points[i], points[i], 0.2, 0.2, 5)
+                    for j = 1, 10 do
+    				    spawn = GetRandomSpawnForCapsule( height, radius, points[i], 0, 2, EntityFilterAll() )
+    				    if spawn then
+    					   break
+    				    end
+                    end
+    			end
+    		end
+        end
+        --]]
 
+        if not spawn then
+            --Log("3- Using vent unstuck attempt") -- Move toward where the player is looking, he knows best
+            local trace1, trace2
+            local coords = player:GetViewAngles():GetCoords()
+            local forwardDirection = Vector(coords.zAxis)
+
+            local src1 = player:GetOrigin()
+            local dst1 = player:GetOrigin() + forwardDirection * 15 -- Trace to where we look at
+            trace1 = Shared.TraceRay(src1, dst1, CollisionRep.Move, PhysicsMask.AllButPCs, filter)
+
+            local src2 = player:GetModelOrigin()
+            local dst2 = player:GetModelOrigin() + forwardDirection * 2 -- Trace to where we look at
+            trace2 = Shared.TraceRay(src2, dst2, CollisionRep.Move, PhysicsMask.AllButPCs, filter)
+
+            local viewDist = trace2.endPoint:GetDistanceTo(src2)
+            -- Still move if view dist is block, but very little and random dir to prevent exploits
+            local displAmount = trace2.fraction == 1 and 0.3 or (0.05 + (math.random(0, 1) * -0.1) )
+
+            --Log("-- %s - %s - %s", trace2.fraction, viewDist, displAmount)
+            player:SetOrigin(src1 + forwardDirection * displAmount)
+        end
     end
 
     if spawn then
         NotifyPlayer(player, "Successfully unstuck!")
         Log(string.format("Successfully unstuck %s [%s]", player:GetName(), player:GetSteamId()))
+		
+		chatMessage = "Successfully unstuck!"
+		Server.SendNetworkMessage("Chat", BuildChatMessage(false, "Admin", -1, kTeamReadyRoom, kNeutralTeamType, chatMessage), true)
+		Shared.Message("Chat All - Admin: " .. chatMessage)
+		Server.AddChatToHistory(chatMessage, "Admin", 0, kTeamReadyRoom, false)
+		
         player:SetOrigin(spawn)
         return
     end
@@ -247,6 +311,11 @@ local function OnCommandUnstuck(client)
 
     lastUnstuck[client] = Shared.GetTime() + unstickInterval
     NotifyPlayer(player, string.format("Unsticking you now please do not move the next %s seconds", unstickDelay))
+
+	chatMessage = "Attempting to unstick!"
+	Server.SendNetworkMessage("Chat", BuildChatMessage(false, "Admin", -1, kTeamReadyRoom, kNeutralTeamType, chatMessage), true)
+	Shared.Message("Chat All - Admin: " .. chatMessage)
+	Server.AddChatToHistory(chatMessage, "Admin", 0, kTeamReadyRoom, false)
 
     local origin = player:GetOrigin()
     gamerules:AddTimedCallback(function() Unstick(client, origin) end, unstickDelay )
