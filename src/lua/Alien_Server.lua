@@ -180,7 +180,7 @@ function Alien:ProcessBuyAction(techIds)
             -- Add a bit to the extents when looking for a clear space to spawn.
             local spawnBufferExtents = Vector(0.1, 0.1, 0.1)
             
-            local evolveAllowed = self:GetIsOnGround() and GetHasRoomForCapsule(eggExtents + spawnBufferExtents, position + Vector(0, eggExtents.y + Embryo.kEvolveSpawnOffset, 0), CollisionRep.Default, physicsMask, self)
+            local evolveAllowed = self:GetIsOnGround() and (not lifeFormTechId or GetHasRoomForCapsule(eggExtents + spawnBufferExtents, position + Vector(0, eggExtents.y + Embryo.kEvolveSpawnOffset, 0), CollisionRep.Default, physicsMask, self))
 
             local roomAfter
             local spawnPoint
@@ -204,7 +204,7 @@ function Alien:ProcessBuyAction(techIds)
 
             end
             
-            if not GetHasRoomForCapsule(newAlienExtents + spawnBufferExtents, self:GetOrigin() + Vector(0, newAlienExtents.y + Embryo.kEvolveSpawnOffset, 0), CollisionRep.Default, PhysicsMask.AllButPCsAndRagdollsAndBabblers, nil, EntityFilterOne(self)) then
+            if lifeFormTechId and not GetHasRoomForCapsule(newAlienExtents + spawnBufferExtents, self:GetOrigin() + Vector(0, newAlienExtents.y + Embryo.kEvolveSpawnOffset, 0), CollisionRep.Default, PhysicsMask.AllButPCsAndRagdollsAndBabblers, nil, EntityFilterOne(self)) then
            
                 for _ = 1, 100 do
 
