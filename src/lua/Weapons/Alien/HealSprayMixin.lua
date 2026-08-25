@@ -69,7 +69,7 @@ end
 function HealSprayMixin:OnSecondaryAttack(player)
 
     local enoughTimePassed = (Shared.GetTime() - self.lastSecondaryAttackTime) > self:GetSecondaryAttackDelay()
-    if player:GetSecondaryAttackLastFrame() and enoughTimePassed then
+    if enoughTimePassed and player:GetSecondaryAttackLastFrame() then
     
         if player:GetEnergy() >= self:GetSecondaryEnergyCost() then
         
