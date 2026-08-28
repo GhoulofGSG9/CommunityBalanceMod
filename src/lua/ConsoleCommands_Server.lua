@@ -280,9 +280,7 @@ local function Unstick(client, origin)
         Log(string.format("Successfully unstuck %s [%s]", player:GetName(), player:GetSteamId()))
 		
 		chatMessage = "Successfully unstuck!"
-		Server.SendNetworkMessage("Chat", BuildChatMessage(false, "Admin", -1, kTeamReadyRoom, kNeutralTeamType, chatMessage), true)
-		Shared.Message("Chat All - Admin: " .. chatMessage)
-		Server.AddChatToHistory(chatMessage, "Admin", 0, kTeamReadyRoom, false)
+		Server.SendNetworkMessage("Chat", BuildChatMessage(false, "Admin", -1, player:GetTeamNumber(), player:GetTeamNumber(), chatMessage), true)
 		
         player:SetOrigin(spawn)
         return
@@ -313,9 +311,7 @@ local function OnCommandUnstuck(client)
     NotifyPlayer(player, string.format("Unsticking you now please do not move the next %s seconds", unstickDelay))
 
 	chatMessage = "Attempting to unstick!"
-	Server.SendNetworkMessage("Chat", BuildChatMessage(false, "Admin", -1, kTeamReadyRoom, kNeutralTeamType, chatMessage), true)
-	Shared.Message("Chat All - Admin: " .. chatMessage)
-	Server.AddChatToHistory(chatMessage, "Admin", 0, kTeamReadyRoom, false)
+	Server.SendNetworkMessage("Chat", BuildChatMessage(false, "Admin", -1, player:GetTeamNumber(), player:GetTeamNumber(), chatMessage), true)
 
     local origin = player:GetOrigin()
     gamerules:AddTimedCallback(function() Unstick(client, origin) end, unstickDelay )
