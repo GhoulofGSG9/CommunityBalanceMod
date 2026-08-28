@@ -9,7 +9,7 @@
 Script.Load("lua/BalanceHealth.lua")
 Script.Load("lua/BalanceMisc.lua")
 
-kCBMaddon = true -- Enables AMAC, SPARC, SMG, Adv Obs, Adv Gate, Bio 5, and Advanced Structures; replaces carapace with rage.
+kCBMaddon = true -- Enables AMAC, SPARC, SMG, Adv Obs, Adv Gate, Bio 5, and Advanced Structures.
 
 kRelevancyRangeCap = 41 -- Relevancy range is 40 m, so 1 m buffer
 
@@ -54,7 +54,7 @@ kArmsLabCost = 20
 kAdvancedArmoryUpgradeCost = 25
 kPrototypeLabCost = 25
 
-kSentryCost = 7
+kSentryCost = 9
 kPowerNodeCost = 0
 
 kMACCost = 3
@@ -177,13 +177,13 @@ kHiveCost = 40
 kHarvesterCost = 8
 
 kShellCost = 15
-kCragCost = 8
+kCragCost = 10
 
 kSpurCost = 15
-kShiftCost = 8
+kShiftCost = 10
 
 kVeilCost = 15
-kShadeCost = 8
+kShadeCost = 10
 
 kWhipCost = 10
 kEvolveBombardCost = 5
@@ -908,7 +908,7 @@ kOnosSwitchUpgradeCost = 4
 local kUpgradesGroupedByChamber = {
     { kTechId.Crush, kTechId.Celerity, kTechId.Adrenaline },
     { kTechId.Camouflage, kTechId.Aura, kTechId.Focus },
-    { kTechId.Vampirism, (kCBMaddon and kTechId.Resilience or kTechId.Carapace), kTechId.Regeneration },
+    { kTechId.Vampirism, kTechId.Carapace, kTechId.Regeneration },
 }
 
 kTraitsInChamberMap = {}
@@ -920,7 +920,7 @@ end
 
 -- CBM Content:
 -- Fortress structures
-kFortressUpgradeCost = 20
+kFortressUpgradeCost = 18
 kFortressWhipUpgradeCost = 18
 kFortressResearchTime = 25
 kFortressAbilityCooldown = 10

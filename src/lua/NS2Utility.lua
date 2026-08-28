@@ -153,7 +153,6 @@ function GetWeaponAmmoString(weapon)
 
             if leftWeapon:isa("Railgun") then
                 leftAmmo = leftWeapon:GetChargeAmount() * 100
-                leftShots = leftWeapon:GetCellAmount()
             elseif leftWeapon:isa("PlasmaLauncher") then
                 leftAmmo = leftWeapon:GetChargeAmount() * 100
                 leftShots = math.max(0, math.floor(leftWeapon:GetChargeAmount()/kPlasmaBombEnergyCost))
@@ -163,7 +162,6 @@ function GetWeaponAmmoString(weapon)
             
             if rightWeapon:isa("Railgun")then
                 rightAmmo = rightWeapon:GetChargeAmount() * 100
-                rightShots = rightWeapon:GetCellAmount()
             elseif rightWeapon:isa("PlasmaLauncher")then
                 rightAmmo = rightWeapon:GetChargeAmount() * 100
                 rightShots = math.max(0, math.floor(rightWeapon:GetChargeAmount()/kPlasmaBombEnergyCost))
@@ -172,12 +170,16 @@ function GetWeaponAmmoString(weapon)
             end
             
             if leftAmmo > -1 and rightAmmo > -1 then
-                if leftShots > -1 or rightShots > -1 then
+                if leftShots > -1 and rightShots > -1 then -- Accounts for plasma permutations
                     ammo = string.format("%d%% / %d%% (%s/%s)", leftAmmo, rightAmmo, leftShots, rightShots)
-                else
+                elseif leftShots > -1 then
+                    ammo = string.format("%d%% / %d%% (%s/-)", leftAmmo, rightAmmo, leftShots)
+				elseif rightShots > -1 then
+                    ammo = string.format("%d%% / %d%% (-/%s)", leftAmmo, rightAmmo, rightShots)					
+                else -- dual railgun / minigun
                     ammo = string.format("%d%% / %d%%", leftAmmo, rightAmmo)
                 end
-            elseif rightAmmo > -1 then
+            elseif rightAmmo > -1 then -- Accounts for claw permutations
                 if rightShots > -1 then
                     ammo = string.format("%d%% (%s)", rightAmmo, rightShots)
                 else
