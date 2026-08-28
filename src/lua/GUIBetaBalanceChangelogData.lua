@@ -19,10 +19,53 @@ if kCBMaddon then
 	gChangelogData =
 	[[
 
-	Welcome to Build 344.1 of NS2! For feedback, bug-reports, and questions feel free to start a conversation in beta-balance-feedback
-	on the official discord! Below are the changes currently included in Build 344.1:
+	Welcome to the Community Balance Mod (CBM): Content Edition, a project built by the community, for the community.
+	This version enables all content, balance, QoL, performance optimizations, and bugfixes of the CBM suite.	
+	Ping me, @Shifter (project lead) or @NexZone30 (dev lead), in any of the NS2 discords, 
+	or start a conversation in beta-balance-feedback on the official discord to let us know 
+	you think! Below are the changes this mod introduces:
 
-	#TLDR of Build 344.1: Content Edition vs. Build 344:
+	#TLDR of v3.6 Playtest 4:
+	
+	## Balance Changes
+	  - Fixed vanilla bug with railgunTargetMixin (enemy highlight), increased refresh rate, and changed color back to TSF blue.
+	  - Exo thrusters use 3x the fuel when off the ground instead of 2x the fuel.
+	  - Updated classic ammo counter system to display avaliable shots for plasma launcher.
+	  - AMAC given minor rework to lower skill floor and reduce power ceiling.
+	  - Base alien support structures now all cost 10 tres from 8 (Advanced to 18 tres from 20).
+	  - Sentry now costs 9 tres instead of 7.
+	  - All cloaked structures partially reveal when within 1 m.
+	  - Lerks can no longer hit spikes outside relevancy range.
+	  - Clip weapons and exos can no longer to hit outside of relevancy range.
+	  - Adjusted drifter "snap" range to 2 from 3 m.
+	  - Giving babblers can now give score.
+	  - Resilience and aura reverted to vanilla.
+	  
+	## QoL
+	  - Reworked minimap blips to appear and disappear more consistently (combat checks + reveal duration minimums).
+	  - Commanders can now see clogs revealed by players (must be damaged or collided with).
+	  - Unstuck (vanilla console command) improved.
+	  - Upgrade buying and switching as a lifeform improved (better egg placement).
+	
+	## Bugfixes and Game Performance Optimizations
+	  - Further fixes to collisions and movement.
+	  - Fixed marine bots not being able to target specific structures due to minimap blips.
+	  - Improved performance of line of sight functions.
+	  - Improved performance of weapon holder functions.
+	  - Improved performance of cloaking functions.
+	  - Improved performance of player functions.
+	  - Improved performance of minimap blips.
+	  - Improved performance and refactored fire related functions.
+	  - Improved performance of energy functions.
+	  - Improved performance of animation input related functions.
+	  - Improved performance of entity change functions.
+	  - Improved performance of phase gate functions.
+	  - Improved performance of sleeper functions.
+	  - Lowered game network demand.
+	  
+	### Be sure to thank Katzenfleisch for the performance optimizations!
+
+	#TLDR of CBM: Content Edition vs. Build 344:
 	
 	## MARINE
 	  - Reworks to existing marines structures (sentry, sentry battery, and prototype lab).
@@ -524,10 +567,53 @@ else
 	gChangelogData =
 	[[
 
-	Welcome to Build 344.1 of NS2! For feedback, bug-reports, and questions feel free to start a conversation in beta-balance-feedback
-	on the official discord! Below are the changes currently included in Build 344.1:
+	Welcome to the Community Balance Mod (CBM): Content Edition, a project built by the community, for the community.
+	This version enables all content, balance, QoL, performance optimizations, and bugfixes of the CBM suite.	
+	Ping me, @Shifter (project lead) or @NexZone30 (dev lead), in any of the NS2 discords, 
+	or start a conversation in beta-balance-feedback on the official discord to let us know 
+	you think! Below are the changes this mod introduces:
 
-	#TLDR of Build 344.1: Content Edition vs. Build 344:
+	#TLDR of v3.6 Playtest 4:
+	
+	## Balance Changes
+	  - Fixed vanilla bug with railgunTargetMixin (enemy highlight), increased refresh rate, and changed color back to TSF blue.
+	  - Exo thrusters use 3x the fuel when off the ground instead of 2x the fuel.
+	  - Updated classic ammo counter system to display avaliable shots for plasma launcher.
+	  - AMAC given minor rework to lower skill floor and reduce power ceiling.
+	  - Base alien support structures now all cost 10 tres from 8 (Advanced to 18 tres from 20).
+	  - Sentry now costs 9 tres instead of 7.
+	  - All cloaked structures partially reveal when within 1 m.
+	  - Lerks can no longer hit spikes outside relevancy range.
+	  - Clip weapons and exos can no longer to hit outside of relevancy range.
+	  - Adjusted drifter "snap" range to 2 from 3 m.
+	  - Giving babblers can now give score.
+	  - Resilience and aura reverted to vanilla.
+	  
+	## QoL
+	  - Reworked minimap blips to appear and disappear more consistently (combat checks + reveal duration minimums).
+	  - Commanders can now see clogs revealed by players (must be damaged or collided with).
+	  - Unstuck (vanilla console command) improved.
+	  - Upgrade buying and switching as a lifeform improved (better egg placement).
+	
+	## Bugfixes and Game Performance Optimizations
+	  - Further fixes to collisions and movement.
+	  - Fixed marine bots not being able to target specific structures due to minimap blips.
+	  - Improved performance of line of sight functions.
+	  - Improved performance of weapon holder functions.
+	  - Improved performance of cloaking functions.
+	  - Improved performance of player functions.
+	  - Improved performance of minimap blips.
+	  - Improved performance and refactored fire related functions.
+	  - Improved performance of energy functions.
+	  - Improved performance of animation input related functions.
+	  - Improved performance of entity change functions.
+	  - Improved performance of phase gate functions.
+	  - Improved performance of sleeper functions.
+	  - Lowered game network demand.
+	  
+	### Be sure to thank Katzenfleisch for the performance optimizations!
+
+	#TLDR of CBM: Core Edition vs. Build 344:
 	
 	## MARINE
 	  - Reworks to existing marines structures (sentry, sentry battery, and prototype lab).

@@ -54,7 +54,7 @@ kArmsLabCost = 20
 kAdvancedArmoryUpgradeCost = 25
 kPrototypeLabCost = 25
 
-kSentryCost = 7
+kSentryCost = 9
 kPowerNodeCost = 0
 
 kMACCost = 3
