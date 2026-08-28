@@ -19,43 +19,10 @@ if kCBMaddon then
 	gChangelogData =
 	[[
 
-	Welcome to the Community Balance Mod (CBM): Content Edition, a project built by the community, for the community.
-	This version enables all content, balance, QoL, performance optimizations, and bugfixes of the CBM suite.	
-	Ping me, @Shifter (project lead) or @NexZone30 (dev lead), in any of the NS2 discords, 
-	or start a conversation in beta-balance-feedback on the official discord to let us know 
-	you think! Below are the changes this mod introduces:
+	Welcome to Build 344.1 of NS2! For feedback, bug-reports, and questions feel free to start a conversation in beta-balance-feedback
+	on the official discord! Below are the changes currently included in Build 344.1:
 
-	#TLDR of v3.6 Playtest 3:
-	
-	## Balance Changes
-	  - Railgun reworked to use heat system.
-	  - Fixed vanilla bug with railgunTargetMixin (enemy highlight), increased refresh rate, and changed color back to TSF blue.
-	  - Exo thrusters use 3x the fuel when off the ground instead of 2x the fuel.
-	  - Updated classic ammo counter system to display avaliable shots for plasma launcher.
-	  - AMAC given minor rework to lower skill floor and reduce power ceiling.
-	  - All cloaked structures partially reveal when within 1 m.
-	  - Lerks can no longer hit spikes outside relevancy range.
-	  - Clip weapons and exos can no longer to hit outside of relevancy range.
-	  - Adjusted drifter "snap" range to 2 from 3 m.
-	  - Giving babblers can now give score.
-	
-	## Bugfixes and Game Performance Optimizations
-	  - Further fixes to collisions and movement.
-	  - Fixed marine bots not being able to target specific structures due to minimap blips.
-	  - Improved performance of line of sight functions.
-	  - Improved performance of weapon holder functions.
-	  - Improved performance of cloaking functions.
-	  - Improved performance of player functions.
-	  - Improved performance of minimap blips.
-	  - Improved performance and refactored fire related functions.
-	  - Improved performance of energy functions.
-	  - Improved performance of animation input related functions.
-	  - Improved performance of entity change functions.
-	  - Improved performance of phase gate functions.
-	  
-	### Be sure to thank Katzenfleisch for the performance optimizations!
-	  
-	#TLDR of Community Balance Mod (v3.6 - PT2) vs. Vanilla:
+	#TLDR of Build 344.1: Content Edition vs. Build 344:
 	
 	## MARINE
 	  - Reworks to existing marines structures (sentry, sentry battery, and prototype lab).
@@ -65,13 +32,13 @@ if kCBMaddon then
 	  - Weapon upgrades further increase structure damage.
 	  - New infantry weapon (SMG).
 	  - Rebalance of pulse grenades and extension to electrify debuff (works on PvE).
-
+	  
 	## ALIEN
 	  - Rebalance of existing alien support structures (reduced eHP, cost, and size; increased movement speed).
 	  - New alien support structure upgrades (advanced crag, shift, shade, and whip) with powerful abilities.
 	  - Hive biomass 5 introduced (2 hive xeno).
 	  - Rework and bugfixes to onos stomp.
-	  - Rework of cloak, carapace replacement (rage), and aura nerf.
+	  - Rework of cloak.
 	  - New gorge ability (babbler bomb).
 
 	## GENERAL
@@ -103,7 +70,7 @@ if kCBMaddon then
 	### QoL / General Improvements
 	  - Player and structure highlight shader made more pronounced to improve visual acuity.
 	  - Changed point rewards for building structures from 4 points to be tied to the build time.
-	  - Removed point reward for building hydras.
+	  - Removed point reward for building hydras, but added score for applying babblers.
 	  - Rerouted techs to illustrate proper tech and structure requirements.
 	  - Replaced babblertech and webs with nutrient mist at bio 1.
 	  - Improved nanoshield surface shader so that it more clearly appears on all entities.
@@ -113,6 +80,8 @@ if kCBMaddon then
 	  - Hotkeyed units are underlined for commanders when attacked for better visibility.
 	  - Alien structures partially uncloak when nearby.
 	  - Capped weapon range to relevancy range.
+	  - Clogs now reveal to commanders when a marine damages or touches them.
+	  - All cloaked structures partially reveal when within 1 m.
 	  
 	### Minimap Updates
 	  - Players are able to see if a hive is at <34%, <67% or <=100% maturity
@@ -147,6 +116,8 @@ if kCBMaddon then
 	  - Fixed cyst popping on expanding across the map.
 	  - Fixed nil error on phasegates.
 	  - Fixed mine being triggered outside of damage range and improved responsiveness of detection.
+	  - Fixed issues with minimap blips flickering and not revealing.
+	  - Fixed hitscan and projectile weapons being able to hit outside relevancy range. 
 
 	### Vanilla Codebase Optimizations
 	  - Refactored and optimized the way the game processes and confirms damage, collisions, and movement.
@@ -160,6 +131,17 @@ if kCBMaddon then
 	  - Optimized bot functions and calls.
 	  - Optimized pregame functions and calls.
 	  - Optimized spectate related functions and calls.
+	  - Improved performance of line of sight functions.
+	  - Improved performance of weapon holder functions.
+	  - Improved performance of cloaking functions.
+	  - Improved performance of player functions.
+	  - Improved performance of minimap blips.
+	  - Improved performance and refactored fire related functions.
+	  - Improved performance of energy functions.
+	  - Improved performance of animation input related functions.
+	  - Improved performance of entity change functions.
+	  - Improved performance of phase gate functions.
+	  - Improved performance of sleeper functions.
 
 	## MARINE - PLAYER
 	### Modular Exosuits
@@ -187,13 +169,12 @@ if kCBMaddon then
 	### Railgun 
 	  - Railgun reworked to be more forgiving and deal less burst damage.
 	  - Firing cooldown set to 1s from 1.4s.
-	  - Charge system replaced with heat system.
-	  - Base damage is now 48 from 10/150.
-		- Maximum burst is 96 (192 for structures) at W0. Down from ~170 (340) in vanilla.
-		- Maximum burst DPS is 96 (192 for structures) at W0. Up from ~88 (176) in vanilla.
-		- Maximum sustained DPS avoiding overheating is 57 (114 for structures) at W0. Down from ~88 (176) in vanilla.
-	  - Lockout time due to overheat time is 5s.
-	  - Maximum range set to 30 m.
+	  - Charge time to 1s from 2s.
+	  - Shots can be stored for 2s.
+	  - Base damage range is now 35 (0% charge) to 70 (100% charge) from 10/150.
+		- Maximum burst is 140 (280 for structures) at W0. Down from ~170 (340) in vanilla.
+		- Maximum DPS is 70 (140 for structures) at W0. Down from ~88 (176) in vanilla.
+	  - Maximum range set to 30 m and falloff removed.
 	  - Dual railgun now allows simultaneous firing of both arms.
 	  - Target highlighting now works on all lifeforms and alien structures (TSF blue).
 	  - Target highlighting now matches the maximum range of the railgun.
@@ -404,12 +385,6 @@ if kCBMaddon then
 		- Lerk: 2 (Changed)
 		- Fade: 3 (Changed)
 		- Onos: 4 (Changed)
-	  - Rage:
-	    - Replaces Carapace
-	    - Increases energy regeneration rate for 3s after taking damage (+16.67% per shell).
-	  - Aura:
-	    - No longer reveals health information (moved to Advanced Shade)
-	    - Icon is always yellow.
       - Camouflage:
 	    - Shaders completely reworked to ensure camo is competitive with other upgrades.
 	    - Cloaking reveal range and rate depend more heavily on veil amount.
@@ -472,7 +447,7 @@ if kCBMaddon then
 	  - Shells: Selfheal (1% each healing cycle)
 
 	### Base Support Structures
-	  - Reduced cost to 8 tres (10 tres for whips) from 13 tres.
+	  - Reduced cost to 10 tres from 13 tres.
 	  - Base speed increased by 25%.
 	  - eHP changed to unify time to kill.
 	    - eHP for Shift/Crag/Shade/Whip is now 600/600/600/750 at 0% maturity.
@@ -499,7 +474,7 @@ if kCBMaddon then
 	  - New passives when specific hive tech is researched.
 	  - Advanced structure passives are only active when structure is stationary.
 	  - New UI element for passives and updated tooltips.
-	  - Advanced upgrade costs 20 tres (18 tres for advanced whip - same total)
+	  - Advanced upgrade costs 18 tres
 	  - Advanced Shift:
 		- Stormcloud auto-casts every 5s and buff lasts 5s outside of application range.
 		- Stormcloud gives a flat speed buff (+1.5/1.5/1.25/0.75 m/s) depending on spur level (0/1/2/3). 
@@ -549,43 +524,10 @@ else
 	gChangelogData =
 	[[
 
-	Welcome to the Community Balance Mod (CBM): Core Edition, a project built by the community, for the community.
-    This version only enables the balance, QoL, performance optimizations, and bugfixes of the CBM suite.
-	Ping me, @Shifter (project lead) or @NexZone30 (dev lead), in any of the NS2 discords, 
-	or start a conversation in beta-balance-feedback on the official discord to let us know 
-	you think! Below are the changes this mod introduces:
+	Welcome to Build 344.1 of NS2! For feedback, bug-reports, and questions feel free to start a conversation in beta-balance-feedback
+	on the official discord! Below are the changes currently included in Build 344.1:
 
-	#TLDR of Recent Release (v3.5):
-	
-	### CBM optimizations support increased game rates based on our recommendations (see CBM discord)!
-	### Server owners test your servers, up your rates (see CBM discord for guidance)!
-	
-	## Balance Changes
-	  - Nerfs to exosuit movement and thruster.
-	  - Claw armor increased from 75 to 115.
-	  - Plasma launcher sphere collisions improved and DoT application bugfixed.
-	  - Jetpack tech cost reduced from 25 to 20.
-	  - Mines can no longer be placed inside the center of gates.
-	  - Pulse nade now deals 15 from 10 damage (to one shot babblers).
-	  - Boneshield blocks shots from railgun from piercing and doing health pool damage.
-	
-	##  Vanilla Bugfixes and Enhanced Performance
-	  - Vanilla bugfixes to ARC and whip ragdoll related server hitching and crashes.
-      - Vanilla bugfix to welder stopping welding when accidently aiming at a target's weapon.
-	  - Vanilla bugfix to static DoTs (plasma and bile affected) that decreased target acquisition time by >0.5s.
-	  - Vanilla bugfix to cyst popping on expanding across the map.
-	  - Vanilla bugfix to nil error on phasegates.
-	  - Vanilla bugfix for mine being triggered outside of damage range and improved responsiveness of detection.
-      - Extensive lua code refactor and debottlenecking, improving client/server performance (see CBM discord for extensive breakdown).
-      - Vanilla bugfixes related to game rate increases.
-	  - Vanilla bugfixes to collisions:
-	    - Not affected by rate changes.
-		- Better for PvP (less getting stuck / phasing through people).
-		- Better when hitting geometry (many stuck spots fixed)
-
-	###Be sure to thank Katzenfleisch for his amazing work on the NS2 codebase optimizations!
-
-	#TLDR of Community Balance Mod (v3.5) vs. Vanilla:
+	#TLDR of Build 344.1: Content Edition vs. Build 344:
 	
 	## MARINE
 	  - Reworks to existing marines structures (sentry, sentry battery, and prototype lab).
@@ -596,7 +538,7 @@ else
 	## ALIEN
 	  - Rebalance of existing alien support structures (reduced eHP, cost, and size; increased movement speed).
 	  - Rework and bugfixes to onos stomp.
-	  - Rework of cloak and aura nerf.
+	  - Rework of cloak.
 
 	## GENERAL
 	  - Complete rewrite of MAC and drifter AI with updated command card.
@@ -626,7 +568,7 @@ else
 	### QoL / General Improvements
 	  - Player and structure highlight shader made more pronounced to improve visual acuity.
 	  - Changed point rewards for building structures from 4 points to be tied to the build time.
-	  - Removed point reward for building hydras.
+	  - Removed point reward for building hydras, but added score for applying babblers.
 	  - Rerouted techs to illustrate proper tech and structure requirements.
 	  - Replaced babblertech and webs with nutrient mist at bio 1.
 	  - Improved nanoshield surface shader so that it more clearly appears on all entities.
@@ -634,6 +576,10 @@ else
 	    - Marine tech map rearranged to better delineate tech progression and dependencies (purple lines).
 	  - Improved blueprint placement (options -> mods -> CBM: Accessibility Options).
 	  - Hotkeyed units are underlined for commanders when attacked for better visibility.
+	  - Alien structures partially uncloak when nearby.
+	  - Capped weapon range to relevancy range.
+	  - Clogs now reveal to commanders when a marine damages or touches them.
+	  - All cloaked structures partially reveal when within 1 m.
 	  
 	### Minimap Updates
 	  - Players are able to see if a hive is at <34%, <67% or <=100% maturity
@@ -667,6 +613,8 @@ else
 	  - Fixed cyst popping on expanding across the map.
 	  - Fixed nil error on phasegates.
 	  - Fixed mine being triggered outside of damage range and improved responsiveness of detection.
+	  - Fixed issues with minimap blips flickering and not revealing.
+	  - Fixed hitscan and projectile weapons being able to hit outside relevancy range. 
 
 	### Vanilla Codebase Optimizations
 	  - Refactored and optimized the way the game processes and confirms damage, collisions, and movement.
@@ -680,6 +628,17 @@ else
 	  - Optimized bot functions and calls.
 	  - Optimized pregame functions and calls.
 	  - Optimized spectate related functions and calls.
+	  - Improved performance of line of sight functions.
+	  - Improved performance of weapon holder functions.
+	  - Improved performance of cloaking functions.
+	  - Improved performance of player functions.
+	  - Improved performance of minimap blips.
+	  - Improved performance and refactored fire related functions.
+	  - Improved performance of energy functions.
+	  - Improved performance of animation input related functions.
+	  - Improved performance of entity change functions.
+	  - Improved performance of phase gate functions.
+	  - Improved performance of sleeper functions.
 
 	## MARINE - PLAYER
 	### Modular Exosuits
@@ -700,21 +659,22 @@ else
 		  - Min 25% activation energy required and initial 12.5% fuel cost when activated.
 		  - Vertical boost automatically activates upon holding space bar and stacks with base jump.
 		  - Vertical boost has high initial acceleration, but slows down over time.
-		  - Flying uses twice the amount of energy as moving along the ground.
+		  - Flying uses triple the amount of energy as moving along the ground.
 	  - Settings to make duals fire both arms upon primary attack (options -> mods -> CBM: Accessibility Options)
 
 	### Railgun 
-	  - Railgun reworked to be more forgiving and less "bursty".
+	  - Railgun reworked to be more forgiving and deal less burst damage.
 	  - Firing cooldown set to 1s from 1.4s.
 	  - Charge time to 1s from 2s.
 	  - Shots can be stored for 2s.
 	  - Base damage range is now 35 (0% charge) to 70 (100% charge) from 10/150.
 		- Maximum burst is 140 (280 for structures) at W0. Down from ~170 (340) in vanilla.
 		- Maximum DPS is 70 (140 for structures) at W0. Down from ~88 (176) in vanilla.
-	  - Maximum range set to 30 m.
+	  - Maximum range set to 30 m and falloff removed.
 	  - Dual railgun now allows simultaneous firing of both arms.
-	  - Target highlighting now works on all lifeforms and alien structures (red).
+	  - Target highlighting now works on all lifeforms and alien structures (TSF blue).
 	  - Target highlighting now matches the maximum range of the railgun.
+	  - Target highlighting now refreshes faster.
 
 	### Plasma Launcher
 	  - Energy based weapon. Energy regens over time (25%/s).
@@ -854,9 +814,6 @@ else
 		- Lerk: 2 (Changed)
 		- Fade: 3 (Changed)
 		- Onos: 4 (Changed)
-	  - Aura:
-	    - No longer reveals health information (moved to Advanced Shade)
-	    - Icon is always yellow.
       - Camouflage:
 	    - Shaders completely reworked to ensure camo is competitive with other upgrades.
 	    - Cloaking reveal range and rate depend more heavily on veil amount.
@@ -908,7 +865,7 @@ else
 	  - Shells: Selfheal (1% each healing cycle)
 
 	### Base Support Structures
-	  - Reduced cost to 8 tres (10 tres for whips) from 13 tres.
+	  - Reduced cost to 10 tres from 13 tres.
 	  - Base speed increased by 25%.
 	  - eHP changed to unify time to kill.
 	    - eHP for Shift/Crag/Shade/Whip is now 600/600/600/750 at 0% maturity.
