@@ -278,10 +278,7 @@ local function Unstick(client, origin)
     if spawn then
         NotifyPlayer(player, "Successfully unstuck!")
         Log(string.format("Successfully unstuck %s [%s]", player:GetName(), player:GetSteamId()))
-		
-		chatMessage = "Successfully unstuck!"
-		Server.SendNetworkMessage("Chat", BuildChatMessage(false, "Admin", -1, player:GetTeamNumber(), player:GetTeamNumber(), chatMessage), true)
-		
+				
         player:SetOrigin(spawn)
         return
     end
@@ -309,9 +306,6 @@ local function OnCommandUnstuck(client)
 
     lastUnstuck[client] = Shared.GetTime() + unstickInterval
     NotifyPlayer(player, string.format("Unsticking you now please do not move the next %s seconds", unstickDelay))
-
-	chatMessage = "Attempting to unstick!"
-	Server.SendNetworkMessage("Chat", BuildChatMessage(false, "Admin", -1, player:GetTeamNumber(), player:GetTeamNumber(), chatMessage), true)
 
     local origin = player:GetOrigin()
     gamerules:AddTimedCallback(function() Unstick(client, origin) end, unstickDelay )
