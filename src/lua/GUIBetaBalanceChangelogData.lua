@@ -35,8 +35,8 @@ if kCBMaddon then
 	  - Base alien support structures now all cost 10 tres from 8 (Advanced to 18 tres from 20).
 	  - Sentry now costs 9 tres instead of 7.
 	  - All cloaked structures partially reveal when within 1 m.
-	  - Lerks can no longer hit spikes outside relevancy range.
-	  - Clip weapons and exos can no longer to hit outside of relevancy range.
+	  - Lerks are no longer able to hit spikes outside relevancy range.
+	  - Clip weapons and exos are no longer able to hit outside of relevancy range.
 	  - Adjusted drifter "snap" range to 2 from 3 m.
 	  - Giving babblers can now give score.
 	  - Resilience and aura reverted to vanilla.
@@ -583,8 +583,8 @@ else
 	  - Base alien support structures now all cost 10 tres from 8 (Advanced to 18 tres from 20).
 	  - Sentry now costs 9 tres instead of 7.
 	  - All cloaked structures partially reveal when within 1 m.
-	  - Lerks can no longer hit spikes outside relevancy range.
-	  - Clip weapons and exos can no longer to hit outside of relevancy range.
+	  - Lerks are no longer able to hit spikes outside relevancy range.
+	  - Clip weapons and exos are no longer able to hit outside of relevancy range.
 	  - Adjusted drifter "snap" range to 2 from 3 m.
 	  - Giving babblers can now give score.
 	  - Resilience and aura reverted to vanilla.
