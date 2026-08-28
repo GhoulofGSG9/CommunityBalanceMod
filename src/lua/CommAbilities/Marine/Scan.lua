@@ -105,7 +105,7 @@ if Server then
 
         else
 
-            local enemies = GetEntitiesForTeamWithinXZRange(GetEnemyTeamNumber(self:GetTeamNumber()), self:GetOrigin(), Scan.kScanDistance)
+            local enemies = GetEntitiesForTeamWithinXZRange("Entity", GetEnemyTeamNumber(self:GetTeamNumber()), self:GetOrigin(), Scan.kScanDistance)
             for _, enemy in ipairs(enemies) do
                 self:ScanEntity(enemy)
             end

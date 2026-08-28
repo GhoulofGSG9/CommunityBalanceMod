@@ -144,7 +144,7 @@ if Server then
     function Clog:OnScan()
         local now = Shared.GetTime()
         self:SetExcludeRelevancyMask(kDefaultMaskBoth)
-        self.timeOfRelevancyReset = now + kClogRelevancyDurationMin
+        self.timeOfRelevancyReset = now + kScanDuration
     end
 
     -- Includes other team commander
