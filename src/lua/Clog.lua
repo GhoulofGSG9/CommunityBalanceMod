@@ -141,6 +141,12 @@ if Server then
         return true
     end
 
+    function Clog:OnScan()
+        local now = Shared.GetTime()
+        self:SetExcludeRelevancyMask(kDefaultMaskBoth)
+        self.timeOfRelevancyReset = now + kClogRelevancyDurationMin
+    end
+
     -- Includes other team commander
     -- since clog are very light entitythey don't have LOSMixin
     -- This is a good enough and light solution (if damage or collision)
