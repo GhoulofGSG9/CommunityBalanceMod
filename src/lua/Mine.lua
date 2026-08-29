@@ -123,7 +123,6 @@ function Mine:Detonate()
     if not self.active then return end
 
     local orig = self:GetAttachPointOriginHardcoded()
-    DebugLine(self:GetOrigin(), orig, 10, 1, 1, 1, 1)
 
     local hitEntities = GetEntitiesWithMixinWithinRange("Live", orig, kMineDetonateRange)
 
