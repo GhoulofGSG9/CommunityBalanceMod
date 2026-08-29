@@ -181,6 +181,7 @@ local function DropStructure(self, player)
     if Server then
     
         local _, coords, valid = self:GetPositionForStructure(player)
+
         if valid then
         
             -- Create mine.
@@ -332,7 +333,7 @@ function LayMines:GetPositionForStructure(player)
             isPositionValid = false
         end
 
-        local nearbyMines = GetEntitiesForTeamWithinRange("Mine", player:GetTeamNumber(), displayOrigin, 0.6)
+        local nearbyMines = GetEntitiesForTeamWithinRange("Mine", player:GetTeamNumber(), displayOrigin, 0.5)
         if #nearbyMines > 0 then
             isPositionValid = false
             --Log("Mine -- Nearby mines found, position not valid")
@@ -368,6 +369,54 @@ function LayMines:GetPositionForStructure(player)
         
     end
     
+
+    -- Extra check to mitigate invisible mines inside geo
+    -- At least X points of the mines need to be damageable
+    if isPositionValid then
+        local extents =  GetExtents(kTechId.Mine)
+        local orig = structPosition.origin
+        local xAxis = structPosition.xAxis
+        local yAxis = structPosition.yAxis
+        local zAxis = structPosition.zAxis
+        local printDebugLines = false
+
+        if printDebugLines then
+            DebugLine(orig, orig + xAxis * 2, 0.1, 1, 1, 1, 1)
+            DebugLine(orig, orig + zAxis * 2, 0.1, 1, 0, 0, 1)
+        end
+        -- DebugLine(orig, orig + zAxis * 2, 0.1, 1, 1, 1, 1)
+
+        local c1 = orig + xAxis * extents.x/2 + zAxis * extents.z/2
+        local c2 = orig - xAxis * extents.x/2 + zAxis * extents.z/2
+        local c3 = orig + xAxis * extents.x/2 - zAxis * extents.z/2
+        local c4 = orig - xAxis * extents.x/2 - zAxis * extents.z/2
+
+        local numPointsVisible = 0
+        local minNumPointsVisible = 4 -- Out of 4 edges
+
+        for i, o in ipairs({c1, c2, c3, c4}) do
+            local sp = orig + yAxis * 0.25 --player:GetEyePos()
+            local ep = o
+
+            if printDebugLines then
+                DebugLine(sp, ep, 0.1, 0, 0, 1, 1)
+            end
+
+            local trace = Shared.TraceRay(sp, ep, CollisionRep.Damage, PhysicsMask.Bullets, EntityFilterAllButIsa("Door"))
+            if trace.fraction == 1 or trace.endPoint:GetDistanceTo(o) < 0.1 then -- small 0.1m tolerance
+                numPointsVisible = numPointsVisible + 1
+            end
+            isPositionValid = (numPointsVisible >= minNumPointsVisible)
+            if isPositionValid then
+                break
+            end
+        end
+        -- local extents = GetDirectedExtentsForDiameter(player:GetViewCoords().zAxis, self:GetExtents().x / 2)
+        -- local trace = Shared.TraceBox(extents, player:GetEyePos(), coords.origin,  CollisionRep.Damage, PhysicsMask.Bullets, EntityFilterAll())
+        -- valid = (trace.fraction == 1)
+        -- Log("Trace fraction ? %s", trace.fraction)
+    end
+
     return foundPositionInRange, structPosition, isPositionValid
     
 end
@@ -390,11 +439,12 @@ if Client then
     
         local player = self:GetParent()
         
-        if player then
+        if player and player:GetActiveWeaponName() == LayMines.kMapName then
         
             self.showGhost, self.ghostCoords, self.placementValid = self:GetPositionForStructure(player)
             self.showGhost = self.showGhost and self.minesLeft > 0
-            
+        else
+            self.showGhost = false
         end
         
     end
