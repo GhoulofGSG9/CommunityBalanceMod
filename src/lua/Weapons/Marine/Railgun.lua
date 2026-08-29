@@ -19,17 +19,14 @@ class 'Railgun' (Entity)
 
 Railgun.kMapName = "railgun"
 
-local kChargeTime = 1.0 -- Changed from vanilla value 2
+local kChargeTime = 1 -- Changed from vanilla value 2
 -- The Railgun will automatically shoot if it is charged for too long.
 local kChargeForceShootTime = 2.5 --  vanilla value 2.5
 local kRailgunRange = 30 -- Vanilla 400
 local kRailgunSpread = Math.Radians(0)
 local kBulletSize = 0.3
 
-local kRailgunChargeTime = 1.0 -- Vanilla 1.4
-local kRailgunCellRechargeTime = 3.0
-
-local kMaxCells = 4
+local kRailgunChargeTime = 1 -- Vanilla 1.4
 
 local kChargeSound = PrecacheAsset("sound/NS2.fev/marine/heavy/railgun_charge")
 
@@ -41,12 +38,7 @@ local networkVars =
     timeChargeStarted = "time",
     railgunAttacking = "boolean",
     lockCharging = "boolean",
-    timeOfLastShot = "time",
-    energyAnimation = "float (0 to 1 by 0.01)",
-    timeLastReload = "time",
-    numCells = "integer (0 to 4)",
-    ReloadLastFrame = "boolean",
-    isReloading = "boolean",
+    timeOfLastShot = "time"
 }
 
 AddMixinNetworkVars(TechMixin, networkVars)
@@ -70,11 +62,6 @@ function Railgun:OnCreate()
     self.railgunAttacking = false
     self.lockCharging = false
     self.timeOfLastShot = 0
-    self.energyAnimation = 0
-    self.timeLastReload = Shared.GetTime()
-    self.numCells = 0
-    self.ReloadLastFrame = false
-    self.isReloading = false
     
     if Client then
     
@@ -215,11 +202,7 @@ function Railgun:GetDeathIconIndex()
 end
 
 function Railgun:GetChargeAmount()
-    return self.isReloading and math.min(1, (Shared.GetTime() - self.timeLastReload) / kRailgunCellRechargeTime) or 0
-end
-
-function Railgun:GetCellAmount()
-    return self.numCells
+    return self.railgunAttacking and math.min(1, (Shared.GetTime() - self.timeChargeStarted) / kChargeTime) or 0
 end
 
 local function TriggerSteamEffect(self, player)
@@ -254,17 +237,15 @@ local function ExecuteShot(self, startPoint, endPoint, player)
         if capsuleTrace.entity then
 
             if not table.find(hitEntities, capsuleTrace.entity) then
-
                 table.insert(hitEntities, capsuleTrace.entity)
                 self:DoDamage(damage, capsuleTrace.entity, capsuleTrace.endPoint + hitPointOffset, direction, capsuleTrace.surface, false, false)
-            end
-            
-            if capsuleTrace.entity:isa("Onos") then
-                if capsuleTrace.entity:GetIsBoneShieldActive() and capsuleTrace.entity:GetHitsBoneShield(self, capsuleTrace.endPoint + hitPointOffset) then
-                    break
-                end
-            end
-            
+				
+				if capsuleTrace.entity:isa("Onos") then
+					if capsuleTrace.entity:GetIsBoneShieldActive() and capsuleTrace.entity:GetHitsBoneShield(self, capsuleTrace.endPoint + hitPointOffset) then
+						break
+					end
+				end
+            end		
         end
 
         -- Stop looping early if we've reached the end.
@@ -348,24 +329,14 @@ end
 
 function Railgun:ProcessMoveOnWeapon(player, input)
 
-    local timeNow = Shared.GetTime()
-    local reloadPressed = bit.band(input.commands, Move.Reload) ~= 0
-
-    if (not self.ReloadLastFrame and reloadPressed and self.numCells < kMaxCells) or self.numCells < 1 then
-        if self.isReloading == false then
-            self.timeLastReload = timeNow
+    if self.railgunAttacking then
+    
+        if (Shared.GetTime() - self.timeChargeStarted) >= kChargeForceShootTime then
+            self.railgunAttacking = false
         end
-        self.isReloading = true 
-    end
         
-    if self.isReloading then
-        if timeNow - self.timeLastReload >= kRailgunCellRechargeTime then
-            self.numCells = kMaxCells
-            self.isReloading = false
-        end
     end
     
-    self.ReloadLastFrame = reloadPressed
 end
 
 function Railgun:OnUpdateRender()
@@ -383,7 +354,7 @@ function Railgun:OnUpdateRender()
             local renderModel = viewModel:GetRenderModel()
             renderModel:SetMaterialParameter("chargeAmount" .. self:GetExoWeaponSlotName(), chargeAmount)
             renderModel:SetMaterialParameter("timeSinceLastShot" .. self:GetExoWeaponSlotName(), Shared.GetTime() - self.timeOfLastShot)
-            renderModel:SetMaterialParameter("cellAmount" .. self:GetExoWeaponSlotName(), self.numCells)
+            
         end
         
         local chargeDisplayUI = self.chargeDisplayUI
@@ -398,7 +369,6 @@ function Railgun:OnUpdateRender()
         
         chargeDisplayUI:SetGlobal("chargeAmount" .. self:GetExoWeaponSlotName(), chargeAmount)
         chargeDisplayUI:SetGlobal("timeSinceLastShot" .. self:GetExoWeaponSlotName(), Shared.GetTime() - self.timeOfLastShot)
-        chargeDisplayUI:SetGlobal("cellAmount" .. self:GetExoWeaponSlotName(), self.numCells)
         
     else
     
@@ -412,9 +382,16 @@ function Railgun:OnUpdateRender()
     end
     
     if self.chargeSound then
-        if self:GetPrimaryAttacking() and self.numCells >= 1 and not self.chargeSound:GetIsPlaying() then
+    
+        local playing = self.chargeSound:GetIsPlaying()
+        if not playing and chargeAmount > 0 then
             self.chargeSound:Start()
+        elseif playing and chargeAmount <= 0 then
+            self.chargeSound:Stop()
         end
+        
+        self.chargeSound:SetParameter("charge", chargeAmount, 1)
+        
     end
     
 end
@@ -424,22 +401,21 @@ function Railgun:OnTag(tagName)
     PROFILE("Railgun:OnTag")
     
     if self:GetIsLeftSlot() then
-        if tagName == "l_shoot" and self.numCells > 0 then
+    
+        if tagName == "l_shoot" then
             Shoot(self, true)
-            if Server then  
-                self.numCells = math.max(0,self.numCells - 1)
-                self.isReloading = false
-            end
+        elseif tagName == "l_shoot_end" then
+            self.lockCharging = false
         end
         
     elseif not self:GetIsLeftSlot() then
-        if tagName == "r_shoot" and self.numCells > 0 then
+    
+        if tagName == "r_shoot" then
             Shoot(self, false)
-            if Server then
-                self.numCells = math.max(0,self.numCells - 1)
-                self.isReloading = false
-            end
+        elseif tagName == "r_shoot_end" then
+            self.lockCharging = false
         end
+        
     end
     
 end
@@ -448,7 +424,7 @@ end
 function Railgun:OnUpdateAnimationInput(modelMixin)
 
     local activity = "none"
-    if self.railgunAttacking and self.numCells > 0 then
+    if self.railgunAttacking then
         activity = "primary"
     end
     modelMixin:SetAnimationInput("activity_" .. self:GetExoWeaponSlotName(), activity)
@@ -474,7 +450,7 @@ if Client then
     
         local parent = self:GetParent()
         
-        if parent and self.numCells > 0 then
+        if parent then
 
             local attachPoint
             if parent:GetIsLocalPlayer() and not parent:GetIsThirdPerson() then
@@ -486,11 +462,6 @@ if Client then
             CreateMuzzleCinematic(self, kMuzzleEffectName, kMuzzleEffectName, attachPoint, parent, nil, true)
         end
         
-        if self.chargeSound then
-            if self.chargeSound:GetIsPlaying() then
-                self.chargeSound:Stop()
-            end
-        end
     end
     
     function Railgun:GetSecondaryAttacking()
