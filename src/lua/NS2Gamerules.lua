@@ -793,7 +793,7 @@ if Server then
                 
                     for _, spectator in ientitylist(spectators) do
                     
-                        if not spectator:GetIsFirstPerson() then
+                        if not spectator:GetIsFirstPerson() and not spectator:GetIsRespawning() then
                             Server.SendNetworkMessage(spectator, "Health", BuildHealthMessage(player), false)
                         end
                         
@@ -802,7 +802,7 @@ if Server then
                 end
             
             end
-            self.timeToSendHealth = Shared.GetTime() + 0.25
+            self.timeToSendHealth = Shared.GetTime() + 0.33
             
         end
         
