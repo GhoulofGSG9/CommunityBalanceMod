@@ -36,7 +36,7 @@ local kUnitLOSDirtyDistance = kUnitMaxLOSDistance + maxEntityMoveSpeed --* 2  --
 --local kLookForEnemiesRate = 0.5
 
 local kLOSTimeout = 1
-local kLOSCombatTimeout = 1.25
+local kLOSCombatTimeout = kLOSTimeout
 local kLOSPvETimeout = 2
 local kLOSPvPTimeout = 0.35
 
