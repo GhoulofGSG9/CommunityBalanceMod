@@ -40,6 +40,8 @@ if kCBMaddon then
 	  - Adjusted drifter "snap" range to 2 from 3 m.
 	  - Giving babblers can now give score.
 	  - Resilience and aura reverted to vanilla.
+	  - Strengthened mine placement checks to reduce potential for fully invisible mines.
+	  - Added additional damage checks to mines to account for zero damage edge cases.
 	  
 	## QoL
 	  - Reworked minimap blips to appear and disappear more consistently (combat checks + reveal duration minimums).
@@ -61,6 +63,7 @@ if kCBMaddon then
 	  - Improved performance of entity change functions.
 	  - Improved performance of phase gate functions.
 	  - Improved performance of sleeper functions.
+	  - Improved performance of mine functions.
 	  - Lowered game network demand.
 	  
 	### Be sure to thank Katzenfleisch for the performance optimizations!
@@ -588,6 +591,8 @@ else
 	  - Adjusted drifter "snap" range to 2 from 3 m.
 	  - Giving babblers can now give score.
 	  - Resilience and aura reverted to vanilla.
+	  - Strengthened mine placement checks to reduce potential for fully invisible mines.
+	  - Added additional damage checks to mines to account for zero damage edge cases.
 	  
 	## QoL
 	  - Reworked minimap blips to appear and disappear more consistently (combat checks + reveal duration minimums).
@@ -609,6 +614,7 @@ else
 	  - Improved performance of entity change functions.
 	  - Improved performance of phase gate functions.
 	  - Improved performance of sleeper functions.
+	  - Improved performance of mine functions.
 	  - Lowered game network demand.
 	  
 	### Be sure to thank Katzenfleisch for the performance optimizations!
