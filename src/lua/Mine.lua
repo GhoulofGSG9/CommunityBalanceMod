@@ -128,11 +128,11 @@ function Mine:Detonate()
     local hitEntities = GetEntitiesWithMixinWithinRange("Live", orig, kMineDetonateRange)
 
     local extents = self:GetExtents()
-    local c1 = orig + self:GetCoords().xAxis * extents.x/4 + self:GetCoords().zAxis * extents.z/4
-    local c2 = orig - self:GetCoords().xAxis * extents.x/4 + self:GetCoords().zAxis * extents.z/4
+    local c1 = orig + self:GetCoords().xAxis * extents.x/5 + self:GetCoords().zAxis * extents.z/5
+    local c2 = orig - self:GetCoords().xAxis * extents.x/5 + self:GetCoords().zAxis * extents.z/5
 
-    local c3 = orig + self:GetCoords().xAxis * extents.x/4 - self:GetCoords().zAxis * extents.z/4
-    local c4 = orig - self:GetCoords().xAxis * extents.x/4 - self:GetCoords().zAxis * extents.z/4
+    local c3 = orig + self:GetCoords().xAxis * extents.x/5 - self:GetCoords().zAxis * extents.z/5
+    local c4 = orig - self:GetCoords().xAxis * extents.x/5 - self:GetCoords().zAxis * extents.z/5
 
     -- Check for damage from mine center and diagonals
     RadiusDamageMultiPoint(hitEntities, {orig, c1, c2, c3, c4}, kMineDetonateRange, kMineDamage, self, false, SineFalloff)
