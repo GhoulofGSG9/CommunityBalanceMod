@@ -122,11 +122,23 @@ end
 function Mine:Detonate()
     if not self.active then return end
 
-    local hitEntities = GetEntitiesWithMixinWithinRange("Live", self:GetAttachPointOriginHardcoded(), kMineDetonateRange)
-    RadiusDamage(hitEntities, self:GetAttachPointOriginHardcoded(), kMineDetonateRange, kMineDamage, self, false, SineFalloff)
+    local orig = self:GetAttachPointOriginHardcoded()
+    DebugLine(self:GetOrigin(), orig, 10, 1, 1, 1, 1)
+
+    local hitEntities = GetEntitiesWithMixinWithinRange("Live", orig, kMineDetonateRange)
+
+    local extents = self:GetExtents()
+    local c1 = orig + self:GetCoords().xAxis * extents.x/4 + self:GetCoords().zAxis * extents.z/4
+    local c2 = orig - self:GetCoords().xAxis * extents.x/4 + self:GetCoords().zAxis * extents.z/4
+
+    local c3 = orig + self:GetCoords().xAxis * extents.x/4 - self:GetCoords().zAxis * extents.z/4
+    local c4 = orig - self:GetCoords().xAxis * extents.x/4 - self:GetCoords().zAxis * extents.z/4
+
+    -- Check for damage from mine center and diagonals
+    RadiusDamageMultiPoint(hitEntities, {orig, c1, c2, c3, c4}, kMineDetonateRange, kMineDamage, self, false, SineFalloff)
     
     -- Start the timed destruction sequence for any mine within range of this exploded mine.
-    local nearbyMines = GetEntitiesWithinRange("Mine", self:GetAttachPointOriginHardcoded(), kMineChainDetonateRange)
+    local nearbyMines = GetEntitiesWithinRange("Mine", orig, kMineChainDetonateRange)
     for _, mine in ipairs(nearbyMines) do
         
         if mine ~= self and not mine.armed then
@@ -360,7 +372,7 @@ function Mine:GetTechButtons(techId)
 end
 
 function Mine:GetAttachPointOriginHardcoded()
-    return self:GetOrigin() + self:GetCoords().yAxis * 0.02 -- Elevates slightly above origin point to account for map features
+    return self:GetOrigin() + self:GetCoords().yAxis * 0.05 -- Elevates slightly above origin point to account for map features
 end
 
 function Mine:GetDeathIconIndex()
