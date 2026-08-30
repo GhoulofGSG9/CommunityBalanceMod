@@ -126,15 +126,17 @@ if Server then
     end
 
     function HitSound_DispatchHits()
-        local hitsounds = {}
-        local attackers = {}
         local xenocounts = {}
         local xenoattacker = {}
+
+        local hitTable = {}
 
         for i = 1, #hits do
             local hit = hits[i]
             local attacker = Shared.GetEntity(hit.attacker)
             local target = Shared.GetEntity(hit.target)
+
+            hitTable[attacker] = hitTable[attacker] or { hitSound = 0, hits = {} }
 
             if attacker and target and target:isa("Player") and not target:isa("Embryo") then
 
@@ -149,17 +151,17 @@ if Server then
                     end
                 end
 
-                if not hitsounds[attacker] then
-                    table.insert(attackers, attacker)
-                end
-
                 -- Prefer sending an event only for the best hit
-                hitsounds[attacker] = math.max( hitsounds[attacker] or 0, sound )
+                hitTable[attacker].hitSound = math.max( hitTable[attacker].hitSound or 0, sound )
             end
 
-            -- Send the accumulated damage message
             if attacker then
-                SendDamageMessage( attacker, hit.target, hit.amount, hit.point, hit.overkill )
+                table.insert(hitTable[attacker].hits, {
+                    target = hit.target,
+                    amount = hit.amount,
+                    point = hit.point,
+                    overkill = hit.overkill
+                })
             end
 
         end
@@ -180,14 +182,11 @@ if Server then
             hitsounds[attacker] = math.max( hitsounds[attacker] or 0, sound )
         end
 
-        for i = 1, #attackers do
-            local attacker = attackers[i]
-            local sound = hitsounds[attacker]
-
-            local msg = BuildHitSoundMessage(sound)
-
-            -- damage reports must be reliable when not spectating
-            Server.SendNetworkMessage(attacker, "HitSound", msg, true)
+        for attacker, info in pairs(hitTable) do
+            for i, a in ipairs(info.hits) do
+                SendDamageMessage( attacker, a.target, a.amount, a.point, a.overkill, nil, nil,
+                    (i < #info.hits and 0 or info.hitSound ))
+            end
         end
 
         -- Clear the record
