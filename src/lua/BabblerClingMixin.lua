@@ -81,8 +81,6 @@ function BabblerClingMixin:ModifyDamageTaken(damageTable, attacker, doer, damage
                 SendDamageMessage( attacker, self:GetId(), amount, hitPoint, 0, weapon )
             end
 
-            SendMarkEnemyMessage( attacker, self, amount, weapon )
-
             if self.OnTakeDamage then
                 self:OnTakeDamage(amount, attacker, doer, hitPoint, nil, damageType, false)
             end
