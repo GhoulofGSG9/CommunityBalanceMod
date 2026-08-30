@@ -574,11 +574,20 @@ function TriggerCameraShake(triggerinEnt, minIntensity, maxIntensity, range)
 
 end
 
+local kGivenAchievement = {}
 function Server.SetAchievement(client, name, force)
-    if not force and (not Server.IsDedicated() or Shared.GetCheatsEnabled()) then return end
 
-    if client then
-        Server.SendNetworkMessage(client, "SetAchievement", {name = name}, true)
+    local clientId = client and client:GetUserId()
+    if clientId == 0 or (not force and (not Server.IsDedicated() or Shared.GetCheatsEnabled())) then return end
+
+    if not kGivenAchievement[clientId] then
+        kGivenAchievement[clientId] = {}
     end
+
+    if client and not kGivenAchievement[clientId][name] then
+        Server.SendNetworkMessage(client, "SetAchievement", {name = name}, true)
+        kGivenAchievement[clientId][name] = true
+    end
+
 end
 
