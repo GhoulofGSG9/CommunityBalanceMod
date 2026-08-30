@@ -756,6 +756,18 @@ if Server then
     
         local now = Shared.GetTime()
         
+        -- Check if all player's pings should be sent to everybody.
+        if self.timeToSendAllPings == nil or  now >= self.timeToSendAllPings then
+        
+            for _, player in ientitylist(Shared.GetEntitiesWithClassname("Player")) do
+                Server.SendNetworkMessage("Ping", BuildPingMessage(player:GetClientIndex(), player:GetPing()), false)
+            end
+            
+            self.timeToSendAllPings =  now + kUpdatePingsAll
+            self.timeToSendIndividualPings =  now + kUpdatePingsIndividual
+            
+        end
+        
         -- Check if the individual player's should be sent their own ping.
         if self.timeToSendIndividualPings == nil or now >= self.timeToSendIndividualPings then
         
@@ -766,18 +778,7 @@ if Server then
             self.timeToSendIndividualPings =  now + kUpdatePingsIndividual
             
         end
-        
-        -- Check if all player's pings should be sent to everybody.
-        if self.timeToSendAllPings == nil or  now >= self.timeToSendAllPings then
-        
-            for _, player in ientitylist(Shared.GetEntitiesWithClassname("Player")) do
-                Server.SendNetworkMessage("Ping", BuildPingMessage(player:GetClientIndex(), player:GetPing()), false)
-            end
-            
-            self.timeToSendAllPings =  now + kUpdatePingsAll
-            
-        end
-        
+
     end
 
     local function HealthTablesEqual(t1, t2)
