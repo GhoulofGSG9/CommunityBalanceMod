@@ -29,13 +29,17 @@ end
 -- Show damage numbers for players.
 function OnCommandDamage(damageTable)
     PROFILE("NetworkMessages_Client:OnCommandDamage")
-    local targetId, amount, hitpos, type, hitSound = ParseDamageMessage(damageTable)
+    local targetId, amount, hitpos, type, weaponId, hitSound = ParseDamageMessage(damageTable)
 
     local worldMessageType = type == kDamageMessageType.Boneshield and kWorldTextMessageType.DamageBoneshield or kWorldTextMessageType.Damage
     Client.AddWorldMessage(worldMessageType, amount, hitpos, targetId)
 
     if hitSound and hitSound > 0 then
         OnCommandHitSound(BuildHitSoundMessage(hitSound))
+    end
+
+    if targetId ~= Entity.invalidId and weaponId ~= kTechId.None then
+        OnCommandMarkEnemy(BuildMarkEnemyMessage(targetId, weaponId))
     end
 
 end
