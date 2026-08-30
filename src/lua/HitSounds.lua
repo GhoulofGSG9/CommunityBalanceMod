@@ -137,7 +137,7 @@ if Server then
             local target = Shared.GetEntity(hit.target)
 
             if attacker and hitTable[attacker] == nil then
-                hitTable[attacker] = { hitSound = 0, hits = {} }
+                hitTable[attacker] = { hitSound = 0, hits = { nil } }
             end
 
             if attacker and target and target:isa("Player") and not target:isa("Embryo") then
