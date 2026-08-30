@@ -161,6 +161,7 @@ if Server then
             if attacker then
                 local hitsArr = hitTable[attacker].hits
                 hitsArr[#hitsArr + 1] = {
+                    weapon = hit.weapon,
                     target = hit.target,
                     amount = hit.amount,
                     point = hit.point,
@@ -190,7 +191,7 @@ if Server then
 
         for attacker, info in pairs(hitTable) do
             for i, a in ipairs(info.hits) do
-                SendDamageMessage( attacker, a.target, a.amount, a.point, a.overkill, nil, nil,
+                SendDamageMessage( attacker, a.target, a.amount, a.point, a.overkill, a.weapon, nil,
                     (i < #info.hits and 0 or info.hitSound ))
             end
         end
