@@ -379,12 +379,13 @@ local kDamageMessage =
     posy = string.format("float (%d to %d by 0.05)", -kHitEffectMaxPosition, kHitEffectMaxPosition),
     posz = string.format("float (%d to %d by 0.05)", -kHitEffectMaxPosition, kHitEffectMaxPosition),
     targetId = "entityid",
+    weaponId = "enum kTechId",
     amount = "float (0 to 2048 by 0.0625)", -- 1/16, 16 bits total
     type = "enum kDamageMessageType",
     hitSound = "integer (0 to 3)"
 }
 
-function BuildDamageMessage(targetEntityId, amount, hitpos, type, hitSound)
+function BuildDamageMessage(targetEntityId, amount, hitpos, type, weapon, hitSound)
 
     local t = {}
     t.posx = hitpos.x
@@ -392,6 +393,7 @@ function BuildDamageMessage(targetEntityId, amount, hitpos, type, hitSound)
     t.posz = hitpos.z
     t.amount = math.min( math.max( amount, 0 ), 2048 )
     t.targetId = (targetEntityId or Entity.invalidId)
+    t.weaponId = weapon or kTechId.None
     t.type = type
     t.hitSound = ConditionalValue(hitSound == nil, 0, hitSound)
 
@@ -401,7 +403,7 @@ end
 
 function ParseDamageMessage(message)
     local position = Vector(message.posx, message.posy, message.posz)
-    return message.targetId, message.amount, position, message.type, message.hitSound
+    return message.targetId, message.amount, position, message.type, message.weaponId, message.hitSound
 end
 
 function SendDamageMessage( attacker, targetEntityId, amount, point, overkill, weapon, type, hitSound ) -- TODO(Salads): Clean this up, two places use weapon arg...
@@ -410,7 +412,7 @@ function SendDamageMessage( attacker, targetEntityId, amount, point, overkill, w
 
         local type = type or kDamageMessageType.Default
 
-        local msg = BuildDamageMessage(targetEntityId, amount, point, type, hitSound)
+        local msg = BuildDamageMessage(targetEntityId, amount, point, type, weapon, hitSound)
 
         -- damage reports must always be reliable when not spectating
         Server.SendNetworkMessage(attacker, "Damage", msg, true)
@@ -435,10 +437,10 @@ local kMarkEnemyMessage =
     weaponId = "enum kTechId",
 }
 
-function BuildMarkEnemyMessage(target, weapon)
+function BuildMarkEnemyMessage(targetId, weapon)
 
     local t = {}
-    t.targetId = (target and target:GetId()) or Entity.invalidId
+    t.targetId = targetId--(target and target:GetId()) or Entity.invalidId
     t.weaponId = weapon
     return t
 
