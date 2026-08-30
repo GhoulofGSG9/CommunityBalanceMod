@@ -381,9 +381,10 @@ local kDamageMessage =
     targetId = "entityid",
     amount = "float (0 to 2048 by 0.0625)", -- 1/16, 16 bits total
     type = "enum kDamageMessageType",
+    hitSound = "integer (0 to 3)"
 }
 
-function BuildDamageMessage(targetEntityId, amount, hitpos, type)
+function BuildDamageMessage(targetEntityId, amount, hitpos, type, hitSound)
 
     local t = {}
     t.posx = hitpos.x
@@ -392,6 +393,7 @@ function BuildDamageMessage(targetEntityId, amount, hitpos, type)
     t.amount = math.min( math.max( amount, 0 ), 2048 )
     t.targetId = (targetEntityId or Entity.invalidId)
     t.type = type
+    t.hitSound = ConditionalValue(hitSound == nil, 0, hitSound)
 
     return t
 
@@ -399,16 +401,16 @@ end
 
 function ParseDamageMessage(message)
     local position = Vector(message.posx, message.posy, message.posz)
-    return message.targetId, message.amount, position, message.type
+    return message.targetId, message.amount, position, message.type, message.hitSound
 end
 
-function SendDamageMessage( attacker, targetEntityId, amount, point, overkill, weapon, type ) -- TODO(Salads): Clean this up, two places use weapon arg...
+function SendDamageMessage( attacker, targetEntityId, amount, point, overkill, weapon, type, hitSound ) -- TODO(Salads): Clean this up, two places use weapon arg...
 
     if amount > 0 then
 
         local type = type or kDamageMessageType.Default
 
-        local msg = BuildDamageMessage(targetEntityId, amount, point, type)
+        local msg = BuildDamageMessage(targetEntityId, amount, point, type, hitSound)
 
         -- damage reports must always be reliable when not spectating
         Server.SendNetworkMessage(attacker, "Damage", msg, true)
@@ -1356,7 +1358,7 @@ if Server then
     local function OnMessageExoModularBuy(client, message)
         local player = client:GetControllingPlayer()
         if player and player:GetIsAllowedToBuy() and player.ProcessExoModularBuyAction then
-			player:ProcessExoModularBuyAction(message)
+            player:ProcessExoModularBuyAction(message)
         end
     end
     Server.HookNetworkMessage("ExoModularBuy", OnMessageExoModularBuy)
@@ -1412,8 +1414,8 @@ if Server then
             return
         end
         
-		self:AddResources(-resCost)
-		
+        self:AddResources(-resCost)
+        
         local weapons = self:GetWeapons()
         for i = 1, #weapons do
             weapons[i]:SetParent(nil)
