@@ -578,7 +578,7 @@ local kGivenAchievement = {}
 function Server.SetAchievement(client, name, force)
 
     local clientId = client and client:GetUserId()
-    if clientId ~= 0 and not force and (not Server.IsDedicated() or Shared.GetCheatsEnabled()) then return end
+    if clientId == 0 or (not force and (not Server.IsDedicated() or Shared.GetCheatsEnabled())) then return end
 
     if not kGivenAchievement[clientId] then
         kGivenAchievement[clientId] = {}
