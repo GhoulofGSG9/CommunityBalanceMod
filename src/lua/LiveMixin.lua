@@ -783,6 +783,7 @@ end
 
 if Server then
 
+--[[
     local function UpdateHealerTable(self)
 
         local cleanupIds = unique_set()
@@ -824,6 +825,7 @@ if Server then
         end
 
     end
+--]]
 
 elseif Client then
 
@@ -1026,6 +1028,7 @@ function LiveMixin:OnUpdateRender()
 
 end
 
+--[[
 function LiveMixin:OnEntityChange(oldId, newId)
 
     if self.healerTable and self.healerTable[oldId] then
@@ -1033,3 +1036,4 @@ function LiveMixin:OnEntityChange(oldId, newId)
     end
 
 end
+--]]
