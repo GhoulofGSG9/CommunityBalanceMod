@@ -136,7 +136,9 @@ if Server then
             local attacker = Shared.GetEntity(hit.attacker)
             local target = Shared.GetEntity(hit.target)
 
-            hitTable[attacker] = hitTable[attacker] or { hitSound = 0, hits = {} }
+            if attacker and hitTable[attacker] == nil then
+                hitTable[attacker] = { hitSound = 0, hits = {} }
+            end
 
             if attacker and target and target:isa("Player") and not target:isa("Embryo") then
 
@@ -145,9 +147,10 @@ if Server then
                 -- I suppose this doesn't make Xeno hitsounds super moddable, but...
                 if hit.weapon == kTechId.Xenocide then
                     -- Xenocide hitsound is based on number of people hit
-                    xenocounts[attacker] = ( xenocounts[attacker] or 0 ) + 1
-                    if xenocounts[attacker] == 1 then
-                        table.insert(xenoattacker, attacker)
+                    local count = (xenocounts[attacker] or 0) + 1
+                    xenocounts[attacker] = count
+                    if count == 1 then
+                        xenoattacker[#xenoattacker + 1] = attacker
                     end
                 end
 
@@ -156,12 +159,13 @@ if Server then
             end
 
             if attacker then
-                table.insert(hitTable[attacker].hits, {
+                local hitsArr = hitTable[attacker].hits
+                hitsArr[#hitsArr + 1] = {
                     target = hit.target,
                     amount = hit.amount,
                     point = hit.point,
                     overkill = hit.overkill
-                })
+                }
             end
 
         end
@@ -172,14 +176,16 @@ if Server then
             local attacker = xenoattacker[i]
             local xenocount = xenocounts[attacker]
 
-            if kHitSoundHighXenoHitCount <= xenocount then
+            if xenocount >= kHitSoundHighXenoHitCount then
                 sound = 3
-            elseif kHitSoundMidXenoHitCount <= xenocount then
+            elseif xenocount >= kHitSoundMidXenoHitCount then
                 sound = 2
             end
 
             -- Prefer sending an event only for the best hit
-            hitsounds[attacker] = math.max( hitsounds[attacker] or 0, sound )
+            if attacker and hitTable[attacker] then
+                hitTable[attacker].hitSound = math.max( hitTable[attacker].hitSound or 0, sound )
+            end
         end
 
         for attacker, info in pairs(hitTable) do
