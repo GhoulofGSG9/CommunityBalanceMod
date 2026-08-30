@@ -818,7 +818,7 @@ if Server then
                 end
             
             end
-            self.timeToSendHealth = Shared.GetTime() + 0.2
+            self.timeToSendHealth = Shared.GetTime() + 0.25
             
         end
         
@@ -850,7 +850,7 @@ if Server then
             
             end
             
-            self.timeToSendTechPoints = Shared.GetTime() + 0.6
+            self.timeToSendTechPoints = Shared.GetTime() + 1
             
         end
         
