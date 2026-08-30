@@ -96,19 +96,17 @@ function Cyst:OnKill()
     end
 
     self.children:Clear()
-    
+
+    local selfId = self:GetId()
+    for _, c in ipairs(GetEntitiesForTeam("Cyst", self:GetTeamNumber())) do
+        if c.parentId == selfId then
+            c.parentId = Entity.invalidId
+        end
+    end
 end   
 
 function Cyst:GetSendDeathMessageOverride()
     return false
-end
-
-function Cyst:OnEntityChange(entityId, newEntityId)
-    
-    if self.parentId == entityId then
-        self.parentId = newEntityId or Entity.invalidId
-    end
-
 end
 
 --
