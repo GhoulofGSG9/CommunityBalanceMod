@@ -210,7 +210,12 @@ function JetpackMarine:GetJetpack()
     
 end
 
+local Marine_OnEntityChange = Marine.OnEntityChange
 function JetpackMarine:OnEntityChange(oldId, newId)
+
+    if Marine_OnEntityChange then
+        Marine_OnEntityChange(self, oldId, newId)
+    end
 
     if oldId == self.equipmentId and newId then
         self.equipmentId = newId

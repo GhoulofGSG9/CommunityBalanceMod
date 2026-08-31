@@ -96,19 +96,10 @@ function Cyst:OnKill()
     end
 
     self.children:Clear()
-    
 end   
 
 function Cyst:GetSendDeathMessageOverride()
     return false
-end
-
-function Cyst:OnEntityChange(entityId, newEntityId)
-    
-    if self.parentId == entityId then
-        self.parentId = newEntityId or Entity.invalidId
-    end
-
 end
 
 --

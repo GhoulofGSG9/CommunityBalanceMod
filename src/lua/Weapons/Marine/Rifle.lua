@@ -10,7 +10,7 @@
 Script.Load("lua/Weapons/Marine/ClipWeapon.lua")
 Script.Load("lua/PickupableWeaponMixin.lua")
 Script.Load("lua/LiveMixin.lua")
-Script.Load("lua/EntityChangeMixin.lua")
+--Script.Load("lua/EntityChangeMixin.lua")
 Script.Load("lua/Weapons/ClientWeaponEffectsMixin.lua")
 Script.Load("lua/RifleVariantMixin.lua")
 Script.Load("lua/FilteredCinematicMixin.lua")
@@ -171,7 +171,7 @@ function Rifle:OnCreate()
     ClipWeapon.OnCreate(self)
     
     InitMixin(self, PickupableWeaponMixin)
-    InitMixin(self, EntityChangeMixin)
+    --InitMixin(self, EntityChangeMixin)
     InitMixin(self, LiveMixin)
     InitMixin(self, RifleVariantMixin)
     

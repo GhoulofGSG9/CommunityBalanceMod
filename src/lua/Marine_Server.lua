@@ -81,9 +81,12 @@ function Marine:SetPoisoned(attacker)
     
 end
 
+local Player_OnEntityChange = Player.OnEntityChange
 function Marine:OnEntityChange(oldId, newId)
 
-    Player.OnEntityChange(self, oldId, newId)
+    if Player_OnEntityChange then
+        Player_OnEntityChange(self, oldId, newId)
+    end
 
     if oldId == self.lastPoisonAttackerId then
     
@@ -116,7 +119,7 @@ function Marine:CopyPlayerDataFrom(player)
             self:TransferParasite( { parasited = player.prevParasited, timeParasited = player.prevParasitedTime } ) 
         end
         self:TransferBlight(player)
-		self:TransferDoom(player)
+        self:TransferDoom(player)
     end
     
 end
@@ -411,9 +414,9 @@ function Marine:GiveItem(itemMapName,setActive, suppressError)
     local newItem
 
     if setActive == nil then
-		setActive = true
-	end
-	
+        setActive = true
+    end
+    
     if itemMapName then
         
         local continue = true
@@ -561,5 +564,4 @@ function Marine:GiveDualRailgunExo(spawnPoint, isPickup)
     return exo
     
 end
-
 
