@@ -563,21 +563,25 @@ function Player:OnDestroy()
 
 end
 
-function Player:OnEntityChange(oldEntityId, newEntityId)
+if Client then
 
-    if Client and oldEntityId then
+    function Player:OnEntityChange(oldEntityId, newEntityId)
 
-        if self:GetId() == oldEntityId then
-            -- If this player is changing is any way, just assume the
-            -- buy/evolve menu needs to close.
-            self:CloseMenu()
-        end
+        if oldEntityId then
 
-        -- If this is a player changing classes that we're already following, update the id
-        local player = Client.GetLocalPlayer()
-        if player.followId == oldEntityId then
-            Client.SendNetworkMessage("SpectatePlayer", {entityId = newEntityId}, true)
-            player.followId = newEntityId
+            if self:GetId() == oldEntityId then
+                -- If this player is changing is any way, just assume the
+                -- buy/evolve menu needs to close.
+                self:CloseMenu()
+            end
+
+            -- If this is a player changing classes that we're already following, update the id
+            local player = Client.GetLocalPlayer()
+            if player.followId == oldEntityId then
+                Client.SendNetworkMessage("SpectatePlayer", {entityId = newEntityId}, true)
+                player.followId = newEntityId
+            end
+
         end
 
     end
