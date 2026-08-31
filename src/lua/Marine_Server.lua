@@ -81,10 +81,11 @@ function Marine:SetPoisoned(attacker)
     
 end
 
+local Player_OnEntityChange = Player.OnEntityChange
 function Marine:OnEntityChange(oldId, newId)
 
-    if Player.OnEntityChange then
-        Player.OnEntityChange(self, oldId, newId)
+    if Player_OnEntityChange then
+        Player_OnEntityChange(self, oldId, newId)
     end
 
     if oldId == self.lastPoisonAttackerId then
