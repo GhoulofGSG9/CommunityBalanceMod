@@ -79,6 +79,10 @@ function OwnerMixin:GetOwner()
     return Shared.GetEntity(self.ownerId)
 end
 
+function OwnerMixin:GetOwnerId()
+    return self.ownerId
+end
+
 --[[
  * Called when a entity changes into another entity (players changing classes) or
  * when an entity is destroyed. When an entity is destroyed, newId will be nil.
