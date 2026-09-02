@@ -798,13 +798,41 @@ function GUIMinimap:RemoveEntityIcon(entityId)
     end
 end
 
+function GUIMinimap:UpdateBlipActivityForEntity(entity)
+    local id = entity:GetId()
+    local invalidId = Entity.invalidId
+    local addBlip = id ~= invalidId -- don't add/update blips for invalid ids
+
+    -- don't add/update blips outside the update radius; saves CPU for marine HUD
+    if addBlip and self.updateRadius > 0 then
+        local diff = (self.playerOrigin - entity:GetMapBlipOrigin()) * self.kXZVector
+        addBlip = diff:GetLengthSquared() < self.updateRadiusSquared
+    end
+
+    if addBlip then
+        local icon = self.iconMap:Get(id)
+        if not icon then
+            icon = CreateIconForEntity(self)
+            self.iconMap:Insert(id, icon)
+            icon:SetIsVisible(true)
+        end
+
+        local activity = entity:UpdateMinimapActivity(self, icon)
+        if activity then
+            local data = self.staticBlipData[activity]
+            table.insert(data.blipIds, id)
+            data.count = data.count + 1
+            icon.version = Shared.GetTime()
+        end
+    end
+end
+
 GUIMinimap.kXZVector = Vector(1,0,1)
 function GUIMinimap:UpdateBlipActivity()
     PROFILE("GUIMinimap:UpdateBlipActivity")
 
     -- used to get a unique number to check if icons are in use
     local now = Shared.GetTime()
-    local invalidId = Entity.invalidId
 
     for k = 1, #kMinimapActivity do
         self.staticBlipData[k].blipIds = {}
@@ -813,30 +841,7 @@ function GUIMinimap:UpdateBlipActivity()
     end
 
     for _, entity in ientitylist(Shared.GetEntitiesWithTag("MinimapMappable")) do
-        local id = entity:GetId()
-        local addBlip = id ~= invalidId -- don't add/update blips for invalid ids
-
-        -- don't add/update blips outside the update radius; saves CPU for marine HUD
-        if addBlip and self.updateRadius > 0 then
-            local diff = (self.playerOrigin - entity:GetMapBlipOrigin()) * self.kXZVector
-            addBlip = diff:GetLengthSquared() < self.updateRadiusSquared
-        end
-
-        if addBlip then
-            local icon = self.iconMap:Get(id)
-            if not icon then
-                icon = CreateIconForEntity(self)
-                self.iconMap:Insert(id, icon)
-            end
-
-            local activity = entity:UpdateMinimapActivity(self, icon)
-            if activity then
-                local data = self.staticBlipData[activity]
-                table.insert(data.blipIds, id)
-                data.count = data.count + 1
-                icon.version = now
-            end
-        end
+        self:UpdateBlipActivityForEntity(entity)
     end
 
     -- clear out any icons no longer in use
@@ -1362,6 +1367,27 @@ function GUIMinimap:CheckMinimapConnectionTextures()
     end
 end
 
+function GUIMinimap:GetPlayerTeam()
+    if self.playerTeam == nil then
+        self:UpdatePlayerTeam()
+    end
+    return self.playerTeam
+end
+
+function GUIMinimap:UpdatePlayerTeam()
+    local player = Client.GetLocalPlayer()
+
+    -- need to recalc the player team because it may have changed
+    -- maybe smarter to rebuild gui scripts on team change...
+    local playerTeam = player:GetTeamNumber()
+    if playerTeam == kMarineTeamType then
+        playerTeam = kMinimapBlipTeam.Marine
+    elseif playerTeam == kAlienTeamType then
+        playerTeam = kMinimapBlipTeam.Alien
+    end
+    self.playerTeam = playerTeam
+end
+
 function GUIMinimap:Update(deltaTime)
     
     if self.background:GetIsVisible() then
@@ -1371,15 +1397,7 @@ function GUIMinimap:Update(deltaTime)
         local now = Shared.GetTime()
         local player = Client.GetLocalPlayer()
 
-        -- need to recalc the player team because it may have changed
-        -- maybe smarter to rebuild gui scripts on team change...
-        local playerTeam = player:GetTeamNumber()
-        if playerTeam == kMarineTeamType then
-            playerTeam = kMinimapBlipTeam.Marine
-        elseif playerTeam == kAlienTeamType then
-            playerTeam = kMinimapBlipTeam.Alien
-        end
-        self.playerTeam = playerTeam
+        self:UpdatePlayerTeam()
 
         self.playerOrigin = player:GetOrigin()
 

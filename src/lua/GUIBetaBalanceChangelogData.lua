@@ -45,6 +45,8 @@ if kCBMaddon then
 	  
 	## QoL
 	  - Reworked minimap blips to appear and disappear more consistently (combat checks + reveal duration minimums).
+	  - Fixed new minimap blips appearing one GUI update too late when spotted. Seen entities will now appear instantly.
+	  - Added 'fog of war' blips that persist for previously revealed entities on the map.
 	  - Commanders can now see clogs revealed by players (must be damaged or collided with).
 	  - Unstuck (vanilla console command) improved.
 	  - Upgrade buying and switching as a lifeform improved (better egg placement).
@@ -65,6 +67,7 @@ if kCBMaddon then
 	  - Improved performance of sleeper functions.
 	  - Improved performance of mine functions.
 	  - Lowered game network demand.
+	  - Fixed hit sound not working when spectating a player first person.
 	  
 	### Be sure to thank Katzenfleisch for the performance optimizations!
 
@@ -596,6 +599,7 @@ else
 	  
 	## QoL
 	  - Reworked minimap blips to appear and disappear more consistently (combat checks + reveal duration minimums).
+	  - Added 'fog of war' blips that persist for previously revealed entities on the map.
 	  - Commanders can now see clogs revealed by players (must be damaged or collided with).
 	  - Unstuck (vanilla console command) improved.
 	  - Upgrade buying and switching as a lifeform improved (better egg placement).
@@ -603,6 +607,7 @@ else
 	## Bugfixes and Game Performance Optimizations
 	  - Further fixes to collisions and movement.
 	  - Fixed marine bots not being able to target specific structures due to minimap blips.
+	  - Fixed new minimap blips appearing one GUI update too late when spotted. Seen entities will now appear instantly.
 	  - Improved performance of line of sight functions.
 	  - Improved performance of weapon holder functions.
 	  - Improved performance of cloaking functions.
@@ -616,6 +621,7 @@ else
 	  - Improved performance of sleeper functions.
 	  - Improved performance of mine functions.
 	  - Lowered game network demand.
+	  - Fixed hit sound not working when spectating a player first person.
 	  
 	### Be sure to thank Katzenfleisch for the performance optimizations!
 
