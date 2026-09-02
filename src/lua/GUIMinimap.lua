@@ -1388,8 +1388,13 @@ function GUIMinimap:UpdatePlayerTeam()
     self.playerTeam = playerTeam
 end
 
-function GUIMinimap:Update(deltaTime)
+function GUIMinimap:Update(deltaTime, force)
     
+    if force then
+        self.nextMiscUpdateInterval = 0
+        self.nextActivityUpdateTime = 0
+    end
+
     if self.background:GetIsVisible() then
 
         PROFILE("GUIMinimap:Update")
