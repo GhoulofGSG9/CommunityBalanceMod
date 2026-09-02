@@ -292,7 +292,7 @@ function Babbler:OnModelChanged(hasModel)
 end
 
 function Babbler:GetIsClinged()
-    return not self.babblerBombSpawned and self.clinged
+    return self.clinged --not self.babblerBombSpawned and self.clinged
 end
 
 function Babbler:GetCanTakeDamage()
