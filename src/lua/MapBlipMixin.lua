@@ -179,7 +179,7 @@ end
 
 function MapBlipMixin:UpdateFogEntity(sighted)
 
-    if not HasMixin(self, "Team") then
+    if not HasMixin(self, "Team") or self.reentranceOff then
         return nil
     end
 
@@ -190,7 +190,7 @@ function MapBlipMixin:UpdateFogEntity(sighted)
     assert(not self:isa("FogOfWarEntity"))
 
     local teamNumber = self:GetTeamNumber()
-    if sighted or not ((teamNumber == kTeam1Index or teamNumber == kTeam2Index) and GetIsUnitActive(self)) then
+    if sighted or not ((teamNumber == kTeam1Index or teamNumber == kTeam2Index)) then
 
         if f and f:IsMapBlipVisible() then
             local _, blipType = self:GetMapBlipInfo()
@@ -217,16 +217,29 @@ function MapBlipMixin:UpdateFogEntity(sighted)
         return nil
     end
 
-    f:SetFogEntMapBlipInfo(not sighted, blipType, teamNumber)
+    f:SetFogEntMapBlipInfo(true, blipType, teamNumber, GetIsUnitActive(self))
 
     if not kFogOfWarEnts_hostToFog[id] then -- We fetched a new entity that needs to be init
 
         kFogOfWarEnts_hostToFog[id] = f
         kFogOfWarEnts_fogToHost[f:GetId()] = id
-        if isNewEntity then
-            f:OnInitializedMapBlipMixin() -- Need to happen AFTER we set the custom host blips
+    end
+
+    f.reentranceOff = true
+    if isNewEntity then
+        f:OnInitializedMapBlipMixin() -- Need to happen AFTER we set the custom host blips
+    else
+        -- Update mapBlip with new type, team, and active state
+        -- Since mapBlip will recheck relevancy too, and that is how
+        -- we decide if we should create ghosts or not, we need to
+        -- prevent re-entrancies here
+
+        local mapBlip = f.mapBlipId and Shared.GetEntity(f.mapBlipId)
+        if mapBlip then
+            mapBlip:SetOwner(f:GetId(), blipType, teamNumber) -- Update blip (if we went active/inactive for instance)
         end
     end
+    f.reentranceOff = nil
 
     local orig = self:GetOrigin()
     if self:isa("Player") then
