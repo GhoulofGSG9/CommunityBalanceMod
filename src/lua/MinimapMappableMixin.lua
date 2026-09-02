@@ -97,7 +97,7 @@ function MinimapMappableMixin:OnInitialized()
     if Client then
         local minimap = ClientUI.GetScript("GUIMinimapFrame") or ClientUI.GetScript("GUIMinimap")
         if minimap then
-            minimap:UpdateBlipActivityForEntity(self)
+            minimap:Update(0, true)
         end
     end
 
