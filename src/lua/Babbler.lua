@@ -163,7 +163,7 @@ function Babbler:OnCreate()
         self.clinged = false
 
         self.attacking = false
-        
+
         self.creationTime = Shared.GetTime()
 
     elseif Client then
@@ -208,7 +208,11 @@ function Babbler:OnInitialized()
         
         self:UpdateJumpPhysicsBody()
         
-        self:Jump(Vector(math.random() * 2 - 1, 4, math.random() * 2 - 1))
+        self:Jump(Vector(
+            math.random() * 2 - 1,
+            4 - math.random() * 2,
+            math.random() * 2 - 1)
+        )
 
 		--[[if GetHasTech(self:GetOwner(), kTechId.BabblerBombAbility) then
 			self:SetMaxHealth(20)
@@ -479,7 +483,7 @@ function Babbler:OnUpdate(deltaTime)
 end
 
 function Babbler:OnProcessMove(input)
-    local deltatTime = input.time
+    local deltaTime = input.time
     self:UpdateBabbler(deltaTime)
     
     if Server then
@@ -673,7 +677,7 @@ if Server then
         local orig = self:GetOrigin()
         for _, ball in ipairs(GetEntitiesForTeamWithinRange("BabblerPheromone", self:GetTeamNumber(), orig, 20)) do
 
-            if (ball:GetOrigin() - orig):GetLength() > 4 and ball:GetOwner() == self:GetOwner() then
+            if (ball:GetOrigin() - orig):GetLength() > 4 and ball:GetOwnerId() == self:GetOwnerId() then
                 return ball
             end
 
@@ -801,13 +805,14 @@ if Server then
 			-- check for targets to attack
 			local target = self.targetSelector:AcquireTarget() or self:GetTarget()
 			local owner = self:GetOwner()
+            local ownerId = self:GetOwnerId()
 			local alive = owner and HasMixin(owner, "Live") and owner:GetIsAlive()
 			local ownerOrigin = owner and (not owner:isa("Commander") and owner:GetOrigin() or owner.lastGroundOrigin)
 
 			if target then
 				-- All babblers get that attack order too (all the group focus on the same target)
 				for _, babbler in ipairs(GetEntitiesForTeamWithinRange("Babbler", self:GetTeamNumber(), self:GetOrigin(), 30)) do
-					if babbler:GetOwner() == owner and babbler:GetTarget() ~= target then
+					if babbler:GetOwnerId() == ownerId and babbler:GetTarget() ~= target then
 						babbler:SetMoveType(kBabblerMoveType.Attack, target, target:GetOrigin())
 					end
 				end
@@ -1407,7 +1412,8 @@ if Server then
             
                 if self.timeLastAttack + kAttackRate < Shared.GetTime() then
                     
-                    self.timeLastAttack = Shared.GetTime()
+                    -- Adds a bit of randomness for the first attack
+                    self.timeLastAttack = Shared.GetTime() + math.random() * kAttackRate
                     
                     local targetOrigin
                     if entityHit.GetEngagementPoint then
@@ -1472,7 +1478,7 @@ elseif Client then
             modelCoords = Coords.GetLookIn(modelCoords.origin, self.moveDirection)
             modelCoords.origin.y = modelCoords.origin.y - Babbler.kRadius
         end
-    
+
         return modelCoords
     
     end
@@ -1488,7 +1494,10 @@ elseif Client then
 
         if not self.clinged then -- No sound when attached
             if self.clientJumping ~= self.jumping and self.jumping then
-                self:TriggerEffects("babbler_jump") 
+                local vel = self:GetVelocity()
+                if vel:GetLengthSquared() > 4 then
+                    self:TriggerEffects("babbler_jump") 
+                end
             end
 
             if self.clientAttacking ~= self.attacking and self.attacking then
