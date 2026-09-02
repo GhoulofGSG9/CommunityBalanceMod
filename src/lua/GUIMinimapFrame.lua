@@ -271,7 +271,7 @@ function GUIMinimapFrame:SendKeyEvent(key, down)
 
 end
 
-function GUIMinimapFrame:Update(deltaTime)
+function GUIMinimapFrame:Update(deltaTime, force)
 
     PROFILE("GUIMinimapFrame:Update")
     
@@ -334,7 +334,7 @@ function GUIMinimapFrame:Update(deltaTime)
         
     end
     
-    GUIMinimap.Update(self, deltaTime)
+    GUIMinimap.Update(self, deltaTime, force)
 
     local newHudDetail = Client.GetHudDetail()
     if self.cachedHudDetail ~= newHudDetail then
