@@ -92,6 +92,16 @@ function MinimapMappableMixin.PulseDarkRed(blipColor)
     return color
 end
 
+function MinimapMappableMixin:OnInitialized()
+
+    if Client then
+        local minimap = ClientUI.GetScript("GUIMinimapFrame") or ClientUI.GetScript("GUIMinimap")
+        if minimap then
+            minimap:UpdateBlipActivityForEntity(self)
+        end
+    end
+
+end
 
 function MinimapMappableMixin:GetMapBlipOrigin()
     if self.GetMapBlipOriginOverride then
@@ -144,4 +154,4 @@ function MinimapMappableMixin:OnDestroy()
     end
 end
 
-end
+end -- end Client
