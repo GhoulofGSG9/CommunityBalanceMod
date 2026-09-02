@@ -415,6 +415,46 @@ function Babbler:UpdatePhysics()
     end
 end
 
+function Babbler:GetCanBeUsed(entity, useSuccessTable)
+
+    local success = true
+
+    if not GetAreFriends(self, entity) then
+        success = false
+    end
+
+    if success and HasMixin(entity, "BabblerCling") then
+        if not entity:GetCanAttachBabbler() then
+            success = false
+        end
+        if entity:GetNumClingedBabblers() >= entity:GetMaxClingedBabblers() then
+            success = false
+        end
+    end
+
+    useSuccessTable.useSuccess = success
+    
+end
+
+function Babbler:GetUseAllowedBeforeGameStart()
+    return true
+end
+
+function Babbler:GetCanBeUsedDuringWarmup()
+    return true
+end
+
+function Babbler:OnUse(player, elapsedTime, useSuccessTable)
+    if Server and not self:GetIsClinged() then
+        local moveType = kBabblerMoveType.Cling
+        local position = HasMixin(player, "Target") and player:GetEngagementPoint() or player:GetOrigin()
+        self:SetMoveType(moveType, player, position, true)
+    end
+
+    self:TriggerEffects("babbler_jump") 
+
+end
+
 function Babbler:OnUpdatePhysics()
     self:UpdatePhysics()
 end
