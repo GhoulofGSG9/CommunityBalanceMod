@@ -12,6 +12,7 @@ local networkVars =
     visible = "boolean",
     blipType = "enum kMinimapBlipType",
     blipTeam = string.format("integer (%s to %s)", kTeamInvalid, kSpectatorIndex),
+    isActive = "boolean"
 }
 
 AddMixinNetworkVars(TeamMixin, networkVars)
@@ -25,7 +26,7 @@ function FogOfWarEntity:OnCreate()
 
     InitMixin(self, TeamMixin)
 
-    self:SetFogEntMapBlipInfo(false, kMinimapBlipType.Undefined, -1)
+    self:SetFogEntMapBlipInfo(false, kMinimapBlipType.Undefined, -1, true)
     self.lastSetRelevancyMask = 0
 
     self:SetUpdates(false)--kUpdateIntervalMinimal) 
@@ -81,19 +82,24 @@ function FogOfWarEntity:IsMapBlipVisible()
 end
 
 
-function FogOfWarEntity:SetFogEntMapBlipInfo(visible, blipType, blipTeam)
+function FogOfWarEntity:SetFogEntMapBlipInfo(visible, blipType, blipTeam, isActive)
     self.visible = visible
 
-    if blipType then
+    if blipType ~= nil then
 	   self.blipType = blipType
     end
 
-    if blipTeam then
+    if blipTeam ~= nil then
 	   self.blipTeam = blipTeam
        self:SetTeamNumber(teamNumber)
     end
 
-    -- Log("%s-%s -- Set visible: %s", self, self.blipType and EnumToString(kMinimapBlipType, self.blipType), visible)
+    if isActive ~= nil then
+       self.isActive = isActive
+    end
+
+
+    -- Log("%s-%s -- Set visible: %s, active: %s/%s", self, self.blipType and EnumToString(kMinimapBlipType, self.blipType), visible, isActive, self.isActive)
 
     if Server then
         self:UpdateRelevancy()
