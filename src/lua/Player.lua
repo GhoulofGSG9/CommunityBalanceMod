@@ -885,7 +885,14 @@ function Player:PerformUseTrace()
     local viewCoords = self:GetViewAngles():GetCoords()
     local endPoint = startPoint + viewCoords.zAxis * kMaxRelevancyDistance
 
-    local trace = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.AllButPCsAndRagdollsAndBabblers, EntityFilterOneAndIsa(self, "Weapon"))
+    local trace = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.AllButPCsAndRagdolls, EntityFilterOneAndIsa(self, "Weapon"))
+
+    if trace.entity and trace.entity:isa("Babbler") then
+        local trace2 = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.AllButPCsAndRagdollsAndBabblers, EntityFilterOneAndIsa(self, "Weapon"))
+        if trace2.entity then -- if we found something else, ignore the babbler
+            trace = trace2
+        end
+    end
 
     if isUsing and trace.entity == nil then
         trace = Shared.TraceBox(useBoxSize1, startPoint, endPoint, CollisionRep.Damage, PhysicsMask.AllButPCsAndRagdollsAndBabblers, EntityFilterOneAndIsa(self, "Weapon"))

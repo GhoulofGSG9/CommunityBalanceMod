@@ -159,13 +159,11 @@ function Babbler:OnCreate()
         
         InitMixin(self, PathingMixin)
         
-        self.targetId = Entity.invalidId
-        
         self.moveType = kBabblerMoveType.None
         self.clinged = false
 
         self.attacking = false
-        
+
         self.creationTime = Shared.GetTime()
 
     elseif Client then
@@ -210,7 +208,11 @@ function Babbler:OnInitialized()
         
         self:UpdateJumpPhysicsBody()
         
-        self:Jump(Vector(math.random() * 2 - 1, 4, math.random() * 2 - 1))
+        self:Jump(Vector(
+            math.random() * 2 - 1,
+            4 - math.random() * 2,
+            math.random() * 2 - 1)
+        )
 
 		--[[if GetHasTech(self:GetOwner(), kTechId.BabblerBombAbility) then
 			self:SetMaxHealth(20)
@@ -285,6 +287,7 @@ function Babbler:OnModelChanged(hasModel)
     if hasModel then
         self.delayedSkinUpdate = true   --have to give time for the model to swap
         self.dirtySkinState = false
+        self.addedToHiveVision = false
     end
 end
 
@@ -322,7 +325,7 @@ function Babbler:GetVelocity()
     end
     if self.lastOrigin then
         local now = Shared.GetTime()
-        return (self.lastOrigin - self:GetOrigin()) / (now - self.lastUpdate)
+        return (self:GetOrigin() - self.lastOrigin) / (now - self.lastUpdate)
     end
     return Vector(0,0,0)
     
@@ -412,6 +415,46 @@ function Babbler:UpdatePhysics()
     end
 end
 
+function Babbler:GetCanBeUsed(entity, useSuccessTable)
+
+    local success = true
+
+    if not GetAreFriends(self, entity) then
+        success = false
+    end
+
+    if success and HasMixin(entity, "BabblerCling") then
+        if not entity:GetCanAttachBabbler() then
+            success = false
+        end
+        if entity:GetNumClingedBabblers() >= entity:GetMaxClingedBabblers() then
+            success = false
+        end
+    end
+
+    useSuccessTable.useSuccess = success
+    
+end
+
+function Babbler:GetUseAllowedBeforeGameStart()
+    return true
+end
+
+function Babbler:GetCanBeUsedDuringWarmup()
+    return true
+end
+
+function Babbler:OnUse(player, elapsedTime, useSuccessTable)
+    if Server and not self:GetIsClinged() then
+        local moveType = kBabblerMoveType.Cling
+        local position = HasMixin(player, "Target") and player:GetEngagementPoint() or player:GetOrigin()
+        self:SetMoveType(moveType, player, position, true)
+    end
+
+    self:TriggerEffects("babbler_jump") 
+
+end
+
 function Babbler:OnUpdatePhysics()
     self:UpdatePhysics()
 end
@@ -469,19 +512,19 @@ function Babbler:OnUpdate(deltaTime)
     self:UpdateBabbler(deltaTime)
 
     if Server and self.babblerOffMap then
-        if self.babblerOffMap then -- Move toward destination to get back into the map we left like a coward
-            local orig = self:GetOrigin()
-            local direction = (self.babblerOffMapRecoveryOrig - orig):GetUnit()
+        -- Move toward destination to get back into the map we left like a coward
+        local orig = self:GetOrigin()
+        local direction = (self.babblerOffMapRecoveryOrig - orig):GetUnit()
 
-            self:SetOrigin(orig + direction * deltaTime * kBabblerRunSpeed)
-            self:SetGroundMoveType(true)
-        end
+        self:SetOrigin(orig + direction * deltaTime * kBabblerRunSpeed)
+        self:SetGroundMoveType(true)
     end
 
 end
 
 function Babbler:OnProcessMove(input)
-    self:UpdateBabbler(input.time)
+    local deltaTime = input.time
+    self:UpdateBabbler(deltaTime)
     
     if Server then
         
@@ -542,7 +585,7 @@ if Server then
         if oldOwner and HasMixin(oldOwner, "BabblerOwner") then
             if self.babblerBombSpawned then
                 oldOwner:BombBabblerDestroyed()
-            elseif not self.babblerBombSpawned then
+            else
                 oldOwner:BabblerDestroyed()
             end
         end
@@ -551,8 +594,8 @@ if Server then
             if HasMixin(newOwner, "BabblerOwner") then
                 if self.babblerBombSpawned then
                     newOwner:BombBabblerCreated()
-                elseif not self.babblerBombSpawned then    
-                     newOwner:BabblerCreated()
+                else
+                    newOwner:BabblerCreated()
                 end
             end
         else -- Destroy Babblers without Owner
@@ -674,7 +717,7 @@ if Server then
         local orig = self:GetOrigin()
         for _, ball in ipairs(GetEntitiesForTeamWithinRange("BabblerPheromone", self:GetTeamNumber(), orig, 20)) do
 
-            if (ball:GetOrigin() - orig):GetLength() > 4 and ball:GetOwner() == self:GetOwner() then
+            if (ball:GetOrigin() - orig):GetLength() > 4 and ball:GetOwnerId() == self:GetOwnerId() then
                 return ball
             end
 
@@ -682,6 +725,7 @@ if Server then
 
     end
 
+    local randomTargetPosition = Vector(0,0,0)
     function Babbler:FindSomethingInteresting()
 
         PROFILE("Babbler:FindSomethingInteresting")
@@ -689,10 +733,12 @@ if Server then
         local origin = self:GetOrigin()
         local searchRange = 7
         local targetPos
-        local randomTarget = origin + Vector(math.random() * 4 - 2, 0, math.random() * 4 - 2)
 
+        VectorCopy(origin, randomTargetPosition)
+        randomTargetPosition.x = math.random() * 4 - 2
+        randomTargetPosition.z = math.random() * 4 - 2
         if math.random() < 0.2 then
-            targetPos = randomTarget
+            targetPos = randomTargetPosition
         else
 
             local babblerBall = self:GetBabblerBall()
@@ -701,16 +747,14 @@ if Server then
                 targetPos = babblerBall:GetOrigin()
             else
 
-                local interestingTargets = { }
-                table.copy(GetEntitiesWithMixinForTeamWithinRange("Live", self:GetTeamNumber(), origin, searchRange), interestingTargets, true)
-
+                local interestingTargets = GetEntitiesWithMixinForTeamWithinRange("Live", self:GetTeamNumber(), origin, searchRange)
                 local numTargets = #interestingTargets
                 if numTargets > 1 then
                     targetPos = interestingTargets[math.random (1, numTargets)]:GetOrigin()
                 elseif numTargets == 1 then
                     targetPos = interestingTargets[1]:GetOrigin()
                 else
-                    targetPos = randomTarget
+                    targetPos = randomTargetPosition
                 end
 
             end
@@ -801,13 +845,14 @@ if Server then
 			-- check for targets to attack
 			local target = self.targetSelector:AcquireTarget() or self:GetTarget()
 			local owner = self:GetOwner()
+            local ownerId = self:GetOwnerId()
 			local alive = owner and HasMixin(owner, "Live") and owner:GetIsAlive()
 			local ownerOrigin = owner and (not owner:isa("Commander") and owner:GetOrigin() or owner.lastGroundOrigin)
 
 			if target then
 				-- All babblers get that attack order too (all the group focus on the same target)
 				for _, babbler in ipairs(GetEntitiesForTeamWithinRange("Babbler", self:GetTeamNumber(), self:GetOrigin(), 30)) do
-					if babbler:GetOwner() == owner and babbler:GetTarget() ~= target then
+					if babbler:GetOwnerId() == ownerId and babbler:GetTarget() ~= target then
 						babbler:SetMoveType(kBabblerMoveType.Attack, target, target:GetOrigin())
 					end
 				end
@@ -998,8 +1043,6 @@ if Server then
         return true
     end
 
-    local kDetachOffset = Vector(0, 0.3, 0)
-
     function Babbler:Attach(deltaTime)
         local target = self:GetTarget()
         if not target then return false end
@@ -1063,6 +1106,7 @@ if Server then
 		return math.random() > 0.5 and -value or value
 	end
 
+    local kDetachOffset = Vector(0, 0.25, 0)
 	function Babbler:Detach(force)
 		if not self.clinged then
 			return
@@ -1088,7 +1132,8 @@ if Server then
 
 		self:CreateHitBox()
 
-		local kDetachOffset = Vector(RandomNegate(math.random(15, 70) / 100), 0.25, RandomNegate(math.random(15, 70) / 100))
+        kDetachOffset.x = RandomNegate(math.random(15, 70) / 100)
+        kDetachOffset.z = RandomNegate(math.random(15, 70) / 100)
 		-- Check so babbler scatter is not thru walls etc.
 		if GetWallBetween(self:GetOrigin(), self:GetOrigin() + kDetachOffset, parent) then
 			kDetachOffset = Vector(0, 0.25, 0)
@@ -1373,7 +1418,8 @@ if Server then
             position = position or (target and target:GetOrigin())
         end
         
-        if force or ( (moveType ~= self.moveType or targetId ~= self.targetId or self.targetPosition ~= position) and not GetIgnoreOrders(self) ) then
+        local diffOfPosition = (self.targetPosition and position) and position:GetDistanceTo(self.targetPosition) or 0
+        if force or ( (moveType ~= self.moveType or targetId ~= self.targetId or diffOfPosition > 0) and not GetIgnoreOrders(self) ) then
 
             self.moveType = moveType
             self.targetId = targetId
@@ -1406,7 +1452,8 @@ if Server then
             
                 if self.timeLastAttack + kAttackRate < Shared.GetTime() then
                     
-                    self.timeLastAttack = Shared.GetTime()
+                    -- Adds a bit of randomness for the first attack
+                    self.timeLastAttack = Shared.GetTime() + math.random() * kAttackRate
                     
                     local targetOrigin
                     if entityHit.GetEngagementPoint then
@@ -1471,7 +1518,7 @@ elseif Client then
             modelCoords = Coords.GetLookIn(modelCoords.origin, self.moveDirection)
             modelCoords.origin.y = modelCoords.origin.y - Babbler.kRadius
         end
-    
+
         return modelCoords
     
     end
@@ -1487,7 +1534,10 @@ elseif Client then
 
         if not self.clinged then -- No sound when attached
             if self.clientJumping ~= self.jumping and self.jumping then
-                self:TriggerEffects("babbler_jump") 
+                local vel = self:GetVelocity()
+                if vel:GetLengthSquared() > 4 then
+                    self:TriggerEffects("babbler_jump") 
+                end
             end
 
             if self.clientAttacking ~= self.attacking and self.attacking then
