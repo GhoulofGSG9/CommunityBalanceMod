@@ -18,7 +18,8 @@ BabblerPheromone.kModelName = PrecacheAsset("models/alien/babbler/babbler_ball.m
 
 local precached1 = PrecacheAsset("models/alien/babbler/babbler_ball.surface_shader")
 
-local kBabblerSearchRange = 1000
+local kBabblerTargetSearchRange = 15
+local kBabblerSearchRange = 100
 local kBabblerPheromoneDuration = 5
 local kPheromoneEffectInterval = 0.15
 
@@ -48,34 +49,79 @@ function BabblerPheromone:OnCreate()
 
     end
 
-    self.radius = 0.1
-    self.mass = 1
+    self.radius = 0.125
+    self.mass = 3
     self.linearDamping = 0
     self.restitution = 0.95
     self:SetGroupFilterMask(PhysicsMask.NoBabblers)
 
 end
 
+local kBabblerTargetLateralPenalty = 2
+local kUpVector = Vector(0, 0.5, 0)
+function BabblerPheromone:GetTarget(owner)
+    local orig = self:GetOrigin()
+    local ownerOrig = owner:GetOrigin()
+    local midWayOrig = (orig + ownerOrig) * 0.5
+
+    -- Direction from owner to pheromone
+    local dir = orig - ownerOrig
+    local dirLength = dir:GetLength()
+    local searchRange = dir:GetLength() * 0.5 + kBabblerTargetSearchRange
+
+    if dirLength < kEpsilon then -- Too close
+        return nil
+    end
+    dir:Scale(1 / dirLength)
+
+    local enemyTeamNumber = GetEnemyTeamNumber(self:GetTeamNumber())
+    local nearestTargets = GetEntitiesForTeamWithinRange("Player", enemyTeamNumber, midWayOrig, searchRange)
+
+    local bestEnt, bestScore = nil, nil
+
+    for _, ent in ipairs(nearestTargets) do
+
+        if ent and not GetWallBetween(ownerOrig + kUpVector, ent:GetOrigin() + kUpVector, ent) then
+
+            local toEnt = ent:GetOrigin() - ownerOrig
+
+            -- Projection along owner->pheromone axis
+            local alongDir = Math.DotProduct(toEnt, dir)
+
+            -- Only consider entities at or beyond the owner, in the pheromone's direction
+            if alongDir > 0 then
+
+                -- Perpendicular distance from the owner->pheromone ray
+                local lateral = (toEnt - dir * alongDir):GetLength()
+
+                -- Score: prioritize being on the owner->pheromone line, then closeness to owner
+                local score = alongDir + lateral * kBabblerTargetLateralPenalty
+
+                if not bestScore or score < bestScore then
+                    bestEnt = ent
+                    bestScore = score
+                end
+
+            end
+
+        end
+
+    end
+
+    return bestEnt
+end
 
 -- Force order for all babblers to the same target
 function BabblerPheromone:MoveBabblers()
 	local orig = self:GetOrigin()
-	local enemyTeamNumber = GetEnemyTeamNumber(self:GetTeamNumber())
-	local nearestTargets = GetEntitiesForTeamWithinRange("Player", enemyTeamNumber, orig, 15)
-	local target
-	local targetPos
-
-	for _, ent in ipairs(nearestTargets) do
-		if ent and not GetWallBetween(orig, ent:GetOrigin(), ent) then
-			target = ent
-			targetPos = ent.GetEngagementPoint and ent:GetEngagementPoint() or ent:GetOrigin()
-			break
-		end
-	end
-
 	local owner = self:GetOwner()
+	local ownerId = self:GetOwnerId()
+	
+	local target = self:GetTarget(owner)
+	local targetPos = target and (target.GetEngagementPoint and target:GetEngagementPoint() or target:GetOrigin())
+
 	for _, babbler in ipairs(GetEntitiesForTeamWithinRange("Babbler", self:GetTeamNumber(), orig, kBabblerSearchRange)) do
-		if babbler:GetOwner() == owner then
+		if babbler:GetOwnerId() == ownerId then
 			if babbler:GetIsClinged() and babbler:GetParent() == owner then
 				babbler:Detach()
 			end
@@ -83,7 +129,7 @@ function BabblerPheromone:MoveBabblers()
 			if target then
 				-- Log("Attack group order issued by the bait toward %s", target)
 				babbler:SetMoveType(kBabblerMoveType.Attack, target, targetPos, true)
-			elseif babbler.moveType ~= kBabblerMoveType.Attack then
+			else --if babbler.moveType ~= kBabblerMoveType.Attack then
 				-- Log("Move group order issued by the bait toward %s", target)
 				babbler:SetMoveType(kBabblerMoveType.Move, nil, self:GetOrigin(), true)
 			end
@@ -143,9 +189,10 @@ if Server then
             self.firstUpdate = true
 
             local gorge = self:GetOwner()
+            local gorgeId = self:GetOwnerId()
             for _, babbler in ipairs(GetEntitiesForTeamWithinRange("Babbler", self:GetTeamNumber(), self:GetOrigin(), kBabblerSearchRange )) do
 
-                if babbler:GetIsClinged() and babbler:GetOwner() == gorge and babbler:GetParent() == gorge then
+                if babbler:GetIsClinged() and babbler:GetOwnerId() == gorgeId and babbler:GetParent() == gorge then
 
                     babbler:Detach()
 
@@ -221,9 +268,10 @@ if Server then
 					self.triggeredPuff = true
 
 					local owner = self:GetOwner()
+					local ownerId = self:GetOwnerId()
 					for _, babbler in ipairs(GetEntitiesForTeamWithinRange("Babbler", self:GetTeamNumber(), self:GetOrigin(), kBabblerSearchRange )) do
 
-						if babbler:GetOwner() == owner then
+						if babbler:GetOwnerId() == ownerId then
 
 							if babbler:GetIsClinged() and babbler:GetParent() == owner then
 								babbler:Detach()
