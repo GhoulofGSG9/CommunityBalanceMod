@@ -65,8 +65,8 @@ local kDestroyedPowerNodeColor = Color(0.5, 0.5, 0.35, 1)
 
 local kDrifterColor = Color(1, 1, 0, 1)
 local kMACColor = Color(0, 1, 0.2, 1)
-local kAdvancedColor = Color(0.4, 0, 1, 1)
-local kHiveMaxBioColor = Color(1, 0.3, 0.85, 1)
+local kAdvancedMarineColor = Color(0.4, 0, 1, 1)
+local kAdvancedAlienColor = Color(0.93, 0, 0.65, 1)
 
 local kScanColor = Color(0.2, 0.8, 1, 1)
 local kScanAnimDuration = 2
@@ -126,7 +126,7 @@ local kLocationFontName = Fonts.kAgencyFB_Smaller_Bordered
 
 local kPlayerIconSize
 
-local kBlipColorType = enum( { 'Team', 'Infestation', 'InfestationDying', 'Waypoint', 'PowerPoint', 'DestroyedPowerPoint', 'Scan', 'Drifter', 'MAC', 'EtherealGate', 'HighlightWorld', 'FullColor','AdvancedColor','HiveMaxBioColor'} )
+local kBlipColorType = enum( { 'Team', 'Infestation', 'InfestationDying', 'Waypoint', 'PowerPoint', 'DestroyedPowerPoint', 'Scan', 'Drifter', 'MAC', 'EtherealGate', 'HighlightWorld', 'FullColor','AdvancedMarineColor','AdvancedAlienColor'} )
 local kBlipSizeType = enum( { 'Normal', 'TechPoint', 'Infestation', 'Scan', 'Egg', 'Worker', 'EtherealGate', 'HighlightWorld', 'Waypoint', 'BoneWall', 'UnpoweredPowerPoint', 'Fortress' } )
 
 local kBlipInfo = {}
@@ -153,7 +153,7 @@ kBlipInfo[kMinimapBlipType.BoneWall] = { kBlipColorType.FullColor, kBlipSizeType
 
 -- %%% New CBM Map Icons %%% --
 kBlipInfo[kMinimapBlipType.Armory] = { kBlipColorType.Team, kBlipSizeType.Normal, kStaticBlipsLayer, "Armory" }
-kBlipInfo[kMinimapBlipType.AdvancedArmory] = { kBlipColorType.AdvancedColor, kBlipSizeType.Normal, kStaticBlipsLayer, "AdvancedArmory" }
+kBlipInfo[kMinimapBlipType.AdvancedArmory] = { kBlipColorType.AdvancedMarineColor, kBlipSizeType.Normal, kStaticBlipsLayer, "AdvancedArmory" }
 kBlipInfo[kMinimapBlipType.ARC] = { kBlipColorType.Team, kBlipSizeType.Normal, kStaticBlipsLayer, "ARC" }
 kBlipInfo[kMinimapBlipType.ARCDeployed] = { kBlipColorType.Team, kBlipSizeType.Normal, kStaticBlipsLayer, "ARCDeployed" }
 
@@ -164,31 +164,31 @@ kBlipInfo[kMinimapBlipType.HiveOccupied] = { kBlipColorType.Team, kBlipSizeType.
 kBlipInfo[kMinimapBlipType.HiveMature] = { kBlipColorType.Team, kBlipSizeType.TechPoint, kStaticBlipsLayer, "HiveMature" }
 kBlipInfo[kMinimapBlipType.HiveMatureOccupied] = { kBlipColorType.Team, kBlipSizeType.TechPoint, kStaticBlipsLayer, "HiveMatureOccupied" }
 
-kBlipInfo[kMinimapBlipType.HiveFreshFifthBio] = { kBlipColorType.HiveMaxBioColor, kBlipSizeType.TechPoint, kStaticBlipsLayer, "HiveFresh" }
-kBlipInfo[kMinimapBlipType.HiveFreshOccupiedFifthBio] = { kBlipColorType.HiveMaxBioColor, kBlipSizeType.TechPoint, kStaticBlipsLayer, "HiveFreshOccupied" }
-kBlipInfo[kMinimapBlipType.HiveFifthBio] = { kBlipColorType.HiveMaxBioColor, kBlipSizeType.TechPoint, kStaticBlipsLayer, "Hive" }
-kBlipInfo[kMinimapBlipType.HiveOccupiedFifthBio] = { kBlipColorType.HiveMaxBioColor, kBlipSizeType.TechPoint, kStaticBlipsLayer, "HiveOccupied" }
-kBlipInfo[kMinimapBlipType.HiveMatureFifthBio] = { kBlipColorType.HiveMaxBioColor, kBlipSizeType.TechPoint, kStaticBlipsLayer, "HiveMature" }
-kBlipInfo[kMinimapBlipType.HiveMatureOccupiedFifthBio] = { kBlipColorType.HiveMaxBioColor, kBlipSizeType.TechPoint, kStaticBlipsLayer, "HiveMatureOccupied" }
+kBlipInfo[kMinimapBlipType.HiveFreshFifthBio] = { kBlipColorType.AdvancedAlienColor, kBlipSizeType.TechPoint, kStaticBlipsLayer, "HiveFresh" }
+kBlipInfo[kMinimapBlipType.HiveFreshOccupiedFifthBio] = { kBlipColorType.AdvancedAlienColor, kBlipSizeType.TechPoint, kStaticBlipsLayer, "HiveFreshOccupied" }
+kBlipInfo[kMinimapBlipType.HiveFifthBio] = { kBlipColorType.AdvancedAlienColor, kBlipSizeType.TechPoint, kStaticBlipsLayer, "Hive" }
+kBlipInfo[kMinimapBlipType.HiveOccupiedFifthBio] = { kBlipColorType.AdvancedAlienColor, kBlipSizeType.TechPoint, kStaticBlipsLayer, "HiveOccupied" }
+kBlipInfo[kMinimapBlipType.HiveMatureFifthBio] = { kBlipColorType.AdvancedAlienColor, kBlipSizeType.TechPoint, kStaticBlipsLayer, "HiveMature" }
+kBlipInfo[kMinimapBlipType.HiveMatureOccupiedFifthBio] = { kBlipColorType.AdvancedAlienColor, kBlipSizeType.TechPoint, kStaticBlipsLayer, "HiveMatureOccupied" }
 
 kBlipInfo[kMinimapBlipType.CommandStationOccupied] = { kBlipColorType.Team, kBlipSizeType.TechPoint, kStaticBlipsLayer , "CommandStationOccupied"}
 kBlipInfo[kMinimapBlipType.DrifterEgg] = { kBlipColorType.Drifter, kBlipSizeType.Worker, kStaticBlipsLayer }
 kBlipInfo[kMinimapBlipType.WhipMature] = { kBlipColorType.Team, kBlipSizeType.Normal, kStaticBlipsLayer, "WhipMature" }
 kBlipInfo[kMinimapBlipType.Whip] = { kBlipColorType.Team, kBlipSizeType.Normal, kStaticBlipsLayer, "Whip" }
-kBlipInfo[kMinimapBlipType.FortressWhip] = { kBlipColorType.FullColor, kBlipSizeType.Fortress, kStaticBlipsLayer, "FortressWhip" }
-kBlipInfo[kMinimapBlipType.FortressWhipMature] = { kBlipColorType.FullColor, kBlipSizeType.Fortress, kStaticBlipsLayer, "FortressWhipMature" }
-kBlipInfo[kMinimapBlipType.FortressCrag] = { kBlipColorType.FullColor, kBlipSizeType.Fortress, kStaticBlipsLayer, "FortressCrag" }
-kBlipInfo[kMinimapBlipType.FortressShift] = { kBlipColorType.FullColor, kBlipSizeType.Fortress, kStaticBlipsLayer, "FortressShift" }
-kBlipInfo[kMinimapBlipType.FortressShade] = { kBlipColorType.FullColor, kBlipSizeType.Fortress, kStaticBlipsLayer, "FortressShade" }
-kBlipInfo[kMinimapBlipType.DIS] = { kBlipColorType.AdvancedColor, kBlipSizeType.Normal, kStaticBlipsLayer, "ARC" }
-kBlipInfo[kMinimapBlipType.DISDeployed] = { kBlipColorType.AdvancedColor, kBlipSizeType.Normal, kStaticBlipsLayer, "ARCDeployed" }
-kBlipInfo[kMinimapBlipType.BattleMAC] = { kBlipColorType.AdvancedColor, kBlipSizeType.Worker, kStaticBlipsLayer, "MAC" }
-kBlipInfo[kMinimapBlipType.ShieldedSentryBattery] = { kBlipColorType.AdvancedColor, kBlipSizeType.Normal, kStaticBlipsLayer, "SentryBattery" }
-kBlipInfo[kMinimapBlipType.AdvancedObservatory] = { kBlipColorType.AdvancedColor, kBlipSizeType.Normal, kStaticBlipsLayer, "Observatory" }
-kBlipInfo[kMinimapBlipType.CargoGate] = { kBlipColorType.AdvancedColor, kBlipSizeType.Normal, kStaticBlipsLayer, "PhaseGate" }
-kBlipInfo[kMinimapBlipType.ARCRoboticsFactory] = { kBlipColorType.AdvancedColor, kBlipSizeType.Normal, kStaticBlipsLayer, "RoboticsFactory" }
-kBlipInfo[kMinimapBlipType.InfantryPrototypeLab] = { kBlipColorType.AdvancedColor, kBlipSizeType.Normal, kStaticBlipsLayer, "PrototypeLab" }
-kBlipInfo[kMinimapBlipType.ExoPrototypeLab] = { kBlipColorType.AdvancedColor, kBlipSizeType.Normal, kStaticBlipsLayer, "PrototypeLab" }
+kBlipInfo[kMinimapBlipType.FortressWhip] = { kBlipColorType.AdvancedAlienColor, kBlipSizeType.Fortress, kStaticBlipsLayer, "FortressWhip" }
+kBlipInfo[kMinimapBlipType.FortressWhipMature] = { kBlipColorType.AdvancedAlienColor, kBlipSizeType.Fortress, kStaticBlipsLayer, "FortressWhipMature" }
+kBlipInfo[kMinimapBlipType.FortressCrag] = { kBlipColorType.AdvancedAlienColor, kBlipSizeType.Fortress, kStaticBlipsLayer, "FortressCrag" }
+kBlipInfo[kMinimapBlipType.FortressShift] = { kBlipColorType.AdvancedAlienColor, kBlipSizeType.Fortress, kStaticBlipsLayer, "FortressShift" }
+kBlipInfo[kMinimapBlipType.FortressShade] = { kBlipColorType.AdvancedAlienColor, kBlipSizeType.Fortress, kStaticBlipsLayer, "FortressShade" }
+kBlipInfo[kMinimapBlipType.DIS] = { kBlipColorType.AdvancedMarineColor, kBlipSizeType.Normal, kStaticBlipsLayer, "ARC" }
+kBlipInfo[kMinimapBlipType.DISDeployed] = { kBlipColorType.AdvancedMarineColor, kBlipSizeType.Normal, kStaticBlipsLayer, "ARCDeployed" }
+kBlipInfo[kMinimapBlipType.BattleMAC] = { kBlipColorType.AdvancedMarineColor, kBlipSizeType.Worker, kStaticBlipsLayer, "MAC" }
+kBlipInfo[kMinimapBlipType.ShieldedSentryBattery] = { kBlipColorType.AdvancedMarineColor, kBlipSizeType.Normal, kStaticBlipsLayer, "SentryBattery" }
+kBlipInfo[kMinimapBlipType.AdvancedObservatory] = { kBlipColorType.AdvancedMarineColor, kBlipSizeType.Normal, kStaticBlipsLayer, "Observatory" }
+kBlipInfo[kMinimapBlipType.CargoGate] = { kBlipColorType.AdvancedMarineColor, kBlipSizeType.Normal, kStaticBlipsLayer, "PhaseGate" }
+kBlipInfo[kMinimapBlipType.ARCRoboticsFactory] = { kBlipColorType.AdvancedMarineColor, kBlipSizeType.Normal, kStaticBlipsLayer, "RoboticsFactory" }
+kBlipInfo[kMinimapBlipType.InfantryPrototypeLab] = { kBlipColorType.AdvancedMarineColor, kBlipSizeType.Normal, kStaticBlipsLayer, "PrototypeLab" }
+kBlipInfo[kMinimapBlipType.ExoPrototypeLab] = { kBlipColorType.AdvancedMarineColor, kBlipSizeType.Normal, kStaticBlipsLayer, "PrototypeLab" }
 
 local kClassToGrid = BuildClassToGrid()
 
@@ -341,8 +341,8 @@ function GUIMinimap:Initialize()
         colorTable[kBlipColorType.MAC] = kMACColor
         colorTable[kBlipColorType.EtherealGate] = self.etherealGateColor
         colorTable[kBlipColorType.FullColor] = kFullColor
-		colorTable[kBlipColorType.AdvancedColor] = kAdvancedColor
-		colorTable[kBlipColorType.HiveMaxBioColor] = kHiveMaxBioColor
+		colorTable[kBlipColorType.AdvancedMarineColor] = kAdvancedMarineColor
+		colorTable[kBlipColorType.AdvancedAlienColor] = kAdvancedAlienColor
         blipColorTable[blipTeam] = colorTable
     end
     self.blipColorTable = blipColorTable

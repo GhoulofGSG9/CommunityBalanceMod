@@ -622,6 +622,7 @@ if Client then
 				model:SetMaterialParameter("highlight", 0.91)
 
 				self.fortressShadeMaterial = true
+				self:SetHighlightNeedsUpdate()
 			end
 	    end
     end
