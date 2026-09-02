@@ -26,6 +26,8 @@ local networkVars =
     isParasited = "boolean",
     ownerEntityId = "entityid",
     isHallucination = "boolean",
+    isFogOfWarMapBlip = "boolean",
+    activeTime = "time",
     active = "boolean"
 }
 
@@ -44,10 +46,13 @@ function MapBlip:OnCreate()
     self.ownerEntityId = Entity.invalidId
     self.isInCombat = false
     self.isParasited = false
-    
+    self.isFogOfWarMapBlip = false
+    self.activeTime = 0
+
     self:UpdateRelevancy()
     self:SetRelevancyDistance(Math.infinity)
     
+    -- Print("OnCreate(%s)", self)
     if Client then
         InitMixin(self, MinimapMappableMixin)
 
@@ -78,17 +83,19 @@ function MapBlip:OnCreate()
     
 end
 
-
 local kMaskRelevantToBothTeam = bit.bor(kRelevantToTeam1, kRelevantToTeam2)
-function MapBlip:UpdateRelevancy(owner)
+function MapBlip:UpdateRelevancy(owner, isSighted)
     
     PROFILE("MapBlip:UpdateRelevancy")
 
     local mask = 0
-    local isSighted = false
 
-    if (self.mapBlipTeam ~= kTeamInvalid) then
-        isSighted = self:GetIsSighted(owner)
+    if isSighted == nil then
+        if self.mapBlipTeam ~= kTeamInvalid then
+            isSighted = self:GetIsSighted(owner)
+        else
+            isSighted = false
+        end
     end
 
     if (self.mapBlipTeam == kTeamInvalid or isSighted) then
@@ -100,8 +107,34 @@ function MapBlip:UpdateRelevancy(owner)
             mask = kRelevantToTeam1
         end
     end
-    
+
+    if owner and not owner:isa("FogOfWarEntity") and self.lastSetRelevancyMask ~= mask then
+        if self.lastSetRelevancyMask == kMaskRelevantToBothTeam then
+            owner:UpdateFogEntity(false) -- Create fog entity
+        else
+            owner:UpdateFogEntity(true) -- Clear fog entity if any
+        end
+    end
+
+    if owner and owner:isa("FogOfWarEntity") then
+        -- If we are still in init, set in stone type/team might not be set yet
+        -- Fetching owner teamNumber directly
+        local ownerTeam = self.mapBlipTeam --owner:GetTeamNumber()
+        if (ownerTeam == kTeam2Index) then
+            mask = kRelevantToTeam1
+        elseif (ownerTeam == kTeam1Index) then
+            mask = kRelevantToTeam2
+        end
+
+        if not owner:IsMapBlipVisible() then
+            mask = 0
+        end
+    end
+
     if self.lastSetRelevancyMask ~= mask then
+        -- if Server and owner and owner:isa("FogOfWarEntity") then
+        --     Print("Set relevancy at %s for %s (owned by %s) (%s-%s)", mask, self, owner, kRelevantToTeam1, kRelevantToTeam2)
+        -- end
         self:SetExcludeRelevancyMask( mask )
         self.lastSetRelevancyMask = mask
     end
@@ -197,8 +230,6 @@ function MapBlip:Update(owner)
             self:SetAngles(blipSetAngle)
         end
         
-
-
         local origin
         if owner.GetPositionForMinimap then
             origin = owner:GetPositionForMinimap()
@@ -233,8 +264,19 @@ function MapBlip:Update(owner)
             end 
 
             self.isHallucination = owner.isHallucination == true or owner:isa("Hallucination")
-            
-            self.active = GetIsUnitActive(owner)
+            self.isFogOfWarMapBlip = self.isFogOfWarMapBlip == true or owner:isa("FogOfWarEntity")
+
+            local active
+            if self.isFogOfWarMapBlip then
+                active = owner:IsMapBlipVisible()
+            else
+                active = GetIsUnitActive(owner)
+            end
+
+            if active and not self.active then
+                self.activeTime = Shared.GetTime()
+            end
+            self.active = active
 
         end
         
@@ -299,7 +341,7 @@ if Client then
     local kFastMoverTypes = {}
     kFastMoverTypes[kMinimapBlipType.Drifter] = true
     kFastMoverTypes[kMinimapBlipType.MAC]     = true
-	kFastMoverTypes[kMinimapBlipType.BattleMAC]     = true
+    kFastMoverTypes[kMinimapBlipType.BattleMAC]     = true
     
     function MapBlip:GetMapBlipColor(minimap, item)
 
@@ -335,6 +377,35 @@ if Client then
             color = HSVToRGB(hue, sat, val)
         end
 
+        if self.isFogOfWarMapBlip then
+
+            local waitTime = 0--1.5
+            local fadeInTime = 0--1
+            local fogColor = self.currentFogBlipColor or Color()
+
+            -- For re-entrance, don't re-apply on ourselves if we have the same color
+            if not (color.r == fogColor.r and color.g == fogColor.g and color.b == fogColor.g) then
+                -- Weighted (perceptually accurate, matches human eye sensitivity)
+                local grayColor = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b
+
+                -- Apply: blend toward gray by a factor (0 = original, 1 = full gray)
+                local factor = 0.65
+                local alphaFactor = 0.8
+                fogColor.r = color.r * (1 - factor) + grayColor * factor
+                fogColor.g = color.g * (1 - factor) + grayColor * factor
+                fogColor.b = color.b * (1 - factor) + grayColor * factor
+                fogColor.a = color.a * alphaFactor
+
+                color = fogColor
+                self.currentFogBlipColor = color
+            end
+
+            if player:isa("Spectator") then
+                color.a = 0 -- Invisible for specs
+            end
+
+        end
+
         return color
     end
 
@@ -348,7 +419,7 @@ if Client then
             return
         end
 
-        local playerTeam = MinimapTeamToTeam(minimap.playerTeam)
+        local playerTeam = MinimapTeamToTeam(minimap:GetPlayerTeam())
         local blipTeamNumber = self:GetTeamNumber()
         local isEmbryo = (self:GetType() == kMinimapBlipType.Embryo)
         local isEnemy = (blipTeamNumber == GetEnemyTeamNumber(playerTeam))
@@ -438,7 +509,8 @@ if Client then
         local isMoving = item.prevOrigin ~= origin
         item.prevOrigin = origin
 
-        return self.isInCombat and self.combatActivity or
+        return self.isFogOfWarMapBlip and kMinimapActivity.Static or
+                self.isInCombat and self.combatActivity or
                 isMoving and self.movingActivity or
                 self.defaultActivity
     end
@@ -478,6 +550,7 @@ if Client then
                 end
             end  
         end
+
         self.currentMapBlipColor = blipColor
 
     end
@@ -486,7 +559,12 @@ if Client then
         -- empty; allow players to decorate with their names
     end
 
+    -- function MapBlip:OnDestroy()
+    --     Log("OnDestroy(%s)", self)
+    -- end
+
 end -- Client
+
 Shared.LinkClassToMap("MapBlip", MapBlip.kMapName, networkVars)
 
 class 'PlayerMapBlip' (MapBlip)
