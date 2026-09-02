@@ -378,7 +378,7 @@ if Client then
 
                 -- Apply: blend toward gray by a factor (0 = original, 1 = full gray)
                 local factor = 0.65
-                local alphaFactor = 0.8
+                local alphaFactor = self.active and 0.8 or 0.65 -- unbuilt blips are way darker by default, reduce further
                 fogColor.r = color.r * (1 - factor) + grayColor * factor
                 fogColor.g = color.g * (1 - factor) + grayColor * factor
                 fogColor.b = color.b * (1 - factor) + grayColor * factor
