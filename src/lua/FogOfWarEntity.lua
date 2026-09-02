@@ -37,9 +37,7 @@ end
 
 function FogOfWarEntity:OnUpdate()
 
-    if not self:IsMapBlipVisible() then
-        return
-    end
+    assert(self:IsMapBlipVisible())
 
     --Log("%s-%s -- OnUpdate(team: %s)", self, EnumToString(kMinimapBlipType, self.blipType), self.blipTeam)
     --DebugCapsule( self:GetOrigin(), self:GetOrigin(), 0.5, 0.0, 0.25)
@@ -98,8 +96,7 @@ function FogOfWarEntity:SetFogEntMapBlipInfo(visible, blipType, blipTeam, isActi
        self.isActive = isActive
     end
 
-
-    -- Log("%s-%s -- Set visible: %s, active: %s/%s", self, self.blipType and EnumToString(kMinimapBlipType, self.blipType), visible, isActive, self.isActive)
+    --Log("%s-%s -- Set visible: %s, active: %s/%s", self, self.blipType and EnumToString(kMinimapBlipType, self.blipType), visible, isActive, self.isActive)
 
     if Server then
         self:UpdateRelevancy()
@@ -107,6 +104,10 @@ function FogOfWarEntity:SetFogEntMapBlipInfo(visible, blipType, blipTeam, isActi
         -- Stash the entity if we are not linked anymore
         -- Also check for if mapBlip has been initialized
         if not visible and HasMixin(self, "MapBlip") and self:IsFogEntityDetached() then
+            -- Set the type and active to something big,
+            -- so if anything messes up we will see it instantly
+            self.blipType = kMinimapBlipType.CommandStation
+            self.isActive = false
             self:StashFogEntity()
         end
     end
