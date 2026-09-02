@@ -81,6 +81,11 @@ function MapBlip:OnCreate()
     
 end
 
+local kExcludedBlipsForFog = set 
+{
+    kMinimapBlipType.Scan,
+    kMinimapBlipType.SensorBlip
+}
 local kMaskRelevantToBothTeam = bit.bor(kRelevantToTeam1, kRelevantToTeam2)
 function MapBlip:UpdateRelevancy(owner, isSighted)
     
@@ -107,10 +112,12 @@ function MapBlip:UpdateRelevancy(owner, isSighted)
     end
 
     if owner and not owner:isa("FogOfWarEntity") and self.lastSetRelevancyMask ~= mask then
-        if self.lastSetRelevancyMask == kMaskRelevantToBothTeam then
-            owner:UpdateFogEntity(false) -- Create fog entity
-        else
-            owner:UpdateFogEntity(true) -- Clear fog entity if any
+        if not kExcludedBlipsForFog[self:GetMapBlipType()] then
+            if self.lastSetRelevancyMask == kMaskRelevantToBothTeam then
+                owner:UpdateFogEntity(false) -- Create fog entity
+            else
+                owner:UpdateFogEntity(true) -- Clear fog entity if any
+            end
         end
     end
 
@@ -548,7 +555,7 @@ if Client then
     end
 
     -- function MapBlip:OnDestroy()
-    --     Log("OnDestroy(%s)", self)
+    --     Log("OnDestroy(%s-%s)", self, EnumToString(kMinimapBlipType, self.mapBlipType))
     -- end
 
 end -- Client
