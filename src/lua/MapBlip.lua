@@ -27,7 +27,6 @@ local networkVars =
     ownerEntityId = "entityid",
     isHallucination = "boolean",
     isFogOfWarMapBlip = "boolean",
-    activeTime = "time",
     active = "boolean"
 }
 
@@ -47,7 +46,6 @@ function MapBlip:OnCreate()
     self.isInCombat = false
     self.isParasited = false
     self.isFogOfWarMapBlip = false
-    self.activeTime = 0
 
     self:UpdateRelevancy()
     self:SetRelevancyDistance(Math.infinity)
@@ -211,10 +209,8 @@ local blipSetOrigin = Vector(0, 0, 0) -- prevents GC trashing
 function MapBlip:Update(owner)
     PROFILE("MapBlip:Update")
 
-    local isFirstUpdate = false
     if not (owner and owner:GetId() == self.ownerEntityId) then
         owner = self.ownerEntityId and Shared.GetEntity(self.ownerEntityId)
-        isFirstUpdate = true
     end
 
     if owner then
@@ -266,17 +262,11 @@ function MapBlip:Update(owner)
             self.isHallucination = owner.isHallucination == true or owner:isa("Hallucination")
             self.isFogOfWarMapBlip = self.isFogOfWarMapBlip == true or owner:isa("FogOfWarEntity")
 
-            local active
             if self.isFogOfWarMapBlip then
-                active = owner:IsMapBlipVisible()
+                self.active = owner.isActive
             else
-                active = GetIsUnitActive(owner)
+                self.active = GetIsUnitActive(owner)
             end
-
-            if active and not self.active then
-                self.activeTime = Shared.GetTime()
-            end
-            self.active = active
 
         end
         
@@ -379,8 +369,6 @@ if Client then
 
         if self.isFogOfWarMapBlip then
 
-            local waitTime = 0--1.5
-            local fadeInTime = 0--1
             local fogColor = self.currentFogBlipColor or Color()
 
             -- For re-entrance, don't re-apply on ourselves if we have the same color
