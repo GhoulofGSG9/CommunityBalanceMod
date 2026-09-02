@@ -12,6 +12,8 @@
 --
 -- ========= For more information, visit us at http://www.unknownworlds.com =====================
 
+Script.Load("lua/FogOfWarEntity.lua")
+
 MapBlipMixin = CreateMixin( MapBlipMixin )
 MapBlipMixin.type = "MapBlip"
 
@@ -34,6 +36,10 @@ MapBlipMixin.optionalCallbacks =
 -- What entities have become dirty.
 -- Flushed in the UpdateServer hook by MapBlipMixin.OnUpdateServer
 local mapBlipMixinDirtyTable = unique_set()
+
+local kFogOfWarEnts_hostToFog = {}
+local kFogOfWarEnts_fogToHost = {}
+local kFogOfWarEntsPool = {}
 
 --
 -- Update all dirty mapblips
@@ -86,6 +92,7 @@ function MapBlipMixin:__initmixin()
     self.lastBlipAngleYaw = 0
     self.blipIsPlayer = nil
     self.blipClassName = nil
+    self.previousSighted = false
 
     -- Check if the new entity should have a map blip to represent it.
     local success, blipType, blipTeam, isInCombat = self:GetMapBlipInfo()
@@ -106,8 +113,6 @@ function MapBlipMixin:SetOrigin(orig)
     if self.lastBlipOrigin and self.lastBlipOrigin ~= orig then
         mapBlipMixinDirtyTable:Insert(self:GetId())
         self.lastBlipOrigin = orig
-    --else
-    --    Log("%s Marking dirty even if we set same orig", self)
     end
 end
 
@@ -172,13 +177,97 @@ function MapBlipMixin:OnPreBeacon()
     mapBlipMixinDirtyTable:Insert(self:GetId())
 end
 
+function MapBlipMixin:UpdateFogEntity(sighted)
+
+    if not HasMixin(self, "Team") then
+        return nil
+    end
+
+    local id = self:GetId()
+    local isNewEntity = false
+    local f = kFogOfWarEnts_hostToFog[id]
+
+    assert(not self:isa("FogOfWarEntity"))
+
+    local teamNumber = self:GetTeamNumber()
+    if sighted or not ((teamNumber == kTeam1Index or teamNumber == kTeam2Index) and GetIsUnitActive(self)) then
+
+        if f and f:IsMapBlipVisible() then
+            local _, blipType = self:GetMapBlipInfo()
+            f:SetFogEntMapBlipInfo(false)
+        end
+
+        return nil
+    end
+
+    local _, blipType = self:GetMapBlipInfo()
+
+    if not f then
+        if #kFogOfWarEntsPool > 0 then
+            f = kFogOfWarEntsPool[#kFogOfWarEntsPool]
+            table.remove(kFogOfWarEntsPool, #kFogOfWarEntsPool)
+        else
+            isNewEntity = true
+            f = CreateEntity(FogOfWarEntity.kMapName)
+        end
+
+    end
+
+    if not f then
+        return nil
+    end
+
+    f:SetFogEntMapBlipInfo(not sighted, blipType, teamNumber)
+
+    if not kFogOfWarEnts_hostToFog[id] then -- We fetched a new entity that needs to be init
+
+        kFogOfWarEnts_hostToFog[id] = f
+        kFogOfWarEnts_fogToHost[f:GetId()] = id
+        if isNewEntity then
+            f:OnInitializedMapBlipMixin() -- Need to happen AFTER we set the custom host blips
+        end
+    end
+
+    local orig = self:GetOrigin()
+    if self:isa("Player") then
+        orig.y = self:GetModelOrigin().y -- Model middle, better for LOS check
+    elseif not self:isa("PowerPoint") then -- Elevate a bit off the ground anything but powernode (their orig is good)
+        orig = self:GetOrigin() + Vector(0, 0.25, 0)
+    end
+
+    f:SetOrigin(orig)
+    f:SetAngles(self:GetAngles())  
+    return f
+end
+
+function MapBlipMixin:IsFogEntityDetached()
+    assert(self:isa("FogOfWarEntity"))
+    return kFogOfWarEnts_fogToHost[self:GetId()] == nil
+end
+
+function MapBlipMixin:StashFogEntity()
+    local kMaxQueueSize = 15
+
+    -- Make sure the link to us as been cleared
+    assert(self:isa("FogOfWarEntity") and self:IsFogEntityDetached())
+
+    if #kFogOfWarEntsPool > kMaxQueueSize then
+        self:AddTimedCallback(DestroyEntity, 0)
+    else
+        table.insert(kFogOfWarEntsPool, self)
+    end
+    return
+end
+
 function MapBlipMixin:OnSighted(sighted)
 
     -- because sighted is always set during each LOS calc, we need to keep track of
     -- what the previous value was so we don't mark it dirty unnecessarily
     if self.previousSighted ~= sighted then
+
         self.previousSighted = sighted
         mapBlipMixinDirtyTable:Insert(self:GetId())
+
     end
 
 end
@@ -485,6 +574,27 @@ function MapBlipMixin:OnKill()
 end
 
 function MapBlipMixin:OnDestroy()
+
+    if self:isa("FogOfWarEntity") then -- Should not happen, but just in case
+        local idx = nil
+        for i, e in ipairs(kFogOfWarEntsPool) do -- Remove ourselves from the pool
+            if e:GetId() == self:GetId() then
+                idx = i
+                break
+            end
+        end
+        if idx then
+            table.remove(kFogOfWarEntsPool, idx)
+        end
+    else -- Detach the entity from the fog
+        local hostId = self:GetId()
+        local fogEntity = kFogOfWarEnts_hostToFog[hostId]
+        if fogEntity then
+            kFogOfWarEnts_fogToHost[fogEntity:GetId()] = nil
+        end
+        kFogOfWarEnts_hostToFog[hostId] = nil
+    end
+
     self:DestroyBlip()
     UpdateEntityForTeamBrains(self, true)
 end
