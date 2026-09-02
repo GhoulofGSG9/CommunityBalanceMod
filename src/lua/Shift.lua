@@ -1120,6 +1120,7 @@ if Client then
 				model:SetMaterialParameter("highlight", 0.91)
 
 				self.fortressShiftMaterial = true
+				self:SetHighlightNeedsUpdate()
 			end
 		end
     end

@@ -729,6 +729,7 @@ if Client then
                     model:SetMaterialParameter("highlight", 0.91)
 
                     self.fortressCragMaterial = true
+					self:SetHighlightNeedsUpdate()
                 end
 
            end
