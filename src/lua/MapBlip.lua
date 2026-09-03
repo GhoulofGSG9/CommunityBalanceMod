@@ -38,20 +38,18 @@ function MapBlip:OnCreate()
     -- since we create a lot of map blips.
     self:SetUpdates(false)
     
-    self:SetOrigin(Vector(0,0,0))
-    self:SetAngles(Angles(0,0,0))
     self.mapBlipType = kMinimapBlipType.TechPoint
     self.mapBlipTeam = kTeamReadyRoom
     self.ownerEntityId = Entity.invalidId
     self.isInCombat = false
     self.isParasited = false
     self.isFogOfWarMapBlip = false
+    self.lastSetRelevancyMask = nil
 
-    self:UpdateRelevancy()
     self:SetRelevancyDistance(Math.infinity)
     
-    -- Print("OnCreate(%s)", self)
     if Client then
+
         InitMixin(self, MinimapMappableMixin)
 
         self.clientMapBlipTeam = kMinimapBlipTeam.Neutral
@@ -122,17 +120,19 @@ function MapBlip:UpdateRelevancy(owner, isSighted)
     end
 
     if owner and owner:isa("FogOfWarEntity") then
-        -- If we are still in init, set in stone type/team might not be set yet
-        -- Fetching owner teamNumber directly
-        local ownerTeam = self.mapBlipTeam --owner:GetTeamNumber()
-        if (ownerTeam == kTeam2Index) then
-            mask = kRelevantToTeam1
-        elseif (ownerTeam == kTeam1Index) then
-            mask = kRelevantToTeam2
-        end
-
         if not owner:IsMapBlipVisible() then
             mask = 0
+        else
+            local ownerTeam = owner:GetTeamNumber()
+            if ownerTeam ~= kTeam1Index and ownerTeam ~= kTeam2Index then
+                -- not yet initialized; fall back to the team SetOwner gave us
+                ownerTeam = self.mapBlipTeam
+            end
+            if ownerTeam == kTeam2Index then
+                mask = kRelevantToTeam1
+            elseif ownerTeam == kTeam1Index then
+                mask = kRelevantToTeam2
+            end
         end
     end
 
@@ -267,7 +267,6 @@ function MapBlip:Update(owner)
             end 
 
             self.isHallucination = owner.isHallucination == true or owner:isa("Hallucination")
-            self.isFogOfWarMapBlip = self.isFogOfWarMapBlip == true or owner:isa("FogOfWarEntity")
 
             if self.isFogOfWarMapBlip then
                 self.active = owner.isActive
@@ -379,7 +378,7 @@ if Client then
             local fogColor = self.currentFogBlipColor or Color()
 
             -- For re-entrance, don't re-apply on ourselves if we have the same color
-            if not (color.r == fogColor.r and color.g == fogColor.g and color.b == fogColor.g) then
+            if not (color.r == fogColor.r and color.g == fogColor.g and color.b == fogColor.b) then
                 -- Weighted (perceptually accurate, matches human eye sensitivity)
                 local grayColor = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b
 
@@ -495,6 +494,7 @@ if Client then
             self:InitActivityDefaults()
         end
 
+        local blipType = self:GetMapBlipType()
         local blipTeam = self:GetMapBlipTeam(minimap) -- the blipTeam can change if power changes
         if blipType ~= item.blipType or blipTeam ~= item.blipTeam then
             item.resetMinimapItem = true
