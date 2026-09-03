@@ -287,9 +287,9 @@ function MapBlipMixin:StashFogEntity()
 
     self.visible = false
     self.blipType = kMinimapBlipType.CommandStation
-    self.blipTeam = -1
+    self.blipTeam = kTeamInvalid
     self.isActive = false
-    self:SetTeamNumber(self.blipTeam)
+    self:SetTeamNumber(kTeamInvalid)
 
     if #kFogOfWarEntsPool > kMaxQueueSize then
         self:AddTimedCallback(DestroyEntity, 0)
@@ -327,7 +327,7 @@ function MapBlipMixin:GetMapBlipInfo()
 
     local success = false
     local blipType = kMinimapBlipType.Undefined
-    local blipTeam = -1
+    local blipTeam = kTeamInvalid
     local isAttacked = HasMixin(self, "Combat") and self:GetIsInCombat()
     local isParasited = HasMixin(self, "ParasiteAble") and self:GetIsParasited()
     local isPlayer = self.blipIsPlayer
