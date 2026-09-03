@@ -145,7 +145,8 @@ function Babbler:OnCreate()
     InitMixin(self, GameEffectsMixin)
 
     self.variant = kDefaultBabblerVariant
-	self.AttackDamageType = kDamageType.Normal
+    self.AttackDamageType = kDamageType.Normal
+    self.lastSetRelevancyMask = nil
 
     if Server then
     
