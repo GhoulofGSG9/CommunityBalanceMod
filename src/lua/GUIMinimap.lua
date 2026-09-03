@@ -816,28 +816,36 @@ function GUIMinimap:UpdateBlipActivityForEntity(entity)
         addBlip = diff:GetLengthSquared() < self.updateRadiusSquared
     end
 
-    local icon = self.iconMap:Get(id)
-    if not icon then
-        icon = CreateIconForEntity(self)
-        self.iconMap:Insert(id, icon)
+    if addBlip then
+        local icon = self.iconMap:Get(id)
+        if not icon then
+            icon = CreateIconForEntity(self)
+            self.iconMap:Insert(id, icon)
+        end
 
-        if self.visible then -- Shortcut the OnUpdate next tick, directly display
-            -- Fully initialize the (possibly recycled) icon BEFORE showing it,
-            -- so it never flashes the previous owner's texture/color/position.
-            entity:InitMinimapItem(self, icon)
-            self:UpdateBlipPosition(icon, entity:GetMapBlipOrigin())
-            icon:SetIsVisible(self.visible)
+        local activity = entity:UpdateMinimapActivity(self, icon)
+        if activity then
+            local data = self.staticBlipData[activity]
+            table.insert(data.blipIds, id)
+            data.count = data.count + 1
+            icon.version = Shared.GetTime()
+
+            -- Instant reveal only for genuinely displayable new entities
+            if icon.resetMinimapItem then
+                entity:InitMinimapItem(self, icon)
+                self:UpdateBlipPosition(icon, entity:GetMapBlipOrigin())
+                icon:SetIsVisible(self.visible)
+            end
+        else
+            -- Entity declared itself unshown (foreign orders, local player blip).
+            -- Free it now so the prune loop never sees a version-0 orphan.
+            self:RemoveEntityIcon(id)
         end
     end
-
-    local activity = entity:UpdateMinimapActivity(self, icon)
-    if activity then
-        local data = self.staticBlipData[activity]
-        table.insert(data.blipIds, id)
-        data.count = data.count + 1
-        icon.version = Shared.GetTime()
-    end
 end
+
+
+
 
 GUIMinimap.kXZVector = Vector(1,0,1)
 function GUIMinimap:UpdateBlipActivity()
