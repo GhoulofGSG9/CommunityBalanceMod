@@ -68,7 +68,6 @@ local function MixColor(dst, src, scalar)
     return dst
 end
 
-
 function MinimapMappableMixin.PulseRed()
 
     local anim = (math.cos(Shared.GetTime() * 10) + 1) * 0.5
@@ -97,15 +96,14 @@ function MinimapMappableMixin:OnInitialized()
     if Client then
         local minimap = ClientUI.GetScript("GUIMinimapFrame") or ClientUI.GetScript("GUIMinimap")
         if minimap then
-            minimap:Update(0, true)
+            minimap:UpdateBlipActivityForEntity(self)
         end
     end
-
 end
 
 function MinimapMappableMixin:GetMapBlipOrigin()
     if self.GetMapBlipOriginOverride then
-        return self:GetMapBlipOriginOverride(playerTeam)
+        return self:GetMapBlipOriginOverride()
     end
     return self:GetOrigin()
 end
