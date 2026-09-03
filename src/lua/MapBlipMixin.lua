@@ -280,7 +280,7 @@ function MapBlipMixin:IsFogEntityDetached()
 end
 
 function MapBlipMixin:StashFogEntity()
-    local kMaxQueueSize = 15
+    local kMaxQueueSize = 25
 
     -- Make sure the link to us as been cleared
     assert(self:isa("FogOfWarEntity") and self:IsFogEntityDetached())
