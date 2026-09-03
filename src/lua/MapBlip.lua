@@ -15,7 +15,7 @@ class 'MapBlip' (Entity)
 MapBlip.kMapName = "MapBlip"
 
 if Client then
-    apBlip.kFogTransparencyM =  Client.GetOptionFloat("fogofwar_opacity", 0.8)
+    MapBlip.kFogTransparency =  Client.GetOptionFloat("fogofwar_opacity", 0.8)
 end
 
 local networkVars =
@@ -386,7 +386,7 @@ if Client then
                 local grayColor = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b
 
                 -- Apply: blend toward gray by a factor (0 = original, 1 = full gray)
-                local factor = 0.65
+                local factor = 0.75
 
                 fogColor.r = color.r * (1 - factor) + grayColor * factor
                 fogColor.g = color.g * (1 - factor) + grayColor * factor
