@@ -33,13 +33,62 @@ MapBlipMixin.optionalCallbacks =
     OnGetMapBlipInfo = "Override for getting the Map Blip Info",
 }
 
+local kFogOfWarEnts_hostToFog = {}
+local kFogOfWarEnts_fogToHost = {}
+local kFogOfWarEntsPool = {}
+
+kFogOfWarEnabled = true
+if Server then
+
+    local stored = Server.GetConfigSetting("fogofwar_enabled")
+    if stored ~= nil then
+        kFogOfWarEnabled = stored == true or stored == 1 or stored == "true"
+    end
+
+
+    local function DisableAllFogEntities()
+
+        local hosts = {}
+        for hostId in pairs(kFogOfWarEnts_hostToFog) do
+            table.insert(hosts, hostId)
+        end
+
+        for i = 1, #hosts do
+            local hostId = hosts[i]
+            local fogEntity = kFogOfWarEnts_hostToFog[hostId]
+            if fogEntity then
+                -- detach FIRST so IsFogEntityDetached() is true and the stash fires
+                kFogOfWarEnts_fogToHost[fogEntity:GetId()] = nil
+                kFogOfWarEnts_hostToFog[hostId] = nil
+                fogEntity:SetFogEntMapBlipInfo(false)
+            end
+        end
+
+        while #kFogOfWarEntsPool > 0 do -- Emptying pool
+            local f = kFogOfWarEntsPool[#kFogOfWarEntsPool]
+            table.remove(kFogOfWarEntsPool, #kFogOfWarEntsPool)
+            DestroyEntity(f)
+        end
+    end
+
+    function MapBlipMixin.SetFogOfWar(enabled)
+        if kFogOfWarEnabled == enabled then return end
+        kFogOfWarEnabled = enabled
+        
+        if not enabled then
+            DisableAllFogEntities()
+        end
+
+        -- Persist the setting for next map/game
+        Server.SetConfigSetting("fogofwar_enabled", enabled)
+    end
+end
+
+
 -- What entities have become dirty.
 -- Flushed in the UpdateServer hook by MapBlipMixin.OnUpdateServer
 local mapBlipMixinDirtyTable = unique_set()
 
-local kFogOfWarEnts_hostToFog = {}
-local kFogOfWarEnts_fogToHost = {}
-local kFogOfWarEntsPool = {}
 
 --
 -- Update all dirty mapblips
@@ -199,7 +248,7 @@ end
 
 function MapBlipMixin:UpdateFogEntity(sighted)
 
-    if not HasMixin(self, "Team") or self.reentranceOff then
+    if not kFogOfWarEnabled or not HasMixin(self, "Team") or self.reentranceOff then
         return nil
     end
 
