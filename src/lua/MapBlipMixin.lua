@@ -92,7 +92,6 @@ function MapBlipMixin:__initmixin()
     self.blipIsPlayer = nil
     self.blipClassName = nil
     self.previousSighted = false
-    self.mapBlipSyncTick = nil
 
     -- Check if the new entity should have a map blip to represent it.
     local success, blipType, blipTeam, isInCombat = self:GetMapBlipInfo()
@@ -100,11 +99,12 @@ function MapBlipMixin:__initmixin()
         CreateMapBlip(self, blipType, blipTeam, isInCombat)
     end
 
+    self.mapBlipSyncTick = Shared.GetTime()
+
 end
 
 function MapBlipMixin:OnInitialized()
     UpdateEntityForTeamBrains(self)
-    self.mapBlipSyncTick = Shared.GetTime()
 end
 
 function MapBlipMixin:UpdateBlip()
@@ -121,7 +121,7 @@ function MapBlipMixin:SetOrigin(orig)
     if self.lastBlipOrigin ~= orig then
         self.lastBlipOrigin = orig
 
-        local isInitTick = self.mapBlipSyncTick and Shared.GetTime() == self.mapBlipSyncTick
+        local isInitTick = not self.mapBlipSyncTick or Shared.GetTime() == self.mapBlipSyncTick
         if isInitTick then
             self:UpdateBlip()
         else
@@ -140,8 +140,8 @@ function MapBlipMixin:SetAngles(angles)
         -- Minimap blips, only look for left/right
         local diff = currentYaw - lastYaw
         local absDiff = diff < 0 and -diff or diff
-        if currentYaw ~= lastYaw and absDiff >= kMinYawDelta then --currentYaw ~= lastYaw then
-            local isInitTick = self.mapBlipSyncTick and Shared.GetTime() == self.mapBlipSyncTick
+        local isInitTick = not self.mapBlipSyncTick or Shared.GetTime() == self.mapBlipSyncTick
+        if isInitTick or (currentYaw ~= lastYaw and absDiff >= kMinYawDelta) then --currentYaw ~= lastYaw then
             if isInitTick then
                 self:UpdateBlip()
             else
