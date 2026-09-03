@@ -787,6 +787,12 @@ end
 
 local function FreeIcon(self, icon)
     icon:SetIsVisible(false)
+
+    -- Clear cached state so the next owner doesn't inherit garbage
+    icon.prevBlipOrigin = nil
+    icon.prevBlipColor = nil
+    icon.prevRotation = nil
+
     table.insert(self.freeIcons, icon)
 end
 
@@ -801,29 +807,35 @@ end
 function GUIMinimap:UpdateBlipActivityForEntity(entity)
     local id = entity:GetId()
     local invalidId = Entity.invalidId
-    local addBlip = id ~= invalidId -- don't add/update blips for invalid ids
+    local addBlip = id ~= invalidId and self.iconMap ~= nil
 
-    -- don't add/update blips outside the update radius; saves CPU for marine HUD
-    if addBlip and self.updateRadius > 0 then
+    if not addBlip then return end
+
+    if self.updateRadius > 0 and self.playerOrigin then
         local diff = (self.playerOrigin - entity:GetMapBlipOrigin()) * self.kXZVector
         addBlip = diff:GetLengthSquared() < self.updateRadiusSquared
     end
 
-    if addBlip then
-        local icon = self.iconMap:Get(id)
-        if not icon then
-            icon = CreateIconForEntity(self)
-            self.iconMap:Insert(id, icon)
-            icon:SetIsVisible(true)
-        end
+    local icon = self.iconMap:Get(id)
+    if not icon then
+        icon = CreateIconForEntity(self)
+        self.iconMap:Insert(id, icon)
 
-        local activity = entity:UpdateMinimapActivity(self, icon)
-        if activity then
-            local data = self.staticBlipData[activity]
-            table.insert(data.blipIds, id)
-            data.count = data.count + 1
-            icon.version = Shared.GetTime()
+        if self.visible then -- Shortcut the OnUpdate next tick, directly display
+            -- Fully initialize the (possibly recycled) icon BEFORE showing it,
+            -- so it never flashes the previous owner's texture/color/position.
+            entity:InitMinimapItem(self, icon)
+            self:UpdateBlipPosition(icon, entity:GetMapBlipOrigin())
+            icon:SetIsVisible(self.visible)
         end
+    end
+
+    local activity = entity:UpdateMinimapActivity(self, icon)
+    if activity then
+        local data = self.staticBlipData[activity]
+        table.insert(data.blipIds, id)
+        data.count = data.count + 1
+        icon.version = Shared.GetTime()
     end
 end
 
@@ -894,7 +906,7 @@ function GUIMinimap:UpdateActivityBlips(deltaTime, activity)
     end
     -- Log("Update %s %s-%s (%s), ui %s", EnumToString(kMinimapActivity, activity), startIndex, endIndex, data.count, updateInterval)
 
-    for i = 1, endIndex do
+    for i = startIndex, endIndex do
         local blipId = data.blipIds[i]
         self:UpdateStaticIcon(blipId)
     end
