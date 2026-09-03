@@ -27,6 +27,9 @@ kBlipActivityUpdateInterval[kMinimapActivity.High] = 0.001
 GUIMinimap.kUpdateIntervalMultipler = 1
 GUIMinimap.kToggleMap = GetAdvancedOption("minimaptoggle") == 1
 
+local kFogBlipsOptionKey = "showfogblips"
+GUIMinimap.kFogBlipsEnabled = Client.GetOptionInteger(kFogBlipsOptionKey, 1) ~= 0
+
 -- the model that mappers use to configure minimap_extents has extents of +/- this number.
 local kMinimapExtentsModelScaleFactor = 0.239246666431427;
 local kMinimapShowPlayerNames = true
@@ -814,6 +817,12 @@ function GUIMinimap:UpdateBlipActivityForEntity(entity)
     if self.updateRadius > 0 and self.playerOrigin then
         local diff = (self.playerOrigin - entity:GetMapBlipOrigin()) * self.kXZVector
         addBlip = diff:GetLengthSquared() < self.updateRadiusSquared
+    end
+
+    if addBlip and not GUIMinimap.kFogBlipsEnabled and entity.isFogOfWarMapBlip then
+        -- fog blips suppressed: never create or keep an icon
+        self:RemoveEntityIcon(id)
+        return
     end
 
     if addBlip then
@@ -1836,3 +1845,21 @@ Event.Hook("Console_td_dump_minimap_data", function(method)
     Log("DONE")
 
 end)
+
+
+local function OnToggleFogBlips()
+    GUIMinimap.kFogBlipsEnabled = not GUIMinimap.kFogBlipsEnabled
+    Client.SetOptionInteger(kFogBlipsOptionKey, GUIMinimap.kFogBlipsEnabled and 1 or 0)
+
+    -- Force a full rebuild so stale fog icons disappear immediately
+    local minimapFrame = ClientUI.GetScript("GUIMinimapFrame")
+    local minimap = minimapFrame and minimapFrame.minimapScript or ClientUI.GetScript("GUIMinimap")
+    if minimap then
+        minimap:ResetAll()
+        minimap.nextActivityUpdateTime = 0
+    end
+
+    Shared.Message("Fog of war blips: " .. (GUIMinimap.kFogBlipsEnabled and "ON" or "OFF") .. " (saved to config)")
+end
+
+Event.Hook("Console_fog", OnToggleFogBlips)
