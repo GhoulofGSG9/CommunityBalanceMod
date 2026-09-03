@@ -391,7 +391,7 @@ if Client then
                 fogColor.r = color.r * (1 - factor) + grayColor * factor
                 fogColor.g = color.g * (1 - factor) + grayColor * factor
                 fogColor.b = color.b * (1 - factor) + grayColor * factor
-                forColor.a = color.a
+                fogColor.a = color.a
 
                 self.currentFogBlipColor = fogColor
                 color = Color(fogColor)
