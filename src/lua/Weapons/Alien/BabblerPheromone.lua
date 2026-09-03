@@ -19,7 +19,7 @@ BabblerPheromone.kModelName = PrecacheAsset("models/alien/babbler/babbler_ball.m
 local precached1 = PrecacheAsset("models/alien/babbler/babbler_ball.surface_shader")
 
 local kBabblerTargetSearchRange = 15
-local kBabblerSearchRange = 100
+local kBabblerSearchRange = 1000
 local kBabblerPheromoneDuration = 5
 local kPheromoneEffectInterval = 0.15
 
