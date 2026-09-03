@@ -27,7 +27,7 @@ function FogOfWarEntity:OnCreate()
     InitMixin(self, TeamMixin)
 
     self:SetFogEntMapBlipInfo(false, kMinimapBlipType.Undefined, -1, true)
-    self.lastSetRelevancyMask = 0
+    self.lastSetRelevancyMask = nil
 
     self:SetUpdates(false)--kUpdateIntervalMinimal) 
     self:SetRelevancyDistance(kFogEntRelevancyDist)
@@ -37,7 +37,11 @@ end
 
 function FogOfWarEntity:OnUpdate()
 
-    assert(self:IsMapBlipVisible())
+    if not self:IsMapBlipVisible() then
+        Log("Error: OnUpdate() still on for %s-%s", self, EnumToString(kMinimapBlipType, self.blipType))
+        self:SetUpdates(false)
+        return
+    end
 
     --Log("%s-%s -- OnUpdate(team: %s)", self, EnumToString(kMinimapBlipType, self.blipType), self.blipTeam)
     --DebugCapsule( self:GetOrigin(), self:GetOrigin(), 0.5, 0.0, 0.25)
@@ -54,7 +58,7 @@ function FogOfWarEntity:OnUpdate()
         end
 
         -- A bit less than actual vision to prevent flickering when entering LOS
-        local inViewRange = not e.GetVisionRadius or orig:GetDistanceTo(orig2) <= e:GetVisionRadius() - 1
+        local inViewRange = not e.GetVisionRadius or orig:GetDistanceTo(orig2) <= (e:GetVisionRadius() - 2)
         if inViewRange and GetIsUnitActive(e) then
             local seen = self:OverrideCheckVisibilty(e)
             if seen then
@@ -89,7 +93,7 @@ function FogOfWarEntity:SetFogEntMapBlipInfo(visible, blipType, blipTeam, isActi
 
     if blipTeam ~= nil then
 	   self.blipTeam = blipTeam
-       self:SetTeamNumber(teamNumber)
+       self:SetTeamNumber(blipTeam)
     end
 
     if isActive ~= nil then
