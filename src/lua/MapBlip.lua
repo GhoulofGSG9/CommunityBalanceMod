@@ -15,7 +15,7 @@ class 'MapBlip' (Entity)
 MapBlip.kMapName = "MapBlip"
 
 if Client then
-    MapBlip.kFogTransparency =  Client.GetOptionFloat("fogofwar_transparency", 0.8)
+    apBlip.kFogTransparencyM =  Client.GetOptionFloat("fogofwar_opacity", 0.8)
 end
 
 local networkVars =
