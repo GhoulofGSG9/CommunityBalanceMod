@@ -1847,9 +1847,19 @@ Event.Hook("Console_td_dump_minimap_data", function(method)
 end)
 
 
-local function OnToggleFogBlips()
-    GUIMinimap.kFogBlipsEnabled = not GUIMinimap.kFogBlipsEnabled
+local function OnToggleFogBlips(value)
+
+    if value == nil then
+        local msg = string.format(
+            "Client fog-of-war is currently %s", GUIMinimap.kFogBlipsEnabled and "enable" or "disable"
+            )
+        Shared.Message(msg)
+        return
+    end
+
+    GUIMinimap.kFogBlipsEnabled = (value == "1" or value == "true")
     Client.SetOptionInteger(kFogBlipsOptionKey, GUIMinimap.kFogBlipsEnabled and 1 or 0)
+    Shared.Message("Setting client fog-of-war to " .. (GUIMinimap.kFogBlipsEnabled and "1" or "0") .. " (saved to config)")
 
     -- Force a full rebuild so stale fog icons disappear immediately
     local minimapFrame = ClientUI.GetScript("GUIMinimapFrame")
@@ -1859,7 +1869,6 @@ local function OnToggleFogBlips()
         minimap.nextActivityUpdateTime = 0
     end
 
-    Shared.Message("Fog of war blips: " .. (GUIMinimap.kFogBlipsEnabled and "ON" or "OFF") .. " (saved to config)")
 end
 
 Event.Hook("Console_fog", OnToggleFogBlips)
