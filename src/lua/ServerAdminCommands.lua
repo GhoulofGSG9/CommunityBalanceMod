@@ -816,3 +816,26 @@ CreateServerAdminCommand(
     end, 
     "<TeamNumber 1 or 2> - Ends the game round"
 )
+
+local function ToggleForOfWar(client, value)
+    local newState = (value == "1" or value == "true")
+    if value == nil or newState == kFogOfWarEnabled then
+        Shared.Message("Fog-of-war is "
+                .. (value and "already " or "")
+                .. (kFogOfWarEnabled and "enable" or "disable")
+            )
+        return
+    end
+
+    MapBlipMixin.SetFogOfWar(newState)
+
+    local msg = (kFogOfWarEnabled and "Enabling" or "Disabling") .. " fog-of-war"
+    local player = client and client:GetControllingPlayer() or nil
+    if (player and client) then
+        Server.SendNetworkMessage(player, "ServerAdminPrint", { message = "Server changed fog-of-war to " ..  (kFogOfWarEnabled and "1" or "0")}, true)
+    end
+    Shared.Message(msg)
+
+end
+
+CreateServerAdminCommand("Console_sv_fog", ToggleForOfWar, "<boolean> Enables or disables fog-of-war")
