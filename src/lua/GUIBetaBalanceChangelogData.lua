@@ -38,13 +38,16 @@ if kCBMaddon then
 	  - Lerks are no longer able to hit spikes outside relevancy range.
 	  - Clip weapons and exos are no longer able to hit outside of relevancy range.
 	  - Adjusted drifter "snap" range to 2 from 3 m.
-	  - Giving babblers can now give score.
+	  - Unattended babblers can now be picked up by using the 'use' key.
+	  - Giving or having babblers picked up can now give score (0.5/6).
+	  - Improved babbler ball projectile behavior and related babbler targetting priorities. 
 	  - Resilience and aura reverted to vanilla.
 	  - Strengthened mine placement checks to reduce potential for fully invisible mines.
 	  - Added additional damage checks to mines to account for zero damage edge cases.
 	  
 	## QoL
-	  - Reworked minimap blips to appear and disappear more consistently (combat checks + reveal duration minimums).
+	  - Reworked minimap blips to appear quickly and disappear more consistently (combat checks + reveal duration minimums).
+	  - Added 'fog of war' blips that persist for previously revealed entities on the map.
 	  - Commanders can now see clogs revealed by players (must be damaged or collided with).
 	  - Unstuck (vanilla console command) improved.
 	  - Upgrade buying and switching as a lifeform improved (better egg placement).
@@ -52,6 +55,7 @@ if kCBMaddon then
 	## Bugfixes and Game Performance Optimizations
 	  - Further fixes to collisions and movement.
 	  - Fixed marine bots not being able to target specific structures due to minimap blips.
+	  - Fixed new minimap blips appearing one GUI update too late when spotted. Seen entities will now appear instantly.
 	  - Improved performance of line of sight functions.
 	  - Improved performance of weapon holder functions.
 	  - Improved performance of cloaking functions.
@@ -64,6 +68,7 @@ if kCBMaddon then
 	  - Improved performance of phase gate functions.
 	  - Improved performance of sleeper functions.
 	  - Improved performance of mine functions.
+	  - Improved performance of babbler functions.
 	  - Lowered game network demand.
 	  
 	### Be sure to thank Katzenfleisch for the performance optimizations!
@@ -589,13 +594,16 @@ else
 	  - Lerks are no longer able to hit spikes outside relevancy range.
 	  - Clip weapons and exos are no longer able to hit outside of relevancy range.
 	  - Adjusted drifter "snap" range to 2 from 3 m.
-	  - Giving babblers can now give score.
+	  - Unattended babblers can now be picked up by using the 'use' key.
+	  - Giving or having babblers picked up can now give score (0.5/6).
+	  - Improved babbler ball projectile behavior and related babbler targetting priorities. 
 	  - Resilience and aura reverted to vanilla.
 	  - Strengthened mine placement checks to reduce potential for fully invisible mines.
 	  - Added additional damage checks to mines to account for zero damage edge cases.
 	  
 	## QoL
-	  - Reworked minimap blips to appear and disappear more consistently (combat checks + reveal duration minimums).
+	  - Reworked minimap blips to appear quickly and disappear more consistently (combat checks + reveal duration minimums).
+	  - Added 'fog of war' blips that persist for previously revealed entities on the map.
 	  - Commanders can now see clogs revealed by players (must be damaged or collided with).
 	  - Unstuck (vanilla console command) improved.
 	  - Upgrade buying and switching as a lifeform improved (better egg placement).
@@ -603,6 +611,7 @@ else
 	## Bugfixes and Game Performance Optimizations
 	  - Further fixes to collisions and movement.
 	  - Fixed marine bots not being able to target specific structures due to minimap blips.
+	  - Fixed new minimap blips appearing one GUI update too late when spotted. Seen entities will now appear instantly.
 	  - Improved performance of line of sight functions.
 	  - Improved performance of weapon holder functions.
 	  - Improved performance of cloaking functions.
@@ -615,6 +624,7 @@ else
 	  - Improved performance of phase gate functions.
 	  - Improved performance of sleeper functions.
 	  - Improved performance of mine functions.
+	  - Improved performance of babbler functions.
 	  - Lowered game network demand.
 	  
 	### Be sure to thank Katzenfleisch for the performance optimizations!
