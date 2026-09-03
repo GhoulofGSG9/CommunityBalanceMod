@@ -150,6 +150,32 @@ local menu =
 					{"Label", "Dual Plasma Launcher Firing Sync"},
 				},
 			},
+			{
+				name = "fogofwar",
+				class = OP_TT_Number,
+				params =
+				{
+					useResetButton = true,
+					optionPath = "fogofwar_transparency",
+					optionType = "float",
+					default = 0.8,
+
+                	minValue = 0.00,
+                	maxValue = 1.00,
+                	decimalPlaces = 2,
+
+					immediateUpdate = function(self)
+						MapBlip.kFogTransparency = self:GetValue()
+					end,
+
+					tooltip = "Configure fog-of-war blips opacity. Entities leaving LOS will remain visible at their last seen position in the minimap. This option requires the server to also have it enable.",
+				},
+			
+				properties =
+				{
+					{"Label", "Minimap fog-of-war opacity"},
+				},
+			},
 		}
 	}
 }
