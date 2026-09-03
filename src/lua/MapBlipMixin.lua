@@ -79,8 +79,8 @@ if Server then
             DisableAllFogEntities()
         end
 
-        -- Persist the setting for next map/game
         Server.SetConfigSetting("fogofwar_enabled", enabled)
+        Server.SaveConfigSettings()
     end
 end
 
