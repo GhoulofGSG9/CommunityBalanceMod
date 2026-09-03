@@ -120,9 +120,8 @@ function MapBlip:UpdateRelevancy(owner, isSighted)
     end
 
     if owner and owner:isa("FogOfWarEntity") then
-        if not owner:IsMapBlipVisible() then
-            mask = 0
-        else
+        mask = 0
+        if owner:IsMapBlipVisible() then
             local ownerTeam = owner:GetTeamNumber()
             if ownerTeam ~= kTeam1Index and ownerTeam ~= kTeam2Index then
                 -- not yet initialized; fall back to the team SetOwner gave us
