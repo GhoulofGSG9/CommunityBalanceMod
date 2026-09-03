@@ -207,7 +207,7 @@ kDeathMessageIcon = enum( { 'None',
     'Xenocide', 'Blink', 'Leap', 'Stomp',
     'Consumed', 'GL', 'Recycled', 'Babbler', 'Railgun', 'BabblerAbility', 'GorgeTunnel', 'BoneShield',
     'ClusterGrenade', 'GasGrenade', 'PulseGrenade', 'Stab', 'WhipBomb', 'Metabolize', 'Crush', 'EMPBlast', 'HeavyMachineGun', 'Submachinegun', 'ScanGrenade',
-	'BabblerBombAbility', 
+    'BabblerBombAbility', 
 } )
 
 kMinimapBlipType = enum( { 'Undefined', 'TechPoint', 'ResourcePoint', 'Scan', 'ScanMini', 'EtherealGate', 'HighlightWorld',
@@ -218,13 +218,13 @@ kMinimapBlipType = enum( { 'Undefined', 'TechPoint', 'ResourcePoint', 'Scan', 'S
     'Marine', 'JetpackMarine', 'Exo', 'Skulk', 'Lerk', 'Onos', 'Fade', 'Gorge',
     'Door', 'PowerPoint', 'DestroyedPowerPoint', 'UnsocketedPowerPoint',
     'BlueprintPowerPoint', 'ARC', 'Drifter', 'MAC', 'Infestation', 'InfestationDying', 'MoveOrder', 'AttackOrder', 'BuildOrder', 'SensorBlip', 'SentryBattery',
-	'CommandStationOccupied',
-	'HiveFresh',  'HiveFreshOccupied',  'Hive', 'HiveOccupied',  'HiveMature',  'HiveMatureOccupied',
-	'HiveFreshFifthBio',  'HiveFreshOccupiedFifthBio',  'HiveFifthBio', 'HiveOccupiedFifthBio',  'HiveMatureFifthBio',  'HiveMatureOccupiedFifthBio',
-	'WhipMature',  'ARCDeployed',   'DrifterEgg',
-	'FortressCrag', 'FortressShift', 'FortressShade', 'FortressWhip', 'FortressWhipMature',
-	'ExoPrototypeLab', 'InfantryPrototypeLab', 'DIS', 'DISDeployed',
-	'BattleMAC','ShieldedSentryBattery','AdvancedObservatory','CargoGate','ARCRoboticsFactory',
+    'CommandStationOccupied',
+    'HiveFresh',  'HiveFreshOccupied',  'Hive', 'HiveOccupied',  'HiveMature',  'HiveMatureOccupied',
+    'HiveFreshFifthBio',  'HiveFreshOccupiedFifthBio',  'HiveFifthBio', 'HiveOccupiedFifthBio',  'HiveMatureFifthBio',  'HiveMatureOccupiedFifthBio',
+    'WhipMature',  'ARCDeployed',   'DrifterEgg',
+    'FortressCrag', 'FortressShift', 'FortressShade', 'FortressWhip', 'FortressWhipMature',
+    'ExoPrototypeLab', 'InfantryPrototypeLab', 'DIS', 'DISDeployed',
+    'BattleMAC','ShieldedSentryBattery','AdvancedObservatory','CargoGate','ARCRoboticsFactory',
 } )
 
 -- Friendly IDs
@@ -283,10 +283,10 @@ kHighestPriorityZ = 3
 kScoreboardUpdateInterval = 1
 
 -- How often to send ping updates to individual players
-kUpdatePingsIndividual = 3
+kUpdatePingsIndividual = 3.5
 
 -- How often to send ping updates to all players.
-kUpdatePingsAll = 10
+kUpdatePingsAll = kUpdatePingsIndividual * 3
 
 kStructureSnapRadius = 4
 

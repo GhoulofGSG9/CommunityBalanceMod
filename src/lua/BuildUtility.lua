@@ -417,9 +417,11 @@ function GetIsBuildLegal(techId, position, angle, snapRadius, player, ignoreEnti
      or legalBuild and techId == kTechId.Shade
      or legalBuild and techId == kTechId.Whip
      or legalBuild and techId == kTechId.Observatory
+     or legalBuild and techId == kTechId.ArmsLab
+     or legalBuild and techId == kTechId.SentryBattery
      then 
 
-        local capsuleRadius = math.max(extents.x, extents.z)
+        local capsuleRadius = math.max(0.55, math.max(extents.x, extents.z))
             local capsuleHeight = extents.y
             local groundOffset = 0.3
             local center = Vector(0, capsuleHeight * 0.5 + capsuleRadius + groundOffset, 0)

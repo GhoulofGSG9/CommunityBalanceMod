@@ -58,6 +58,10 @@ function BabblerClingMixin:GetNumClingedBabblers()
     return self.numBabblers
 end
 
+function BabblerClingMixin:GetMaxClingedBabblers()
+    return #kBabblerAttachPoints
+end
+
 function BabblerClingMixin:GetCanAttachBabbler()
     local numClingedBabbler = self:GetNumClingedBabblers()
     local numAttachPoints = #kBabblerAttachPoints
@@ -80,8 +84,6 @@ function BabblerClingMixin:ModifyDamageTaken(damageTable, attacker, doer, damage
             else
                 SendDamageMessage( attacker, self:GetId(), amount, hitPoint, 0, weapon )
             end
-
-            SendMarkEnemyMessage( attacker, self, amount, weapon )
 
             if self.OnTakeDamage then
                 self:OnTakeDamage(amount, attacker, doer, hitPoint, nil, damageType, false)
@@ -130,7 +132,7 @@ if Server then
 
             -- Do not count babblers you attach on yourself
             local previousOwner = babbler:GetOwner()
-            if previousOwner ~= self then
+            if previousOwner and previousOwner ~= self then
                 local amountGiven = 1
                 previousOwner:AddContinuousScore("BabblerDonation", amountGiven, BabblerClingMixin.kAmountDonatedForPoints, BabblerClingMixin.kDonationScoreAdded)
                 --Log("%s detaching from %s and attaching to %s", babbler, babbler:GetOwner(), self)

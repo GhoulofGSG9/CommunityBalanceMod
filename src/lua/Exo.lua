@@ -1046,9 +1046,12 @@ if Server then
     
     end
     
+    local Player_OnEntityChange = Player.OnEntityChange
     function Exo:OnEntityChange(oldId, newId)
         
-        Player.OnEntityChange(self, oldId, newId)
+        if Player_OnEntityChange then
+            Player_OnEntityChange(self, oldId, newId)
+        end
         
         if oldId == self.idleSound2DId then
             self.idleSound2DId = Entity.invalidId

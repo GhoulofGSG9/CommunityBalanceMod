@@ -148,8 +148,6 @@ local function _DealDamage(self, attacker, weapon, damage, damageType, target, d
                     else
                         SendDamageMessage( currentComm or attacker, targetEntityId, amount, point, overkill, weapon )
                     end
-                    
-                    SendMarkEnemyMessage( attacker, target, amount, weapon )
                 
                 end
                 

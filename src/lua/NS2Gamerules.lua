@@ -756,6 +756,18 @@ if Server then
     
         local now = Shared.GetTime()
         
+        -- Check if all player's pings should be sent to everybody.
+        if self.timeToSendAllPings == nil or  now >= self.timeToSendAllPings then
+        
+            for _, player in ientitylist(Shared.GetEntitiesWithClassname("Player")) do
+                Server.SendNetworkMessage("Ping", BuildPingMessage(player:GetClientIndex(), player:GetPing()), false)
+            end
+            
+            self.timeToSendAllPings =  now + kUpdatePingsAll
+            self.timeToSendIndividualPings =  now + kUpdatePingsIndividual
+            
+        end
+        
         -- Check if the individual player's should be sent their own ping.
         if self.timeToSendIndividualPings == nil or now >= self.timeToSendIndividualPings then
         
@@ -766,20 +778,17 @@ if Server then
             self.timeToSendIndividualPings =  now + kUpdatePingsIndividual
             
         end
-        
-        -- Check if all player's pings should be sent to everybody.
-        if self.timeToSendAllPings == nil or  now >= self.timeToSendAllPings then
-        
-            for _, player in ientitylist(Shared.GetEntitiesWithClassname("Player")) do
-                Server.SendNetworkMessage("Ping", BuildPingMessage(player:GetClientIndex(), player:GetPing()), false)
-            end
-            
-            self.timeToSendAllPings =  now + kUpdatePingsAll
-            
-        end
-        
+
     end
-    
+
+    local function HealthTablesEqual(t1, t2)
+        return t1.clientIndex == t2.clientIndex
+            and t1.health == t2.health
+            and t1.maxHealth == t2.maxHealth
+            and t1.armor == t2.armor
+            and t1.maxArmor == t2.maxArmor
+    end
+
     -- Sends player health to all spectators
     function NS2Gamerules:UpdateHealth()
     
@@ -791,10 +800,17 @@ if Server then
                 -- Send spectator all health
                 for _, player in ientitylist(Shared.GetEntitiesWithClassname("Player")) do
                 
+                    local message = BuildHealthMessage(player)
                     for _, spectator in ientitylist(spectators) do
                     
-                        if not spectator:GetIsFirstPerson() then
-                            Server.SendNetworkMessage(spectator, "Health", BuildHealthMessage(player), false)
+                        if not spectator:GetIsFirstPerson() and not spectator:GetIsRespawning() then
+                            spectator.healthNetMessageCache = spectator.healthNetMessageCache or {}
+                            local info = spectator.healthNetMessageCache[player:GetClientIndex()]
+                            
+                            if not info or not HealthTablesEqual(info, message) then
+                                Server.SendNetworkMessage(spectator, "Health", message, false)
+                                spectator.healthNetMessageCache[player:GetClientIndex()] = message
+                            end
                         end
                         
                     end
@@ -824,7 +840,7 @@ if Server then
                     local message = BuildTechPointsMessage(techpoint, powerNodes, eggs)
                     for _, spectator in ientitylist(spectators) do
                     
-                        if not spectator:GetIsFirstPerson() then
+                        if not spectator:GetIsFirstPerson() and not spectator:GetIsRespawning()  then
                             Server.SendNetworkMessage(spectator, "TechPoints", message, false)
                         end
                         
@@ -834,7 +850,7 @@ if Server then
             
             end
             
-            self.timeToSendTechPoints = Shared.GetTime() + 0.5
+            self.timeToSendTechPoints = Shared.GetTime() + 1
             
         end
         

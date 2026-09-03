@@ -47,6 +47,7 @@ if kCBMaddon then
 	  
 	## QoL
 	  - Reworked minimap blips to appear quickly and disappear more consistently (combat checks + reveal duration minimums).
+	  - Fixed new minimap blips appearing one GUI update too late when spotted. Seen entities will now appear instantly.
 	  - Added 'fog of war' blips that persist for previously revealed entities on the map.
 	  - Commanders can now see clogs revealed by players (must be damaged or collided with).
 	  - Unstuck (vanilla console command) improved.
@@ -70,6 +71,7 @@ if kCBMaddon then
 	  - Improved performance of mine functions.
 	  - Improved performance of babbler functions.
 	  - Lowered game network demand.
+	  - Fixed hit sound not working when spectating a player first person.
 	  
 	### Be sure to thank Katzenfleisch for the performance optimizations!
 
@@ -626,6 +628,7 @@ else
 	  - Improved performance of mine functions.
 	  - Improved performance of babbler functions.
 	  - Lowered game network demand.
+	  - Fixed hit sound not working when spectating a player first person.
 	  
 	### Be sure to thank Katzenfleisch for the performance optimizations!
 

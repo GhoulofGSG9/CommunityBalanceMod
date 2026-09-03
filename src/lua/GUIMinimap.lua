@@ -27,6 +27,9 @@ kBlipActivityUpdateInterval[kMinimapActivity.High] = 0.001
 GUIMinimap.kUpdateIntervalMultipler = 1
 GUIMinimap.kToggleMap = GetAdvancedOption("minimaptoggle") == 1
 
+local kFogBlipsOptionKey = "showfogblips"
+GUIMinimap.kFogBlipsEnabled = Client.GetOptionInteger(kFogBlipsOptionKey, 1) ~= 0
+
 -- the model that mappers use to configure minimap_extents has extents of +/- this number.
 local kMinimapExtentsModelScaleFactor = 0.239246666431427;
 local kMinimapShowPlayerNames = true
@@ -787,6 +790,12 @@ end
 
 local function FreeIcon(self, icon)
     icon:SetIsVisible(false)
+
+    -- Clear cached state so the next owner doesn't inherit garbage
+    icon.prevBlipOrigin = nil
+    icon.prevBlipColor = nil
+    icon.prevRotation = nil
+
     table.insert(self.freeIcons, icon)
 end
 
@@ -798,13 +807,61 @@ function GUIMinimap:RemoveEntityIcon(entityId)
     end
 end
 
+function GUIMinimap:UpdateBlipActivityForEntity(entity)
+    local id = entity:GetId()
+    local invalidId = Entity.invalidId
+    local addBlip = id ~= invalidId and self.iconMap ~= nil
+
+    if not addBlip then return end
+
+    if self.updateRadius > 0 and self.playerOrigin then
+        local diff = (self.playerOrigin - entity:GetMapBlipOrigin()) * self.kXZVector
+        addBlip = diff:GetLengthSquared() < self.updateRadiusSquared
+    end
+
+    if addBlip and not GUIMinimap.kFogBlipsEnabled and entity.isFogOfWarMapBlip then
+        -- fog blips suppressed: never create or keep an icon
+        self:RemoveEntityIcon(id)
+        return
+    end
+
+    if addBlip then
+        local icon = self.iconMap:Get(id)
+        if not icon then
+            icon = CreateIconForEntity(self)
+            self.iconMap:Insert(id, icon)
+        end
+
+        local activity = entity:UpdateMinimapActivity(self, icon)
+        if activity then
+            local data = self.staticBlipData[activity]
+            table.insert(data.blipIds, id)
+            data.count = data.count + 1
+            icon.version = Shared.GetTime()
+
+            -- Instant reveal only for genuinely displayable new entities
+            if icon.resetMinimapItem then
+                entity:InitMinimapItem(self, icon)
+                self:UpdateBlipPosition(icon, entity:GetMapBlipOrigin())
+                icon:SetIsVisible(self.visible)
+            end
+        else
+            -- Entity declared itself unshown (foreign orders, local player blip).
+            -- Free it now so the prune loop never sees a version-0 orphan.
+            self:RemoveEntityIcon(id)
+        end
+    end
+end
+
+
+
+
 GUIMinimap.kXZVector = Vector(1,0,1)
 function GUIMinimap:UpdateBlipActivity()
     PROFILE("GUIMinimap:UpdateBlipActivity")
 
     -- used to get a unique number to check if icons are in use
     local now = Shared.GetTime()
-    local invalidId = Entity.invalidId
 
     for k = 1, #kMinimapActivity do
         self.staticBlipData[k].blipIds = {}
@@ -813,30 +870,7 @@ function GUIMinimap:UpdateBlipActivity()
     end
 
     for _, entity in ientitylist(Shared.GetEntitiesWithTag("MinimapMappable")) do
-        local id = entity:GetId()
-        local addBlip = id ~= invalidId -- don't add/update blips for invalid ids
-
-        -- don't add/update blips outside the update radius; saves CPU for marine HUD
-        if addBlip and self.updateRadius > 0 then
-            local diff = (self.playerOrigin - entity:GetMapBlipOrigin()) * self.kXZVector
-            addBlip = diff:GetLengthSquared() < self.updateRadiusSquared
-        end
-
-        if addBlip then
-            local icon = self.iconMap:Get(id)
-            if not icon then
-                icon = CreateIconForEntity(self)
-                self.iconMap:Insert(id, icon)
-            end
-
-            local activity = entity:UpdateMinimapActivity(self, icon)
-            if activity then
-                local data = self.staticBlipData[activity]
-                table.insert(data.blipIds, id)
-                data.count = data.count + 1
-                icon.version = now
-            end
-        end
+        self:UpdateBlipActivityForEntity(entity)
     end
 
     -- clear out any icons no longer in use
@@ -889,7 +923,7 @@ function GUIMinimap:UpdateActivityBlips(deltaTime, activity)
     end
     -- Log("Update %s %s-%s (%s), ui %s", EnumToString(kMinimapActivity, activity), startIndex, endIndex, data.count, updateInterval)
 
-    for i = 1, endIndex do
+    for i = startIndex, endIndex do
         local blipId = data.blipIds[i]
         self:UpdateStaticIcon(blipId)
     end
@@ -1362,8 +1396,34 @@ function GUIMinimap:CheckMinimapConnectionTextures()
     end
 end
 
-function GUIMinimap:Update(deltaTime)
+function GUIMinimap:GetPlayerTeam()
+    if self.playerTeam == nil then
+        self:UpdatePlayerTeam()
+    end
+    return self.playerTeam
+end
+
+function GUIMinimap:UpdatePlayerTeam()
+    local player = Client.GetLocalPlayer()
+
+    -- need to recalc the player team because it may have changed
+    -- maybe smarter to rebuild gui scripts on team change...
+    local playerTeam = player:GetTeamNumber()
+    if playerTeam == kMarineTeamType then
+        playerTeam = kMinimapBlipTeam.Marine
+    elseif playerTeam == kAlienTeamType then
+        playerTeam = kMinimapBlipTeam.Alien
+    end
+    self.playerTeam = playerTeam
+end
+
+function GUIMinimap:Update(deltaTime, force)
     
+    if force then
+        self.nextMiscUpdateInterval = 0
+        self.nextActivityUpdateTime = 0
+    end
+
     if self.background:GetIsVisible() then
 
         PROFILE("GUIMinimap:Update")
@@ -1371,15 +1431,7 @@ function GUIMinimap:Update(deltaTime)
         local now = Shared.GetTime()
         local player = Client.GetLocalPlayer()
 
-        -- need to recalc the player team because it may have changed
-        -- maybe smarter to rebuild gui scripts on team change...
-        local playerTeam = player:GetTeamNumber()
-        if playerTeam == kMarineTeamType then
-            playerTeam = kMinimapBlipTeam.Marine
-        elseif playerTeam == kAlienTeamType then
-            playerTeam = kMinimapBlipTeam.Alien
-        end
-        self.playerTeam = playerTeam
+        self:UpdatePlayerTeam()
 
         self.playerOrigin = player:GetOrigin()
 
@@ -1793,3 +1845,30 @@ Event.Hook("Console_td_dump_minimap_data", function(method)
     Log("DONE")
 
 end)
+
+
+local function OnToggleFogBlips(value)
+
+    if value == nil then
+        local msg = string.format(
+            "Client fog-of-war is currently %s", GUIMinimap.kFogBlipsEnabled and "enable" or "disable"
+            )
+        Shared.Message(msg)
+        return
+    end
+
+    GUIMinimap.kFogBlipsEnabled = (value == "1" or value == "true")
+    Client.SetOptionInteger(kFogBlipsOptionKey, GUIMinimap.kFogBlipsEnabled and 1 or 0)
+    Shared.Message("Setting client fog-of-war to " .. (GUIMinimap.kFogBlipsEnabled and "1" or "0") .. " (saved to config)")
+
+    -- Force a full rebuild so stale fog icons disappear immediately
+    local minimapFrame = ClientUI.GetScript("GUIMinimapFrame")
+    local minimap = minimapFrame and minimapFrame.minimapScript or ClientUI.GetScript("GUIMinimap")
+    if minimap then
+        minimap:ResetAll()
+        minimap.nextActivityUpdateTime = 0
+    end
+
+end
+
+Event.Hook("Console_fog", OnToggleFogBlips)

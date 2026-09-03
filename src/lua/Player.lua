@@ -563,21 +563,25 @@ function Player:OnDestroy()
 
 end
 
-function Player:OnEntityChange(oldEntityId, newEntityId)
+if Client then
 
-    if Client and oldEntityId then
+    function Player:OnEntityChange(oldEntityId, newEntityId)
 
-        if self:GetId() == oldEntityId then
-            -- If this player is changing is any way, just assume the
-            -- buy/evolve menu needs to close.
-            self:CloseMenu()
-        end
+        if oldEntityId then
 
-        -- If this is a player changing classes that we're already following, update the id
-        local player = Client.GetLocalPlayer()
-        if player.followId == oldEntityId then
-            Client.SendNetworkMessage("SpectatePlayer", {entityId = newEntityId}, true)
-            player.followId = newEntityId
+            if self:GetId() == oldEntityId then
+                -- If this player is changing is any way, just assume the
+                -- buy/evolve menu needs to close.
+                self:CloseMenu()
+            end
+
+            -- If this is a player changing classes that we're already following, update the id
+            local player = Client.GetLocalPlayer()
+            if player.followId == oldEntityId then
+                Client.SendNetworkMessage("SpectatePlayer", {entityId = newEntityId}, true)
+                player.followId = newEntityId
+            end
+
         end
 
     end
@@ -881,7 +885,14 @@ function Player:PerformUseTrace()
     local viewCoords = self:GetViewAngles():GetCoords()
     local endPoint = startPoint + viewCoords.zAxis * kMaxRelevancyDistance
 
-    local trace = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.AllButPCsAndRagdollsAndBabblers, EntityFilterOneAndIsa(self, "Weapon"))
+    local trace = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.AllButPCsAndRagdolls, EntityFilterOneAndIsa(self, "Weapon"))
+
+    if trace.entity and trace.entity:isa("Babbler") then
+        local trace2 = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.AllButPCsAndRagdollsAndBabblers, EntityFilterOneAndIsa(self, "Weapon"))
+        if trace2.entity then -- if we found something else, ignore the babbler
+            trace = trace2
+        end
+    end
 
     if isUsing and trace.entity == nil then
         trace = Shared.TraceBox(useBoxSize1, startPoint, endPoint, CollisionRep.Damage, PhysicsMask.AllButPCsAndRagdollsAndBabblers, EntityFilterOneAndIsa(self, "Weapon"))

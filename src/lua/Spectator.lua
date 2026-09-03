@@ -391,8 +391,12 @@ function Spectator:GetFollowMoveCameraDistance()
 
 end
 
+local Player_OnEntityChange = Player.OnEntityChange
 function Spectator:OnEntityChange(oldEntityId, newEntityId)
-    Player.OnEntityChange(self, oldEntityId, newEntityId )
+
+    if Player_OnEntityChange then
+        Player_OnEntityChange(self, oldEntityId, newEntityId )
+    end
 
     if self.selectedId == oldEntityId then
         self.selectedId = newEntityId
