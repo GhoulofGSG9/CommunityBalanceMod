@@ -315,10 +315,6 @@ function Babbler:GetIsOnGround()
     return velLength < 0.5 or isGlidingOnFloor or self.babblerOffMap
 end
 
-function Babbler:GetCanBeUsed(_, useSuccessTable)
-    useSuccessTable.useSuccess = false    
-end
-
 function Babbler:GetVelocity()
 
     if self.physicsBody then
@@ -420,7 +416,7 @@ function Babbler:GetCanBeUsed(entity, useSuccessTable)
 
     local success = true
 
-    if not GetAreFriends(self, entity) then
+    if not GetAreFriends(self, entity) or self:GetIsClinged() then
         success = false
     end
 
