@@ -14,6 +14,10 @@ class 'MapBlip' (Entity)
 
 MapBlip.kMapName = "MapBlip"
 
+if Client then
+    MapBlip.kFogTransparency =  Client.GetOptionFloat("fogofwar_transparency", 0.8)
+end
+
 local networkVars =
 {
     -- replace m_origin with a less precise version lacking y
@@ -383,15 +387,19 @@ if Client then
 
                 -- Apply: blend toward gray by a factor (0 = original, 1 = full gray)
                 local factor = 0.65
-                local alphaFactor = self.active and 0.8 or 0.65 -- unbuilt blips are way darker by default, reduce further
+
                 fogColor.r = color.r * (1 - factor) + grayColor * factor
                 fogColor.g = color.g * (1 - factor) + grayColor * factor
                 fogColor.b = color.b * (1 - factor) + grayColor * factor
-                fogColor.a = color.a * alphaFactor
 
-                color = fogColor
-                self.currentFogBlipColor = color
+                self.currentFogBlipColor = fogColor
+                color = Color(fogColor)
             end
+
+            -- Unbuilt blips are way darker by default, reduce further
+            local inactiveReducationFactor = 0.8
+            local alphaFactor = MapBlip.kFogTransparency * (self.active and 1 or inactiveReducationFactor)
+            color.a = fogColor.a * alphaFactor
 
             if player:isa("Spectator") then
                 color.a = 0 -- Invisible for specs

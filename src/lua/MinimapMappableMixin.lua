@@ -115,6 +115,14 @@ function MinimapMappableMixin:InitMinimapItem(minimap, item)
     item.prevBlipOrigin = nil
     item.prevBlipColor = nil
     
+    -- clear entity-side color caches so alpha changes propagate
+    if Client and self.currentMapBlipColor then
+        self.currentMapBlipColor = nil
+    end
+    if Client and self.currentFogBlipColor then
+        self.currentFogBlipColor = nil
+    end
+
     if self.InitMinimapItemHook then
         self:InitMinimapItemHook(minimap, item)
     end
