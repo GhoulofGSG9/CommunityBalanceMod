@@ -49,11 +49,9 @@ local function MapBlipMixinOnUpdateServer()
 
     for entityId in mapBlipMixinDirtyTable:Iterate() do
         local entity = Shared.GetEntity(entityId)
-        local mapBlip = entity and entity.mapBlipId and Shared.GetEntity(entity.mapBlipId)
-        if mapBlip then
-            mapBlip:Update(entity) -- Pass the owner, so we do not refetch it
+        if entity then
+            entity:UpdateBlip()
         end
-
     end
 
     mapBlipMixinDirtyTable:Clear()
@@ -75,6 +73,7 @@ local function CreateMapBlip(self, blipType, blipTeam, _)
     -- This may fail if there are too many entities.
     if mapBlip then
 
+        mapBlip.isFogOfWarMapBlip = self:isa("FogOfWarEntity")
         mapBlip:SetOwner(self:GetId(), blipType, blipTeam)
         self.mapBlipId = mapBlip:GetId()
 
@@ -88,11 +87,12 @@ function MapBlipMixin:__initmixin()
     
     assert(Server)
 
-    self.lastBlipOrigin = Vector(0,0,0)
+    self.lastBlipOrigin = nil
     self.lastBlipAngleYaw = 0
     self.blipIsPlayer = nil
     self.blipClassName = nil
     self.previousSighted = false
+    self.mapBlipSyncTick = nil
 
     -- Check if the new entity should have a map blip to represent it.
     local success, blipType, blipTeam, isInCombat = self:GetMapBlipInfo()
@@ -104,15 +104,29 @@ end
 
 function MapBlipMixin:OnInitialized()
     UpdateEntityForTeamBrains(self)
+    self.mapBlipSyncTick = Shared.GetTime()
+end
+
+function MapBlipMixin:UpdateBlip()
+    local mapBlip = self and self.mapBlipId and Shared.GetEntity(self.mapBlipId)
+    if mapBlip then
+        mapBlip:Update(self) -- Pass the owner, so we do not refetch it
+    end
 end
 
 --
 -- Intercept the functions that changes the state the mapblip depends on
 --
 function MapBlipMixin:SetOrigin(orig)
-    if self.lastBlipOrigin and self.lastBlipOrigin ~= orig then
-        mapBlipMixinDirtyTable:Insert(self:GetId())
+    if self.lastBlipOrigin ~= orig then
         self.lastBlipOrigin = orig
+
+        local isInitTick = self.mapBlipSyncTick and Shared.GetTime() == self.mapBlipSyncTick
+        if isInitTick then
+            self:UpdateBlip()
+        else
+            self:MarkBlipDirty()
+        end
     end
 end
 
@@ -127,7 +141,13 @@ function MapBlipMixin:SetAngles(angles)
         local diff = currentYaw - lastYaw
         local absDiff = diff < 0 and -diff or diff
         if currentYaw ~= lastYaw and absDiff >= kMinYawDelta then --currentYaw ~= lastYaw then
-            mapBlipMixinDirtyTable:Insert(self:GetId())
+            local isInitTick = self.mapBlipSyncTick and Shared.GetTime() == self.mapBlipSyncTick
+            if isInitTick then
+                self:UpdateBlip()
+            else
+                self:MarkBlipDirty()
+            end
+
             self.lastBlipAngleYaw = currentYaw
         end
     end
@@ -190,7 +210,8 @@ function MapBlipMixin:UpdateFogEntity(sighted)
     assert(not self:isa("FogOfWarEntity"))
 
     local teamNumber = self:GetTeamNumber()
-    if sighted or not ((teamNumber == kTeam1Index or teamNumber == kTeam2Index)) then
+    local alive = HasMixin(self, "Live") and self:GetIsAlive()
+    if sighted or not alive or not ((teamNumber == kTeam1Index or teamNumber == kTeam2Index)) then
 
         if f and f:IsMapBlipVisible() then
             local _, blipType = self:GetMapBlipInfo()
@@ -199,8 +220,6 @@ function MapBlipMixin:UpdateFogEntity(sighted)
 
         return nil
     end
-
-    local _, blipType = self:GetMapBlipInfo()
 
     if not f then
         if #kFogOfWarEntsPool > 0 then
@@ -217,6 +236,7 @@ function MapBlipMixin:UpdateFogEntity(sighted)
         return nil
     end
 
+    local _, blipType = self:GetMapBlipInfo()
     f:SetFogEntMapBlipInfo(true, blipType, teamNumber, GetIsUnitActive(self))
 
     if not kFogOfWarEnts_hostToFog[id] then -- We fetched a new entity that needs to be init
@@ -236,6 +256,7 @@ function MapBlipMixin:UpdateFogEntity(sighted)
 
         local mapBlip = f.mapBlipId and Shared.GetEntity(f.mapBlipId)
         if mapBlip then
+            mapBlip.isFogOfWarMapBlip = true
             mapBlip:SetOwner(f:GetId(), blipType, teamNumber) -- Update blip (if we went active/inactive for instance)
         end
     end
@@ -263,6 +284,12 @@ function MapBlipMixin:StashFogEntity()
 
     -- Make sure the link to us as been cleared
     assert(self:isa("FogOfWarEntity") and self:IsFogEntityDetached())
+
+    self.visible = false
+    self.blipType = kMinimapBlipType.CommandStation
+    self.blipTeam = -1
+    self.isActive = false
+    self:SetTeamNumber(self.blipTeam)
 
     if #kFogOfWarEntsPool > kMaxQueueSize then
         self:AddTimedCallback(DestroyEntity, 0)
@@ -577,18 +604,8 @@ function MapBlipMixin:DestroyBlip()
 
 end
 
-function MapBlipMixin:OnKill()
-
-    if not self.GetDestroyMapBlipOnKill or self:GetDestroyMapBlipOnKill() then
-        self:DestroyBlip()
-        UpdateEntityForTeamBrains(self, true)
-    end
-
-end
-
-function MapBlipMixin:OnDestroy()
-
-    if self:isa("FogOfWarEntity") then -- Should not happen, but just in case
+function MapBlipMixin:DetachFogEntity()
+    if self:isa("FogOfWarEntity") then
         local idx = nil
         for i, e in ipairs(kFogOfWarEntsPool) do -- Remove ourselves from the pool
             if e:GetId() == self:GetId() then
@@ -603,11 +620,26 @@ function MapBlipMixin:OnDestroy()
         local hostId = self:GetId()
         local fogEntity = kFogOfWarEnts_hostToFog[hostId]
         if fogEntity then
+            -- Log("OnDestroy(%s) -- detaching fog %s-%s", self, fogEntity, EnumToString(kMinimapBlipType, fogEntity.blipType))
             kFogOfWarEnts_fogToHost[fogEntity:GetId()] = nil
         end
         kFogOfWarEnts_hostToFog[hostId] = nil
     end
+end
 
+function MapBlipMixin:OnKill()
+
+    self:DetachFogEntity()
+    if not self.GetDestroyMapBlipOnKill or self:GetDestroyMapBlipOnKill() then
+        self:DestroyBlip()
+        UpdateEntityForTeamBrains(self, true)
+    end
+
+end
+
+function MapBlipMixin:OnDestroy()
+
+    self:DetachFogEntity()
     self:DestroyBlip()
     UpdateEntityForTeamBrains(self, true)
 end
