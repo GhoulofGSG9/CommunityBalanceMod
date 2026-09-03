@@ -27,7 +27,7 @@ function FogOfWarEntity:OnCreate()
     InitMixin(self, TeamMixin)
 
     self:SetFogEntMapBlipInfo(false, kMinimapBlipType.Undefined, -1, true)
-    self.lastSetRelevancyMask = 0
+    self.lastSetRelevancyMask = nil
 
     self:SetUpdates(false)--kUpdateIntervalMinimal) 
     self:SetRelevancyDistance(kFogEntRelevancyDist)
@@ -38,6 +38,8 @@ end
 function FogOfWarEntity:OnUpdate()
 
     if not self:IsMapBlipVisible() then
+        Log("Error: OnUpdate() still on for %s-%s", self, EnumToString(kMinimapBlipType, self.blipType))
+        self:SetUpdates(false)
         return
     end
 
@@ -56,7 +58,7 @@ function FogOfWarEntity:OnUpdate()
         end
 
         -- A bit less than actual vision to prevent flickering when entering LOS
-        local inViewRange = not e.GetVisionRadius or orig:GetDistanceTo(orig2) <= e:GetVisionRadius() - 1
+        local inViewRange = not e.GetVisionRadius or orig:GetDistanceTo(orig2) <= (e:GetVisionRadius() - 2)
         if inViewRange and GetIsUnitActive(e) then
             local seen = self:OverrideCheckVisibilty(e)
             if seen then
@@ -91,15 +93,14 @@ function FogOfWarEntity:SetFogEntMapBlipInfo(visible, blipType, blipTeam, isActi
 
     if blipTeam ~= nil then
 	   self.blipTeam = blipTeam
-       self:SetTeamNumber(teamNumber)
+       self:SetTeamNumber(blipTeam)
     end
 
     if isActive ~= nil then
        self.isActive = isActive
     end
 
-
-    -- Log("%s-%s -- Set visible: %s, active: %s/%s", self, self.blipType and EnumToString(kMinimapBlipType, self.blipType), visible, isActive, self.isActive)
+    --Log("%s-%s -- Set visible: %s, active: %s/%s", self, self.blipType and EnumToString(kMinimapBlipType, self.blipType), visible, isActive, self.isActive)
 
     if Server then
         self:UpdateRelevancy()
@@ -107,6 +108,10 @@ function FogOfWarEntity:SetFogEntMapBlipInfo(visible, blipType, blipTeam, isActi
         -- Stash the entity if we are not linked anymore
         -- Also check for if mapBlip has been initialized
         if not visible and HasMixin(self, "MapBlip") and self:IsFogEntityDetached() then
+            -- Set the type and active to something big,
+            -- so if anything messes up we will see it instantly
+            self.blipType = kMinimapBlipType.CommandStation
+            self.isActive = false
             self:StashFogEntity()
         end
     end
