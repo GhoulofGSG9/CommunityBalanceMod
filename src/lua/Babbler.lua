@@ -445,6 +445,10 @@ function Babbler:GetCanBeUsedDuringWarmup()
     return true
 end
 
+function Babbler:GetIsSecondaryUseUnit()
+    return true
+end
+
 function Babbler:OnUse(player, elapsedTime, useSuccessTable)
     if Server and not self:GetIsClinged() then
         local moveType = kBabblerMoveType.Cling
