@@ -121,7 +121,7 @@ function BabblerPheromone:MoveBabblers()
 	local targetPos = target and (target.GetEngagementPoint and target:GetEngagementPoint() or target:GetOrigin())
 
 	for _, babbler in ipairs(GetEntitiesForTeamWithinRange("Babbler", self:GetTeamNumber(), orig, kBabblerSearchRange)) do
-		if babbler:GetOwnerId() == ownerId then
+		if babbler:GetOwnerId() == ownerId and not babbler:GetIsOnWeb() then
 			if babbler:GetIsClinged() and babbler:GetParent() == owner then
 				babbler:Detach()
 			end
@@ -271,7 +271,7 @@ if Server then
 					local ownerId = self:GetOwnerId()
 					for _, babbler in ipairs(GetEntitiesForTeamWithinRange("Babbler", self:GetTeamNumber(), self:GetOrigin(), kBabblerSearchRange )) do
 
-						if babbler:GetOwnerId() == ownerId then
+						if babbler:GetOwnerId() == ownerId and not babbler:GetIsOnWeb() then
 
 							if babbler:GetIsClinged() and babbler:GetParent() == owner then
 								babbler:Detach()
