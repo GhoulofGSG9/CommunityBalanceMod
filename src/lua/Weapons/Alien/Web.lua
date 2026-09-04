@@ -32,6 +32,8 @@ local kWebBabblerTickleDamage = 1 -- Tickle damage (so the enemy makes an "outch
 local kWebBabblerReactInterval = 0.8
 local kWebPanicDuration = 4.5
 
+local kWebNumBabblers = 0 -- number of babblers spawned attached to each web
+
 local networkVars =
 {
     endPoint = "vector",
@@ -157,15 +159,13 @@ function Web:OnInitialized()
     
     self:SetPhysicsType(PhysicsType.Kinematic)
     self:SetPhysicsGroup(PhysicsGroup.WebsGroup)
-  
-  if Server then
-     local b = CreateEntity(Babbler.kMapName, self:GetOrigin(), self:GetTeamNumber())
-     b:AttachToWeb(self, self:GetOrigin())
-     b = CreateEntity(Babbler.kMapName, self:GetOrigin(), self:GetTeamNumber())
-     b:AttachToWeb(self, self:GetOrigin())
-     b = CreateEntity(Babbler.kMapName, self:GetOrigin(), self:GetTeamNumber())
-     b:AttachToWeb(self, self:GetOrigin())
-end
+
+    if Server then
+        for _ = 1, kWebNumBabblers do
+            local babbler = CreateEntity(Babbler.kMapName, self:GetOrigin(), self:GetTeamNumber())
+            babbler:AttachToWeb(self, self:GetOrigin())
+        end
+    end
 
 end
 
