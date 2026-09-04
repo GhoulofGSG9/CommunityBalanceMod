@@ -533,8 +533,12 @@ if Client then
 
     function Gorge:GetShowGhostModel()
     
+        if self:GetActiveWeaponName() ~= DropStructureAbility.kMapName then
+            return false
+        end
+
         local weapon = self:GetActiveWeapon()
-        if weapon and weapon:isa("DropStructureAbility") then
+        if weapon then
             return weapon:GetShowGhostModel()
         end
         
@@ -544,8 +548,12 @@ if Client then
     
     function Gorge:GetGhostModelOverride()
     
+        if self:GetActiveWeaponName() ~= DropStructureAbility.kMapName then
+            return false
+        end
+
         local weapon = self:GetActiveWeapon()
-        if weapon and weapon:isa("DropStructureAbility") and weapon.GetGhostModelName then
+        if weapon and weapon.GetGhostModelName then
             return weapon:GetGhostModelName(self)
         end
         
@@ -553,17 +561,25 @@ if Client then
     
     function Gorge:GetGhostModelTechId()
     
+        if self:GetActiveWeaponName() ~= DropStructureAbility.kMapName then
+            return false
+        end
+
         local weapon = self:GetActiveWeapon()
-        if weapon and weapon:isa("DropStructureAbility") then
+        if weapon then
             return weapon:GetGhostModelTechId()
         end
         
     end
     
     function Gorge:GetGhostModelCoords()
-    
+
+        if self:GetActiveWeaponName() ~= DropStructureAbility.kMapName then
+            return false
+        end
+
         local weapon = self:GetActiveWeapon()
-        if weapon and weapon:isa("DropStructureAbility") then
+        if weapon then
             return weapon:GetGhostModelCoords()
         end
         
@@ -571,17 +587,25 @@ if Client then
     
     function Gorge:GetLastClickedPosition()
     
+        if self:GetActiveWeaponName() ~= DropStructureAbility.kMapName then
+            return false
+        end
+
         local weapon = self:GetActiveWeapon()
-        if weapon and weapon:isa("DropStructureAbility") then
+        if weapon then
             return weapon.lastClickedPosition
         end
         
     end
 
     function Gorge:GetIsPlacementValid()
-    
+
+        if self:GetActiveWeaponName() ~= DropStructureAbility.kMapName then
+            return false
+        end
+
         local weapon = self:GetActiveWeapon()
-        if weapon and weapon:isa("DropStructureAbility") then
+        if weapon then
             return weapon:GetIsPlacementValid()
         end
     
@@ -589,8 +613,12 @@ if Client then
 
     function Gorge:GetIgnoreGhostHighlight()
     
+        if self:GetActiveWeaponName() ~= DropStructureAbility.kMapName then
+            return false
+        end
+
         local weapon = self:GetActiveWeapon()
-        if weapon and weapon:isa("DropStructureAbility") and weapon.GetIgnoreGhostHighlight then
+        if weapon and weapon.GetIgnoreGhostHighlight then
             return weapon:GetIgnoreGhostHighlight()
         end
         
