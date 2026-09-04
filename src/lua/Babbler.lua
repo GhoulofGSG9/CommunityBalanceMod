@@ -43,7 +43,7 @@ local kBabblerModelVariants =
     [kBabblerVariants.Auric] = Babbler.kModelNameShadow,
 }
 local kBabblerWorldMaterialIndex = 0
-local kBabblerWebEndMargin = kWebEndMargin
+local kBabblerWebEndMargin = 0.2
 local kWebWalkSpeed = 1.1
 local kWebTravelSpeed = 3.5
 
