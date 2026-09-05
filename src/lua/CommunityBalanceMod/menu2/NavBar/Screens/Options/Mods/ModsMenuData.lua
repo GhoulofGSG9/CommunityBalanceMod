@@ -184,7 +184,7 @@ local menu =
 						MapBlip.kFogFadeoutEnabled = self:GetValue()
 					end,
 
-					tooltip = "Toggle to fade out fog-of-war players blip over time.",
+					tooltip = "Toggle to fade out fog-of-war players blip over time (applies at the end of blips lifespan).",
 				},
 
 				properties =
