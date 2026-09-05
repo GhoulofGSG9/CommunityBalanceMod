@@ -81,6 +81,10 @@ local Math_Degrees = Math.Degrees
 
 local math_atan2 = math.atan2
 
+local function GetEngagementOrOrigin(entity)
+    return HasMixin(entity, "Target") and entity:GetEngagementPoint() or entity:GetOrigin()
+end
+
 local networkVars =
 {
     attacking = "boolean",
@@ -111,8 +115,6 @@ AddMixinNetworkVars(DetectableMixin, networkVars)
 AddMixinNetworkVars(FireMixin, networkVars)
 AddMixinNetworkVars(GameEffectsMixin, networkVars)
 
--- shared:
-
 function Babbler:CreateHitBox()
 
     if self:GetIsAlive() and not self:GetIsDestroyed() and not self.clinged and not self.hitBox then
@@ -127,6 +129,32 @@ function Babbler:CreateHitBox()
         
     end
 
+end
+
+function Babbler:SyncPhysicsCoords()
+    if self.physicsBody then
+        self.physicsBody:SetCoords(self:GetCoords())
+    end
+end
+
+function Babbler:NotifyOwnerDestroyed(owner)
+    if owner and HasMixin(owner, "BabblerOwner") then
+        if self.babblerBombSpawned then
+            owner:BombBabblerDestroyed()
+        else
+            owner:BabblerDestroyed()
+        end
+    end
+end
+
+function Babbler:NotifyOwnerCreated(owner)
+    if owner and HasMixin(owner, "BabblerOwner") then
+        if self.babblerBombSpawned then
+            owner:BombBabblerCreated()
+        else
+            owner:BabblerCreated()
+        end
+    end
 end
 
 function Babbler:OnCreate()
@@ -243,14 +271,7 @@ function Babbler:OnDestroy()
 
     if Server then
 
-        local owner = self:GetOwner()
-        if owner and HasMixin(owner, "BabblerOwner") then
-            if self.babblerBombSpawned then
-                owner:BombBabblerDestroyed()
-            else
-                owner:BabblerDestroyed()
-            end
-        end
+        self:NotifyOwnerDestroyed(self:GetOwner())
 
         if self.onWeb and self:GetWeb() then
             self:GetWeb():RemoveWebbedBabbler(self)
@@ -469,7 +490,7 @@ function Babbler:OnUse(player, elapsedTime, useSuccessTable)
         end
 
         local moveType = kBabblerMoveType.Cling
-        local position = HasMixin(player, "Target") and player:GetEngagementPoint() or player:GetOrigin()
+        local position = GetEngagementOrOrigin(player)
         self:SetMoveType(moveType, player, position, true)
     end
 
@@ -497,14 +518,12 @@ function Babbler:ForceAttack(deltaTime)
 
     if 0.25 < lifetime then -- Time to spread babblers on hatch a bit
         if self.hatchAttack and target and isTargetEnemy and target:isa("Player") and lifetime < 1 then
-            local targetPosition = HasMixin(target, "Target") and target:GetEngagementPoint() or target:GetOrigin()
+            local targetPosition = GetEngagementOrOrigin(target)
             local direction = (targetPosition - self:GetOrigin()):GetUnit()
             local distToTarget = self:GetOrigin():GetDistanceTo(targetPosition)
 
             self:SetOrigin(self:GetOrigin() + direction * deltaTime * kBabblerRunSpeed * 1.50)
-            if self.physicsBody then
-                self.physicsBody:SetCoords(self:GetCoords())
-            end
+            self:SyncPhysicsCoords()
 
             if distToTarget < 1.5 then
                 self:SetMoveType(kBabblerMoveType.Attack, target, targetPosition)
@@ -793,22 +812,10 @@ if Server then
 
     function Babbler:OnOwnerChanged(oldOwner, newOwner)
 
-        if oldOwner and HasMixin(oldOwner, "BabblerOwner") then
-            if self.babblerBombSpawned then
-                oldOwner:BombBabblerDestroyed()
-            else
-                oldOwner:BabblerDestroyed()
-            end
-        end
+        self:NotifyOwnerDestroyed(oldOwner)
 
         if newOwner then
-            if HasMixin(newOwner, "BabblerOwner") then
-                if self.babblerBombSpawned then
-                    newOwner:BombBabblerCreated()
-                else
-                    newOwner:BabblerCreated()
-                end
-            end
+            self:NotifyOwnerCreated(newOwner)
         else -- Destroy Babblers without Owner
             -- Use callback to avoid server crashs due to calls to destroyed unit by mixins
             self:AddTimedCallback(KillCallback, 1)
@@ -1112,7 +1119,7 @@ if Server then
         local obstacleNormal = Vector(0, 1, 0)
 
         local targetOrig = target:GetOrigin()
-        local targetTraceOrigin = HasMixin(target, "Target") and target:GetEngagementPoint() or target:GetOrigin()
+        local targetTraceOrigin = GetEngagementOrOrigin(target)
         local trace = Shared.TraceRay(self:GetOrigin() + kEyeOffset, targetTraceOrigin, CollisionRep.LOS, PhysicsMask.All, EntityFilterAll())
 
         local canReach = trace.fraction >= 0.9 or self:IsTargetReached(targetOrig, 1)
@@ -1151,11 +1158,9 @@ if Server then
         -- Adjust the jump
         if target and self.kNextUpdateAttack and self.kStopImpulseDone < 3 and 0.2 < timeSinceLastAttack
         then
-            local targetEngagementPoint = HasMixin(target, "Target") and target:GetEngagementPoint() or targetOrig
+            local targetEngagementPoint = GetEngagementOrOrigin(target)
 
-            if self.physicsBody then
-                self.physicsBody:SetCoords(self:GetCoords())
-            end
+            self:SyncPhysicsCoords()
 
             self:SetVelocity((targetEngagementPoint - self:GetOrigin()):GetUnit() * 1.5)
             self.kStopImpulseDone = self.kStopImpulseDone + 1
@@ -1181,10 +1186,9 @@ if Server then
 
             if canReach then
 
-                local destination = target:GetOrigin()
                 local destinationOrigin = target:GetOrigin()
+                local destination = GetEngagementOrOrigin(target)
                 if HasMixin(target, "Target") then
-                    destination = target:GetEngagementPoint()
                     if destination.y > destinationOrigin.y then -- Aim a bit lower not to jump above the target
                         local yDiff = destination.y - destinationOrigin.y
                         destination.y = destination.y - (yDiff * (0.15 + (math.random() / 4)))
@@ -1325,7 +1329,15 @@ if Server then
         return math.random() > 0.5 and -value or value
     end
 
-    local kDetachOffset = Vector(0, 0.25, 0)
+    -- Shared by Detach and AttachToWeb: tell a BabblerCling parent to let go
+    -- before this babbler stops considering itself clinged.
+    function Babbler:ReleaseFromParentCling(parent)
+        if parent and HasMixin(parent, "BabblerCling") then
+            parent:DetachBabbler(self)
+        end
+        self.clinged = false
+    end
+
     function Babbler:Detach(force)
         if not self.clinged then
             return
@@ -1342,21 +1354,16 @@ if Server then
             end
         end
 
-        if parent and HasMixin(parent, "BabblerCling") then
-            parent:DetachBabbler(self)
-        end
-
-        self.clinged = false
+        self:ReleaseFromParentCling(parent)
 
         self:CreateHitBox()
 
-        kDetachOffset.x = RandomNegate(math.random(15, 70) / 100)
-        kDetachOffset.z = RandomNegate(math.random(15, 70) / 100)
+        local detachOffset = Vector(RandomNegate(math.random(15, 70) / 100), 0.25, RandomNegate(math.random(15, 70) / 100))
         -- Check so babbler scatter is not thru walls etc.
-        if GetWallBetween(self:GetOrigin(), self:GetOrigin() + kDetachOffset, parent) then
-            kDetachOffset = Vector(0, 0.25, 0)
+        if GetWallBetween(self:GetOrigin(), self:GetOrigin() + detachOffset, parent) then
+            detachOffset = Vector(0, 0.25, 0)
         end
-        self:SetOrigin(self:GetOrigin() + kDetachOffset)
+        self:SetOrigin(self:GetOrigin() + detachOffset)
         ResumeFreeBehavior(self)
     end
 
@@ -1496,11 +1503,7 @@ if Server then
         if not web or not self:GetIsAlive() then return false end
 
         if self.clinged then
-            local parent = self:GetParent()
-            if parent and HasMixin(parent, "BabblerCling") then
-                parent:DetachBabbler(self)
-            end
-            self.clinged = false
+            self:ReleaseFromParentCling(self:GetParent())
         end
 
         self:CreateHitBox()
@@ -1652,9 +1655,7 @@ if Server then
                         end
 
                         if done or (self:GetOrigin() - targetPosition):GetLengthXZ() < 0.5 then
-                            if self.physicsBody then
-                                self.physicsBody:SetCoords(self:GetCoords())
-                            end
+                            self:SyncPhysicsCoords()
                             self:SetMoveType(target and kBabblerMoveType.Attack or kBabblerMoveType.None,
                                     target, targetPosition)
                             if self:GetTarget() then
@@ -1873,13 +1874,8 @@ if Server then
                     -- Adds a bit of randomness for the first attack
                     self.timeLastAttack = Shared.GetTime() + math.random() * kAttackRate
                     
-                    local targetOrigin
-                    if entityHit.GetEngagementPoint then
-                        targetOrigin = entityHit:GetEngagementPoint()
-                    else
-                        targetOrigin = entityHit:GetOrigin()
-                    end
-                    
+                    local targetOrigin = GetEngagementOrOrigin(entityHit)
+
                     self:DoDamage( kBabblerDamage, entityHit, self:GetOrigin(), nil, surface )
                     self:TriggerUncloak()
 
