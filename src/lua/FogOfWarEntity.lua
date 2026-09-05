@@ -7,7 +7,7 @@ class 'FogOfWarEntity' (ScriptActor)
 
 FogOfWarEntity.kMapName = "fogOfwarentity"
 
-kFogPlayerBlipLifetime = 30
+kFogPlayerBlipLifetime = 10
 kFogPlayerBlipFadeTime = 2
 
 local networkVars =
@@ -27,7 +27,7 @@ local kFogEntRelevancyDist = kPlayerLOSDistance
 local kFogEndUpdateInterval = 0.8
 
 function FogOfWarEntity:OnCreate()
-	ScriptActor.OnCreate(self)
+    ScriptActor.OnCreate(self)
 
     InitMixin(self, TeamMixin)
 
@@ -99,11 +99,11 @@ function FogOfWarEntity:SetFogEntMapBlipInfo(visible, blipType, blipTeam, isActi
     self.visible = visible
 
     if blipType ~= nil then
-	   self.blipType = blipType
+       self.blipType = blipType
     end
 
     if blipTeam ~= nil then
-	   self.blipTeam = blipTeam
+       self.blipTeam = blipTeam
        self:SetTeamNumber(blipTeam)
     end
 
