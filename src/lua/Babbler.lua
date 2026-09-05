@@ -610,7 +610,7 @@ if Server then
         idleRange     = 1.5,          -- idle action delay, calm: 1..2.5s
         panicMin      = 0.1,          -- panicked: chain strolls back-to-back
         panicRange    = 0.2,
-        panicSpeedMult = 4.0,
+        panicSpeedMult = 3.0,
         stackMax      = 2.0,          -- cap for stacking re-triggered panic
 
         chatterMin   = 6,
@@ -1947,6 +1947,24 @@ elseif Client then
 
     function Babbler:OnAdjustModelCoords(modelCoords)
 
+        if self:GetIsOnWeb() then
+
+            local now = Shared.GetTime()
+
+            if self.webSmoothCoords == nil then
+                self.webSmoothOrigin = Vector(modelCoords.origin)
+            end
+
+            -- exponential chase toward the engine-interpolated position;
+            -- rate ~14 keeps lag well under 100 ms while eating the bursts
+            local alpha = Clamp((now - (self.lastWebSmoothTime or now)) * 10, 0, 1)
+            self.webSmoothOrigin = Lerp(self.webSmoothOrigin, modelCoords.origin, alpha)
+            modelCoords.origin = Vector(self.webSmoothOrigin)
+
+            self.lastWebSmoothTime = now
+
+        end
+
         if not self:GetIsClinged() and self.moveDirection and not self:GetIsOnWeb() then
             modelCoords = Coords.GetLookIn(modelCoords.origin, self.moveDirection)
             modelCoords.origin.y = modelCoords.origin.y - Babbler.kRadius
@@ -2065,15 +2083,20 @@ elseif Client then
 
         end
 
-        -- smooth out quantization jitter in the networked origin before it
-        -- reaches the animation graph
-        local deltaTime = self.lastUpdatePosParam and Shared.GetTime() - self.lastUpdatePosParam or 0
-        self.smoothedMoveSpeed = Slerp(self.smoothedMoveSpeed or 0, targetSpeed, deltaTime * 8)
+        -- explicit, frame-rate independent delta — OnUpdatePoseParameters
+        -- does not receive deltaTime, and a global of that name may hold
+        -- a stale value set by unrelated code
+        local now = Shared.GetTime()
+        local dt = self.lastPoseParamTime and (now - self.lastPoseParamTime) or 0.016
+        self.lastPoseParamTime = now
+        dt = Clamp(dt, 0.001, 0.1)   -- absorb pauses (alt-tab, hitching)
+
+        self.smoothedMoveSpeed = Slerp(self.smoothedMoveSpeed or 0, targetSpeed, dt * 10)
+
         self:SetPoseParams({
             {"move_speed", self.smoothedMoveSpeed},
             {"move_yaw", moveYaw}
         })
-        self.lastUpdatePosParam = Shared.GetTime()
 
     end
     
