@@ -669,10 +669,12 @@ function MapBlipMixin:DetachFogEntity()
         local hostId = self:GetId()
         local fogEntity = kFogOfWarEnts_hostToFog[hostId]
         if fogEntity then
-            -- Log("OnDestroy(%s) -- detaching fog %s-%s", self, fogEntity, EnumToString(kMinimapBlipType, fogEntity.blipType))
             kFogOfWarEnts_fogToHost[fogEntity:GetId()] = nil
+            kFogOfWarEnts_hostToFog[hostId] = nil
+            fogEntity:SetFogEntMapBlipInfo(false)
+        else
+            kFogOfWarEnts_hostToFog[hostId] = nil
         end
-        kFogOfWarEnts_hostToFog[hostId] = nil
     end
 end
 
