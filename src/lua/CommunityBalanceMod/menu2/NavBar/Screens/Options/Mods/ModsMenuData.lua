@@ -151,30 +151,63 @@ local menu =
 				},
 			},
 			{
-				name = "fogofwar",
-				class = OP_TT_Number,
+				name = "fogofwar_enabled",
+				class = OP_TT_Checkbox,
 				params =
 				{
-					useResetButton = true,
-					optionPath = "fogofwar_transparency",
-					optionType = "float",
-					default = 0.8,
-
-                	minValue = 0.00,
-                	maxValue = 1.00,
-                	decimalPlaces = 2,
+					optionPath = "fogofwar_enabled",
+					optionType = "bool",
+					default = true,
 
 					immediateUpdate = function(self)
-						MapBlip.kFogTransparency = self:GetValue()
+						GUIMinimap.kFogBlipsEnabled = self:GetValue()
 					end,
 
-					tooltip = "Configure fog-of-war blips opacity. Entities leaving LOS will remain visible at their last seen position in the minimap. This option requires the server to also have it enable.",
+					tooltip = "Toggles fog-of-war. Entities leaving LOS will remain visible at their last seen position in the minimap. This option requires the server to also have it enable.",
 				},
 			
 				properties =
 				{
-					{"Label", "Minimap fog-of-war opacity"},
+					{"Label", "Minimap fog-of-war toggle"},
 				},
+			},
+			{
+			    name = "fogofwar_opacity",
+			    class = OP_TT_Expandable_Number,
+			    params =
+			    {
+			        useResetButton = true,
+			        optionPath = "fogofwar_opacity",
+			        optionType = "float",
+			        default = 0.8,
+
+			        minValue = 0.00,
+			        maxValue = 1.00,
+			        decimalPlaces = 2,
+
+			        immediateUpdate = function(self)
+			            MapBlip.kFogTransparency = self:GetValue()
+			        end,
+
+			        tooltip = "Configure fog-of-war blips opacity.",
+			    },
+
+			    properties =
+			    {
+			        {"Label", "Minimap fog-of-war opacity"},
+			    },
+
+			    postInit =
+			    {
+			        function(self)
+			            self:HookEvent(GetOptionsMenu():GetOptionWidget("fogofwar_enabled"), "OnValueChanged",
+			                function(self, value)
+			                    self:SetExpanded(value)
+			                end)
+
+			            self:SetExpanded(GetOptionsMenu():GetOptionWidget("fogofwar_enabled"):GetValue())
+			        end,
+			    },
 			},
 		}
 	}
