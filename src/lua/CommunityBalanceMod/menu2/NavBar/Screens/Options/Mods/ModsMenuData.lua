@@ -209,6 +209,44 @@ local menu =
 			        end,
 			    },
 			},
+			{
+			    name = "fogofwar_grayness",
+			    class = OP_TT_Expandable_Number,
+			    params =
+			    {
+			        useResetButton = true,
+			        optionPath = "fogofwar_grayness",
+			        optionType = "float",
+			        default = 0.75,
+
+			        minValue = 0.00,
+			        maxValue = 1.00,
+			        decimalPlaces = 2,
+
+			        immediateUpdate = function(self)
+			            MapBlip.kFogGrayness = self:GetValue()
+			        end,
+
+			        tooltip = "Configure how strongly fog-of-war blips are desaturated toward gray (0 = original color, 1 = fully gray).",
+			    },
+
+			    properties =
+			    {
+			        {"Label", "Minimap fog-of-war grayness"},
+			    },
+
+			    postInit =
+			    {
+			        function(self)
+			            self:HookEvent(GetOptionsMenu():GetOptionWidget("fogofwar_enabled"), "OnValueChanged",
+			                function(self, value)
+			                    self:SetExpanded(value)
+			                end)
+
+			            self:SetExpanded(GetOptionsMenu():GetOptionWidget("fogofwar_enabled"):GetValue())
+			        end,
+			    },
+			},
 		}
 	}
 }
