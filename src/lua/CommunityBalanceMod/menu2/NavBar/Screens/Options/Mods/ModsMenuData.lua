@@ -151,6 +151,13 @@ local menu =
 				},
 			},
 			{
+				name = "CBM_fog_info",
+				class = GUIMenuText,
+				params = {
+					text = "Fog-of-war configuration"
+				},
+			},
+			{
 				name = "fogofwar_enabled",
 				class = OP_TT_Checkbox,
 				params =

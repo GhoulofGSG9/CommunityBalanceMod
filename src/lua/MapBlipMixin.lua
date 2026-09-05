@@ -659,28 +659,36 @@ function MapBlipMixin:DestroyBlip()
 
 end
 
+-- Called when a FogOfWarEntity itself is destroyed (e.g. round cleanup), so it
+-- doesn't linger as a dangling reference in the reuse pool.
+function MapBlipMixin:RemoveFromFogPool()
+    local idx = nil
+    for i, e in ipairs(kFogOfWarEntsPool) do
+        if e:GetId() == self:GetId() then
+            idx = i
+            break
+        end
+    end
+    if idx then
+        table.remove(kFogOfWarEntsPool, idx)
+    end
+end
+
+-- Called when a HOST is killed, to clear/stash its fog ghost. Not used for
+-- OnDestroy -- see MapBlipMixin:OnDestroy.
 function MapBlipMixin:DetachFogEntity()
-    if self:isa("FogOfWarEntity") then
-        local idx = nil
-        for i, e in ipairs(kFogOfWarEntsPool) do -- Remove ourselves from the pool
-            if e:GetId() == self:GetId() then
-                idx = i
-                break
-            end
-        end
-        if idx then
-            table.remove(kFogOfWarEntsPool, idx)
-        end
-    else -- Detach the entity from the fog
-        local hostId = self:GetId()
-        local fogEntity = kFogOfWarEnts_hostToFog[hostId]
-        if fogEntity then
-            kFogOfWarEnts_fogToHost[fogEntity:GetId()] = nil
-            kFogOfWarEnts_hostToFog[hostId] = nil
-            fogEntity:SetFogEntMapBlipInfo(false)
-        else
-            kFogOfWarEnts_hostToFog[hostId] = nil
-        end
+    local hostId = self:GetId()
+    local fogEntity = kFogOfWarEnts_hostToFog[hostId]
+    if fogEntity then
+        -- Detach FIRST so IsFogEntityDetached() is true and the stash actually
+        -- fires below (mirrors DisableAllFogEntities). Without this, a killed
+        -- host's fog ghost was left behind forever, showing a stale "last
+        -- seen" position that never cleared.
+        kFogOfWarEnts_fogToHost[fogEntity:GetId()] = nil
+        kFogOfWarEnts_hostToFog[hostId] = nil
+        fogEntity:SetFogEntMapBlipInfo(false)
+    else
+        kFogOfWarEnts_hostToFog[hostId] = nil
     end
 end
 
@@ -696,7 +704,19 @@ end
 
 function MapBlipMixin:OnDestroy()
 
-    self:DetachFogEntity()
+    -- Deliberately NOT calling DetachFogEntity() here: OnDestroy fires for
+    -- reasons other than dying (round cleanup, disconnect, structure recycle,
+    -- etc.), and in those cases a host's fog ghost should stay showing the
+    -- last seen position, same as if the entity had simply left LOS. Only an
+    -- actual kill (OnKill above) clears a host's ghost.
+    --
+    -- If we ARE a fog entity ourselves being destroyed (e.g. round cleanup),
+    -- we still need to drop out of the reuse pool so nothing hands out a
+    -- dangling reference to us afterwards.
+    if self:isa("FogOfWarEntity") then
+        self:RemoveFromFogPool()
+    end
+
     self:DestroyBlip()
     UpdateEntityForTeamBrains(self, true)
 end
