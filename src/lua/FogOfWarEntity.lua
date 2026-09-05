@@ -8,7 +8,7 @@ class 'FogOfWarEntity' (ScriptActor)
 FogOfWarEntity.kMapName = "fogOfwarentity"
 
 kFogPlayerBlipLifetime = 30
-kFogPlayerBlipFadeTime = 5
+kFogPlayerBlipFadeTime = 2
 
 local networkVars =
 {
@@ -94,7 +94,7 @@ function FogOfWarEntity:IsMapBlipVisible()
 end
 
 
-function FogOfWarEntity:SetFogEntMapBlipInfo(visible, blipType, blipTeam, isActive)
+function FogOfWarEntity:SetFogEntMapBlipInfo(visible, blipType, blipTeam, isActive, isPlayerBlip)
     local wasVisible = self.visible
     self.visible = visible
 
@@ -111,7 +111,9 @@ function FogOfWarEntity:SetFogEntMapBlipInfo(visible, blipType, blipTeam, isActi
        self.isActive = isActive
     end
 
-    self.isPlayerBlip = self:isa("Player")
+    if isPlayerBlip ~= nil then
+       self.isPlayerBlip = isPlayerBlip
+    end
 
     if visible and self.isPlayerBlip and not wasVisible then
         self.fogExpireTime = Shared.GetTime() + kFogPlayerBlipLifetime + kFogPlayerBlipFadeTime
@@ -122,6 +124,15 @@ function FogOfWarEntity:SetFogEntMapBlipInfo(visible, blipType, blipTeam, isActi
     --Log("%s-%s -- Set visible: %s, active: %s/%s", self, self.blipType and EnumToString(kMinimapBlipType, self.blipType), visible, isActive, self.isActive)
 
     if Server then
+
+        -- Mirror onto the MapBlip itself: MapBlip has infinite relevancy distance while
+        -- this entity is distance-limited (see OnCreate), so a client can lose relevancy
+        -- to this FogOfWarEntity mid-fade while its MapBlip is still shown on the minimap.
+        local mapBlip = self.mapBlipId and Shared.GetEntity(self.mapBlipId)
+        if mapBlip then
+            mapBlip.fogExpireTime = self.fogExpireTime
+        end
+
         self:UpdateRelevancy()
         self:SetUpdates(self.visible, kFogEndUpdateInterval)
         -- Stash the entity if we are not linked anymore
