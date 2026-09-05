@@ -16,6 +16,7 @@ MapBlip.kMapName = "MapBlip"
 
 if Client then
     MapBlip.kFogTransparency =  Client.GetOptionFloat("fogofwar_opacity", 0.8)
+    MapBlip.kFogGrayness =  Client.GetOptionFloat("fogofwar_grayness", 0.75)
 end
 
 local networkVars =
@@ -386,7 +387,7 @@ if Client then
                 local grayColor = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b
 
                 -- Apply: blend toward gray by a factor (0 = original, 1 = full gray)
-                local factor = 0.75
+                local factor = MapBlip.kFogGrayness
 
                 fogColor.r = color.r * (1 - factor) + grayColor * factor
                 fogColor.g = color.g * (1 - factor) + grayColor * factor
@@ -400,10 +401,25 @@ if Client then
             -- Unbuilt blips are way darker by default, reduce further
             local inactiveReducationFactor = 0.8
             local alphaFactor = MapBlip.kFogTransparency * (self.active and 1 or inactiveReducationFactor)
+
+            -- Player fog blips fade out over their last kFogPlayerBlipFadeTime
+            -- seconds before FogOfWarEntity:OnUpdate clears them server-side.
+            local owner = self.ownerEntityId ~= Entity.invalidId and Shared.GetEntity(self.ownerEntityId)
+            if owner and owner.isPlayerBlip and owner.fogExpireTime then
+                local timeLeft = owner.fogExpireTime - Shared.GetTime()
+                if timeLeft < kFogPlayerBlipFadeTime then
+                    alphaFactor = alphaFactor * Clamp(timeLeft / kFogPlayerBlipFadeTime, 0, 1)
+                end
+            end
+
             color.a = fogColor.a * alphaFactor
 
-            if player:isa("Spectator") then
-                color.a = 0 -- Invisible for specs
+            -- Spectator is also the class respawning marines/aliens are in between
+            -- lives, so only blank fog blips for genuine spectators (not on a
+            -- playing team) -- respawning players should keep seeing their team's
+            -- normal fog like everyone else.
+            if player:isa("Spectator") and not player:GetIsRespawning() then
+                color.a = 0 -- Invisible for true specs
             end
 
         end
