@@ -7,12 +7,17 @@ class 'FogOfWarEntity' (ScriptActor)
 
 FogOfWarEntity.kMapName = "fogOfwarentity"
 
+kFogPlayerBlipLifetime = 30
+kFogPlayerBlipFadeTime = 5
+
 local networkVars =
 {
     visible = "boolean",
     blipType = "enum kMinimapBlipType",
     blipTeam = string.format("integer (%s to %s)", kTeamInvalid, kSpectatorIndex),
-    isActive = "boolean"
+    isActive = "boolean",
+    isPlayerBlip = "boolean",
+    fogExpireTime = "time"
 }
 
 AddMixinNetworkVars(TeamMixin, networkVars)
@@ -40,6 +45,11 @@ function FogOfWarEntity:OnUpdate()
     if not self:IsMapBlipVisible() then
         Log("Error: OnUpdate() still on for %s-%s", self, EnumToString(kMinimapBlipType, self.blipType))
         self:SetUpdates(false)
+        return
+    end
+
+    if self.isPlayerBlip and self.fogExpireTime and Shared.GetTime() >= self.fogExpireTime then
+        self:SetFogEntMapBlipInfo(false)
         return
     end
 
@@ -85,6 +95,7 @@ end
 
 
 function FogOfWarEntity:SetFogEntMapBlipInfo(visible, blipType, blipTeam, isActive)
+    local wasVisible = self.visible
     self.visible = visible
 
     if blipType ~= nil then
@@ -98,6 +109,14 @@ function FogOfWarEntity:SetFogEntMapBlipInfo(visible, blipType, blipTeam, isActi
 
     if isActive ~= nil then
        self.isActive = isActive
+    end
+
+    self.isPlayerBlip = self:isa("Player")
+
+    if visible and self.isPlayerBlip and not wasVisible then
+        self.fogExpireTime = Shared.GetTime() + kFogPlayerBlipLifetime + kFogPlayerBlipFadeTime
+    elseif not visible then
+        self.fogExpireTime = nil
     end
 
     --Log("%s-%s -- Set visible: %s, active: %s/%s", self, self.blipType and EnumToString(kMinimapBlipType, self.blipType), visible, isActive, self.isActive)
