@@ -168,7 +168,40 @@ local menu =
 			
 				properties =
 				{
-					{"Label", "Minimap fog-of-war toggle"},
+					{"Label", "Fog-of-war:"},
+				},
+			},
+			{
+				name = "fogofwar_fadeout_enabled",
+				class = OP_TT_Expandable_Checkbox,
+				params =
+				{
+					optionPath = "fogofwar_fadeout_enabled",
+					optionType = "bool",
+					default = true,
+
+					immediateUpdate = function(self)
+						MapBlip.kFogFadeoutEnabled = self:GetValue()
+					end,
+
+					tooltip = "Toggle to fade out fog-of-war players blip over time.",
+				},
+
+				properties =
+				{
+					{"Label", "- Fade-out"},
+				},
+
+				postInit =
+				{
+					function(self)
+						self:HookEvent(GetOptionsMenu():GetOptionWidget("fogofwar_enabled"), "OnValueChanged",
+							function(self, value)
+								self:SetExpanded(value)
+							end)
+
+						self:SetExpanded(GetOptionsMenu():GetOptionWidget("fogofwar_enabled"):GetValue())
+					end,
 				},
 			},
 			{
@@ -194,7 +227,7 @@ local menu =
 
 			    properties =
 			    {
-			        {"Label", "Minimap fog-of-war opacity"},
+			        {"Label", "- Opacity"},
 			    },
 
 			    postInit =
@@ -232,7 +265,7 @@ local menu =
 
 			    properties =
 			    {
-			        {"Label", "Minimap fog-of-war grayness"},
+			        {"Label", "- Grayness"},
 			    },
 
 			    postInit =
