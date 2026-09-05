@@ -16,6 +16,8 @@ MapBlip.kMapName = "MapBlip"
 
 if Client then
     MapBlip.kFogTransparency =  Client.GetOptionFloat("fogofwar_opacity", 0.8)
+    MapBlip.kFogGrayness =  Client.GetOptionFloat("fogofwar_grayness", 0.75)
+    MapBlip.kFogFadeoutEnabled = Client.GetOptionBoolean("fogofwar_fadeout_enabled", true)
 end
 
 local networkVars =
@@ -31,7 +33,9 @@ local networkVars =
     ownerEntityId = "entityid",
     isHallucination = "boolean",
     isFogOfWarMapBlip = "boolean",
-    active = "boolean"
+    active = "boolean",
+    fogExpireTime = "time",
+    isPlayerBlip = "boolean"
 }
 
 function MapBlip:OnCreate()
@@ -48,6 +52,8 @@ function MapBlip:OnCreate()
     self.isInCombat = false
     self.isParasited = false
     self.isFogOfWarMapBlip = false
+    self.fogExpireTime = nil
+    self.isPlayerBlip = false
     self.lastSetRelevancyMask = nil
 
     self:SetRelevancyDistance(Math.infinity)
@@ -378,32 +384,43 @@ if Client then
 
         if self.isFogOfWarMapBlip then
 
-            local fogColor = self.currentFogBlipColor or Color()
-
-            -- For re-entrance, don't re-apply on ourselves if we have the same color
-            if not (color.r == fogColor.r and color.g == fogColor.g and color.b == fogColor.b) then
-                -- Weighted (perceptually accurate, matches human eye sensitivity)
-                local grayColor = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b
-
-                -- Apply: blend toward gray by a factor (0 = original, 1 = full gray)
-                local factor = 0.75
-
-                fogColor.r = color.r * (1 - factor) + grayColor * factor
-                fogColor.g = color.g * (1 - factor) + grayColor * factor
-                fogColor.b = color.b * (1 - factor) + grayColor * factor
-                fogColor.a = color.a
-
-                self.currentFogBlipColor = fogColor
-                color = Color(fogColor)
+            if not self.currentFogBlipColor then
+                self.preFogColor = Color(color)
             end
+
+            local baseColor = self.preFogColor or color
+
+            -- Weighted (perceptually accurate, matches human eye sensitivity)
+            local grayColor = 0.299 * baseColor.r + 0.587 * baseColor.g + 0.114 * baseColor.b
+
+            -- Apply: blend toward gray by a factor (0 = original, 1 = full gray)
+            local factor = MapBlip.kFogGrayness
+
+            local fogColor = self.currentFogBlipColor or Color()
+            fogColor.r = baseColor.r * (1 - factor) + grayColor * factor
+            fogColor.g = baseColor.g * (1 - factor) + grayColor * factor
+            fogColor.b = baseColor.b * (1 - factor) + grayColor * factor
+            fogColor.a = baseColor.a
+
+            self.currentFogBlipColor = fogColor
+            color = Color(fogColor)
 
             -- Unbuilt blips are way darker by default, reduce further
             local inactiveReducationFactor = 0.8
             local alphaFactor = MapBlip.kFogTransparency * (self.active and 1 or inactiveReducationFactor)
+
+            if MapBlip.kFogFadeoutEnabled and self.isPlayerBlip and self.fogExpireTime and self.fogExpireTime > 0 then
+                local timeLeft = self.fogExpireTime - Shared.GetTime()
+                if timeLeft < kFogPlayerBlipFadeTime then
+                    alphaFactor = alphaFactor * Clamp(timeLeft / kFogPlayerBlipFadeTime, 0, 1)
+                end
+            end
+
             color.a = fogColor.a * alphaFactor
 
-            if player:isa("Spectator") then
-                color.a = 0 -- Invisible for specs
+            local viewerTeam = MinimapTeamToTeam(minimap.playerTeam)
+            if not (viewerTeam == kMarineTeamType or viewerTeam == kAlienTeamType) then
+                color.a = 0
             end
 
         end

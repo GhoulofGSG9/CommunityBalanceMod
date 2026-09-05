@@ -286,7 +286,7 @@ function MapBlipMixin:UpdateFogEntity(sighted)
     end
 
     local _, blipType = self:GetMapBlipInfo()
-    f:SetFogEntMapBlipInfo(true, blipType, teamNumber, GetIsUnitActive(self))
+    f:SetFogEntMapBlipInfo(true, blipType, teamNumber, GetIsUnitActive(self), self:isa("Player"))
 
     if not kFogOfWarEnts_hostToFog[id] then -- We fetched a new entity that needs to be init
 
@@ -297,6 +297,12 @@ function MapBlipMixin:UpdateFogEntity(sighted)
     f.reentranceOff = true
     if isNewEntity then
         f:OnInitializedMapBlipMixin() -- Need to happen AFTER we set the custom host blips
+
+        local mapBlip = f.mapBlipId and Shared.GetEntity(f.mapBlipId)
+        if mapBlip then
+            mapBlip.fogExpireTime = f.fogExpireTime
+            mapBlip.isPlayerBlip = f.isPlayerBlip
+        end
     else
         -- Update mapBlip with new type, team, and active state
         -- Since mapBlip will recheck relevancy too, and that is how
@@ -669,10 +675,12 @@ function MapBlipMixin:DetachFogEntity()
         local hostId = self:GetId()
         local fogEntity = kFogOfWarEnts_hostToFog[hostId]
         if fogEntity then
-            -- Log("OnDestroy(%s) -- detaching fog %s-%s", self, fogEntity, EnumToString(kMinimapBlipType, fogEntity.blipType))
             kFogOfWarEnts_fogToHost[fogEntity:GetId()] = nil
+            kFogOfWarEnts_hostToFog[hostId] = nil
+            fogEntity:SetFogEntMapBlipInfo(false)
+        else
+            kFogOfWarEnts_hostToFog[hostId] = nil
         end
-        kFogOfWarEnts_hostToFog[hostId] = nil
     end
 end
 

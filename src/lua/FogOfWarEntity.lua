@@ -7,12 +7,17 @@ class 'FogOfWarEntity' (ScriptActor)
 
 FogOfWarEntity.kMapName = "fogOfwarentity"
 
+kFogPlayerBlipLifetime = 30
+kFogPlayerBlipFadeTime = 2
+
 local networkVars =
 {
     visible = "boolean",
     blipType = "enum kMinimapBlipType",
     blipTeam = string.format("integer (%s to %s)", kTeamInvalid, kSpectatorIndex),
-    isActive = "boolean"
+    isActive = "boolean",
+    isPlayerBlip = "boolean",
+    fogExpireTime = "time"
 }
 
 AddMixinNetworkVars(TeamMixin, networkVars)
@@ -40,6 +45,11 @@ function FogOfWarEntity:OnUpdate()
     if not self:IsMapBlipVisible() then
         Log("Error: OnUpdate() still on for %s-%s", self, EnumToString(kMinimapBlipType, self.blipType))
         self:SetUpdates(false)
+        return
+    end
+
+    if self.isPlayerBlip and self.fogExpireTime and Shared.GetTime() >= self.fogExpireTime then
+        self:SetFogEntMapBlipInfo(false)
         return
     end
 
@@ -84,7 +94,8 @@ function FogOfWarEntity:IsMapBlipVisible()
 end
 
 
-function FogOfWarEntity:SetFogEntMapBlipInfo(visible, blipType, blipTeam, isActive)
+function FogOfWarEntity:SetFogEntMapBlipInfo(visible, blipType, blipTeam, isActive, isPlayerBlip)
+    local wasVisible = self.visible
     self.visible = visible
 
     if blipType ~= nil then
@@ -100,9 +111,26 @@ function FogOfWarEntity:SetFogEntMapBlipInfo(visible, blipType, blipTeam, isActi
        self.isActive = isActive
     end
 
+    if isPlayerBlip ~= nil then
+       self.isPlayerBlip = isPlayerBlip
+    end
+
+    if visible and self.isPlayerBlip and not wasVisible then
+        self.fogExpireTime = Shared.GetTime() + kFogPlayerBlipLifetime + kFogPlayerBlipFadeTime
+    elseif not visible then
+        self.fogExpireTime = nil
+    end
+
     --Log("%s-%s -- Set visible: %s, active: %s/%s", self, self.blipType and EnumToString(kMinimapBlipType, self.blipType), visible, isActive, self.isActive)
 
     if Server then
+
+        local mapBlip = self.mapBlipId and Shared.GetEntity(self.mapBlipId)
+        if mapBlip then
+            mapBlip.fogExpireTime = self.fogExpireTime
+            mapBlip.isPlayerBlip = self.isPlayerBlip
+        end
+
         self:UpdateRelevancy()
         self:SetUpdates(self.visible, kFogEndUpdateInterval)
         -- Stash the entity if we are not linked anymore

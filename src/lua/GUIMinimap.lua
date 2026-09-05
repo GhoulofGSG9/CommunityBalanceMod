@@ -28,7 +28,7 @@ GUIMinimap.kUpdateIntervalMultipler = 1
 GUIMinimap.kToggleMap = GetAdvancedOption("minimaptoggle") == 1
 
 GUIMinimap.kFogBlipsOptionKey = "fogofwar_enabled"
-GUIMinimap.kFogBlipsEnabled = Client.GetOptionInteger(GUIMinimap.kFogBlipsOptionKey, 1) ~= 0
+GUIMinimap.kFogBlipsEnabled = GetAdvancedOption(GUIMinimap.kFogBlipsOptionKey) ~= 0
 
 -- the model that mappers use to configure minimap_extents has extents of +/- this number.
 local kMinimapExtentsModelScaleFactor = 0.239246666431427;

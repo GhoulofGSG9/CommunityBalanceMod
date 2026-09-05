@@ -168,7 +168,40 @@ local menu =
 			
 				properties =
 				{
-					{"Label", "Minimap fog-of-war toggle"},
+					{"Label", "Fog-of-war:"},
+				},
+			},
+			{
+				name = "fogofwar_fadeout_enabled",
+				class = OP_TT_Expandable_Checkbox,
+				params =
+				{
+					optionPath = "fogofwar_fadeout_enabled",
+					optionType = "bool",
+					default = true,
+
+					immediateUpdate = function(self)
+						MapBlip.kFogFadeoutEnabled = self:GetValue()
+					end,
+
+					tooltip = "Toggle to fade out fog-of-war players blip over time (applies at the end of blips lifespan).",
+				},
+
+				properties =
+				{
+					{"Label", "- Fade-out"},
+				},
+
+				postInit =
+				{
+					function(self)
+						self:HookEvent(GetOptionsMenu():GetOptionWidget("fogofwar_enabled"), "OnValueChanged",
+							function(self, value)
+								self:SetExpanded(value)
+							end)
+
+						self:SetExpanded(GetOptionsMenu():GetOptionWidget("fogofwar_enabled"):GetValue())
+					end,
 				},
 			},
 			{
@@ -194,7 +227,45 @@ local menu =
 
 			    properties =
 			    {
-			        {"Label", "Minimap fog-of-war opacity"},
+			        {"Label", "- Opacity"},
+			    },
+
+			    postInit =
+			    {
+			        function(self)
+			            self:HookEvent(GetOptionsMenu():GetOptionWidget("fogofwar_enabled"), "OnValueChanged",
+			                function(self, value)
+			                    self:SetExpanded(value)
+			                end)
+
+			            self:SetExpanded(GetOptionsMenu():GetOptionWidget("fogofwar_enabled"):GetValue())
+			        end,
+			    },
+			},
+			{
+			    name = "fogofwar_grayness",
+			    class = OP_TT_Expandable_Number,
+			    params =
+			    {
+			        useResetButton = true,
+			        optionPath = "fogofwar_grayness",
+			        optionType = "float",
+			        default = 0.75,
+
+			        minValue = 0.00,
+			        maxValue = 1.00,
+			        decimalPlaces = 2,
+
+			        immediateUpdate = function(self)
+			            MapBlip.kFogGrayness = self:GetValue()
+			        end,
+
+			        tooltip = "Configure how strongly fog-of-war blips are desaturated toward gray (0 = original color, 1 = fully gray).",
+			    },
+
+			    properties =
+			    {
+			        {"Label", "- Grayness"},
 			    },
 
 			    postInit =
