@@ -188,7 +188,7 @@ local menu =
 					default = true,
 
 					immediateUpdate = function(self)
-						MapBlip.kFogFadeoutEnabled = self:GetValue()
+						if MapBlip then MapBlip.kFogFadeoutEnabled = self:GetValue() end
 					end,
 
 					tooltip = "Toggle to fade out fog-of-war players blip over time (applies at the end of blips lifespan).",
@@ -226,7 +226,7 @@ local menu =
 			        decimalPlaces = 2,
 
 			        immediateUpdate = function(self)
-			            MapBlip.kFogTransparency = self:GetValue()
+			            if MapBlip then MapBlip.kFogTransparency = self:GetValue() end
 			        end,
 
 			        tooltip = "Configure fog-of-war blips opacity.",
@@ -264,7 +264,7 @@ local menu =
 			        decimalPlaces = 2,
 
 			        immediateUpdate = function(self)
-			            MapBlip.kFogGrayness = self:GetValue()
+			            if MapBlip then MapBlip.kFogGrayness = self:GetValue() end
 			        end,
 
 			        tooltip = "Configure how strongly fog-of-war blips are desaturated toward gray (0 = original color, 1 = fully gray).",
