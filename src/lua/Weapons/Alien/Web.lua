@@ -8,6 +8,7 @@
 --
 -- ========= For more information, visit us at http://www.unknownworlds.com =====================
 
+Script.Load("lua/Globals.lua")
 Script.Load("lua/TechMixin.lua")
 Script.Load("lua/TeamMixin.lua")
 Script.Load("lua/EntityChangeMixin.lua")
@@ -23,7 +24,6 @@ class 'Web' (Entity)
 
 Web.kMapName = "web"
 
-
 local kWebModelName = PrecacheAsset("models/alien/gorge/web.model")
 
 local kAnimationGraph = PrecacheAsset("models/alien/gorge/web.animation_graph")
@@ -32,14 +32,13 @@ local kWebBabblerTickleDamage = 1 -- Tickle damage (so the enemy makes an "outch
 local kWebBabblerReactInterval = 0.8
 local kWebPanicDuration = 4.5
 
-local kWebNumBabblers = 0 -- number of babblers spawned attached to each web
-
 local networkVars =
 {
     endPoint = "vector",
     length = "float",
     variant = "enum kGorgeVariants",
-    chargeScalingFactor = "float (0 to 3 by 0.01)"
+    chargeScalingFactor = "float (0 to 3 by 0.01)",
+    numWebbedBabblers = "integer (0 to " .. kWebMaxBabblers .. ")"
 }
 
 local kWebDistortMaterial = PrecacheAsset("models/alien/gorge/web_distort.material")
@@ -61,6 +60,10 @@ function EntityFilterNonWebables()
 end
 
 function Web:GetWebAxis()
+
+    if self.endPoint == nil then
+        return nil
+    end
 
     local origin = self:GetOrigin()
     local axis = self.endPoint - origin
@@ -89,6 +92,12 @@ function Web:OnAdjustModelCoords(modelCoords)
     end
 
     return result
+
+end
+
+function Web:GetNumWebbedBabblers()
+
+    return self.numWebbedBabblers or 0
 
 end
 
@@ -146,6 +155,7 @@ function Web:OnCreate()
 
     self.numCharges = 1
     self.chargeScalingFactor = 1.0
+    self.numWebbedBabblers = 0
     self.variant = kGorgeVariants.normal
 
     self:SetUpdates(true, kDefaultUpdateRate)
@@ -161,15 +171,27 @@ function Web:OnInitialized()
     self:SetPhysicsGroup(PhysicsGroup.WebsGroup)
 
     if Server then
-        for _ = 1, kWebNumBabblers do
-            local babbler = CreateEntity(Babbler.kMapName, self:GetOrigin(), self:GetTeamNumber())
-            babbler:AttachToWeb(self, self:GetOrigin())
-        end
+        -- Deferred: SetEndPoint is called after OnInitialized by the ability,
+        -- so we can't compute the strand axis yet.
+        self:AddTimedCallback(Web.AttachInitialBabblers, 0)
     end
 
 end
 
 if Server then
+
+    function Web:AttachInitialBabblers()
+
+        for _ = 1, math.min(kWebNumBabblers, kWebMaxBabblers) do
+            local babbler = CreateEntity(Babbler.kMapName, self:GetOrigin(), self:GetTeamNumber())
+            if babbler and babbler.AttachToWeb then
+                babbler:AttachToWeb(self, self:GetOrigin())
+            end
+        end
+
+        return false -- one-shot callback
+
+    end
 
     function Web:SetEndPoint(endPoint)
     
@@ -198,14 +220,14 @@ if Server then
 
     function Web:AddWebbedBabbler(babbler)
         self.webbedBabblers[babbler:GetId()] = true
+        self.numWebbedBabblers = self.numWebbedBabblers + 1
     end
 
     function Web:RemoveWebbedBabbler(babbler)
         self.webbedBabblers[babbler:GetId()] = nil
+        self.numWebbedBabblers = math.max(0, self.numWebbedBabblers - 1)
     end
 
-    -- Releases every babbler currently pinned to this web, e.g. when the web is
-    -- triggered by an enemy or when it dies/is destroyed.
     function Web:DetachAllWebbedBabblers()
 
         for babblerId, _ in pairs(self.webbedBabblers) do
@@ -216,6 +238,7 @@ if Server then
         end
 
         self.webbedBabblers = {}
+        self.numWebbedBabblers = 0
 
     end
 
@@ -242,7 +265,11 @@ end
 function Web:OnUse(player, elapsedTime, useSuccessTable, usePoint)
 
     local kMinUseDelay = 0.1
-    if Server and player and HasMixin(player, "BabblerCling") and usePoint and Shared.GetTime() - self.timeLastUsed >= kMinUseDelay then
+    if Server and player
+        and HasMixin(player, "BabblerCling") and usePoint
+        and Shared.GetTime() - self.timeLastUsed >= kMinUseDelay
+        and self:GetNumWebbedBabblers() < kWebMaxBabblers
+        then
 
         local babblers = player:GetClingedBabblers()
         local babbler = babblers and babblers[1]
@@ -273,6 +300,10 @@ function Web:GetCanBeUsed(entity, useSuccessTable)
         if isBabblerOwner and entity:GetNumClingedBabblers() == 0 then
             success = false
         end
+    end
+
+    if success and self:GetNumWebbedBabblers() >= kWebMaxBabblers then
+        success = false
     end
 
     useSuccessTable.useSuccess = success
