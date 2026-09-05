@@ -8,6 +8,7 @@
 --
 -- ========= For more information, visit us at http://www.unknownworlds.com =====================
 
+Script.Load("lua/Globals.lua")
 Script.Load("lua/TechMixin.lua")
 Script.Load("lua/TeamMixin.lua")
 Script.Load("lua/EntityChangeMixin.lua")
@@ -17,23 +18,27 @@ Script.Load("lua/ClogFallMixin.lua")
 Script.Load("lua/Mixins/BaseModelMixin.lua")
 Script.Load("lua/Mixins/ModelMixin.lua")
 Script.Load("lua/EffectsMixin.lua")
+Script.Load("lua/UsableMixin.lua")
 
 class 'Web' (Entity)
 
 Web.kMapName = "web"
 
-
 local kWebModelName = PrecacheAsset("models/alien/gorge/web.model")
 
 local kAnimationGraph = PrecacheAsset("models/alien/gorge/web.animation_graph")
-local kEnemyDetectInterval = 0.2
+
+local kWebBabblerTickleDamage = 1 -- Tickle damage (so the enemy makes an "outch" sound)
+local kWebBabblerReactInterval = 0.8
+local kWebPanicDuration = 4.5
 
 local networkVars =
 {
     endPoint = "vector",
     length = "float",
     variant = "enum kGorgeVariants",
-    chargeScalingFactor = "float (0 to 3 by 0.01)"
+    chargeScalingFactor = "float (0 to 3 by 0.01)",
+    numWebbedBabblers = "integer (0 to " .. kWebMaxBabblers .. ")"
 }
 
 local kWebDistortMaterial = PrecacheAsset("models/alien/gorge/web_distort.material")
@@ -54,6 +59,25 @@ function EntityFilterNonWebables()
     return function(test) return not HasMixin(test, "Webable") end
 end
 
+function Web:GetWebAxis()
+
+    if self.endPoint == nil then
+        return nil
+    end
+
+    local origin = self:GetOrigin()
+    local axis = self.endPoint - origin
+    local length = axis:GetLength()
+
+    if length < kEpsilon then
+        return nil
+    end
+
+    axis:Scale(1 / length)
+    return origin, axis, length
+
+end
+
 function Web:SpaceClearForEntity(_)
     return true
 end
@@ -68,6 +92,12 @@ function Web:OnAdjustModelCoords(modelCoords)
     end
 
     return result
+
+end
+
+function Web:GetNumWebbedBabblers()
+
+    return self.numWebbedBabblers or 0
 
 end
 
@@ -107,6 +137,7 @@ function Web:OnCreate()
     InitMixin(self, LOSMixin)
 
     InitMixin(self, ClogFallMixin)
+    InitMixin(self, UsableMixin)
 
     if Server then
 
@@ -117,50 +148,18 @@ function Web:OnCreate()
         self:AddTimedCallback(AddWebCharge, kWebSecondsPerCharge)
 
         self.triggerSpawnEffect = false
+        self.webbedBabblers = {}
+        self.timeLastUsed = Shared.GetTime()
 
     end
 
     self.numCharges = 1
     self.chargeScalingFactor = 1.0
+    self.numWebbedBabblers = 0
     self.variant = kGorgeVariants.normal
 
     self:SetUpdates(true, kDefaultUpdateRate)
     self:SetRelevancyDistance(25) --kMaxRelevancyDistance)
-
-end
-
-local function GetAreEnemiesInRange(self)
-    
-    PROFILE("Web:GetAreEnemiesInRange")
-    
-    -- Since it's a web, it's not just one point we need to check around, it's a radius around a
-    -- line, so kind of a pill-shape.  First, gather entities with a range of the middle that fully
-    -- encompasses all entities within the pill shape, then do more fine-grained checks to see if
-    -- they're actually in-range.
-    local midPoint = (self:GetOrigin() + self.endPoint) * 0.5
-    local broadRange = self.length * 0.5 + self.kFullVisDistance
-    local ents = GetEntitiesForTeamWithinRange("Player", GetEnemyTeamNumber(self:GetTeamNumber()), midPoint, broadRange)
-    if #ents == 0 then
-        return false
-    end
-    
-    -- Get the distance between the web line segment and each entity.
-    local webVector = (self.endPoint - self:GetOrigin()) / self.length
-    local rangeSq = self.kFullVisDistance * self.kFullVisDistance
-    for i=1, #ents do
-        local ent = ents[i]
-        local entPos = ent:GetOrigin()
-        local t = Clamp(webVector:DotProduct(entPos - self:GetOrigin()), 0, self.length)
-        local nearestPos = webVector * t + self:GetOrigin()
-        local distSq = (entPos - nearestPos):GetLengthSquared()
-        
-        if distSq <= rangeSq then
-            return true
-        end
-        
-    end
-    
-    return false
 
 end
 
@@ -170,10 +169,29 @@ function Web:OnInitialized()
     
     self:SetPhysicsType(PhysicsType.Kinematic)
     self:SetPhysicsGroup(PhysicsGroup.WebsGroup)
-  
+
+    if Server then
+        -- Deferred: SetEndPoint is called after OnInitialized by the ability,
+        -- so we can't compute the strand axis yet.
+        self:AddTimedCallback(Web.AttachInitialBabblers, 0)
+    end
+
 end
 
 if Server then
+
+    function Web:AttachInitialBabblers()
+
+        for _ = 1, math.min(kWebNumBabblers, kWebMaxBabblers) do
+            local babbler = CreateEntity(Babbler.kMapName, self:GetOrigin(), self:GetTeamNumber())
+            if babbler and babbler.AttachToWeb then
+                babbler:AttachToWeb(self, self:GetOrigin())
+            end
+        end
+
+        return false -- one-shot callback
+
+    end
 
     function Web:SetEndPoint(endPoint)
     
@@ -192,6 +210,112 @@ if Server then
         
     end
 
+end
+
+function Web:GetUsablePoints()
+    return nil
+end
+
+if Server then
+
+    function Web:AddWebbedBabbler(babbler)
+        self.webbedBabblers[babbler:GetId()] = true
+        self.numWebbedBabblers = self.numWebbedBabblers + 1
+    end
+
+    function Web:RemoveWebbedBabbler(babbler)
+        self.webbedBabblers[babbler:GetId()] = nil
+        self.numWebbedBabblers = math.max(0, self.numWebbedBabblers - 1)
+    end
+
+    function Web:DetachAllWebbedBabblers()
+
+        for babblerId, _ in pairs(self.webbedBabblers) do
+            local babbler = Shared.GetEntity(babblerId)
+            if babbler and babbler.DetachFromWeb then
+                babbler:DetachFromWeb()
+            end
+        end
+
+        self.webbedBabblers = {}
+        self.numWebbedBabblers = 0
+
+    end
+
+    -- Finds the closest point on the web's line segment to the given world position,
+    -- used to pin a babbler roughly where the owner pressed use.
+    function Web:GetClosestPointOnWeb(position)
+
+        local webVector = self.endPoint - self:GetOrigin()
+        local webLength = webVector:GetLength()
+
+        if webLength < kEpsilon then
+            return Vector(self:GetOrigin())
+        end
+
+        webVector:Scale(1 / webLength)
+        local t = Clamp(webVector:DotProduct(position - self:GetOrigin()), 0, webLength)
+
+        return self:GetOrigin() + webVector * t
+
+    end
+
+end
+
+function Web:OnUse(player, elapsedTime, useSuccessTable, usePoint)
+
+    local kMinUseDelay = 0.1
+    if Server and player
+        and HasMixin(player, "BabblerCling") and usePoint
+        and Shared.GetTime() - self.timeLastUsed >= kMinUseDelay
+        and self:GetNumWebbedBabblers() < kWebMaxBabblers
+        then
+
+        local babblers = player:GetClingedBabblers()
+        local babbler = babblers and babblers[1]
+
+        if babbler then
+            babbler:AttachToWeb(self, usePoint)
+            self.timeLastUsed = Shared.GetTime()
+        end
+
+    end
+
+end
+
+function Web:GetIsSecondaryUseUnit()
+    return true
+end
+
+function Web:GetCanBeUsed(entity, useSuccessTable)
+
+    local success = true
+
+    local isBabblerOwner = HasMixin(entity, "BabblerOwner")
+    if not GetAreFriends(self, entity) or not isBabblerOwner then
+        success = false
+    end
+
+    if success then
+        if isBabblerOwner and entity:GetNumClingedBabblers() == 0 then
+            success = false
+        end
+    end
+
+    if success and self:GetNumWebbedBabblers() >= kWebMaxBabblers then
+        success = false
+    end
+
+    useSuccessTable.useSuccess = success
+    
+end
+
+function Web:GetUseAllowedBeforeGameStart()
+    return true
+end
+
+function Web:GetCanBeUsedDuringWarmup()
+    return true
 end
 
 function Web:GetIsFlameAble()
@@ -218,6 +342,7 @@ if Server then
     end
 
     function Web:OnKill()
+        self:DetachAllWebbedBabblers()
         self:TriggerEffects("death")
     end
 
@@ -263,6 +388,7 @@ function Web:OnDestroy()
     -- TODO
     -- Shouldn't this be in OnKill, not OnDestroy???
     if Server then
+        self:DetachAllWebbedBabblers()
         TriggerWebDestroyEffects(self)
     end
 
@@ -363,15 +489,47 @@ local function GetDistance(self, fromPlayer)
 
 end
 
-local function RemoveWebCharge(self)
+local function AlertWebbedBabblers(self, fromPlayer)
+
+    local now = Shared.GetTime()
+    if self.timeLastBabblerReact and now - self.timeLastBabblerReact < kWebBabblerReactInterval then
+        return
+    end
+    self.timeLastBabblerReact = now
+
+    if not fromPlayer or not fromPlayer:GetIsAlive() then return end
+
+    local extents = fromPlayer:GetExtents()
+    local torsoPoint = fromPlayer:GetOrigin() + Vector(0, extents.y, 0)
+    local contactPoint = self:GetClosestPointOnWeb(torsoPoint)
+
+    for babblerId, _ in pairs(self.webbedBabblers) do
+        local babbler = Shared.GetEntity(babblerId)
+        if babbler and babbler:GetIsAlive() then
+
+            babbler:PanicFromWeb(kWebPanicDuration)
+
+            local separation = (babbler:GetOrigin() - contactPoint):GetLength()
+            if separation < 2.5 then
+                babbler:TriggerEffects("babbler_engage")
+                fromPlayer:TakeDamage(kWebBabblerTickleDamage, babbler, babbler,
+                        contactPoint, nil, 0, kWebBabblerTickleDamage, kDamageType.Normal)
+            end
+        end
+    end
+
+end
+
+local function RemoveWebCharge(self, fromPlayer)
 
     self.numCharges = self.numCharges - 1
-
     local isAlive = self.numCharges > 0
 
     if isAlive then
         self.chargeScalingFactor = self.chargeScalingFactor - kWebChargeScaleAdditive
     end
+
+    AlertWebbedBabblers(self, fromPlayer)
 
     return isAlive
 
@@ -411,7 +569,7 @@ local function CheckForIntersection(self, fromPlayer)
 
                 if Server and shouldPlayEffects then
 
-                    if not RemoveWebCharge(self) then
+                    if not RemoveWebCharge(self, fromPlayer) then
                         self:Kill(nil, nil, self:GetOrigin())
                     end
 

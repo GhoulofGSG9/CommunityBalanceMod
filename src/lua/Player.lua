@@ -887,9 +887,9 @@ function Player:PerformUseTrace()
 
     local trace = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.AllButPCsAndRagdolls, EntityFilterOneAndIsa(self, "Weapon"))
 
-    if trace.entity and trace.entity:isa("Babbler") then
+    if trace.entity and (trace.entity.GetIsSecondaryUseUnit and trace.entity:GetIsSecondaryUseUnit()) then
         local trace2 = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.AllButPCsAndRagdollsAndBabblers, EntityFilterOneAndIsa(self, "Weapon"))
-        if trace2.entity then -- if we found something else, ignore the babbler
+        if trace2.entity then -- if we found something else, ignore the babbler/web
             trace = trace2
         end
     end
@@ -941,7 +941,7 @@ function Player:PerformUseTrace()
 
 end
 
-function Player:UseTarget(entity, timePassed)
+function Player:UseTarget(entity, timePassed, usePoint)
 
     assert(entity)
 
@@ -949,7 +949,7 @@ function Player:UseTarget(entity, timePassed)
     if entity.OnUse then
 
         useSuccessTable.useSuccess = true
-        entity:OnUse(self, timePassed, useSuccessTable)
+        entity:OnUse(self, timePassed, useSuccessTable, usePoint)
 
     end
 
@@ -999,7 +999,7 @@ local function AttemptToUse(self, timePassed)
         end
         
         -- Use it.
-        if self:UseTarget(entity, elapsedTime) then
+        if self:UseTarget(entity, elapsedTime, usablePoint) then
 
             if kDebugBuildTimes and HasMixin(entity, "Construct") and not entity:GetIsBuilt() then
 

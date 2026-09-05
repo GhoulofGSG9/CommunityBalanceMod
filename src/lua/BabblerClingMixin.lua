@@ -30,7 +30,7 @@ local kBabblerAttachPoints =
 }
 
 BabblerClingMixin.kAmountDonatedForPoints = 6
-BabblerClingMixin.kDonationScoreAdded = 1
+BabblerClingMixin.kDonationScoreAdded = 0.5
 
 local kMaxShield = kBabblerShieldMaxAmount
 BabblerClingMixin.networkVars =
@@ -172,6 +172,10 @@ if Server then
         self.attachedBabblers[babblerId] = nil
         babbler:SetParent(nil)
 
+    end
+
+    function BabblerClingMixin:GetClingedBabblers()
+        return GetChildEntities(self, "Babbler")
     end
 
     function BabblerClingMixin:DestroyNumClingedBabbler(num)
