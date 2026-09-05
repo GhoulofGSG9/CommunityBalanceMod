@@ -25,7 +25,6 @@ Script.Load("lua/GameEffectsMixin.lua")
 kBabblerMoveTypeStr = { 'None', 'Move', 'Cling', 'Attack', 'Wag' }
 kBabblerMoveType = enum(kBabblerMoveTypeStr)
 
-
 class 'Babbler' (ScriptActor)
 
 Babbler.kMapName = "babbler"
@@ -820,7 +819,13 @@ if Server then
     function Babbler:OnEntityChange(oldId, newId)
 
         if oldId == self.webId then
-            self.webId = newId or Entity.invalidId
+            local newWeb = newId and Shared.GetEntity(newId)
+            if newWeb and newWeb:isa("Web") then
+                self.webId = newId
+            else
+                self:DetachFromWeb()
+                return
+            end
         end
 
         if oldId == self.targetId then
@@ -1428,19 +1433,27 @@ if Server then
             StepWebPitch(self, movePitch, deltaTime)
 
             local arrived = math.abs(self.webTargetT - myT) <= deltaTime * speed
-                                or self.webWalkTimer <= 0
 
-            if arrived then
-                self:SetCoords(BuildWebCoords(origin.x, origin.y, origin.z, axis, destinationT,
-                        self.webStanceAngle, 0, self.webYaw, self.webPitch))
+            if arrived or self.webWalkTimer <= 0 then
+
+                -- Reached the target (or gave up after walking too long) — never
+                -- snap over the remaining distance, just stop where we stand.
+                if arrived then
+                    self:SetCoords(BuildWebCoords(origin.x, origin.y, origin.z, axis, destinationT,
+                            self.webStanceAngle, 0, self.webYaw, self.webPitch))
+                end
+
                 self.webTargetT = nil
                 self.webFastTravel = false
                 self.webWalking = false
                 self.webWalkTimer = GetWebIdleTime(self)
+
             else
+
                 local nextT = Clamp(myT + self.webWalkDir * deltaTime * speed, margin, length - margin)
                 self:SetCoords(BuildWebCoords(origin.x, origin.y, origin.z, axis, nextT,
                         self.webStanceAngle, 0, self.webYaw, self.webPitch))
+
             end
 
             return
