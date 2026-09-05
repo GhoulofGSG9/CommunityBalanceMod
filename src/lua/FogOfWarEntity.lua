@@ -125,12 +125,10 @@ function FogOfWarEntity:SetFogEntMapBlipInfo(visible, blipType, blipTeam, isActi
 
     if Server then
 
-        -- Mirror onto the MapBlip itself: MapBlip has infinite relevancy distance while
-        -- this entity is distance-limited (see OnCreate), so a client can lose relevancy
-        -- to this FogOfWarEntity mid-fade while its MapBlip is still shown on the minimap.
         local mapBlip = self.mapBlipId and Shared.GetEntity(self.mapBlipId)
         if mapBlip then
             mapBlip.fogExpireTime = self.fogExpireTime
+            mapBlip.isPlayerBlip = self.isPlayerBlip
         end
 
         self:UpdateRelevancy()
