@@ -57,6 +57,8 @@ Babbler.kLinearDampingAtSpawn = 10 -- So they don't scatter at mac3 speed
 Babbler.kRestitution = 0.30
 Babbler.kFov = 360
 
+Babbler.kWebWalkSpeed = 1.1
+
 local kTargetSearchRange = 12
 local kTargetMaxFollowRange = 30
 local kAttackRate = 0.40
@@ -597,7 +599,6 @@ end
 if Server then
 
     local kBabblerWebEndMargin = 0.2
-    local kWebWalkSpeed = 1.1
     local kWebTravelSpeed = 3.5
 
     -- all web-behaviour tuning in one place
@@ -1408,7 +1409,28 @@ if Server then
             if panicking or math.random() < kWebConfig.strollChance then
 
                 local myT = (self:GetOrigin() - origin):DotProduct(axis)
-                self.webTargetT = margin + math.random() * (length - margin * 2)
+
+                -- Long strides only: retry the random pick a few times, and if it
+                -- keeps landing too close, commit to the far half of the strand
+                -- so the run animation actually gets going.
+                local minTravel = math.min(0.5, (length - margin * 2) * 0.3)
+                local candidateT
+                local accepted = false
+
+                for _ = 1, 8 do
+                    candidateT = margin + math.random() * (length - margin * 2)
+                    if math.abs(candidateT - myT) >= minTravel then
+                        accepted = true
+                        break
+                    end
+                end
+
+                if not accepted then
+                    -- push to the farther end of the usable span
+                    candidateT = (myT < (margin + length) * 0.5) and (length - margin) or margin
+                end
+
+                self.webTargetT = Clamp(candidateT, margin, length - margin)
                 self.webWalkDir = (self.webTargetT >= myT) and 1 or -1
                 self.webSpinActive = false
                 self.webSpinT = nil
@@ -1428,7 +1450,7 @@ if Server then
         if self.webTargetT ~= nil then
 
             local panicking = self.panicExpire ~= nil and Shared.GetTime() < self.panicExpire
-            local speed = (self.webFastTravel and kWebTravelSpeed or kWebWalkSpeed) * (panicking and kWebConfig.panicSpeedMult or 1)
+            local speed = (self.webFastTravel and kWebTravelSpeed or Babbler.kWebWalkSpeed) * (panicking and kWebConfig.panicSpeedMult or 1)
 
             local myT = (self:GetOrigin() - origin):DotProduct(axis)
             local destinationT = Clamp(self.webTargetT, margin, length - margin)
@@ -2023,29 +2045,36 @@ elseif Client then
     end
     
     function Babbler:OnUpdatePoseParameters()
-    
+
         PROFILE("Babbler:OnUpdatePoseParameters")
-    
+
         local moveSpeed = 0
         local moveYaw = 0
-        
-        if self.clientVelocity then    
+
+        if self.clientVelocity then
 
             local coords = self:GetCoords()
             local moveDirection = ConditionalValue(self.clientVelocity:GetLengthXZ() > 0, GetNormalizedVectorXZ(self.clientVelocity), self.moveDirection)
             local x = Math_DotProduct(coords.xAxis, moveDirection)
             local z = Math_DotProduct(coords.zAxis, moveDirection)
-            
+
             moveYaw = Math_Wrap(Math_Degrees( math_atan2(z,x) ), -180, 180) + 180
-            moveSpeed = Clamp(self.clientVelocity:GetLength() / kBabblerRunSpeed, 0, 1)
-        
+
+            local speed = self.clientVelocity:GetLength()
+
+            -- The babbler moves much slower on a web than on the ground; normalize
+            -- against the web speed there, so the animation graph sees a value near
+            -- the range its run cycle was tuned for instead of ~0.13.
+            local maxSpeed = self.onWeb and Babbler.kWebWalkSpeed or kBabblerRunSpeed
+            moveSpeed = Clamp(speed / maxSpeed, 0, 1)
+
         end
-        
+
         self:SetPoseParams({
             {"move_speed", moveSpeed},
             {"move_yaw", moveYaw}
         })
-        
+
     end
     
     -- hide babblers which are clinged on the local player to not obscure their view
