@@ -27,36 +27,57 @@ if kCBMaddon then
 
 	#TLDR of v3.6 Playtest 4:
 	
-	## Balance Changes
+	## Balance and QoL Changes
+	### Exosuits
 	  - Fixed vanilla bug with railgunTargetMixin (enemy highlight), increased refresh rate, and changed color back to TSF blue.
 	  - Exo thrusters use 3x the fuel when off the ground instead of 2x the fuel.
 	  - Updated classic ammo counter system to display avaliable shots for plasma launcher.
-	  - AMAC given minor rework to lower skill floor and reduce power ceiling.
+	
+	### PvE
 	  - Base alien support structures now all cost 10 tres from 8 (Advanced to 18 tres from 20).
 	  - Sentry now costs 9 tres instead of 7.
 	  - All cloaked structures partially reveal when within 1 m.
+
+	### Relevancy
 	  - Lerks are no longer able to hit spikes outside relevancy range.
 	  - Clip weapons and exos are no longer able to hit outside of relevancy range.
-	  - Adjusted drifter "snap" range to 2 from 3 m.
-	  - Unattended babblers can now be picked up by using the 'use' key.
-	  - Giving or having babblers picked up can now give score (0.5/6).
-	  - Improved babbler ball projectile behavior and related babbler targetting priorities. 
-	  - Resilience and aura reverted to vanilla.
-	  - Strengthened mine placement checks to reduce potential for fully invisible mines.
-	  - Added additional damage checks to mines to account for zero damage edge cases.
-	  
-	## QoL
-	  - Reworked minimap blips to appear quickly and disappear more consistently (combat checks + reveal duration minimums).
-	  - Fixed new minimap blips appearing one GUI update too late when spotted. Seen entities will now appear instantly.
+
+	### Map / Fog of War / Line of Sight
+	  - Reworked map and minimap blips to appear quickly and disappear more consistently.
+	  - Fixed new map and minimap blips appearing one GUI update too late when spotted (instant reveal).
 	  - Added 'fog of war' blips that persist for previously revealed entities on the map.
+	    - Player entities icons fade out after 10s.
+	    - Enabled/disabled and adjust opacity / color in otions -> mods -> CBM: Accessibility Options.
+	  - Commanders now instantly see entities revealed by players.
 	  - Commanders can now see clogs revealed by players (must be damaged or collided with).
+
+	### Babblers / Babbler Ball
+	  - Unattended babblers can now be picked up by using the 'use' key.
+	  - Up to 4 babblers can be attached to webs (uses personal babbler cap).
+	    - Provide auditory warning and initial 'tickle' damage when web is triggered.
+		- Detach when web is destroyed.
+		- Walk across and around the web, but do not cloak with the web.
+		- Aliens can pick up babblers from a web.
+	  - Giving or having babblers picked up can now give score (0.5/6).
+	  - Babblers no longer stutter when changing speed.
+	  - Improved babbler ball projectile behavior and related babbler targetting priorities.
+	  - Babblers will no longer ignore babbler ball when biting PvE.
+
+	### Mines
+	  - Strengthened mine placement checks to reduce potential for fully invisible mines.
+	  - Added additional damage checks to mines to account for zero damage edge cases.	
+
+	### Misc
+	  - AMAC given minor rework to lower skill floor and reduce power ceiling.
+	  - Adjusted drifter "snap" range to 2 from 3 m.
+	  - Resilience and aura reverted to vanilla.
 	  - Unstuck (vanilla console command) improved.
 	  - Upgrade buying and switching as a lifeform improved (better egg placement).
 	
-	## Bugfixes and Game Performance Optimizations
+	## Misc Bugfixes and Game Performance Optimizations
 	  - Further fixes to collisions and movement.
 	  - Fixed marine bots not being able to target specific structures due to minimap blips.
-	  - Fixed new minimap blips appearing one GUI update too late when spotted. Seen entities will now appear instantly.
+	  - Fixed hit sound not working when spectating a player first person.
 	  - Improved performance of line of sight functions.
 	  - Improved performance of weapon holder functions.
 	  - Improved performance of cloaking functions.
@@ -69,9 +90,9 @@ if kCBMaddon then
 	  - Improved performance of phase gate functions.
 	  - Improved performance of sleeper functions.
 	  - Improved performance of mine functions.
-	  - Improved performance of babbler functions.
+	  - Improved performance of babbler / babbler ball functions.
+	  - Improved performance of gorge functions.
 	  - Lowered game network demand.
-	  - Fixed hit sound not working when spectating a player first person.
 	  
 	### Be sure to thank Katzenfleisch for the performance optimizations!
 
@@ -135,8 +156,12 @@ if kCBMaddon then
 	  - Capped weapon range to relevancy range.
 	  - Clogs now reveal to commanders when a marine damages or touches them.
 	  - All cloaked structures partially reveal when within 1 m.
+	  - Commanders now instantly see entities revealed by players.
+	  - Commanders can now see clogs revealed by players (must be damaged or collided with).
+	  - Unstuck (vanilla console command) improved.
+	  - Upgrade buying and switching as a lifeform improved (better egg placement).
 	  
-	### Minimap Updates
+	### Map / Minimap Updates
 	  - Players are able to see if a hive is at <34%, <67% or <=100% maturity
 	  - Added Icon for occupied Hive/Chair
 	  - Added Icon for Jetpackers
@@ -146,6 +171,13 @@ if kCBMaddon then
 	  - Added Icon for Advanced Armory
 	  - Added Icons for Advanced PvE
 	  - Alien Commander is able to see parasited mines
+	  - Reworked map and minimap blips to appear quickly and disappear more consistently.
+	  - Fixed new map and minimap blips appearing one GUI update too late when spotted (instant reveal).
+
+	### Fog of War
+	  - Added 'fog of war' blips that persist for previously revealed entities on the map.
+	  - Player entities icons fade out after 10s.
+	  - Enabled/disabled and adjust opacity / color in otions -> mods -> CBM: Accessibility Options.
 
 	### Vanilla Bugfixes
 	  - Fixed web variant nil value console spam.
@@ -170,7 +202,8 @@ if kCBMaddon then
 	  - Fixed nil error on phasegates.
 	  - Fixed mine being triggered outside of damage range and improved responsiveness of detection.
 	  - Fixed issues with minimap blips flickering and not revealing.
-	  - Fixed hitscan and projectile weapons being able to hit outside relevancy range. 
+	  - Fixed hitscan and projectile weapons being able to hit outside relevancy range.
+	  - Fixed hit sound not working when spectating a player first person.
 
 	### Vanilla Codebase Optimizations
 	  - Refactored and optimized the way the game processes and confirms damage, collisions, and movement.
@@ -195,6 +228,10 @@ if kCBMaddon then
 	  - Improved performance of entity change functions.
 	  - Improved performance of phase gate functions.
 	  - Improved performance of sleeper functions.
+	  - Improved performance of mine functions.
+	  - Improved performance of babbler / babbler ball functions.
+	  - Improved performance of gorge functions.
+	  - Lowered game network demand.
 
 	## MARINE - PLAYER
 	### Modular Exosuits
@@ -274,7 +311,7 @@ if kCBMaddon then
 	  - Weighs 0.05 (~10% faster movement than rifle, lower jetpack fuel consumption).
 	  
 	### Hand Grenades
-	  - Self damage reduced by 66% (grenades/mines).
+	  - Self damage reduced by 66%.
       - Pulse Grenades:
 	    - Debuff range increased by 50%.
 	    - Base damage set to 15 from 50.
@@ -300,9 +337,11 @@ if kCBMaddon then
 	  - NOTE: Active abilities can still be used if electrified!
 
 	### Mines
+	  - Self damage reduced by 66%.
 	  - Can no longer be placed overlapping.
 	  - Can no longer be placed inside the center of gates.
 	  - Will more reliably trigger on valid targets.
+	  - Strengthened mine placement checks to reduce potential for fully invisible mines.
 
 	### Axe
 	  - Changed to 27.5 damage from 25 (+10% DPS from rifle).
@@ -379,6 +418,7 @@ if kCBMaddon then
 	  - Has two abilities:
 		- Healing Field: Heals marine players in AoE (5 HP per second).
 		- Deploy catpacks: Catpacks nearby damaged marine players (costs 25 energy each).
+	  - Deploy catpacks requires advanced support.
 
 	### Sentry
 	  - Attack cone increased to 360 degrees from 135 degrees.
@@ -453,6 +493,15 @@ if kCBMaddon then
 		- Babblers will now detach around the gorge instead of everyone at the same location above the gorge.
 		- Babblers will stay out for at least the duration of the babbler ball.
 		- Babblers are now affected by crush upgrade.
+		- Babblers can now be picked up by using the 'use' key.
+		- Babblers can now be attached to webs (uses personal babbler cap).
+	      - Provide auditory warning and initial 'tickle' damage when web is triggered.
+		  - Detach when web is destroyed.
+		  - Walk across and around the web, but do not cloak with the web.
+		  - Alien players can pick up babblers from a web.
+		- Giving or having babblers picked up can now give score (0.5/6).
+		- Babblers no longer stutter when changing speed.
+		- Babblers will no longer ignore babbler ball when biting PvE.
 	  - Babbler Bomb
 		- Bio 7 gorge ability researchable on hive (15 tres).
 		- Gorge spews out babbler filled egg that explodes on impact.
@@ -463,6 +512,7 @@ if kCBMaddon then
 	  - Bile damage accelerates weapon expiration
 		- 1 Bile ~ 5 seconds
 	  - Buffed gorge structure healing by 15% (net neutral with structure eHP changes).
+	  - Improved babbler ball projectile behavior and related babbler targetting priorities.
 
 	### Onos
 	  - Stomp
@@ -585,35 +635,57 @@ else
 
 	#TLDR of v3.6 Playtest 4:
 	
-	## Balance Changes
+	## Balance and QoL Changes
+	### Exosuits
 	  - Fixed vanilla bug with railgunTargetMixin (enemy highlight), increased refresh rate, and changed color back to TSF blue.
 	  - Exo thrusters use 3x the fuel when off the ground instead of 2x the fuel.
 	  - Updated classic ammo counter system to display avaliable shots for plasma launcher.
-	  - AMAC given minor rework to lower skill floor and reduce power ceiling.
+	
+	### PvE
 	  - Base alien support structures now all cost 10 tres from 8 (Advanced to 18 tres from 20).
 	  - Sentry now costs 9 tres instead of 7.
 	  - All cloaked structures partially reveal when within 1 m.
+
+	### Relevancy
 	  - Lerks are no longer able to hit spikes outside relevancy range.
 	  - Clip weapons and exos are no longer able to hit outside of relevancy range.
-	  - Adjusted drifter "snap" range to 2 from 3 m.
-	  - Unattended babblers can now be picked up by using the 'use' key.
-	  - Giving or having babblers picked up can now give score (0.5/6).
-	  - Improved babbler ball projectile behavior and related babbler targetting priorities. 
-	  - Resilience and aura reverted to vanilla.
-	  - Strengthened mine placement checks to reduce potential for fully invisible mines.
-	  - Added additional damage checks to mines to account for zero damage edge cases.
-	  
-	## QoL
-	  - Reworked minimap blips to appear quickly and disappear more consistently (combat checks + reveal duration minimums).
+
+	### Map / Fog of War / Line of Sight
+	  - Reworked map and minimap blips to appear quickly and disappear more consistently (combat checks + reveal duration minimums).
+	  - Fixed new map and minimap blips appearing one GUI update too late when spotted (instant reveal).
 	  - Added 'fog of war' blips that persist for previously revealed entities on the map.
+	    - Player entities icons fade out after 10s.
+	    - Enabled/disabled and adjust opacity / color in otions -> mods -> CBM: Accessibility Options.
+	  - Commanders now instantly see entities revealed by players.
 	  - Commanders can now see clogs revealed by players (must be damaged or collided with).
+
+	### Babblers / Babbler Ball
+	  - Unattended babblers can now be picked up by using the 'use' key.
+	  - Up to 4 babblers can be attached to webs (uses personal babbler cap).
+	    - Provide auditory warning and initial 'tickle' damage when web is triggered.
+		- Detach when web is destroyed.
+		- Walk across and around the web, but do not cloak with the web.
+		- Aliens can pick up babblers from a web.
+	  - Giving or having babblers picked up can now give score (0.5/6).
+	  - Babblers no longer stutter when changing speed.
+	  - Improved babbler ball projectile behavior and related babbler targetting priorities.
+	  - Babblers will no longer ignore babbler ball when biting PvE.
+
+	### Mines
+	  - Strengthened mine placement checks to reduce potential for fully invisible mines.
+	  - Added additional damage checks to mines to account for zero damage edge cases.	
+
+	### Misc
+	  - AMAC given minor rework to lower skill floor and reduce power ceiling.
+	  - Adjusted drifter "snap" range to 2 from 3 m.
+	  - Resilience and aura reverted to vanilla.
 	  - Unstuck (vanilla console command) improved.
 	  - Upgrade buying and switching as a lifeform improved (better egg placement).
 	
-	## Bugfixes and Game Performance Optimizations
+	## Misc Bugfixes and Game Performance Optimizations
 	  - Further fixes to collisions and movement.
 	  - Fixed marine bots not being able to target specific structures due to minimap blips.
-	  - Fixed new minimap blips appearing one GUI update too late when spotted. Seen entities will now appear instantly.
+	  - Fixed hit sound not working when spectating a player first person.
 	  - Improved performance of line of sight functions.
 	  - Improved performance of weapon holder functions.
 	  - Improved performance of cloaking functions.
@@ -626,9 +698,9 @@ else
 	  - Improved performance of phase gate functions.
 	  - Improved performance of sleeper functions.
 	  - Improved performance of mine functions.
-	  - Improved performance of babbler functions.
+	  - Improved performance of babbler / babbler ball functions.
+	  - Improved performance of gorge functions.
 	  - Lowered game network demand.
-	  - Fixed hit sound not working when spectating a player first person.
 	  
 	### Be sure to thank Katzenfleisch for the performance optimizations!
 
@@ -685,8 +757,12 @@ else
 	  - Capped weapon range to relevancy range.
 	  - Clogs now reveal to commanders when a marine damages or touches them.
 	  - All cloaked structures partially reveal when within 1 m.
+	  - Commanders now instantly see entities revealed by players.
+	  - Commanders can now see clogs revealed by players (must be damaged or collided with).
+	  - Unstuck (vanilla console command) improved.
+	  - Upgrade buying and switching as a lifeform improved (better egg placement).
 	  
-	### Minimap Updates
+	### Map / Minimap Updates
 	  - Players are able to see if a hive is at <34%, <67% or <=100% maturity
 	  - Added Icon for occupied Hive/Chair
 	  - Added Icon for Jetpackers
@@ -694,7 +770,15 @@ else
 	  - Added Icon for Drifter Eggs
 	  - Added Icon for deployed ARCS
 	  - Added Icon for Advanced Armory
+	  - Added Icons for Advanced PvE
 	  - Alien Commander is able to see parasited mines
+	  - Reworked map and minimap blips to appear quickly and disappear more consistently (combat checks + reveal duration minimums).
+	  - Fixed new map and minimap blips appearing one GUI update too late when spotted (instant reveal).
+
+	### Fog of War
+	  - Added 'fog of war' blips that persist for previously revealed entities on the map.
+	  - Player entities icons fade out after 10s.
+	  - Enabled/disabled and adjust opacity / color in otions -> mods -> CBM: Accessibility Options.
 
 	### Vanilla Bugfixes
 	  - Fixed web variant nil value console spam.
@@ -719,7 +803,8 @@ else
 	  - Fixed nil error on phasegates.
 	  - Fixed mine being triggered outside of damage range and improved responsiveness of detection.
 	  - Fixed issues with minimap blips flickering and not revealing.
-	  - Fixed hitscan and projectile weapons being able to hit outside relevancy range. 
+	  - Fixed hitscan and projectile weapons being able to hit outside relevancy range.
+	  - Fixed hit sound not working when spectating a player first person.
 
 	### Vanilla Codebase Optimizations
 	  - Refactored and optimized the way the game processes and confirms damage, collisions, and movement.
@@ -744,6 +829,10 @@ else
 	  - Improved performance of entity change functions.
 	  - Improved performance of phase gate functions.
 	  - Improved performance of sleeper functions.
+	  - Improved performance of mine functions.
+	  - Improved performance of babbler / babbler ball functions.
+	  - Improved performance of gorge functions.
+	  - Lowered game network demand.
 
 	## MARINE - PLAYER
 	### Modular Exosuits
@@ -808,7 +897,7 @@ else
 	  - Tech unlock cost to 20 from 25 tres.
 
 	### Hand Grenades
-	  - Self damage reduced by 66% (grenades/mines).
+	  - Self damage reduced by 66%.
       - Pulse Grenades:
 	    - Debuff range increased by 50%.
 	    - Base damage set to 15 from 50.
@@ -834,9 +923,11 @@ else
 	  - NOTE: Active abilities can still be used if electrified!
 
 	### Mines
+	  - Self damage reduced by 66%.
 	  - Can no longer be placed overlapping.
 	  - Can no longer be placed inside the center of gates.
 	  - Will more reliably trigger on valid targets.
+	  - Strengthened mine placement checks to reduce potential for fully invisible mines.
 
 	### Axe
 	  - Changed to 27.5 damage from 25 (+10% DPS from rifle).
@@ -934,10 +1025,20 @@ else
 		- Babblers will now detach around the gorge instead of everyone at the same location above the gorge.
 		- Babblers will stay out for at least the duration of the babbler ball.
 		- Babblers are now affected by crush upgrade.
+		- Babblers can now be picked up by using the 'use' key.
+		- Babblers can now be attached to webs (uses personal babbler cap).
+	      - Provide auditory warning and initial 'tickle' damage when web is triggered.
+		  - Detach when web is destroyed.
+		  - Walk across and around the web, but do not cloak with the web.
+		  - Alien players can pick up babblers from a web.
+		- Giving or having babblers picked up can now give score (0.5/6).
+		- Babblers no longer stutter when changing speed.
+		- Babblers will no longer ignore babbler ball when biting PvE.
 	  - Hydras and Bilemine cost 30% less energy
 	  - Bile damage accelerates weapon expiration
 		- 1 Bile ~ 5 seconds
 	  - Buffed gorge structure healing by 15% (net neutral with structure eHP changes).
+	  - Improved babbler ball projectile behavior and related babbler targetting priorities.
 
 	### Onos
 	  - Stomp
