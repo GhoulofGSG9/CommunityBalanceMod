@@ -379,24 +379,26 @@ if Client then
 
         if self.isFogOfWarMapBlip then
 
-            local fogColor = self.currentFogBlipColor or Color()
-
-            -- For re-entrance, don't re-apply on ourselves if we have the same color
-            if not (color.r == fogColor.r and color.g == fogColor.g and color.b == fogColor.b) then
-                -- Weighted (perceptually accurate, matches human eye sensitivity)
-                local grayColor = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b
-
-                -- Apply: blend toward gray by a factor (0 = original, 1 = full gray)
-                local factor = MapBlip.kFogGrayness
-
-                fogColor.r = color.r * (1 - factor) + grayColor * factor
-                fogColor.g = color.g * (1 - factor) + grayColor * factor
-                fogColor.b = color.b * (1 - factor) + grayColor * factor
-                fogColor.a = color.a
-
-                self.currentFogBlipColor = fogColor
-                color = Color(fogColor)
+            if not self.currentFogBlipColor then
+                self.preFogColor = Color(color)
             end
+
+            local baseColor = self.preFogColor or color
+
+            -- Weighted (perceptually accurate, matches human eye sensitivity)
+            local grayColor = 0.299 * baseColor.r + 0.587 * baseColor.g + 0.114 * baseColor.b
+
+            -- Apply: blend toward gray by a factor (0 = original, 1 = full gray)
+            local factor = MapBlip.kFogGrayness
+
+            local fogColor = self.currentFogBlipColor or Color()
+            fogColor.r = baseColor.r * (1 - factor) + grayColor * factor
+            fogColor.g = baseColor.g * (1 - factor) + grayColor * factor
+            fogColor.b = baseColor.b * (1 - factor) + grayColor * factor
+            fogColor.a = baseColor.a
+
+            self.currentFogBlipColor = fogColor
+            color = Color(fogColor)
 
             -- Unbuilt blips are way darker by default, reduce further
             local inactiveReducationFactor = 0.8
