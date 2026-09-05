@@ -43,11 +43,11 @@ if kCBMaddon then
 	  - Clip weapons and exos are no longer able to hit outside of relevancy range.
 
 	### Map / Fog of War / Line of Sight
-	  - Reworked map and minimap blips to appear quickly and disappear more consistently (combat checks + reveal duration minimums).
-	  - Fixed new map and minimap blips appearing one GUI update too late when spotted. Seen entities will now appear instantly.
+	  - Reworked map and minimap blips to appear quickly and disappear more consistently.
+	  - Fixed new map and minimap blips appearing one GUI update too late when spotted (instant reveal).
 	  - Added 'fog of war' blips that persist for previously revealed entities on the map.
 	    - Player entities icons fade out after 10s.
-	    - Fog of war map blips can be enabled/disabled and have their color and opacity adjusted in otions -> mods -> CBM: Accessibility Options.
+	    - Enabled/disabled and adjust opacity / color in otions -> mods -> CBM: Accessibility Options.
 	  - Commanders now instantly see entities revealed by players.
 	  - Commanders can now see clogs revealed by players (must be damaged or collided with).
 
@@ -171,13 +171,13 @@ if kCBMaddon then
 	  - Added Icon for Advanced Armory
 	  - Added Icons for Advanced PvE
 	  - Alien Commander is able to see parasited mines
-	  - Reworked map and minimap blips to appear quickly and disappear more consistently (combat checks + reveal duration minimums).
-	  - Fixed new map and minimap blips appearing one GUI update too late when spotted. Seen entities will now appear instantly.
+	  - Reworked map and minimap blips to appear quickly and disappear more consistently.
+	  - Fixed new map and minimap blips appearing one GUI update too late when spotted (instant reveal).
 
 	### Fog of War
 	  - Added 'fog of war' blips that persist for previously revealed entities on the map.
 	  - Player entities icons fade out after 10s.
-	  - Fog of war map blips can be enabled/disabled and have their color and opacity adjusted in otions -> mods -> CBM: Accessibility Options.
+	  - Enabled/disabled and adjust opacity / color in otions -> mods -> CBM: Accessibility Options.
 
 	### Vanilla Bugfixes
 	  - Fixed web variant nil value console spam.
@@ -652,10 +652,10 @@ else
 
 	### Map / Fog of War / Line of Sight
 	  - Reworked map and minimap blips to appear quickly and disappear more consistently (combat checks + reveal duration minimums).
-	  - Fixed new map and minimap blips appearing one GUI update too late when spotted. Seen entities will now appear instantly.
+	  - Fixed new map and minimap blips appearing one GUI update too late when spotted (instant reveal).
 	  - Added 'fog of war' blips that persist for previously revealed entities on the map.
 	    - Player entities icons fade out after 10s.
-	    - Fog of war map blips can be enabled/disabled and have their color and opacity adjusted in otions -> mods -> CBM: Accessibility Options.
+	    - Enabled/disabled and adjust opacity / color in otions -> mods -> CBM: Accessibility Options.
 	  - Commanders now instantly see entities revealed by players.
 	  - Commanders can now see clogs revealed by players (must be damaged or collided with).
 
@@ -773,12 +773,12 @@ else
 	  - Added Icons for Advanced PvE
 	  - Alien Commander is able to see parasited mines
 	  - Reworked map and minimap blips to appear quickly and disappear more consistently (combat checks + reveal duration minimums).
-	  - Fixed new map and minimap blips appearing one GUI update too late when spotted. Seen entities will now appear instantly.
+	  - Fixed new map and minimap blips appearing one GUI update too late when spotted (instant reveal).
 
 	### Fog of War
 	  - Added 'fog of war' blips that persist for previously revealed entities on the map.
 	  - Player entities icons fade out after 10s.
-	  - Fog of war map blips can be enabled/disabled and have their color and opacity adjusted in otions -> mods -> CBM: Accessibility Options.
+	  - Enabled/disabled and adjust opacity / color in otions -> mods -> CBM: Accessibility Options.
 
 	### Vanilla Bugfixes
 	  - Fixed web variant nil value console spam.
