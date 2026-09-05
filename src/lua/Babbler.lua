@@ -2048,8 +2048,8 @@ elseif Client then
 
         PROFILE("Babbler:OnUpdatePoseParameters")
 
-        local moveSpeed = 0
         local moveYaw = 0
+        local targetSpeed = 0
 
         if self.clientVelocity then
 
@@ -2060,20 +2060,20 @@ elseif Client then
 
             moveYaw = Math_Wrap(Math_Degrees( math_atan2(z,x) ), -180, 180) + 180
 
-            local speed = self.clientVelocity:GetLength()
-
-            -- The babbler moves much slower on a web than on the ground; normalize
-            -- against the web speed there, so the animation graph sees a value near
-            -- the range its run cycle was tuned for instead of ~0.13.
             local maxSpeed = self.onWeb and Babbler.kWebWalkSpeed or kBabblerRunSpeed
-            moveSpeed = Clamp(speed / maxSpeed, 0, 1)
+            targetSpeed = Clamp(self.clientVelocity:GetLength() / maxSpeed, 0, 1)
 
         end
 
+        -- smooth out quantization jitter in the networked origin before it
+        -- reaches the animation graph
+        local deltaTime = self.lastUpdatePosParam and Shared.GetTime() - self.lastUpdatePosParam or 0
+        self.smoothedMoveSpeed = Slerp(self.smoothedMoveSpeed or 0, targetSpeed, deltaTime * 8)
         self:SetPoseParams({
-            {"move_speed", moveSpeed},
+            {"move_speed", self.smoothedMoveSpeed},
             {"move_yaw", moveYaw}
         })
+        self.lastUpdatePosParam = Shared.GetTime()
 
     end
     
