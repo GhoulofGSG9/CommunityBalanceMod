@@ -17,6 +17,7 @@ MapBlip.kMapName = "MapBlip"
 if Client then
     MapBlip.kFogTransparency =  Client.GetOptionFloat("fogofwar_opacity", 0.8)
     MapBlip.kFogGrayness =  Client.GetOptionFloat("fogofwar_grayness", 0.75)
+    MapBlip.kFogFadeoutEnabled = Client.GetOptionBoolean("fogofwar_fadeout_enabled", true)
 end
 
 local networkVars =
@@ -32,7 +33,9 @@ local networkVars =
     ownerEntityId = "entityid",
     isHallucination = "boolean",
     isFogOfWarMapBlip = "boolean",
-    active = "boolean"
+    active = "boolean",
+    fogExpireTime = "time",
+    isPlayerBlip = "boolean"
 }
 
 function MapBlip:OnCreate()
@@ -49,6 +52,8 @@ function MapBlip:OnCreate()
     self.isInCombat = false
     self.isParasited = false
     self.isFogOfWarMapBlip = false
+    self.fogExpireTime = nil
+    self.isPlayerBlip = false
     self.lastSetRelevancyMask = nil
 
     self:SetRelevancyDistance(Math.infinity)
@@ -404,11 +409,8 @@ if Client then
             local inactiveReducationFactor = 0.8
             local alphaFactor = MapBlip.kFogTransparency * (self.active and 1 or inactiveReducationFactor)
 
-            -- Player fog blips fade out over their last kFogPlayerBlipFadeTime
-            -- seconds before FogOfWarEntity:OnUpdate clears them server-side.
-            local owner = self.ownerEntityId ~= Entity.invalidId and Shared.GetEntity(self.ownerEntityId)
-            if owner and owner.isPlayerBlip and owner.fogExpireTime then
-                local timeLeft = owner.fogExpireTime - Shared.GetTime()
+            if MapBlip.kFogFadeoutEnabled and self.isPlayerBlip and self.fogExpireTime and self.fogExpireTime > 0 then
+                local timeLeft = self.fogExpireTime - Shared.GetTime()
                 if timeLeft < kFogPlayerBlipFadeTime then
                     alphaFactor = alphaFactor * Clamp(timeLeft / kFogPlayerBlipFadeTime, 0, 1)
                 end
@@ -416,12 +418,9 @@ if Client then
 
             color.a = fogColor.a * alphaFactor
 
-            -- Spectator is also the class respawning marines/aliens are in between
-            -- lives, so only blank fog blips for genuine spectators (not on a
-            -- playing team) -- respawning players should keep seeing their team's
-            -- normal fog like everyone else.
-            if player:isa("Spectator") and not player:GetIsRespawning() then
-                color.a = 0 -- Invisible for true specs
+            local viewerTeam = MinimapTeamToTeam(minimap.playerTeam)
+            if not (viewerTeam == kMarineTeamType or viewerTeam == kAlienTeamType) then
+                color.a = 0
             end
 
         end
