@@ -32,9 +32,6 @@ local kMaxAirVeer = 1.3
 local kTracesAmount = 7
 local kPvPTracesAmount = 10
 
--- min ~13 FPS assumed, otherwise players will move slower
-local kMaxDeltaTime = 0.07
-
 GroundMoveMixin.networkVars =
 {
     onGround = "compensated boolean",
@@ -83,17 +80,14 @@ function GroundMoveMixin:__initmixin()
         surfaceMaterial = "" -- material hit
     }
 
--- --[[
     self.lastWishDirInputs = { 
         viewCoords = {
             xAxis = Vector(),
             yAxis = Vector(),
             zAxis = Vector()
         },
-        -- newViewCoords = {},
         normedMove = Vector(), wishDir = Vector()
     }
-    -- --]]
 
 end
 
@@ -118,17 +112,12 @@ local function _GetGroundCheckCache(self)
     local hitEntities = nil
     return completedMove, hitEntities, self.lastGroundCheck.normal, self.lastGroundCheck.surfaceMaterial, self.lastGroundCheck.distance
 end
+
 local function _GetIsStillOnSameGroundPosition(self, distance)
     -- Any test with a higher or equal threshold distance and same position is on ground too
     local distValid = self.lastGroundCheck.distance <= distance
     local sameOrigin = self:GetOrigin() == self.lastGroundCheck.origin
     local isCacheHit = (distValid and sameOrigin)
-    --[[ if not isCacheHit then
-        Log("Miss: distValid: %s(%s,%s), sameOrigin: %s(%s,%s)",
-            distValid, self.lastGroundCheck.distance, distance,
-            sameOrigin, self:GetOrigin(), self.lastGroundCheck.origin
-            )
-    end --]]
     return isCacheHit
 end
 
@@ -140,7 +129,7 @@ local function CosFalloff(distanceFraction)
         return 1
     end
 
-    local piFraction = Clamp(distanceFraction, 0, 1) * math_pi / 2
+    local piFraction = distanceFraction * math_pi / 2
     return math_cos(piFraction + math_pi) + 1 
 end
 
@@ -173,17 +162,14 @@ end
 
 local function _PerformMovement(self, offset, maxTraces, velocity, isMove, slowDownFraction, deflectMove, slowDownFilterFunc, deltaTime)
 
-    if slowDownFraction and _toggle then
-        slowDownFraction = _slowDown
-    end
     local completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial = self:PerformMovement(offset, maxTraces, velocity, isMove, slowDownFraction, deflectMove, slowDownFilterFunc, deltaTime)
-
     return completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial
 
 end
 
 
-local function GetIsCloseToGround(self, distance)
+local kOffset = Vector(0,0,0)
+local function GetIsCloseToGround(self, distance, discardNormal)
 
     --PROFILE("GroundMoveMixin:GetIsCloseToGround")
 
@@ -210,8 +196,8 @@ local function GetIsCloseToGround(self, distance)
             _, _, normal, surfaceMaterial = _GetGroundCheckCache(self)
             onGround = true
         else
-            local offset = Vector(0, -distance, 0)
-            completedMove, hitEntities, normal, surfaceMaterial = _PerformMovement(self, offset, kTracesAmount, nil, false)
+            kOffset.y = -distance
+            completedMove, hitEntities, normal, surfaceMaterial = _PerformMovement(self, kOffset, kTracesAmount, nil, false)
             if normal and normal.y >= 0.5 then
                 _SetGroundCheckCache(self, distance, hitEntities, normal, surfaceMaterial)
                 onGround = true
@@ -224,7 +210,9 @@ local function GetIsCloseToGround(self, distance)
     -- It doesn't matter if we're on the ground or not -- checking the surface material should NOT
     -- double as checking if we're on the ground or not -- that's what "onGround" is for.
     surfaceMaterial = surfaceMaterial or "metal"
-    normal = normal or Vector()
+    if not discardNormal then
+        normal = normal or Vector()
+    end
     
     return onGround, normal, hitEntities, surfaceMaterial
     
@@ -503,6 +491,10 @@ function GroundMoveMixin:GetFriction(input, velocity)
 
     PROFILE("GroundMoveMixin:GetFriction")
 
+    if velocity:GetLength() == 0 then
+        return Vector(0,0,0)
+    end
+
     local friction = GetNormalizedVector(-velocity)
     local velocityLength = 0
     local frictionScalar = 1
@@ -641,6 +633,20 @@ function GroundMoveMixin:GetCanStep()
     return true
 end    
 
+
+local function Surfaces_StringToEnum(surfaceMaterial)
+    --PROFILE("GroundMoveMixin:Surfaces_StringToEnum")
+    if (surfaceMaterial == "metal") then
+        return kSurfaces.metal -- 99% of the cases, no need to do an enum lookup for it
+    end
+    if (surfaceMaterial == "thin_metal") then
+        return kSurfaces.thin_metal
+    end
+
+    --Log("-- %s", surfaceMaterial)
+    return StringToEnum(kSurfaces, surfaceMaterial)
+end
+
 local function FlushCollisionCallbacks(self, velocity)
 
     PROFILE("GroundMoveMixin:FlushCollisionCallbacks")
@@ -650,7 +656,7 @@ local function FlushCollisionCallbacks(self, velocity)
         local onGround, normal, _, surfaceMaterial = GetIsCloseToGround(self, 0.15)
         
         if surfaceMaterial then
-            self.onGroundSurface = StringToEnum(kSurfaces, surfaceMaterial) or kSurfaces.metal
+            self.onGroundSurface = Surfaces_StringToEnum(surfaceMaterial) or kSurfaces.metal
         end
     
         if self.OverrideUpdateOnGround then
@@ -682,29 +688,24 @@ end
 function GroundMoveMixin:GetShouldDoStepOverCheck()
     local friendlyPlayerInRange = false
     local enemyPlayerInRange = false
-    local enemyPlayerHit = false
-    --local vanillaMoveRate = 26
     -- Checks if players are within X mr-tick from us at current speed
     -- This allows us to skip the expensive PerformMovement() if none is found
-    local distCheckEnemy = 1 --3.25--math.max(1.5,(velocity * 0.20):GetLength())
-    local distCheckFriendly = 1 --3.25 --math.max(1.5,(velocity * 0.15):GetLength())
-    local distClosestEnemy = 999
+    local distCheckFriendly = 1
 
     local origin = self:GetOrigin()
-    local teamNumber = self:GetTeamNumber()
-    local enemyTeamNumber = GetEnemyTeamNumber(self:GetTeamNumber())
+    local myTeamNumber = self:GetTeamNumber()
+    local enemyTeamNumber = GetEnemyTeamNumber(myTeamNumber)
     local playersAround = GetEntitiesWithinRange("Player", origin, 2)
     for _, player in ipairs(playersAround) do
-        if player:GetTeamNumber() == enemyTeamNumber then
+        local playerTeam = player:GetTeamNumber()
+        if playerTeam == enemyTeamNumber then
             enemyPlayerInRange = true
-        end
-        if self ~= player and player:GetTeamNumber() == teamNumber then
-            local dist = origin:GetDistanceTo(player:GetOrigin())
-            distClosestEnemy = math.min(dist, distClosestEnemy)
-            if dist <= distCheckFriendly then
+        elseif self ~= player and playerTeam == myTeamNumber then
+            if origin:GetDistanceTo(player:GetOrigin()) <= distCheckFriendly then
                 friendlyPlayerInRange = true
             end
         end
+        if enemyPlayerInRange and friendlyPlayerInRange then break end
     end
     return enemyPlayerInRange or friendlyPlayerInRange
 end
@@ -716,9 +717,7 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
     if self.controller then
         
         local stepAllowed = self.onGround and self:GetCanStep()
-        local didStep = false
-        local stepAmount = 0
-        local hitObstacle = false
+        local enemyPlayerHit = false
     
         -- check if we are allowed to step:
         if Predict or (stepAllowed and self:GetShouldDoStepOverCheck()) then
@@ -728,15 +727,11 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
             
                 for i = 1, #hitEntities do
                     if hitEntities[i]:isa("Player") then
-                        playerHit = hitEntities[i]
                         stepAllowed = false
-                        if playerHit:GetTeamNumber() == GetEnemyTeamNumber(self:GetTeamNumber()) then
+                        if hitEntities[i]:GetTeamNumber() == GetEnemyTeamNumber(self:GetTeamNumber()) then
                             enemyPlayerHit = true
                             self.timeAheadCollision = Shared.GetTime()
                         end
-                        --Log("%s colliding with %s", self, hitEntities[i])
-                        --break
-                        
                     end
                 end
             end
@@ -792,24 +787,12 @@ function GroundMoveMixin:GetIsOnSurface()
     return self.onGround
 end
 
-local function Surfaces_StringToEnum(surfaceMaterial)
-    --PROFILE("GroundMoveMixin:Surfaces_StringToEnum")
-    if (surfaceMaterial == "metal") then
-        return kSurfaces.metal -- 99% of the cases, no need to do an enum lookup for it
-    end
-    if (surfaceMaterial == "thin_metal") then
-        return kSurfaces.thin_metal
-    end
-
-    --Log("-- %s", surfaceMaterial)
-    return StringToEnum(kSurfaces, surfaceMaterial)
-end
 
 local function UpdateOnGround(self)
 
     --PROFILE("GroundMoveMixin:UpdateOnGround")
 
-    local onGround, _, hitEntities, surfaceMaterial = GetIsCloseToGround(self, 0.15)
+    local onGround, _, hitEntities, surfaceMaterial = GetIsCloseToGround(self, 0.15, true)
     
     if surfaceMaterial then
         self.onGroundSurface = Surfaces_StringToEnum(surfaceMaterial) or kSurfaces.metal
@@ -843,33 +826,29 @@ end
 function GroundMoveMixin:UpdateMove(input)
     PROFILE("GroundMoveMixin:UpdateMove")
 
-    self.lastUpdateMoveTime = now
-
-    local deltaTime = input.time -- math.min(kMaxDeltaTime, input.time)
+    local deltaTime = input.time
     local velocity = self:GetVelocity()
     
-    --Log("Velocity-in %s",velocity)
-
     UpdateOnGround(self)
     self:ModifyVelocity(input, velocity, deltaTime)
-    if (velocity:GetLength() > 0) then
+    local speedSq = velocity:GetLengthSquared() -- no sqrt needed
+    if speedSq > 0 then
         ApplyFriction(self, input, velocity, deltaTime)
     end
     ApplyGravity(self, input, velocity, deltaTime)
 
     local maxSpeedTable = { maxSpeed = self:GetMaxSpeed() }
     self:ModifyMaxSpeed(maxSpeedTable, input) -- modifies the maxSpeed if crouching/webbed for instance
-    if input.move:GetLength() > 0 then
+    if input.move:GetLengthSquared() > 0 then
         Accelerate(self, input, velocity, maxSpeedTable.maxSpeed, deltaTime)
     end
 
-    if (velocity:GetLength() > 0) then -- No update if not moving
-        self:UpdatePosition(input, velocity, deltaTime)    
-    --else
-    --    Log("Not moving, skipping")
+    local moveSq = input.move:GetLengthSquared()
+    if speedSq > 0 or moveSq > 0 or velocity:GetLengthSquared() > 0 then
+        self:UpdatePosition(input, velocity, deltaTime)
     end
     self:SetVelocity(velocity)
-    --Log("Velocity-out %s",velocity)
+
 end
 
 function GroundMoveMixin:OnWorldCollision(normal, impactForce)
