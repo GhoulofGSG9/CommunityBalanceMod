@@ -95,9 +95,7 @@ function SprintMixin:OnSprintQuickPress()
         self.sprintMode = false
     else
     
-        --if self:GetSprintTime() > SprintMixin.kMinSprintTime then
-            self.sprintMode = true
-        --end
+    self.sprintMode = true
         
     end
 end
@@ -144,8 +142,14 @@ function SprintMixin:UpdateSprintingState(input)
     local speed = velocity:GetLength()
     
     local weapon = self:GetActiveWeapon()
-    local deployed = not weapon or not weapon.GetIsDeployed or weapon:GetIsDeployed()
-    local sprintingAllowedByWeapon = not deployed or not weapon or (weapon.GetSprintAllowed and weapon:GetSprintAllowed())
+    local sprintingAllowedByWeapon = true
+    if weapon then
+        if weapon.GetSprintAllowed then
+            sprintingAllowedByWeapon = weapon:GetSprintAllowed()
+        elseif weapon.GetIsDeployed then
+            sprintingAllowedByWeapon = not weapon:GetIsDeployed()
+        end
+    end
 
     local attacking = false
     if weapon and weapon.GetTryingToFire then
@@ -221,13 +225,13 @@ function SprintMixin:UpdateSprintingState(input)
     return true
 end
 
-function SprintMixin:OnUpdate(deltaTime)
-    PROFILE("SprintMixin:OnUpdate")
-    if self.OnUpdateSprint then
-        self:OnUpdateSprint(self.sprinting)
-    end
+-- function SprintMixin:OnUpdate(deltaTime)
+--     PROFILE("SprintMixin:OnUpdate")
+--     if self.OnUpdateSprint then
+--         self:OnUpdateSprint(self.sprinting)
+--     end
 
-end
+-- end
 
 function SprintMixin:OnProcessMove(input)
 
@@ -236,33 +240,6 @@ function SprintMixin:OnProcessMove(input)
     if self.OnUpdateSprint then
         self:OnUpdateSprint(self.sprinting)
     end
-    
-    --[[if self.sprinting then
-        
-        if self:GetSprintTime() == 0 then
-        
-            self.sprintTimeOnChange = 0
-            self.timeSprintChange = Shared.GetTime()
-            self.sprinting = false
-
-            if self.OnSprintEnd then
-                self:OnSprintEnd()
-            end
-            
-            -- Play local sound when we're tired (max 1 playback)
-            if Client and (Client.GetLocalPlayer() == self) then
-                Shared.PlaySound(self, SprintMixin.kTiredSoundName)
-            end
-            
-            self.sprintMode = false
-          
-            if self.sprintDownLastFrame then
-                self.requireNewSprintPress = true
-            end
-            
-        end
-        
-    end--]]
     
 end
 
