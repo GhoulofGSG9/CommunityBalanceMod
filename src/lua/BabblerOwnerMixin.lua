@@ -4,7 +4,8 @@ BabblerOwnerMixin.type = "BabblerOwner"
 BabblerOwnerMixin.networkVars = 
 {
     babblerCount = "integer (0 to 18)",
-    bombBabblerCount = "integer (0 to 18)"
+    bombBabblerCount = "integer (0 to 18)",
+    webbedBabblerCount = "integer (0 to 18)",
 }
 
 kBabblerHatchTime = 2.5
@@ -30,6 +31,11 @@ end
 
 function BabblerOwnerMixin:GetMaxBabblers()
 	return 6
+end
+
+-- server: bump in AttachToWeb success and wherever babblers leave webs
+function BabblerOwnerMixin:GetNumWebbedBabblers()
+    return self.webbedBabblerCount or 0
 end
 
 function BabblerOwnerMixin:OnWeaponAdded(weapon)
@@ -74,10 +80,12 @@ if Server then
 
     function BabblerOwnerMixin:BabblerCreated()
         self.babblerCount = self.babblerCount + 1
+        --Log("%s - Babblers created, new count: %s", self, self.babblerCount)
     end
 
     function BabblerOwnerMixin:BabblerDestroyed()
         self.babblerCount = math.max(0, self.babblerCount - 1)
+        --Log("%s - Babblers destroyed, new count %s", self, self.babblerCount)
     end
 
     function BabblerOwnerMixin:BombBabblerCreated()
@@ -88,26 +96,47 @@ if Server then
         self.bombBabblerCount = math.max(0, self.bombBabblerCount - 1)
     end
 	
-	function BabblerOwnerMixin:HatchBabbler()
-		if self:GetCanHatchBabbler() then
+    local function CountRealBabblers(owner)
 
-			local origin = self:GetFreeBabblerAttachPointOrigin()
-			local babbler = CreateEntity(Babbler.kMapName, origin, self:GetTeamNumber())
+        local count = 0
+        for _, babbler in ipairs(GetEntitiesForTeam("Babbler", owner:GetTeamNumber())) do
+            if babbler:GetOwnerId() == owner:GetId() and not babbler.babblerBombSpawned then
+                count = count + 1
+            end
+        end
 
-			babbler:SetOwner(self)
-			babbler:SetSilenced(self.silenced)
+        return count
 
-			local client = self:GetClient()
-			if client and client.variantData then
-				babbler:SetVariant( client.variantData.babblerVariant )
-			end
+    end
 
-			babbler:SetMoveType( kBabblerMoveType.Cling, self, self:GetOrigin(), true )
+    function BabblerOwnerMixin:HatchBabbler()
 
-		end
+        -- truth check before acting on the counter
+        local actual = CountRealBabblers(self)
+        if actual ~= self.babblerCount then
+            Print("Error: BabblerOwner drift: counter %d, actual %d (fixing)", self.babblerCount, actual)
+            self.babblerCount = actual
+        end
 
-		return true
-	end
+        if self:GetCanHatchBabbler() then
+
+            local origin = self:GetFreeBabblerAttachPointOrigin()
+            local babbler = CreateEntity(Babbler.kMapName, origin, self:GetTeamNumber())
+
+            babbler:SetOwner(self)
+            babbler:SetSilenced(self.silenced)
+
+            local client = self:GetClient()
+            if client and client.variantData then
+                babbler:SetVariant(client.variantData.babblerVariant)
+            end
+
+            babbler:SetMoveType(kBabblerMoveType.Cling, self, self:GetOrigin(), true)
+
+        end
+
+        return true
+    end
 
     function BabblerOwnerMixin:HatchMaxBabblers()
         while self:GetCanHatchBabbler() do

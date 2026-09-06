@@ -18,7 +18,6 @@ Script.Load("lua/ClogFallMixin.lua")
 Script.Load("lua/Mixins/BaseModelMixin.lua")
 Script.Load("lua/Mixins/ModelMixin.lua")
 Script.Load("lua/EffectsMixin.lua")
-Script.Load("lua/UsableMixin.lua")
 
 class 'Web' (Entity)
 
@@ -137,7 +136,6 @@ function Web:OnCreate()
     InitMixin(self, LOSMixin)
 
     InitMixin(self, ClogFallMixin)
-    InitMixin(self, UsableMixin)
 
     if Server then
 
@@ -149,7 +147,6 @@ function Web:OnCreate()
 
         self.triggerSpawnEffect = false
         self.webbedBabblers = {}
-        self.timeLastUsed = Shared.GetTime()
 
     end
 
@@ -212,18 +209,23 @@ if Server then
 
 end
 
-function Web:GetUsablePoints()
-    return nil
-end
 
 if Server then
 
     function Web:AddWebbedBabbler(babbler)
+        local owner = babbler:GetOwner()
+        if owner then
+            owner.webbedBabblerCount = owner.webbedBabblerCount + 1
+        end
         self.webbedBabblers[babbler:GetId()] = true
         self.numWebbedBabblers = self.numWebbedBabblers + 1
     end
 
     function Web:RemoveWebbedBabbler(babbler)
+        local owner = babbler:GetOwner()
+        if owner then
+            owner.webbedBabblerCount = math.max(0, owner.webbedBabblerCount - 1)
+        end
         self.webbedBabblers[babbler:GetId()] = nil
         self.numWebbedBabblers = math.max(0, self.numWebbedBabblers - 1)
     end
@@ -260,62 +262,6 @@ if Server then
 
     end
 
-end
-
-function Web:OnUse(player, elapsedTime, useSuccessTable, usePoint)
-
-    local kMinUseDelay = 0.1
-    if Server and player
-        and HasMixin(player, "BabblerCling") and usePoint
-        and Shared.GetTime() - self.timeLastUsed >= kMinUseDelay
-        and self:GetNumWebbedBabblers() < kWebMaxBabblers
-        then
-
-        local babblers = player:GetClingedBabblers()
-        local babbler = babblers and babblers[1]
-
-        if babbler then
-            babbler:AttachToWeb(self, usePoint)
-            self.timeLastUsed = Shared.GetTime()
-        end
-
-    end
-
-end
-
-function Web:GetIsSecondaryUseUnit()
-    return true
-end
-
-function Web:GetCanBeUsed(entity, useSuccessTable)
-
-    local success = true
-
-    local isBabblerOwner = HasMixin(entity, "BabblerOwner")
-    if not GetAreFriends(self, entity) or not isBabblerOwner then
-        success = false
-    end
-
-    if success then
-        if isBabblerOwner and entity:GetNumClingedBabblers() == 0 then
-            success = false
-        end
-    end
-
-    if success and self:GetNumWebbedBabblers() >= kWebMaxBabblers then
-        success = false
-    end
-
-    useSuccessTable.useSuccess = success
-    
-end
-
-function Web:GetUseAllowedBeforeGameStart()
-    return true
-end
-
-function Web:GetCanBeUsedDuringWarmup()
-    return true
 end
 
 function Web:GetIsFlameAble()

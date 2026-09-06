@@ -114,8 +114,9 @@ local kShieldTextXOffset = -12
 local kShieldTextColor = Color(0, 1, 0.2, 1)
 local kShieldFontName = Fonts.kStamp_Medium
 
-local kBabblerDefaultColor = Color(1, 1, 1, 1)
-local kBabblerAlternateColor = Color(1, 1, 1, 0.5)
+local kBabblerDefaultColor = Color(1, 1, 1, 1)      -- clinged: full white
+local kBabblerAlternateColor = Color(1, 1, 1, 0.5)  -- roaming: faded
+local kBabblerWebbedColor = Color(0.8, 0.3, 0.04, 1) -- webbed: dark orange, locked but owned
 
 local kMucousBallNoMucousSettings = { }
 kMucousBallNoMucousSettings.BackgroundWidth = GUIScale(200)
@@ -856,10 +857,11 @@ local function UpdateNotifications(self, deltaTime)
 end
 
 local function UpdateBabblerIndication(self, deltaTime, player)
-    
+
     local numBabblers = PlayerUI_GetNumBabblers()
     local numBabblersClinged = PlayerUI_GetNumClingedBabblers()
-    local numBabblersTotal = math.max(numBabblersClinged, numBabblers)
+    local numBabblersWebbed = PlayerUI_GetNumWebbedBabblers()
+    local numBabblersTotal = math.max(numBabblersClinged + numBabblersWebbed, numBabblers)
 
     if not self.babblerIcons then
         self.babblerIcons = {}
@@ -870,7 +872,7 @@ local function UpdateBabblerIndication(self, deltaTime, player)
     if numBabblersDisplayed < numBabblersTotal then
 
         for i = 1, numBabblersTotal - numBabblersDisplayed do
-        
+
             local icon = GetGUIManager():CreateGraphicItem()
             local size = kBabblerIconSizeStart
 
@@ -878,20 +880,23 @@ local function UpdateBabblerIndication(self, deltaTime, player)
             icon:SetPosition(Vector(#self.babblerIcons * size, 0, 0))
             icon:SetTexture(kBabblerTexture)
             self.babblerIndicationFrame:AddChild(icon)
-            table.insert(self.babblerIcons, icon)    
+            table.insert(self.babblerIcons, icon)
 
         end
-        
+
     elseif numBabblersTotal < numBabblersDisplayed then
-    
+
         for i = 1, numBabblersDisplayed - numBabblersTotal do
-        
+
             GUI.DestroyItem(self.babblerIcons[#self.babblerIcons])
-            table.remove(self.babblerIcons, #self.babblerIcons)    
-    
+            table.remove(self.babblerIcons, #self.babblerIcons)
+
         end
-    
+
     end
+
+    -- segment layout: [cling][roam][web]
+    local webEnd = numBabblersClinged + numBabblersWebbed
 
     local totalIconSize = 0
     for j = 1, #self.babblerIcons do
@@ -905,14 +910,20 @@ local function UpdateBabblerIndication(self, deltaTime, player)
             babblerIcon:SetPosition(Vector(j * size, 0, 0))
         end
 
-        babblerIcon:SetColor(j <= numBabblersClinged and kBabblerDefaultColor or kBabblerAlternateColor)
+        if j <= numBabblersClinged then
+            babblerIcon:SetColor(kBabblerDefaultColor)
+        elseif j <= #self.babblerIcons - numBabblersWebbed then
+            babblerIcon:SetColor(kBabblerAlternateColor)
+        else
+            babblerIcon:SetColor(kBabblerWebbedColor)
+        end
+
         totalIconSize = totalIconSize + size
-    
+
     end
-    
+
     local size = Vector(totalIconSize * numBabblersTotal, totalIconSize, 0)
     self.babblerIndicationFrame:SetSize(size)
-    
 
 end
 

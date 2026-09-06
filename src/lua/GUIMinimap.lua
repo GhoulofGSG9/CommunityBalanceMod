@@ -344,8 +344,8 @@ function GUIMinimap:Initialize()
         colorTable[kBlipColorType.MAC] = kMACColor
         colorTable[kBlipColorType.EtherealGate] = self.etherealGateColor
         colorTable[kBlipColorType.FullColor] = kFullColor
-		colorTable[kBlipColorType.AdvancedMarineColor] = kAdvancedMarineColor
-		colorTable[kBlipColorType.AdvancedAlienColor] = kAdvancedAlienColor
+        colorTable[kBlipColorType.AdvancedMarineColor] = kAdvancedMarineColor
+        colorTable[kBlipColorType.AdvancedAlienColor] = kAdvancedAlienColor
         blipColorTable[blipTeam] = colorTable
     end
     self.blipColorTable = blipColorTable
@@ -1335,9 +1335,9 @@ local function UpdateConnections(self)
         local endPoint = Vector(self:PlotToMap(cEndPoint.x, cEndPoint.z))
 
         minimapConnection:Setup(startPoint, endPoint, self.minimap)
-		
-		minimapConnection:UpdateAnimation(connector:GetTeamNumber(), self.comMode == GUIMinimapFrame.kModeMini, connector.isCargoGate)
-		
+        
+        minimapConnection:UpdateAnimation(connector:GetTeamNumber(), self.comMode == GUIMinimapFrame.kModeMini, connector.isCargoGate)
+        
 
         self.minimapConnections[numConnectors] = minimapConnection
     end

@@ -52,7 +52,7 @@ function BabblerPheromone:OnCreate()
     self.radius = 0.125
     self.mass = 3
     self.linearDamping = 0
-    self.restitution = 0.95
+    self.restitution = 0.55 -- How hard it bouncves
     self:SetGroupFilterMask(PhysicsMask.NoBabblers)
 
 end
@@ -133,6 +133,8 @@ function BabblerPheromone:MoveBabblers()
 				-- Log("Move group order issued by the bait toward %s", target)
 				babbler:SetMoveType(kBabblerMoveType.Move, nil, self:GetOrigin(), true)
 			end
+
+            babbler:RefreshFreeRoam()
 		end
 	end
 end
@@ -239,61 +241,125 @@ if Server then
         return moveType
     end
 
-    function BabblerPheromone:ProcessHit(entity)
-		if not entity then -- the rest of the code will handle the case where we hit an entity
-			self:MoveBabblers() -- Move babblers where the ball bounce
-		else
-			if not self.worldCollision then
-				if not entity then -- the rest of the code will handle the case where we hit an entity
-					self:MoveBabblers() -- Move babblers where the ball bounce
-				end
-				self.worldCollision = true
-			end
+    local function CollectRecruits(self)
 
-			local isValidHit = 
-				entity and
-				( entity:isa("PowerPoint") and entity:GetBuiltFraction() >= 0.009 ) or
-				( entity and (GetAreEnemies(self, entity) or HasMixin(entity, "BabblerCling")) and HasMixin(entity, "Live") and entity:GetIsAlive() )
+        local owner = self:GetOwner()
+        local searchOrigin = owner and owner:GetOrigin() or self:GetOrigin()
 
-			if isValidHit then
+        local recruits = {}
+        local babblers = GetEntitiesForTeamWithinRange("Babbler", self:GetTeamNumber(), searchOrigin, kBabblerSearchRange)
+        Shared.SortEntitiesByDistance(searchOrigin, babblers)
 
-				-- Ensure the impact flag is set even if the entity can't take damage.
-				-- Otherwise there will be errors when attacking a Vortexed Marine for example.
-				self.impact = true
-				if entity:GetCanTakeDamage() then
+        for _, babbler in ipairs(babblers) do
+            if babbler:GetOwnerId() == self:GetOwnerId() and not babbler:GetIsOnWeb() then
+                table.insert(recruits, babbler)
+            end
+        end
 
-					self.destinationEntityId = entity:GetId()
-					self:SetModel(nil)
-					self:TriggerEffects("babbler_pheromone_puff")
-					self.triggeredPuff = true
+        table.sort(recruits, function(a, b)
+            return (a:GetIsClinged() and 1 or 0) < (b:GetIsClinged() and 1 or 0)
+        end)
 
-					local owner = self:GetOwner()
-					local ownerId = self:GetOwnerId()
-					for _, babbler in ipairs(GetEntitiesForTeamWithinRange("Babbler", self:GetTeamNumber(), self:GetOrigin(), kBabblerSearchRange )) do
+        return recruits
 
-						if babbler:GetOwnerId() == ownerId and not babbler:GetIsOnWeb() then
+    end
 
-							if babbler:GetIsClinged() and babbler:GetParent() == owner then
-								babbler:Detach()
-							end
+    local function SendBabblersToWeb(self, web, impactPoint, spots)
 
-							-- moveType, entity, position, boolean value
-							local moveType = GetMoveType(self, entity)
-							local position = HasMixin(entity, "Target") and entity:GetEngagementPoint() or entity:GetOrigin()
-							babbler:SetMoveType(moveType, entity, position, true)
-							if moveType == kBabblerMoveType.Attack then
-								babbler:TriggerEffects("babbler_engage")
-							end
-						end
+        for _, babbler in ipairs(CollectRecruits(self)) do
+            if spots <= 0 then break end
+            if babbler:GetIsClinged() then
+                babbler:Detach()
+            end
+            -- SetWebOrder can refuse (dead web, already webbed); only count real dispatches
+            if babbler:SetWebOrder(web, impactPoint) then
+                spots = spots - 1
+            end
+        end
 
-					end
+    end
 
-					DestroyEntity(self)
+    function BabblerPheromone:ProcessHit(entity, surface, normal, endPoint )
 
-				end
+        if not entity then
+            self:MoveBabblers() -- world bounce: recall the squad
+            return false
+        end
 
-			end
-		end
+        -- Recalling the whole roster
+        if not self.worldCollision then
+            self.worldCollision = true
+            if not entity:isa("Web") and not GetAreFriends(self, entity) then
+                self:MoveBabblers()
+            end
+        end
+
+        local isWeb = entity:isa("Web")
+        local webSpotsLeft = isWeb and (kWebMaxBabblers - entity:GetNumWebbedBabblers()) or 0
+
+        local isValidHit = ( entity:isa("PowerPoint") and entity:GetBuiltFraction() >= 0.009 )
+                or ( isWeb )
+                or ( (GetAreEnemies(self, entity) or HasMixin(entity, "BabblerCling"))
+                        and HasMixin(entity, "Live") and entity:GetIsAlive() )
+
+        if not isValidHit then        
+            return false
+        end
+
+        self.impact = true
+        if not (entity:GetCanTakeDamage() or isWeb) then
+            return false
+        end
+
+        self.destinationEntityId = entity:GetId()
+        self:SetModel(nil)
+        self:TriggerEffects("babbler_pheromone_puff")
+        self.triggeredPuff = true
+
+        if isWeb then
+            -- Only dispatch as many babblers as the strand has room for
+            SendBabblersToWeb(self, entity, endPoint, webSpotsLeft)
+        else
+
+            local owner = self:GetOwner()
+            local moveType = GetMoveType(self, entity)
+            local position = HasMixin(entity, "Target") and entity:GetEngagementPoint() or entity:GetOrigin()
+
+            local spots = kBabblerSearchRange
+            if moveType == kBabblerMoveType.Cling then
+                spots = math.max(entity:GetMaxClingedBabblers() - entity:GetNumClingedBabblers(), 0)
+            end
+
+            for _, babbler in ipairs(CollectRecruits(self)) do
+
+                if spots <= 0 then break end
+
+                local isRider = babbler:GetIsClinged() and babbler:GetParent() == owner
+
+                -- Riders only join Cling dispatches (where a slot is budgeted
+                -- for them); Attack/Move orders are for babblers already free
+                if moveType == kBabblerMoveType.Cling or not isRider then
+
+                    if isRider then
+                        babbler:Detach()
+                    end
+
+                    babbler:SetMoveType(moveType, entity, position, true)
+                    if moveType == kBabblerMoveType.Attack then
+                        babbler:TriggerEffects("babbler_engage")
+                    end
+
+                    spots = spots - 1
+
+                end
+
+            end
+
+        end
+
+        DestroyEntity(self) -- Now handled inside CreateBabblerPheromone()
+        return true
+
     end
     
     function BabblerPheromone:OnEntityChange(oldId)

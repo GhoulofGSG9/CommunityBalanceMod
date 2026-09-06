@@ -2051,6 +2051,17 @@ function PlayerUI_GetPlayerName()
 
 end
 
+function PlayerUI_GetNumWebbedBabblers()
+
+    local player = Client.GetLocalPlayer()
+    if not player or not HasMixin(player, "BabblerOwner") then
+        return 0
+    end
+
+    return player:GetNumWebbedBabblers()
+
+end
+
 function PlayerUI_GetNumClingedBabblers()
 
     local numBabblers = 0
