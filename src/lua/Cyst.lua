@@ -82,7 +82,7 @@ Cyst.kInfestationRecideRateMultiplier = 3
 
 Cyst.kFlamableDamageMultiplier = kCystFlamableDamageMultiplier
 
-local kEnemyDetectInterval = 0.2
+kCystEnemyDetectInterval = 0.5
 
 local networkVars =
 {
@@ -254,10 +254,15 @@ function Cyst:OnDestroy()
         
     end
 
-    local selfId = self:GetId()
-    for _, c in ipairs(GetEntitiesForTeam("Cyst", self:GetTeamNumber())) do
-        if c.parentId == selfId then
-            c.parentId = Entity.invalidId
+    if Server then
+        if self.children then
+            local selfId = self:GetId()
+            for id in self.children:IterateBackwards() do
+                local c = Shared.GetEntity(id)
+                if c and c.parentId == selfId then
+                    c.parentId = Entity.invalidId
+                end
+            end
         end
     end
 
@@ -334,7 +339,7 @@ function Cyst:OnInitialized()
 
         self.cloakInfestation = false
         self:AddTimedCallback(self.UpdateInfestationCloaking, 0.2)
-        self:AddTimedCallback(self.ScanForNearbyEnemy, kEnemyDetectInterval)
+        self:AddTimedCallback(self.ScanForNearbyEnemy, kCystEnemyDetectInterval)
         
         self:SetUpdates(true, self:GetUpdatesRate())
 
@@ -1027,9 +1032,7 @@ function GetCystPoints_AddExistingCysts(path, splitPoints, normals, existing, te
     end
 
     local rval, rmsg = true, "No error"
-    local cystFound = false
     local cystsFound = {}
-    local currentDist = 0
 
     for i = 2, #path do
         local cysts = GetEntitiesForTeamWithinRange("Cyst", teamNumber, path[i], kCystRedeployRange + 1)
@@ -1048,10 +1051,8 @@ function GetCystPoints_AddExistingCysts(path, splitPoints, normals, existing, te
                     break
                 end
             end
-            currentDist = 0
         end
 
-        currentDist = currentDist + path[i - 1]:GetDistanceTo(path[i])
     end
 
     return rval, rmsg
@@ -1077,37 +1078,34 @@ function GetCystPoints_BuildInBetweenCysts(path, splitPoints, normals, existing,
     local evenDistance = pathLength / requiredCystCount
     
     local fromPoint = Vector(path[1])
-    local distance = 0
     local totalDistance = 0
-        local currentDistance = 0
+    local currentDistance = 0
         
     for i = 2, #path do
 
         local point = path[i]
-        
-            if #splitPoints > 20 then
+
+        if #splitPoints > 20 then
             rval, rmsg = false, "split points exceeded 20 ("
                 .. "#path:" .. tostring(#path) .. ", "
                 .. "pathDist:" .. tostring(pathLength)
                 .. ")"
             break
-            end
-        
-        distance = (path[i] - path[i - 1]):GetLength()
-        nextDistance = 0
+        end
+
+        local distance = (path[i] - path[i - 1]):GetLength()
+        local nextDistance = 0
         if i + 1 <= #path then
             nextDistance = (path[i + 1] - path[i]):GetLength()
         end
-            
+
         totalDistance   = totalDistance   + distance
         currentDistance = currentDistance + distance
-                
-        if currentDistance < minDistance and currentDistance + nextDistance >= maxDistance then
-            if cystChainDebug then
-                Log("Pathing not smooth, two points are seperated by " .. tostring(nextDistance) .. "m (too much)")
-                end
+
+        if cystChainDebug and currentDistance < minDistance and currentDistance + nextDistance >= maxDistance then
+            Log("Pathing not smooth, two points are seperated by " .. tostring(nextDistance) .. "m (too much)")
         end
-                
+
         -- Add a cyst to the chain once we got past the maxDistance
         -- Ensure also that the next distance is never going past our max.
         -- (otherwise we could have unconnected cyst due to the pathing not being smooth enough by default)

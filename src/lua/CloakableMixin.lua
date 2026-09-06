@@ -49,19 +49,19 @@ CloakableMixin.kInvisibleFarRange =
 CloakableMixin.kSpecialMaxCloakClass =
 set {
     "Onos",
-	"Crag",
-	"Shift",
-	"Shade",
+    "Crag",
+    "Shift",
+    "Shade",
     "Whip",
     "Drifter",
-	"Hive",
-	"TunnelEntrance",
+    "Hive",
+    "TunnelEntrance",
     "Harvester",
     "Hydra",
-	"Shell",
-	"Spur",
-	"Veil",
-	"Egg",
+    "Shell",
+    "Spur",
+    "Veil",
+    "Egg",
 }
 -- most players and these classes have cloak strength capped at kPlayerMaxCloak
 CloakableMixin.kPlayerMaxCloakClass =
@@ -70,6 +70,9 @@ set {
     "Babbler",
     "Web",
 }
+
+local kSpecialMaxCloakClass = CloakableMixin.kSpecialMaxCloakClass
+local kPlayerMaxCloakClass = CloakableMixin.kPlayerMaxCloakClass
 
 local precached1 = PrecacheAsset("cinematics/vfx_materials/cloaked.surface_shader")
 local precached2 = PrecacheAsset("cinematics/vfx_materials/distort.surface_shader")
@@ -172,7 +175,14 @@ function CloakableMixin:TriggerUncloak(slowUncloak, customDelay)
     if self:GetIsInInk() then
         self.timeUncloaked = timeNow + CloakableMixin.kInkUncloakDuration
     else
-        local decloakDuration = customDelay or slowUncloak and CloakableMixin.kPartialUncloakDuration or (CloakableMixin.kTriggerUncloakDuration - self.cloakRate * CloakableMixin.kCloakShortenDelayPerLevel)
+        local decloakDuration
+        if customDelay then
+            decloakDuration = customDelay
+        elseif slowUncloak then
+            decloakDuration = CloakableMixin.kPartialUncloakDuration
+        else
+            decloakDuration = CloakableMixin.kTriggerUncloakDuration - self.cloakRate * CloakableMixin.kCloakShortenDelayPerLevel
+        end
         self.timeUncloaked = math.max(timeNow + decloakDuration, self.timeUncloaked)
     end
 end
@@ -290,11 +300,16 @@ local function UpdateDesiredCloakFraction(self, deltaTime)
         -- scan and obs break "fully cloaked" status
 
         local maxCloakModifier = math.min( (isInCombat and CloakableMixin.kCombatMod or 1), (uncloakedRecently and CloakableMixin.kRecentUncloakedMod or 1), (isDetected and CloakableMixin.kDetectedMod or 1) )
+        local specialMaxCloak = kSpecialMaxCloakClass[self:GetClassName()] and CloakableMixin.kSpecialMaxCloak
+        local maxCloakingFraction = specialMaxCloak or CloakableMixin.kStructureMaxCloak
 
-        local className = self:GetClassName()
-        local specialMaxCloak = CloakableMixin.kSpecialMaxCloakClass[className] and CloakableMixin.kSpecialMaxCloak
-        local playerMaxCloak = (self:isa("Player") or CloakableMixin.kPlayerMaxCloakClass[className]) and not self:isa("Embryo") and CloakableMixin.kPlayerMaxCloak -- embryos cloak fully
-        local maxCloakingFraction = specialMaxCloak or playerMaxCloak or CloakableMixin.kStructureMaxCloak
+        if self:isa("Player") then
+            if not self:isa("Embryo") then
+                maxCloakingFraction = CloakableMixin.kPlayerMaxCloak   -- embryos cloak fully
+            end
+        elseif kPlayerMaxCloakClass[self:GetClassName()] then
+            maxCloakingFraction = CloakableMixin.kPlayerMaxCloak
+        end
 
         -- ink may improve invisibility
         maxCloakingFraction = maxCloakModifier * math.max( maxCloakingFraction, (isShadeCloaked or isInInk) and CloakableMixin.kMaxCloak or 0 )
@@ -581,5 +596,4 @@ end
 function CloakableMixin:GetInvisibleRange()
     return (CloakableMixin.kSpecialMaxCloakClass[self:GetClassName()] and not self:isa("Onos") and 1.0) or CloakableMixin.kInvisibleFarRange[self.cloakRate] or CloakableMixin.kInvisibleFarRange[1]
 end
-
 

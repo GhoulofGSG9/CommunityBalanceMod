@@ -1494,22 +1494,24 @@ function GetCanSeeEntity(seeingEntity, targetEntity, considerObstacles, obstacle
 
 end
 
+
 local gLocationCache = nil
 
+function PopulateLocationCache()
+    gLocationCache = EntityListToTable(Shared.GetEntitiesWithClassname("Location"))
+end
+
 function GetLocations()
+
     if gLocationCache == nil then
-        local locations = EntityListToTable(Shared.GetEntitiesWithClassname("Location"))
-        -- Only cache once Location entities actually exist. During early map
-        -- load (and the main menu) none exist yet, and caching that empty
-        -- result would pin it forever.
-        if #locations > 0 then
-            gLocationCache = locations
-        end
-        return locations
+        return EntityListToTable(Shared.GetEntitiesWithClassname("Location"))
     end
     return gLocationCache
 end
 
+function InvalidateLocationCache()
+    gLocationCache = nil
+end
 function GetLocationForPoint(point, ignoredLocation)
     PROFILE("GetLocationForPoint")
 
@@ -1589,12 +1591,6 @@ end
 
 -- for performance, cache the lights for each locationName
 local lightLocationCache = {}
-
-function InvalidateLocationCache()
-    gLocationCache = nil
-    lightLocationCache = { }   -- lights are cached per location too; one flush for both
-end
-
 function GetLightsForLocation(locationName)
     
     PROFILE("GetLightsForLocation")
@@ -1767,7 +1763,6 @@ end
 function ClearLights()
 
     if Client.lightList ~= nil then
-        InvalidateLocationCache()
         for _, light in ipairs(Client.lightList) do
             Client.DestroyRenderLight(light)
         end

@@ -80,32 +80,6 @@ end
 -- STATIC --
 ------------
 
--- Private
-local kTapInterval = 0.27
-
-local TAP_NONE = 0
-local TAP_LEFT = 1
-local TAP_RIGHT = 2
-local TAP_FORWARD = 3
-local TAP_BACKWARD = 4
-
-local tapVector =
-{
-    TAP_NONE     = Vector(0, 0, 0),
-    TAP_LEFT     = Vector(1, 0, 0),
-    TAP_RIGHT    = Vector(-1, 0, 0),
-    TAP_FORWARD  = Vector(0, 0, 1),
-    TAP_BACKWARD = Vector(0, 0, -1)
-}
-local tapString =
-{
-    TAP_NONE     = "TAP_NONE",
-    TAP_LEFT     = "TAP_LEFT",
-    TAP_RIGHT    = "TAP_RIGHT",
-    TAP_FORWARD  = "TAP_FORWARD",
-    TAP_BACKWARD = "TAP_BACKWARD"
-}
-
 --Public
 Player.kMapName = "player"
 
@@ -305,16 +279,6 @@ AddMixinNetworkVars(TeamMixin, networkVars)
 AddMixinNetworkVars(ClientLOSMixin, networkVars)
 AddMixinNetworkVars(PlayerBotMixin, networkVars)
 
-local function GetTabDirectionVector(buttonReleased)
-
-    if buttonReleased > 0 and buttonReleased < 5 then
-        return tapVector[buttonReleased]
-    end
-
-    return tapVector[TAP_NONE]
-
-end
-
 function Player:OnCreate()
 
     ScriptActor.OnCreate(self)
@@ -404,8 +368,6 @@ function Player:OnCreate()
     self.isUsing = false
     self.slowAmount = 0
 
-    self.lastButtonReleased = TAP_NONE
-    self.timeLastButtonReleased = 0
     self.previousMove = Vector(0, 0, 0)
 
     self.pushImpulse = Vector(0, 0, 0)
@@ -2045,68 +2007,6 @@ function Player:HandleAttacks(input)
     self:HandleAttacks_calls(isPrimaryAttack, isSecondaryAttack, isTertiaryAttack)
 end
 
-function Player:HandleDoubleTap(input)
-
-    PROFILE("Player:HandleDoubleTap")
-
-    -- check which button has been released and store that one
-    if not self.previousMove then
-        self.previousMove = Vector(input.move)
-        self.lastButtonReleased = TAP_NONE
-        self.timeLastButtonReleased = 0
-        return
-    end
-
-    local buttonReleased = TAP_NONE
-
-    if input.move.x == 0 then
-        if self.previousMove.x > 0 then
-            buttonReleased = TAP_LEFT
-        elseif self.previousMove.x < 0 then
-            buttonReleased = TAP_RIGHT
-        end
-    end
-
-    if input.move.z == 0 then
-        if self.previousMove.z < 0 then
-            buttonReleased = TAP_BACKWARD
-        elseif self.previousMove.z > 0 then
-            buttonReleased = TAP_FORWARD
-        end
-    end
-
-    if buttonReleased ~= TAP_NONE then
-
-        if self.timeLastButtonReleased ~= 0 and self.timeLastButtonReleased + kTapInterval > Shared.GetTime() then
-
-            if self.lastButtonReleased == buttonReleased then
-
-                self.timeLastButtonReleased = 0
-                self.lastButtonReleased = TAP_NONE
-                self:OnDoubleTap(GetTabDirectionVector(buttonReleased) )
-
-            else
-
-                self.lastButtonReleased = buttonReleased
-                self.timeLastButtonReleased = Shared.GetTime()
-
-            end
-
-        else
-            self.lastButtonReleased = buttonReleased
-            self.timeLastButtonReleased = Shared.GetTime()
-        end
-
-    end
-
-    self.previousMove = Vector(input.move)
-
-end
-
--- Pass view model direction
-function Player:OnDoubleTap(direction)
-end
-
 function Player:GetPrimaryAttackLastFrame()
     return self.primaryAttackLastFrame
 end
@@ -2161,11 +2061,11 @@ function Player:HandleButtons(input)
         if (not attackLastFrame or (self:isa("Alien") and self.secondaryAttackLastFrame)) then
             isUsing = AttemptToUse(self, input.time)
         end
-        
+
         if Server and not isUsing and self:GetCanShootSeasonalObject() then
             FireSeasonalProjectile(self)
         end
-        
+
     end
 
     if Client and not Shared.GetIsRunningPrediction() then
@@ -2195,8 +2095,6 @@ function Player:HandleButtons(input)
 
     -- TODO: Call that after the weapon mask, and wrap it so save one call
     self:HandleAttacks(input)
-
-    -- self:HandleDoubleTap(input)
 
     -- Only do one binary check for all, then one by one (cheaper than every time)
     if bit_band(input.commands, kWeaponMask) == 0 then
@@ -2573,6 +2471,7 @@ function Player:OnUpdateAnimationInput(modelMixin)
 
     local activeWeapon = "none"
     local weapon = self:GetActiveWeapon()
+    local weaponId = self:GetActiveWeaponId()
     if weapon ~= nil then
 
         if weapon.OverrideWeaponName then
@@ -2585,7 +2484,10 @@ function Player:OnUpdateAnimationInput(modelMixin)
 
     modelMixin:SetAnimationInput("weapon", activeWeapon)
 
-    local weapon = self:GetActiveWeapon()  -- animation may have changed active weapon
+    if weaponId ~= self:GetActiveWeaponId() then
+        weapon = self:GetActiveWeapon()  -- animation may have changed active weapon
+    end
+
     if weapon ~= nil and weapon.OnUpdateAnimationInput then
         weapon:OnUpdateAnimationInput(modelMixin)
     end
