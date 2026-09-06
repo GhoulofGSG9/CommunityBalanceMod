@@ -697,6 +697,7 @@ if Server then
         
         -- Create living map entities fresh
         CreateLiveMapEntities()
+        PopulateLocationCache()
         
         self.forceGameStart = false
         self.preventGameEnd = nil
@@ -908,6 +909,11 @@ if Server then
 
         -- Initialize Location Graph for AI
         GetLocationGraph()
+
+        -- All Location map entities exist now. Prime the NS2Utility cache at
+        -- this guaranteed-complete point instead of letting any caller take
+        -- its own (possibly partial) snapshot.
+        PopulateLocationCache()
         
     end
 
