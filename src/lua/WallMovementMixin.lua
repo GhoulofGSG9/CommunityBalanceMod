@@ -54,7 +54,7 @@ local function _initTracesTables()
 
    for i=0, kNumTraces - 1 do
         local theta = (i/kNumTraces) * math_pi * 2
-        directionVector = Vector(math.cos(theta), 1, math.sin(theta))
+        local directionVector = Vector(math.cos(theta), 1, math.sin(theta))
         table.insert(kTraceCache_diagcone, directionVector)
     end
 end
@@ -84,7 +84,7 @@ function WallMovementMixin:SmoothWallNormal(currentNormal, goalNormal, fraction)
             local normalDiff = goalNormal - currentNormal
             
             -- Check if the vectors are polar opposites.
-            if diff == -1 then
+            if diff <= -0.999 then
             
                 -- Prefer spinning around the x axis.
                 if self:GetCoords().xAxis:DotProduct(goalNormal) ~= -1 then
@@ -146,26 +146,15 @@ function WallMovementMixin:ValidWallTrace(trace)
     
 end
 
-function WallMovementMixin:TraceWallNormal(startPoint, endPoint, result, feelerSize, physicsMask)
-    
+function WallMovementMixin:TraceWallNormal(startPoint, endPoint, feelerSize, physicsMask)
+
     local theTrace = Shared_TraceCapsule(startPoint, endPoint, feelerSize, 0, CollisionRep.Move, physicsMask, EntityFilterOneAndIsa(self, "Babbler"))
-    
-    --Debug_VisualizeCapsuleTrace(startPoint, endPoint, feelerSize, 0, theTrace.fraction)
-    
-    --[[ double-comment to see wall-walk traces
-    if Client then
-        DebugLine(startPoint, theTrace.endPoint, 5, 0, 1, 0, 1)
-    end --]]
-    
+
     if self:ValidWallTrace(theTrace) then
-   
-        table.insert(result, theTrace.normal)
-        return true
-        
+        return theTrace.normal
     end
-    
-    return false
-    
+
+    return nil
 end
 
 --
@@ -174,11 +163,7 @@ end
 -- with others hit so we know if we're wall-walking and the normal to orient our model and the direction to jump away from
 -- when jumping off a wall.
 --
---local numHit = 0
---local numCalls = 0
---local numHitDisc = 0
---local numHitAbove = 0
---local numHit45 = 0
+
 function WallMovementMixin:GetAverageWallWalkingNormal(extraRange, feelerSize, physicsMaskOverride)
 
     PROFILE("WallMovementMixin:GetAverageWallWalkingNormal")
@@ -195,87 +180,59 @@ function WallMovementMixin:GetAverageWallWalkingNormal(extraRange, feelerSize, p
     local startPoint = Vector(self:GetOrigin())
     local extents = self:GetExtents()
     startPoint.y = startPoint.y + extents.y
-    local wallNormals = {}
 
-    -- Trace in a circle around self, looking for walls we hit
+    -- Trace range: largest horizontal/vertical extent plus caller-provided extra.
     local wallWalkingRange = (extents.x > extents.y and extents.x or extents.y) + extraRange
-    local directionVector
-    local angle
-    local normalFound = false
 
-    --numCalls = numCalls + 1
-    if (self.lastSuccessfullWallTraceDir) then
-        directionVector = self.lastSuccessfullWallTraceDir
-        if self:TraceWallNormal(startPoint, startPoint + self.lastSuccessfullWallTraceDir * wallWalkingRange, wallNormals, feelerSize, physicsMask) then
-            normalFound = true
-            --numHit = numHit + 1
+    local wallNormal = nil
+
+    -- Fast path: retry the last successful direction while it's still fresh.
+    local now = Shared.GetTime()
+    if self.lastSuccessfullWallTraceDir and (now - (self.timeLastSuccessfulWallTrace or 0) < 0.5) then
+        wallNormal = self:TraceWallNormal(startPoint, startPoint + self.lastSuccessfullWallTraceDir * wallWalkingRange, feelerSize, physicsMask)
+        if wallNormal then
+            self.timeLastSuccessfulWallTrace = now
         else
             self.lastSuccessfullWallTraceDir = nil
         end
     end
 
     -- Trace around (flat disc)
-    if not normalFound then
+    if not wallNormal then
         for i = 1, kNumTraces do
-        
-            directionVector = kTraceCache_flatdisc[i]
-            
-            -- Avoid excess vector creation
-            local endPoint = Vector()
-            endPoint.x = startPoint.x + directionVector.x * wallWalkingRange
-            endPoint.y = startPoint.y
-            endPoint.z = startPoint.z + directionVector.z * wallWalkingRange
-            
-            if self:TraceWallNormal(startPoint, endPoint, wallNormals, feelerSize, physicsMask) then
-
-                normalFound = true
-                --numHitDisc = numHitDisc + 1
-                break
-                
-            end   
-            
+            wallNormal = self:TraceWallNormal(startPoint, startPoint + kTraceCache_flatdisc[i] * wallWalkingRange, feelerSize, physicsMask)
+            if wallNormal then break end
         end
-    
     end
 
     -- Trace above too.
-    if not normalFound then
-        directionVector = Vector(0, wallWalkingRange, 0)
-        normalFound = self:TraceWallNormal(startPoint, startPoint + directionVector, wallNormals, feelerSize, physicsMask)
-        --if (normalFound) then
-        --    numHitAbove = numHitAbove + 1
-        --end
+    if not wallNormal then
+        wallNormal = self:TraceWallNormal(startPoint, startPoint + Vector(0, wallWalkingRange, 0), feelerSize, physicsMask)
     end
-    
-    -- Trace in a 45 degree cone around skulk.  Like halfway between vertical and the flat disc we did above.
-    if not normalFound then
-        for i=1, kNumTraces do
-            directionVector = kTraceCache_diagcone[i]
-            normalFound = self:TraceWallNormal(startPoint, startPoint + directionVector * wallWalkingRange * 0.707, wallNormals, feelerSize, physicsMask)
-            if normalFound then
-                --numHit45 = numHit45 + 1
-                break
-            end
+
+    -- Trace in a 45 degree cone, halfway between vertical and the flat disc.
+    if not wallNormal then
+        for i = 1, kNumTraces do
+            wallNormal = self:TraceWallNormal(startPoint, startPoint + kTraceCache_diagcone[i] * wallWalkingRange * 0.707, feelerSize, physicsMask)
+            if wallNormal then break end
         end
     end
 
-    if normalFound then
+    if wallNormal then
 
-        --if Server then Log("%s/%s -- %s/%s/%s", numHit, numCalls, numHitDisc, numHitAbove, numHit45) end
-    
         -- Check if we are right above a surface we can stand on.
         -- Even if we are in "wall walking mode", we want it to look
         -- like it is standing on a surface if it is right above it.
-        self.lastSuccessfullWallTraceDir = directionVector
+        local directionVector = Vector(0, -wallWalkingRange, 0)
         local groundTrace = Shared_TraceRay(startPoint, startPoint + Vector(0, -wallWalkingRange, 0), CollisionRep.Move, physicsMask, EntityFilterOne(self))
-        if (groundTrace.fraction > 0 and groundTrace.fraction < 1 and groundTrace.entity == nil) then
+        if groundTrace.fraction > 0 and groundTrace.fraction < 1 and groundTrace.entity == nil then
             return groundTrace.normal
         end
-        
-        local rval = wallNormals[1]
-        wallNormals = nil
-        return rval
-        
+
+        self.lastSuccessfullWallTraceDir = wallNormal:Normalize()
+        self.timeLastSuccessfulWallTrace = Shared.GetTime()
+        return wallNormal
+
     end
 
     return nil
