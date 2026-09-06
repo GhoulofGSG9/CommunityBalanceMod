@@ -16,7 +16,7 @@ local math_pi = math.pi
 local kInfestationDecalSimpleMaterial = PrecacheAsset("materials/infestation/infestation_decal_simple.material")
 
 function GUI_SetIsVisible(item, state)
-    local needsToBeSet = (item.GUI_lastVisible == nil or item.GUI_lastVisible ~= state or state)
+    local needsToBeSet = (item.GUI_lastVisible == nil or item.GUI_lastVisible ~= state)
     if needsToBeSet then
         item:SetIsVisible(state)
         item.GUI_lastVisible = state
@@ -170,16 +170,12 @@ function GetWeaponAmmoString(weapon)
             end
             
             if leftAmmo > -1 and rightAmmo > -1 then
-                if leftShots > -1 and rightShots > -1 then -- Accounts for plasma permutations
+                if leftShots > -1 or rightShots > -1 then
                     ammo = string.format("%d%% / %d%% (%s/%s)", leftAmmo, rightAmmo, leftShots, rightShots)
-                elseif leftShots > -1 then
-                    ammo = string.format("%d%% / %d%% (%s/-)", leftAmmo, rightAmmo, leftShots)
-				elseif rightShots > -1 then
-                    ammo = string.format("%d%% / %d%% (-/%s)", leftAmmo, rightAmmo, rightShots)					
-                else -- dual railgun / minigun
+                else
                     ammo = string.format("%d%% / %d%%", leftAmmo, rightAmmo)
                 end
-            elseif rightAmmo > -1 then -- Accounts for claw permutations
+            elseif rightAmmo > -1 then
                 if rightShots > -1 then
                     ammo = string.format("%d%% (%s)", rightAmmo, rightShots)
                 else
@@ -195,16 +191,7 @@ function GetWeaponAmmoString(weapon)
 end
 
 function GetIsPointInsideClogs(point)
-
-    local clogs = GetEntitiesWithinRange("Clog", point, Clog.kRadius)
-    for i=1, #clogs do
-        if clogs[i] then
-            return true
-        end
-    end
-
-    return false
-
+    return #GetEntitiesWithinRange("Clog", point, Clog.kRadius) > 0
 end
 
 function GetHallucinationLifeTimeFraction(self)
@@ -709,6 +696,7 @@ function GetAttachEntity(techId, position, snapRadius)
 
 end
 
+local kTagCache = {}
 local function FindPoweredAttachEntities(className, teamNumber, origin, range)
 
     ASSERT(type(className) == "string")
@@ -720,7 +708,11 @@ local function FindPoweredAttachEntities(className, teamNumber, origin, range)
         return entity:GetTeamNumber() == teamNumber and entity:GetIsBuilt() and entity:GetIsPowered()
     end
 
-    return Shared.GetEntitiesWithTagInRange("class:" .. className, origin, range, teamAndPoweredFilterFunction)
+    if not kTagCache[className] then
+        kTagCache[className] = "class:" .. className
+    end
+
+    return Shared.GetEntitiesWithTagInRange(kTagCache[className], origin, range, teamAndPoweredFilterFunction)
 
 end
 
@@ -1499,11 +1491,21 @@ function GetCanSeeEntity(seeingEntity, targetEntity, considerObstacles, obstacle
 
 end
 
+local gLocationCache = nil
+
 function GetLocations()
-    return EntityListToTable(Shared.GetEntitiesWithClassname("Location"))
+    if gLocationCache == nil then
+        local locations = EntityListToTable(Shared.GetEntitiesWithClassname("Location"))
+        -- Only cache once Location entities actually exist. During early map
+        -- load (and the main menu) none exist yet, and caching that empty
+        -- result would pin it forever.
+        if #locations > 0 then
+            gLocationCache = locations
+        end
+        return locations
+    end
+    return gLocationCache
 end
-
-
 
 function GetLocationForPoint(point, ignoredLocation)
     PROFILE("GetLocationForPoint")
@@ -1584,6 +1586,11 @@ end
 
 -- for performance, cache the lights for each locationName
 local lightLocationCache = {}
+
+function InvalidateLocationCache()
+    gLocationCache = nil
+    lightLocationCache = { }   -- lights are cached per location too; one flush for both
+end
 
 function GetLightsForLocation(locationName)
     
@@ -1757,6 +1764,7 @@ end
 function ClearLights()
 
     if Client.lightList ~= nil then
+        InvalidateLocationCache()
         for _, light in ipairs(Client.lightList) do
             Client.DestroyRenderLight(light)
         end
@@ -1993,6 +2001,15 @@ local function SetPoseParam(viewmodel, player, key, value)
     end
 end
 
+local kPoseParams = {
+    {"move_yaw", 0},
+    {"move_speed", 0},
+    {"body_pitch", 0},
+    {"body_yaw", 0},
+    {"body_yaw_run", 0},
+    {"crouch", 0},
+    {"land_intensity", 0}
+}
 function SetPlayerPoseParameters(player, viewModel, headAngles)
 
     --PROFILE("Player:SetPlayerPoseParameters")
@@ -2024,15 +2041,14 @@ function SetPlayerPoseParameters(player, viewModel, headAngles)
         crouchAmount = player:ModifyCrouchAnimation(crouchAmount)
     end
 
-    local params = {
-        {"move_yaw", moveYaw},
-        {"move_speed", moveSpeed},
-        {"body_pitch", pitch},
-        {"body_yaw", bodyYaw},
-        {"body_yaw_run", bodyYawRun},
-        {"crouch", crouchAmount},
-        {"land_intensity", landIntensity}
-    }
+    local params = kPoseParams
+    params[1][2] = moveYaw
+    params[2][2] = moveSpeed
+    params[3][2] = pitch
+    params[4][2] = bodyYaw
+    params[5][2] = bodyYawRun
+    params[6][2] = crouchAmount
+    params[7][2] = landIntensity
 
     player:SetPoseParams(params)
     if viewModel then
@@ -2412,7 +2428,7 @@ function CanEntityDoDamageTo(attacker, target, cheats, devMode, friendlyFire, da
         return false
     end
 
-    if target == nil or (target.GetDarwinMode and target:GetDarwinMode()) then
+    if target.GetDarwinMode and target:GetDarwinMode() then
         return false
     elseif cheats or devMode then
         return true
@@ -2694,13 +2710,14 @@ function AttackMeleeCapsule(weapon, player, damage, range, optionalCoords, altMo
         filter = EntityFilterTwo(player, weapon)
     end
 
+    local targetsFilter = EntityFilterList(targets)
+    local traceFilter = function(test)
+        return targetsFilter(test) or filter(test)
+    end
+
     -- loop upto 20 times just to go through any soft targets.
     -- Stops as soon as nothing is hit or a non-soft target is hit
     for i = 1, 20 do
-
-        local traceFilter = function(test)
-            return EntityFilterList(targets)(test) or filter(test)
-        end
 
         -- Enable tracing on this capsule check, last argument.
         didHit, target, endPoint, direction, surface, startPoint, trace = CheckMeleeCapsule(weapon, player, damage, range, optionalCoords, true, 1, nil, traceFilter)
@@ -3326,7 +3343,8 @@ end
 
 -- avoid problem with client generating a hit while server fails by shrinking client-side bullets a bit
 local kClientSideCaliberAdjustment = 0.00
-function GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, filter, allowBoxTrace)
+
+function GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, filter, allowBoxTrace)   -- no "local"
 
     PROFILE("GetBulletTargets")
 
@@ -3342,18 +3360,17 @@ function GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, fil
         end
     end
 
-    for i = 1, 20 do
-
-        local traceFilter
-        if filter then
-
-            traceFilter = function(test)
-                return EntityFilterList(targets)(test) or filter(test)
-            end
-
-        else
-            traceFilter = EntityFilterList(targets)
+    local targetsFilter = EntityFilterList(targets)
+    local traceFilter
+    if filter then
+        traceFilter = function(test)
+            return targetsFilter(test) or filter(test)
         end
+    else
+        traceFilter = targetsFilter
+    end
+
+    for i = 1, 20 do
 
         trace = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.Bullets, traceFilter)
 
@@ -3405,6 +3422,7 @@ function GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, fil
     return targets, trace, hitPoints
 
 end
+
 
 local kAlienStructureMoveSound = PrecacheAsset("sound/NS2.fev/alien/infestation/build")
 function UpdateAlienStructureMove(self, deltaTime)
