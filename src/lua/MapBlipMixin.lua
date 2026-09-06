@@ -55,12 +55,15 @@ if Server then
 
         for i = 1, #hosts do
             local hostId = hosts[i]
-            local fogEntity = kFogOfWarEnts_hostToFog[hostId]
-            if fogEntity then
-                -- detach FIRST so IsFogEntityDetached() is true and the stash fires
-                kFogOfWarEnts_fogToHost[fogEntity:GetId()] = nil
-                kFogOfWarEnts_hostToFog[hostId] = nil
-                fogEntity:SetFogEntMapBlipInfo(false)
+            local fogId = kFogOfWarEnts_hostToFog[hostId]
+            -- detach FIRST so IsFogEntityDetached() is true and the stash fires
+            kFogOfWarEnts_hostToFog[hostId] = nil
+            if fogId then
+                kFogOfWarEnts_fogToHost[fogId] = nil
+                local fogEntity = Shared.GetEntity(fogId)
+                if fogEntity then
+                    fogEntity:SetFogEntMapBlipInfo(false)
+                end
             end
         end
 
@@ -254,7 +257,8 @@ function MapBlipMixin:UpdateFogEntity(sighted)
 
     local id = self:GetId()
     local isNewEntity = false
-    local f = kFogOfWarEnts_hostToFog[id]
+    local fogId = kFogOfWarEnts_hostToFog[id]
+    local f = fogId and Shared.GetEntity(fogId)
 
     assert(not self:isa("FogOfWarEntity"))
 
@@ -263,7 +267,6 @@ function MapBlipMixin:UpdateFogEntity(sighted)
     if sighted or not alive or not ((teamNumber == kTeam1Index or teamNumber == kTeam2Index)) then
 
         if f and f:IsMapBlipVisible() then
-            local _, blipType = self:GetMapBlipInfo()
             f:SetFogEntMapBlipInfo(false)
         end
 
@@ -288,17 +291,18 @@ function MapBlipMixin:UpdateFogEntity(sighted)
     local _, blipType = self:GetMapBlipInfo()
     f:SetFogEntMapBlipInfo(true, blipType, teamNumber, GetIsUnitActive(self), self:isa("Player"))
 
-    if not kFogOfWarEnts_hostToFog[id] then -- We fetched a new entity that needs to be init
-
-        kFogOfWarEnts_hostToFog[id] = f
-        kFogOfWarEnts_fogToHost[f:GetId()] = id
-    end
-
     f.reentranceOff = true
     if isNewEntity then
         f:OnInitializedMapBlipMixin() -- Need to happen AFTER we set the custom host blips
 
-        local mapBlip = f.mapBlipId and Shared.GetEntity(f.mapBlipId)
+        if not f.mapBlipId then
+            -- Couldn't get a mapblip for this fog entity (e.g. hit the entity
+            -- limit) -- drop it entirely
+            DestroyEntity(f)
+            return nil
+        end
+
+        local mapBlip = Shared.GetEntity(f.mapBlipId)
         if mapBlip then
             mapBlip.fogExpireTime = f.fogExpireTime
             mapBlip.isPlayerBlip = f.isPlayerBlip
@@ -316,6 +320,11 @@ function MapBlipMixin:UpdateFogEntity(sighted)
         end
     end
     f.reentranceOff = nil
+
+    if kFogOfWarEnts_hostToFog[id] ~= f:GetId() then -- new or replaced link -- (re)register it
+        kFogOfWarEnts_hostToFog[id] = f:GetId()
+        kFogOfWarEnts_fogToHost[f:GetId()] = id
+    end
 
     local orig = self:GetOrigin()
     if self:isa("Player") then
@@ -659,27 +668,36 @@ function MapBlipMixin:DestroyBlip()
 
 end
 
+-- Called when a FogOfWarEntity itself is destroyed (e.g. round cleanup), so it
+-- doesn't linger as a dangling reference in the reuse pool.
+function MapBlipMixin:RemoveFromFogPool()
+    local idx = nil
+    for i, e in ipairs(kFogOfWarEntsPool) do
+        if e:GetId() == self:GetId() then
+            idx = i
+            break
+        end
+    end
+    if idx then
+        table.remove(kFogOfWarEntsPool, idx)
+    end
+end
+
+-- Called when a HOST is killed, to clear/stash its fog ghost. Not used for
+-- OnDestroy -- see MapBlipMixin:OnDestroy.
 function MapBlipMixin:DetachFogEntity()
-    if self:isa("FogOfWarEntity") then
-        local idx = nil
-        for i, e in ipairs(kFogOfWarEntsPool) do -- Remove ourselves from the pool
-            if e:GetId() == self:GetId() then
-                idx = i
-                break
-            end
-        end
-        if idx then
-            table.remove(kFogOfWarEntsPool, idx)
-        end
-    else -- Detach the entity from the fog
-        local hostId = self:GetId()
-        local fogEntity = kFogOfWarEnts_hostToFog[hostId]
+    local hostId = self:GetId()
+    local fogId = kFogOfWarEnts_hostToFog[hostId]
+    -- Detach FIRST so IsFogEntityDetached() is true and the stash actually
+    -- fires below (mirrors DisableAllFogEntities). Without this, a killed
+    -- host's fog ghost was left behind forever, showing a stale "last
+    -- seen" position that never cleared.
+    kFogOfWarEnts_hostToFog[hostId] = nil
+    if fogId then
+        kFogOfWarEnts_fogToHost[fogId] = nil
+        local fogEntity = Shared.GetEntity(fogId)
         if fogEntity then
-            kFogOfWarEnts_fogToHost[fogEntity:GetId()] = nil
-            kFogOfWarEnts_hostToFog[hostId] = nil
             fogEntity:SetFogEntMapBlipInfo(false)
-        else
-            kFogOfWarEnts_hostToFog[hostId] = nil
         end
     end
 end
@@ -696,7 +714,17 @@ end
 
 function MapBlipMixin:OnDestroy()
 
-    self:DetachFogEntity()
+    local hostId = self:GetId()
+    local fogId = kFogOfWarEnts_hostToFog[hostId]
+    if fogId then
+        kFogOfWarEnts_hostToFog[hostId] = nil
+        kFogOfWarEnts_fogToHost[fogId] = nil
+    end
+
+    if self:isa("FogOfWarEntity") then
+        self:RemoveFromFogPool()
+    end
+
     self:DestroyBlip()
     UpdateEntityForTeamBrains(self, true)
 end
