@@ -105,7 +105,7 @@ local function FindTarget(self, player)
     local direction = player:GetViewCoords().zAxis
     local extents = GetDirectedExtentsForDiameter(direction, kPheromoneTraceWidth)
     
-    local trace = Shared.TraceBox(extents, startPoint, startPoint + direction * self:GetRange(), CollisionRep.Damage, PhysicsMask.Bullets, EntityFilterOneAndIsa(player, "Babbler"))
+    local trace = Shared.TraceBox(extents, startPoint, startPoint + direction * self:GetRange(), CollisionRep.Default, PhysicsMask.AllButPCsAndRagdolls, EntityFilterOneAndIsa(player, "Babbler"))
     
     local targetEntity = trace.entity
     local endPoint = trace.fraction < 1 and (trace.endPoint + trace.normal * kPheromoneTraceWidth) or nil
@@ -135,10 +135,12 @@ local function CreateBabblerPheromone(self, player)
     
     local target, endPoint = FindTarget(self, player)
     if target and (not HasMixin(target, "Live") or target:GetIsAlive()) and ( GetAreEnemies(self, target) or    
-        (GetAreFriends(self, target) and HasMixin(target, "BabblerCling")) ) then
+        (GetAreFriends(self, target) and HasMixin(target, "BabblerCling")) ) or
+        (GetAreFriends(self, target) and target:isa("Web") )
+    then
     
         babblerPheromone:SetOrigin(endPoint)
-        babblerPheromone:ProcessHit(target)
+        babblerPheromone:ProcessHit(target, nil, nil, endPoint)
     
     else
     
@@ -213,6 +215,9 @@ if Client then
                 self.babblerMoveType = kBabblerMoveType.Attack
 
             elseif target and GetAreFriends(self, target) and HasMixin(target, "BabblerCling") and target:GetCanAttachBabbler() and target:GetIsAlive() then
+                self.babblerMoveType = kBabblerMoveType.Cling
+
+            elseif target and GetAreFriends(self, target) and target:isa("Web") and target:GetIsAlive() and target:GetNumWebbedBabblers() < kWebMaxBabblers then
                 self.babblerMoveType = kBabblerMoveType.Cling
             
             else
