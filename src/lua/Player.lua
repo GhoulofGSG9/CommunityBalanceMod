@@ -2062,9 +2062,7 @@ function Player:HandleButtons(input)
             isUsing = AttemptToUse(self, input.time)
         end
 
-        if Server and not isUsing and (Shared.GetTime() - self.timeOfLastUse) >= kUseInterval
-                and Shared.GetTime() - self.timeLastSeasonThrow >= kSeasonalThrowInterval
-                and self:SeasonalObjectAllowedCached() then
+        if Server and not isUsing and self:GetCanShootSeasonalObject() then
             FireSeasonalProjectile(self)
         end
 
