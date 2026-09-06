@@ -414,6 +414,7 @@ function Babbler:UpdateBabbler(deltaTime)
     if Server then
 
         if self:GetIsOnWeb() then
+            self:UpdateWebBehavior(deltaTime)
             self:UpdateRelevancy()
             return
         end
@@ -558,9 +559,7 @@ function Babbler:OnUpdate(deltaTime)
     self:UpdateBabbler(deltaTime)
 
     if Server then
-        if self.onWeb then
-            self:UpdateWebBehavior(deltaTime)
-        elseif self.babblerOffMap then
+        if self.babblerOffMap then
             -- Move toward destination to get back into the map we left like a coward
             local orig = self:GetOrigin()
             local dest = self.babblerOffMapRecoveryOrig
