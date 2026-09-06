@@ -69,8 +69,8 @@ local function _GetWeaponAndAttackerInfo(self, isPlayer, owner, isOwnerPlayer)
     end
 
     local attacker = _GetAttackerInfo(parent, self, isPlayer, isParentPlayer, isOwnerPlayer, owner)
-    local weapon, damageType, currentComm = _GetWeaponInfo(isParentPlayer, self, isPlayer, isOwnerPlayer, attacker)
-    return attacker, weapon, damageType, currentComm
+    local weapon = _GetWeaponInfo(isParentPlayer, self, isPlayer, isOwnerPlayer, attacker)
+    return attacker, weapon
 end
 
 local function _GetAttackInfo(self, damage)
@@ -127,7 +127,7 @@ local function _DealDamage(self, attacker, weapon, damage, damageType, target, d
 
         -- Get the target entity id before takedamage so we can add the killing shot damage to our damage total.
         local targetEntityId = target:GetId()
-        killedFromDamage, damageDone = target:TakeDamage(damage + overshieldDamage, attacker, doer, point, direction, armorUsed, healthUsed, damageType, nil)
+        local killedFromDamage, damageDone = target:TakeDamage(damage + overshieldDamage, attacker, doer, point, direction, armorUsed, healthUsed, damageType, nil)
 
         if rawDamage > 0 then
                             
@@ -140,7 +140,7 @@ local function _DealDamage(self, attacker, weapon, damage, damageType, target, d
                 if areEnemies then
                 
                     local amount = (killedFromDamage or target:GetCanTakeDamage()) and (damageDone + overshieldDamage) or 0 -- actual damage done
-                    local overkill = healthUsed + armorUsed * 2 -- the full amount of potential damage, including overkill
+                    local overkill = healthUsed + armorUsed * kHealthPointsPerArmor -- the full amount of potential damage, including overkill
                     
                     if HitSound_IsEnabledForWeapon( weapon ) then
                         -- Damage message will be sent at the end of OnProcessMove by the HitSound system
@@ -348,14 +348,13 @@ local function _DealEffects(self, surface, attacker, weapon, damageDone, rawDama
 end
 
 local function _DoHitShot(self, damage, target, point, direction, surface, altMode, showtracer)
-    --PROFILE("DamageMixin:_DoHitShot")
 
     direction = direction or Vector(0, 0, 1)
 
     local attacker, weapon, damageType, currentComm = _GetAttackInfo(self, damage)
     local killedFromDamage, damageDone, rawDamage = _DealDamage(self, attacker, weapon, damage, damageType, target, direction, point)
-    
-    return attacker, killedFromDamage, weapon, damageDone, rawDamage
+
+    return attacker, killedFromDamage, weapon, damageDone, rawDamage, damageType
 end
 
 -- damage type, doer and attacker don't need to be passed. that info is going to be fetched here. pass optional surface name
@@ -369,26 +368,19 @@ function DamageMixin:DoDamage(damage, target, point, direction, surface, altMode
     local weapon = nil
     local damageDone = 0
     local rawDamage = 0
+    local damageType = nil
 
     -- No prediction if the Client is spectating another player.
     if Client and not Client.GetIsControllingPlayer() then
         return false
     end
     
-    if (target) then -- HIT
+    if (target) then
         if target:isa("Ragdoll") or not (target.GetCanTakeDamage and target:GetCanTakeDamage()) then
             return false
         end
-        attacker, killedFromDamage, weapon, damageDone, rawDamage = _DoHitShot(self, damage, target, point, direction, surface, altMode, showtracer)
-    else -- MISS
-    --[[
-        if GetIsPointOnInfestation(point) then
-            surface = "infestation"
-        end
-        if not surface or surface == "" then
-            surface = "metal"
-        end
-        --]]
+        attacker, killedFromDamage, weapon, damageDone, rawDamage, damageType = _DoHitShot(self, damage, target, point, direction, surface, altMode, showtracer)
+    else
         attacker, weapon = _GetWeaponAndAttackerInfo(self)
     end
 
