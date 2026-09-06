@@ -478,14 +478,30 @@ function GetEntitiesWithMixinWithinRangeAreVisible(mixinType, origin, range, vis
     
 end
 
-function GetEntitiesWithMixinForTeamWithinRange(mixinType, teamNumber, origin, range)
-    local teamFilterFunction = CLambda [[
-		self teamNumber
-		args entity
-		HasMixin(entity, "Team") and entity:GetTeamNumber() == teamNumber
-	]] {teamNumber}
-    
-    return FilterEntitiesArray(Shared.GetEntitiesWithTagInRange(mixinType, origin, range), teamFilterFunction)
+local kTeamFilters = {}
+local function GetTeamFilter(teamNumber)
+
+    local filter = kTeamFilters[teamNumber]
+
+    if not filter then
+        filter = CLambda [[
+            self teamNumber
+            args entity
+            HasMixin(entity, "Team") and entity:GetTeamNumber() == teamNumber
+        ]] {teamNumber}
+        kTeamFilters[teamNumber] = filter
+    end
+
+    return filter
+
+end
+
+function GetEntitiesWithMixinForTeamWithinRange(mixinType, teamNumber, origin, range, results)
+
+    return FilterEntitiesArray(
+            Shared.GetEntitiesWithTagInRange(mixinType, origin, range, nil, results),
+            GetTeamFilter(teamNumber))
+
 end
 
 if jit.os == "Linux" then
