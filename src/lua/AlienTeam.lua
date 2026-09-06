@@ -156,10 +156,10 @@ function AlienTeam:OnResetComplete()
         end
 
         if commCystSkin then
-            self.activeEggSkin = commCystSkin
+            self.activeCystSkin = commCystSkin
             local skinnedEnts = GetEntitiesWithMixinForTeam( "CystVariant", teamIdx )
             for i, ent in ipairs(skinnedEnts) do
-                ent.eggVariant = commCystSkin
+                ent.cystVariant = commCystSkin
             end
             gameInfo:SetTeamCosmeticSlot( teamIdx, kTeamCosmeticSlot5, commCystSkin )
         end
@@ -243,12 +243,12 @@ function AlienTeam:UpdateBioMassLevel()
     self.inProgressBiomassLevel = 0
     local progress = 0
 
-    local ents = GetEntitiesForTeam("Hive", self:GetTeamNumber())
+    local hives = GetEntitiesForTeam("Hive", self:GetTeamNumber())
 	
 	local smallestResearchFraction = 1.0
 	local bioFourResearching = false
 	
-    for _, entity in ipairs(ents) do
+    for _, entity in ipairs(hives) do
 
         if entity:GetIsAlive() then
 
@@ -328,9 +328,9 @@ function AlienTeam:UpdateBioMassLevel()
 		
 		for _, player in ipairs(players) do
 			if HasMixin(player, "DoomAble") then
-				if player.doomed == false then
-					player:SetDoomed(smallestResearchFraction)
-				end
+                if not player.doomed then
+                    player:SetDoomed(smallestResearchFraction)
+                end
 			end
 		end
 	end
@@ -359,7 +359,7 @@ function AlienTeam:UpdateBioMassLevel()
 
     self.maxBioMassLevel = 0
 
-    for _, hive in ipairs(GetEntitiesForTeam("Hive", self:GetTeamNumber())) do
+    for _, hive in ipairs(hives) do
 
         if GetIsUnitActive(hive) then
             self.maxBioMassLevel = self.maxBioMassLevel + 5
@@ -374,7 +374,7 @@ function AlienTeam:GetInProgressBiomassLevel()
 end
 
 function AlienTeam:OnUpdateBiomass(oldBiomass, newBiomass)
-    if self.techtree then
+    if self.techTree then
         self.techTree:SetTechChanged()
     end
 
