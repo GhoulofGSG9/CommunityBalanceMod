@@ -85,7 +85,7 @@ local function TryNudgeFindPoint(point, dist, scans, step)
                 local bV = Vector(b - point)
                 return bV:GetLength() > aV:GetLength()
             else
-                return a
+                return a ~= nil
             end
         end)
 
@@ -463,12 +463,8 @@ function LocationGraph:InitializeGatewayDistances()
 
                 if shortestGatewayDistance then
 
-                    -- Reverse the A->B path so the B->A entry starts at its own
-                    -- enterGatePos. PointArray is an FFI type with no Insert
-                    -- method; use Pathing.InsertPoint, iterating backwards and
-                    -- always prepending at index 1.
                     local otherPath = PointArray()
-                    for i = #shortestPath, 1, -1 do
+                    for i = 1, #shortestPath do
                         Pathing.InsertPoint(otherPath, 1, shortestPath[i])
                     end
 
@@ -597,9 +593,9 @@ function LocationGraph:InitializeTechpointNaturalRTLocations()
 
         local locations = {}
 
-        for i = 1, #self.resourcePointLocations do
+        for j = 1, #self.resourcePointLocations do
 
-            local rtLocation = self.resourcePointLocations[i]
+            local rtLocation = self.resourcePointLocations[j]
 
             if rtLocation ~= techPointLocation --[[ not self.techPointLocations:Contains(rtLocation) ]] then
 
