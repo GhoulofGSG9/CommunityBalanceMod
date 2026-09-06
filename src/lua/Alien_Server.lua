@@ -236,8 +236,8 @@ function Alien:ProcessBuyAction(techIds)
                 newPlayer:SetVelocity(Vector(0, 0, 0))                
                 newPlayer:DropToFloor()
                 
-                newPlayer:SetResources(upgradeManager:GetAvailableResources())
-                newPlayer:SetGestationData(upgradeManager:GetUpgrades(), oldTechId, healthScalar, armorScalar)
+                newPlayer:SetResources(resources)
+                newPlayer:SetGestationData(upgrades, oldTechId, healthScalar, armorScalar)
                 
                 if oldLifeFormTechId and lifeFormTechId and oldLifeFormTechId ~= lifeFormTechId then
                     newPlayer.oneHive = false
