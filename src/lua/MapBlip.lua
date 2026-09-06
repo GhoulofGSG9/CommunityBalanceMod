@@ -409,7 +409,7 @@ if Client then
             local inactiveReducationFactor = 0.8
             local alphaFactor = MapBlip.kFogTransparency * (self.active and 1 or inactiveReducationFactor)
 
-            if MapBlip.kFogFadeoutEnabled and self.isPlayerBlip and self.fogExpireTime and self.fogExpireTime > 0 then
+            if MapBlip.kFogFadeoutEnabled and self.fogExpireTime and self.fogExpireTime > 0 then
                 local timeLeft = self.fogExpireTime - Shared.GetTime()
                 if timeLeft < kFogPlayerBlipFadeTime then
                     alphaFactor = alphaFactor * Clamp(timeLeft / kFogPlayerBlipFadeTime, 0, 1)

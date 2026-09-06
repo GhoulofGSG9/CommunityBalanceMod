@@ -7,7 +7,8 @@ class 'FogOfWarEntity' (ScriptActor)
 
 FogOfWarEntity.kMapName = "fogOfwarentity"
 
-kFogPlayerBlipLifetime = 10
+kFogBlipLifetime = 30
+kFogPlayerBlipLifetime = 3
 kFogPlayerBlipFadeTime = 2
 
 local networkVars =
@@ -48,7 +49,7 @@ function FogOfWarEntity:OnUpdate()
         return
     end
 
-    if self.isPlayerBlip and self.fogExpireTime and Shared.GetTime() >= self.fogExpireTime then
+    if self.fogExpireTime and Shared.GetTime() >= self.fogExpireTime then
         self:SetFogEntMapBlipInfo(false)
         return
     end
@@ -115,8 +116,9 @@ function FogOfWarEntity:SetFogEntMapBlipInfo(visible, blipType, blipTeam, isActi
        self.isPlayerBlip = isPlayerBlip
     end
 
-    if visible and self.isPlayerBlip and not wasVisible then
-        self.fogExpireTime = Shared.GetTime() + kFogPlayerBlipLifetime + kFogPlayerBlipFadeTime
+    if visible and not wasVisible then
+        local lifetime = self.isPlayerBlip and kFogPlayerBlipLifetime or kFogBlipLifetime
+        self.fogExpireTime = Shared.GetTime() + lifetime + kFogPlayerBlipFadeTime
     elseif not visible then
         self.fogExpireTime = nil
     end
