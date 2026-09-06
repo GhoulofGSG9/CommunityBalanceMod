@@ -10,7 +10,6 @@
 Script.Load("lua/Weapons/Marine/ClipWeapon.lua")
 Script.Load("lua/PickupableWeaponMixin.lua")
 Script.Load("lua/LiveMixin.lua")
---Script.Load("lua/EntityChangeMixin.lua")
 Script.Load("lua/Weapons/ClientWeaponEffectsMixin.lua")
 Script.Load("lua/RifleVariantMixin.lua")
 Script.Load("lua/FilteredCinematicMixin.lua")
@@ -23,7 +22,6 @@ Rifle.kModelName = PrecacheAsset("models/marine/rifle/rifle.model")
 local kViewModels = GenerateMarineViewModelPaths("rifle")
 
 local kRange = kRelevancyRangeCap
-
 -- 4 degrees in NS1
 local kSpread = Math.Radians(2.8)
 
@@ -31,13 +29,13 @@ local kButtRange = 1.1
 
 local kNumberOfVariants = 3
 
-local kSingleShotSounds = 
-{
-    "sound/NS2.fev/marine/rifle/fire_single", 
-    "sound/NS2.fev/marine/rifle/fire_single_2", 
-    "sound/NS2.fev/marine/rifle/fire_single_3"
-}
-for k, v in ipairs(kSingleShotSounds) do PrecacheAsset(v) end
+-- local kSingleShotSounds = 
+-- {
+--     "sound/NS2.fev/marine/rifle/fire_single", 
+--     "sound/NS2.fev/marine/rifle/fire_single_2", 
+--     "sound/NS2.fev/marine/rifle/fire_single_3"
+-- }
+-- for k, v in ipairs(kSingleShotSounds) do PrecacheAsset(v) end
 
 local kLoopingSounds = 
 {
@@ -171,7 +169,6 @@ function Rifle:OnCreate()
     ClipWeapon.OnCreate(self)
     
     InitMixin(self, PickupableWeaponMixin)
-    --InitMixin(self, EntityChangeMixin)
     InitMixin(self, LiveMixin)
     InitMixin(self, RifleVariantMixin)
     
@@ -223,8 +220,9 @@ local function UpdateSoundType(self, player)
     self.soundType = self.soundVariant + ( upgradeLevel * kNumberOfVariants )
 end
 
+local kPickupOriginOffset = Vector(0.08637750148773193, 0.0058140382170677185, -0.13895681500434875)
 function Rifle:GetPickupOrigin()
-    return self:GetCoords():TransformPoint(Vector(0.08637750148773193, 0.0058140382170677185, -0.13895681500434875))
+    return self:GetCoords():TransformPoint(kPickupOriginOffset)
 end
 
 function Rifle:OnPrimaryAttack(player)
