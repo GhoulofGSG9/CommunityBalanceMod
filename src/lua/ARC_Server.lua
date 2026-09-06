@@ -21,6 +21,8 @@ end
 
 function ARC:UpdateMoveOrder(deltaTime)
 
+    PROFILE("ARC:UpdateMoveOrder")
+
     local currentOrder = self:GetCurrentOrder()
     ASSERT(currentOrder)
 
@@ -66,6 +68,8 @@ ARC.kTrackNoSpeedAngle = math.rad(20)
 
 function ARC:SmoothTurnOverride(time, direction, movespeed)
 
+    PROFILE("ARC:SmoothTurnOverride")
+
     local dirYaw = GetYawFromVector(direction)
     local myYaw = self:GetAngles().yaw
     local trackYaw = self:GetDeltaYaw(myYaw,dirYaw)
@@ -88,8 +92,7 @@ function ARC:TrackTrace(origin, coords, offsets)
 
     local zOffset, xOffset = offsets[1], offsets[2]
     local pos = origin + coords.zAxis * zOffset + coords.xAxis * xOffset + Vector.yAxis
-    -- TODO: change to EntityFilterOne(self)
-    local trace = Shared.TraceRay(pos,pos - Vector.yAxis * 2, CollisionRep.Move, PhysicsMask.Movement,  EntityFilterAll())
+    local trace = Shared.TraceRay(pos, pos - Vector.yAxis * 2, CollisionRep.Move, PhysicsMask.Movement, EntityFilterOne(self))
 
     return trace.endPoint
     
@@ -99,12 +102,15 @@ local kAngleSmoothSpeed = 0.8
 local kTrackPitchSmoothSpeed = 30 -- radians
 function ARC:UpdateSmoothAngles(deltaTime)
 
+    PROFILE("ARC:UpdateSmoothAngles")
+
     local angles = self:GetAngles()
     
-    angles.pitch = Slerp(angles.pitch, self.desiredPitch, kAngleSmoothSpeed * deltaTime)
-    angles.roll = Slerp(angles.roll, self.desiredRoll, kAngleSmoothSpeed * deltaTime)
-    
-    self:SetAngles(angles)
+    if angles.pitch ~= self.desiredPitch or angles.roll ~= self.desiredRoll then
+        angles.pitch = Slerp(angles.pitch, self.desiredPitch, kAngleSmoothSpeed * deltaTime)
+        angles.roll = Slerp(angles.roll, self.desiredRoll, kAngleSmoothSpeed * deltaTime)
+        self:SetAngles(angles)
+    end
     
     self.forwardTrackPitchDegrees = Slerp(self.forwardTrackPitchDegrees, self.desiredForwardTrackPitchDegrees, kTrackPitchSmoothSpeed * deltaTime)
 
@@ -112,14 +118,28 @@ end
 
 function ARC:AdjustPitchAndRoll()
 
+    PROFILE("ARC:AdjustPitchAndRoll")
+
     -- adjust our pitch. If we are moving, we trace below our front and rear wheels and set the pitch from there
     if self:GetCoords() ~= self.lastPitchCoords then
     
-        self.lastPitchCoords = Coords(self:GetCoords())
         local origin = self:GetOrigin()
-        local coords = self:GetCoords()
         local angles = self:GetAngles()
+
+        -- Only re-trace when the ARC has actually moved or turned meaningfully.
+        local needsUpdate = not self.lastPitchOrigin
+            or (origin - self.lastPitchOrigin):GetLengthSqr() > 0.01
+            or math.abs(GetAnglesDifference(angles.yaw, self.lastPitchYaw)) > 0.05
+
         
+    
+        if not needsUpdate then    
+            return
+        end
+    
+        local coords = self:GetCoords()
+        self.lastPitchCoords = Coords(coords)
+
         -- first, do the roll
         -- the roll is based on the rear wheels only, as the model seems heavier in the back
         
@@ -184,6 +204,8 @@ function ARC:UpdateTargetingPosition()
 end
 
 function ARC:UpdateOrders(deltaTime)
+
+    PROFILE("ARC:UpdateOrders")
 
     -- If deployed, check for targets.
     local currentOrder = self:GetCurrentOrder()
@@ -281,7 +303,8 @@ function ARC:PerformAttack()
         -- don't pass triggering entity so the sound / cinematic will always be relevant for everyone
         GetEffectManager():TriggerEffects("arc_hit_primary", {effecthostcoords = Coords.GetTranslation(self.targetPosition)})
         
-        local hitEntities = GetEntitiesWithMixinWithinRange("Maturity", self.targetPosition, ARC.kSplashRadius)
+        local enemyTeam = GetEnemyTeamNumber(self:GetTeamNumber())
+        local hitEntities = GetEntitiesWithMixinForTeamWithinRange("Maturity", enemyTeam, self.targetPosition, ARC.kSplashRadius)
 
         -- Do damage to every target in range
         RadiusDamage(hitEntities, self.targetPosition, ARC.kSplashRadius, ARC.kAttackDamage, self, true, nil, false)
