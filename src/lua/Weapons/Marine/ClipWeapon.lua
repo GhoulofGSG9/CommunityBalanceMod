@@ -20,7 +20,6 @@ class 'ClipWeapon' (Weapon)
 
 local kBulletSize = 0.018
 
-local idleTime = 0
 local animFrequency = 10 --Amount of time between idle animations
 
 local math_pi = math.pi
@@ -113,6 +112,8 @@ function ClipWeapon:OnCreate()
 
     Weapon.OnCreate(self)
     
+    self.idleTime = Shared.GetTime()
+
     self.primaryAttacking = false
     self.secondaryAttacking = false
     self.timeAttackFired = 0
@@ -128,8 +129,6 @@ function ClipWeapon:OnCreate()
     self.ammo = self:GetMaxClips() * self:GetClipSize()
     self.clip = self:GetClipSize()
     self.reloading = false
-
-    ClipWeapon_randomizer_init()
     
 end
 
@@ -138,10 +137,7 @@ local function CancelReload(self)
     if self:GetIsReloading() then
     
         self.reloading = false
-        if Client then
-            self:TriggerEffects("reload_cancel")
-        end
-        if Server then
+        if Server or Client then
             self:TriggerEffects("reload_cancel")
         end
     end
@@ -463,28 +459,12 @@ function ClipWeapon:CalculateSpread(directionCoords, player, spreadAmount)
     PROFILE("ClipWeapon_CalculateSpread")
 
     local spreadAngle = spreadAmount / 2
-    
     local rand1, cos, sin = ClipWeapon_randomizer(self)
     local rand2 = ClipWeapon_randomizer(self)
 
-    local prevRandomRadiusCached = (player.kClipWeaponLastSpreadAngle and player.kClipWeaponLastSpreadAngle == spreadAngle)
-    local spreadAngleTan = (prevRandomRadiusCached and player.kClipWeaponLastSpreadAngleTan or math_tan(spreadAngle))
-    if (not prevRandomRadiusCached) then
-        --Log("SETTING - cached:%s / LastSpreadAngle:%s / spreadAngle:%s / player.kClipWeaponLastSpreadAngle:%s",
-        --    prevRandomRadiusCached, player.kClipWeaponLastSpreadAngle , spreadAngle, player.kClipWeaponLastSpreadAngle)
-        player.kClipWeaponLastSpreadAngle = spreadAngle
-        player.kClipWeaponLastSpreadAngleTan = spreadAngleTan
-    else
-        --Log("GOOD - cached:%s / LastSpreadAngle:%s / spreadAngle:%s / player.kClipWeaponLastSpreadAngle:%s",
-        --    prevRandomRadiusCached, player.kClipWeaponLastSpreadAngle , spreadAngle, player.kClipWeaponLastSpreadAngle)
-    end
-
-    local randomAngle = rand1 * math_pi * 2
-    local randomRadius = rand2 * spreadAngleTan
-    
     local spreadDirection = directionCoords.zAxis +
                             (directionCoords.xAxis * cos +
-                             directionCoords.yAxis * sin) * randomRadius
+                             directionCoords.yAxis * sin) * (rand2 * math_tan(spreadAngle))
     
     spreadDirection:Normalize()
     
@@ -620,7 +600,7 @@ function ClipWeapon:OnDraw(player, previousWeaponMapName)
     -- Attach weapon to parent's hand
     self:SetAttachPoint(Weapon.kHumanAttachPoint)
     
-    idleTime = Shared.GetTime()
+    self.idleTime = Shared.GetTime()
 end
 
 function ClipWeapon:OnHolster(player)
@@ -722,9 +702,9 @@ function ClipWeapon:OnUpdateAnimationInput(modelMixin)
         end
         
         if player:GetIsIdle() then
-            local totalTime = math.round(Shared.GetTime() - idleTime)
+            local totalTime = math.round(Shared.GetTime() - self.idleTime)
             if totalTime >= animFrequency*3 then
-                idleTime = Shared.GetTime()
+                self.idleTime = Shared.GetTime()
             elseif totalTime >= animFrequency*2 then
                 modelMixin:SetAnimationInput("idleName", self:GetIdleAnimations(3))
             elseif totalTime >= animFrequency then
@@ -734,7 +714,7 @@ function ClipWeapon:OnUpdateAnimationInput(modelMixin)
             end
             
         else
-            idleTime = Shared.GetTime()
+            self.idleTime = Shared.GetTime()
             modelMixin:SetAnimationInput("idleName", "idle")
         end
     
