@@ -35,8 +35,8 @@ function Hive:OnResearchComplete(researchId)
 
         self.bioMassLevel = math.min(6, self.bioMassLevel + 1)
         self:GetTeam():GetTechTree():SetTechChanged()
-		self:UpdateMaturity(true)
-		
+        self:UpdateMaturity(true)
+        
         success = true
 
     elseif researchId == kTechId.UpgradeToCragHive then
@@ -58,22 +58,22 @@ function Hive:OnResearchComplete(researchId)
         hiveTypeChosen = true
 
     end
-	
-	if researchId == kTechId.ResearchBioMassFour then
-		local team = self:GetTeam()
-		local enemyTeamNumber = GetEnemyTeamNumber(team:GetTeamNumber())
-		local enemyTeam = GetGamerules():GetTeam(enemyTeamNumber)
-		local teamCommander = team:GetCommander()
-		local teamEnemyCommander = enemyTeam:GetCommander()
+    
+    if researchId == kTechId.ResearchBioMassFour then
+        local team = self:GetTeam()
+        local enemyTeamNumber = GetEnemyTeamNumber(team:GetTeamNumber())
+        local enemyTeam = GetGamerules():GetTeam(enemyTeamNumber)
+        local teamCommander = team:GetCommander()
+        local teamEnemyCommander = enemyTeam:GetCommander()
 
-		team:PlayPrivateTeamSound(kBio5Sound, nil, false, teamCommander, true) --For Aliens
-		team:PlayPrivateTeamSound(kBio5Sound, nil, true) --For Alien Khamm only
-		
-		if enemyTeam ~= nil then
-			enemyTeam:PlayPrivateTeamSound(kBio5Sound, nil, false, teamEnemyCommander, true) --For Marines
-			enemyTeam:PlayPrivateTeamSound(kBio5Sound, nil, true) --For Marine Commander only
-		end
-	end
+        team:PlayPrivateTeamSound(kBio5Sound, nil, false, teamCommander, true) --For Aliens
+        team:PlayPrivateTeamSound(kBio5Sound, nil, true) --For Alien Khamm only
+        
+        if enemyTeam ~= nil then
+            enemyTeam:PlayPrivateTeamSound(kBio5Sound, nil, false, teamEnemyCommander, true) --For Marines
+            enemyTeam:PlayPrivateTeamSound(kBio5Sound, nil, true) --For Marine Commander only
+        end
+    end
 
     if success and hiveTypeChosen then
 
@@ -104,7 +104,7 @@ function Hive:UpdateResearch()
         techTree:SetTechNodeChanged(researchNode, string.format("researchProgress = %.2f", self.researchProgress))
 
     end
-	
+    
     if researchId == kTechId.ResearchBioMassOne or researchId == kTechId.ResearchBioMassTwo
         or researchId == kTechId.ResearchBioMassThree or researchId == kTechId.ResearchBioMassFour then
         self.biomassResearchFraction = self:GetResearchProgress()
@@ -199,11 +199,11 @@ local function UpdateHealing(self)
 
                     if ent:GetIsAlive() and ((ent:GetOrigin() - self:GetOrigin()):GetLength() < Hive.kHealRadius) then
                         -- min healing, affects skulk only
-						if self.electrified then
-							ent:AddHealth(math.max(7.5, ent:GetMaxHealth() * Hive.kHealthPercentage * 0.75), true, false, false, self)
-						else
-							ent:AddHealth(math.max(10, ent:GetMaxHealth() * Hive.kHealthPercentage), true, false, false, self)
-						end
+                        if self.electrified then
+                            ent:AddHealth(math.max(7.5, ent:GetMaxHealth() * Hive.kHealthPercentage * 0.75), true, false, false, self)
+                        else
+                            ent:AddHealth(math.max(10, ent:GetMaxHealth() * Hive.kHealthPercentage), true, false, false, self)
+                        end
                     end
 
                 end
@@ -450,18 +450,18 @@ function Hive:OnUpdate(deltaTime)
 
     PROFILE("Hive:OnUpdate")
 
-	self.electrified = self.timeElectrifyEnds > Shared.GetTime()
+    self.electrified = self.timeElectrifyEnds > Shared.GetTime()
 
     CommandStructure.OnUpdate(self, deltaTime)
 
-	UpdateHealing(self)
+    UpdateHealing(self)
 
     FireImpulses(self)
 
     CheckLowHealth(self)
 
     if not self:GetIsAlive() then
-	
+    
 
         local destructionAllowedTable = { allowed = true }
         if self.GetDestructionAllowed then
