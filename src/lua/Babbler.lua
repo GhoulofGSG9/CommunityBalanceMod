@@ -25,15 +25,6 @@ Script.Load("lua/GameEffectsMixin.lua")
 kBabblerMoveTypeStr = { 'None', 'Move', 'Cling', 'Attack', 'Wag' }
 kBabblerMoveType = enum(kBabblerMoveTypeStr)
 
-- Massive rework of babbler code
-- Adding many variations in behavior
-- Made idle move more natural and alien like (vs robotic)
-- Make babblers go see each others, etc
-- Makes babblers not overlap with each others
-- Fixed relevancy for babblers on web
-- Extracted magic numbers to allow tuning
-- Removed spin on web, too many issues with m_angles
-
 class 'Babbler' (ScriptActor)
 
 Babbler.kMapName = "babbler"
