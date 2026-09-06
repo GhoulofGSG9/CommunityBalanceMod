@@ -438,26 +438,47 @@ function LocationGraph:InitializeGatewayDistances()
 
                         local pathPoints = PointArray()
                         local reachable = Pathing.GetPathPoints(startGatewayPos, destGatewayPos, pathPoints)
-                        assert(reachable, "Path was not reachable!")
 
-                        local pathDist = GetPointDistance(pathPoints)
-                        if not shortestGatewayDistance or pathDist < shortestGatewayDistance then
-                            shortestGatewayDistance = pathDist
-                            shortestEnterPos = startGatewayPos
-                            shortestExitPos = destGatewayPos
-                            shortestPath = pathPoints
+                        -- Two locations can be mutually adjacent in the gateway
+                        -- graph while a specific gateway pair is not pathable
+                        -- (navmesh gaps, floor-separated levels, one-way routes).
+                        -- Treat as "no candidate" rather than fatal.
+                        if reachable then
+
+                            local pathDist = GetPointDistance(pathPoints)
+                            if not shortestGatewayDistance or pathDist < shortestGatewayDistance then
+                                shortestGatewayDistance = pathDist
+                                shortestEnterPos = startGatewayPos
+                                shortestExitPos = destGatewayPos
+                                shortestPath = pathPoints
+                            end
+
+                        else
+                            Log("Error: LocationGraph: no path between gateway %s and %s (locations '%s' -> '%s')",
+                                ToString(startGatewayPos), ToString(destGatewayPos), locationName, destLocationName)
                         end
 
                     end
                 end
 
                 if shortestGatewayDistance then
+
+                    -- Reverse the A->B path so the B->A entry starts at its own
+                    -- enterGatePos. PointArray is an FFI type with no Insert
+                    -- method; use Pathing.InsertPoint, iterating backwards and
+                    -- always prepending at index 1.
+                    local otherPath = PointArray()
+                    for i = #shortestPath, 1, -1 do
+                        Pathing.InsertPoint(otherPath, 1, shortestPath[i])
+                    end
+
                     local resultTable = { distance = shortestGatewayDistance, enterGatePos = shortestEnterPos, exitGatePos = shortestExitPos, path = shortestPath }
-                    local otherResultTable = { distance = shortestGatewayDistance, enterGatePos = shortestExitPos, exitGatePos = shortestEnterPos, path = shortestPath }
+                    local otherResultTable = { distance = shortestGatewayDistance, enterGatePos = shortestExitPos, exitGatePos = shortestEnterPos, path = otherPath }
                     self.locationGatewayDistances[gatewayDistKey] = resultTable
                     self.locationGatewayDistances[otherGatewayDistKey] = otherResultTable
                     processed:Add(gatewayDistKey)
                     processed:Add(otherGatewayDistKey)
+
                 end
 
             end
