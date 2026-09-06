@@ -191,22 +191,24 @@ local function UpdateHealing(self)
 
         if not self:GetIsOnFire() and GetIsUnitActive(self) then
 
-            for _, ent in ipairs(GetEntitiesForTeam("Player", self:GetTeamNumber())) do
-                if ent:GetIsAlive() and (ent:GetOrigin() - self:GetOrigin()):GetLength() < Hive.kHealRadius then
-                    if self.electrified then
-                        ent:AddHealth(math.max(7.5, ent:GetMaxHealth() * Hive.kHealthPercentage * 0.75), true, false, false, self)
-                    else
-                        ent:AddHealth(math.max(10, ent:GetMaxHealth() * Hive.kHealthPercentage), true, false, false, self)
+            -- Heal players and egg, so we can't spot an embryo (evolving alien) easily by shooting
+            -- an egg and check for the hive regen to apply.
+            local healedEntitiesName = {"Player", "Egg"}
+            for _, healedEntityName in ipairs(healedEntitiesName) do
+                for index, ent in ipairs(GetEntitiesForTeam(healedEntityName, self:GetTeamNumber())) do
+
+                    if ent:GetIsAlive() and ((ent:GetOrigin() - self:GetOrigin()):GetLength() < Hive.kHealRadius) then
+                        -- min healing, affects skulk only
+						if self.electrified then
+							ent:AddHealth(math.max(7.5, ent:GetMaxHealth() * Hive.kHealthPercentage * 0.75), true, false, false, self)
+						else
+							ent:AddHealth(math.max(10, ent:GetMaxHealth() * Hive.kHealthPercentage), true, false, false, self)
+						end
                     end
-                end
-            end
 
-            for _, ent in ipairs(GetEntitiesForTeam("Egg", self:GetTeamNumber())) do
-                if ent:GetIsAlive() and (ent:GetOrigin() - self:GetOrigin()):GetLength() < Hive.kHealRadius then
-                    ent:AddHealth(math.max(10, ent:GetMaxHealth() * Hive.kHealthPercentage), true, false, false, self)
                 end
-            end
 
+            end
         end
 
     end
