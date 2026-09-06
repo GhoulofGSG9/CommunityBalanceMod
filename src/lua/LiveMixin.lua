@@ -8,9 +8,6 @@
 
 Script.Load("lua/BalanceHealth.lua")
 
--- forces predicted health/armor to update after 1 second
-local kSynchronizeDelay = 1
-
 LiveMixin = CreateMixin(LiveMixin)
 LiveMixin.type = "Live"
 
@@ -89,7 +86,7 @@ function LiveMixin:__initmixin()
         self.health = LookupTechData(self:GetTechId(), kTechDataMaxHealth, 100)
         self:SetMaxHealth(self.health)
         assert(self.health ~= nil)
-        assert(self.maxHealth < LiveMixin.kMaxHealth)
+        assert(self.maxHealth <= LiveMixin.kMaxHealth)
 
         self.timeLastVisuallyHealed = 0
         self.timeLastHealed = 0
@@ -99,7 +96,7 @@ function LiveMixin:__initmixin()
         self.armor = LookupTechData(self:GetTechId(), kTechDataMaxArmor, 0)
         assert(self.armor ~= nil)
         self.maxArmor = self.armor
-        assert(self.maxArmor < LiveMixin.kMaxArmor)
+        assert(self.maxArmor <= LiveMixin.kMaxArmor)
 
     elseif Client then
 
@@ -126,25 +123,25 @@ function LiveMixin:GetIgnoreHealth()
     return self.healthIgnored
 end
 
--- Returns text and 0-1 scalar for health bar on commander HUD when selected.
-function LiveMixin:GetHealthDescription()
+-- -- Returns text and 0-1 scalar for health bar on commander HUD when selected.
+-- function LiveMixin:GetHealthDescription()
 
-    local armorString = ""
+--     local armorString = ""
 
-    local armor = self:GetArmor()
-    local maxArmor = self:GetMaxArmor()
+--     local armor = self:GetArmor()
+--     local maxArmor = self:GetMaxArmor()
 
-    if armor and maxArmor and armor > 0 and maxArmor > 0 then
-        armorString = string.format("Armor %s/%s", ToString(math.ceil(armor)), ToString(maxArmor))
-    end
+--     if armor and maxArmor and armor > 0 and maxArmor > 0 then
+--         armorString = string.format("Armor %s/%s", ToString(math.ceil(armor)), ToString(maxArmor))
+--     end
 
-    if self.healthIgnored then
-        return armorString, self:GetArmorScalar()
-    else
-        return string.format("Health  %s/%s  %s", ToString(math.ceil(self:GetHealth())), ToString(math.ceil(self:GetMaxHealth())), armorString), self:GetHealthScalar()
-    end
+--     if self.healthIgnored then
+--         return armorString, self:GetArmorScalar()
+--     else
+--         return string.format("Health  %s/%s  %s", ToString(math.ceil(self:GetHealth())), ToString(math.ceil(self:GetMaxHealth())), armorString), self:GetHealthScalar()
+--     end
 
-end
+-- end
 
 function LiveMixin:GetHealthFraction()
 
@@ -343,9 +340,16 @@ function LiveMixin:TakeDamage(damage, attacker, doer, point, direction, armorUse
     -- Use AddHealth to give health.
     assert(damage >= 0)
 
+    if damage == 0 then
+        return false, 0
+    end
+
     local killedFromDamage = false
     local oldHealth = self:GetHealth()
     local oldArmor = self:GetArmor()
+
+    armorUsed = armorUsed or 0
+    healthUsed = healthUsed or damage
 
     if self.OnTakeDamage then
         self:OnTakeDamage(damage, attacker, doer, point, direction, damageType, preventAlert)
@@ -366,7 +370,10 @@ function LiveMixin:TakeDamage(damage, attacker, doer, point, direction, armorUse
             className = self:GetClassName()
 
             if className == "Hive" then
-                biomassLevel = self:GetTeam():GetBioMassLevel()-self:GetBioMassLevel()
+                local team = self:GetTeam()
+                if team then
+                    biomassLevel = team:GetBioMassLevel() - self:GetBioMassLevel()
+                end
             end
         end
 
@@ -399,7 +406,11 @@ function LiveMixin:TakeDamage(damage, attacker, doer, point, direction, armorUse
 
         end
 
-        local damageDone = (oldHealth - newHealth) + ((oldArmor - newArmor) * 2)
+        local damageDone = (oldHealth - newHealth) + ((oldArmor - newArmor) * kHealthPointsPerArmor)
+
+        if damageDone <= 0 and not killedFromDamage then
+            return killedFromDamage, damageDone
+        end
 
         local targetTeam = self:GetTeamNumber()
 
@@ -621,6 +632,10 @@ function LiveMixin:ClampHealing( healAmount, healer )
     self.healHistory.healingReceived = self.healHistory.healingReceived + healAmount
     self.healHistory.lastUpdate = now
 
+    if self.healHistory.healingReceived <= 0 and timeDiff > kHealingClampInterval then
+        self.healHistory = nil
+    end
+
     return healAmount
 
     
@@ -781,53 +796,7 @@ function LiveMixin:OnUpdateAnimationInput(modelMixin)
 
 end
 
-if Server then
-
---[[
-    local function UpdateHealerTable(self)
-
-        local cleanupIds = unique_set()
-        local numHealers = 0
-
-        local now = Shared.GetTime()
-        for entityId, timeExpired in pairs(self.healerTable) do
-
-            if timeExpired <= now then
-                cleanupIds:Insert(entityId)
-            else
-                numHealers = numHealers + 1
-            end
-
-        end
-
-        for _, cleanupId in ipairs(cleanupIds:GetList()) do
-            self.healerTable[cleanupId] = nil
-        end
-
-        return numHealers
-
-    end
-
-    --Currently deprecated. Before usage please refactor UpdateHealerTable to not use pairs if still NYI
-    function LiveMixin:RegisterHealer(healer, expireTime)
-
-        if not self.healerTable then
-            self.healerTable = {}
-        end
-
-        local numHealers = UpdateHealerTable(self)
-
-        if numHealers >= 3 then
-            return false
-        else
-            self.healerTable[healer:GetId()] = expireTime
-            return true
-        end
-
-    end
---]]
-
-elseif Client then
+if Client then
 
     local function OnKillClientChildren(self)
 
@@ -914,12 +883,7 @@ function LiveMixin:UpdateHealthValues(newTechId)
 
     elseif prevMaxHealth ~= newMaxHealth and prevMaxHealth > 0 and newMaxHealth > 0 then
 
-        -- Calculate percentage of max health and preserve it
-        local percent = self.health / prevMaxHealth
-        self.health = newMaxHealth * percent
-
-        -- Set new max health
-        self:SetMaxHealth(newMaxHealth)
+        self:AdjustMaxHealth(newMaxHealth)
 
     end
 
@@ -1027,13 +991,3 @@ function LiveMixin:OnUpdateRender()
     end
 
 end
-
---[[
-function LiveMixin:OnEntityChange(oldId, newId)
-
-    if self.healerTable and self.healerTable[oldId] then
-        self.healerTable[oldId] = nil
-    end
-
-end
---]]
