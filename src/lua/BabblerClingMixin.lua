@@ -64,7 +64,7 @@ end
 
 function BabblerClingMixin:GetCanAttachBabbler()
     local numClingedBabbler = self:GetNumClingedBabblers()
-    local numAttachPoints = #kBabblerAttachPoints
+    local numAttachPoints = self:GetMaxClingedBabblers()
 
     return (not self:isa("Hallucination") and not self.isHallucination and numClingedBabbler < numAttachPoints)
 end
