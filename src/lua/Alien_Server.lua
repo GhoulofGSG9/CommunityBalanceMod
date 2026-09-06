@@ -59,22 +59,12 @@ function Alien:OnProcessMove(input)
 	end
 end
 
--- deprecated (silence got removed)
-function Alien:UpdateSilenceLevel()
-
-    if GetHasSilenceUpgrade(self) then
-        self.silenceLevel = self:GetSpurLevel()
-    else
-        self.silenceLevel = 0
-    end
-
-end
-
 function Alien:UpdateAutoHeal()
 
     PROFILE("Alien:UpdateAutoHeal")
 
-    if ( not self.timeLastAlienAutoHeal or self.timeLastAlienAutoHeal + kAlienRegenerationTime <= Shared.GetTime() ) and self:GetIsHealable() then
+    local now = Shared.GetTime()
+    if ( not self.timeLastAlienAutoHeal or self.timeLastAlienAutoHeal + kAlienRegenerationTime <= now ) and self:GetIsHealable() then
 
         local healRate = 1
         local shellLevel = self:GetShellLevel()
@@ -96,7 +86,7 @@ function Alien:UpdateAutoHeal()
         end
 
         self:AddHealth(healRate, false, false, not hasRegenUpgrade, self, true)
-        self.timeLastAlienAutoHeal = Shared.GetTime()
+        self.timeLastAlienAutoHeal = now
     
     end 
 
@@ -224,13 +214,19 @@ function Alien:ProcessBuyAction(techIds)
             
             if evolveAllowed and roomAfter ~= nil then
 
-                local oldLifeFormTechId = self:GetTechId()
+                local oldTechId = self:GetTechId()
+                local healthScalar = self:GetHealthScalar()
+                local armorScalar = self:GetArmorScalar()
+                local viewAngles = Angles(self:GetViewAngles())
+                local resources = upgradeManager:GetAvailableResources()
+                local upgrades = upgradeManager:GetUpgrades()
+
                 local newPlayer = self:Replace(Embryo.kMapName)
                 position.y = position.y + Embryo.kEvolveSpawnOffset
                 newPlayer:SetOrigin(position)
                 
                 -- Clear angles, in case we were wall-walking or doing some crazy alien thing
-                local angles = Angles(self:GetViewAngles())
+                local angles = viewAngles
                 angles.roll = 0.0
                 angles.pitch = 0.0
                 newPlayer:SetOriginalAngles(angles)
@@ -241,7 +237,7 @@ function Alien:ProcessBuyAction(techIds)
                 newPlayer:DropToFloor()
                 
                 newPlayer:SetResources(upgradeManager:GetAvailableResources())
-                newPlayer:SetGestationData(upgradeManager:GetUpgrades(), self:GetTechId(), self:GetHealthScalar(), self:GetArmorScalar())
+                newPlayer:SetGestationData(upgradeManager:GetUpgrades(), oldTechId, healthScalar, armorScalar)
                 
                 if oldLifeFormTechId and lifeFormTechId and oldLifeFormTechId ~= lifeFormTechId then
                     newPlayer.oneHive = false
