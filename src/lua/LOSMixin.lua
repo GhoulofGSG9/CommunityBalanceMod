@@ -92,6 +92,8 @@ function LOSMixin:__initmixin()
         self.timeLastLOSDirty = 0
         self.prevLOSorigin = Vector(0,0,0)
     
+        self.losUpdateInterval = self:isa("Player") and 0.2 or 0.4
+
         self:SetIsSighted(false)
         UpdateLOS(self)
         self.oldSighted = true
@@ -115,7 +117,7 @@ end
 -- Remainder is server only.
 if Server then
 
-    local kHitRayLongRangeWeapons = {
+    local kHitRequiresLOSWeapons = {
         -- Marines
         [kTechId.Axe] = true,
         [kTechId.Welder] = true,
@@ -127,25 +129,25 @@ if Server then
         [kTechId.Minigun] = true,
         [kTechId.Railgun] = true,
         [kTechId.Claw] = true,
-        
+
         -- Aliens
         [kTechId.Spikes] = true,
         [kTechId.Parasite] = true,
-        --[kTechId.Spit] = true -- Is a projectile, not an instant hit (could be out of LoS when it hits)
 
         -- Aliens melee
         [kTechId.Bite] = true,
         [kTechId.LerkBite] = true,
         [kTechId.Swipe] = true,
         [kTechId.Stab] = true,
-        [kTechId.Gore] = true,        
+        [kTechId.Gore] = true,
     }
+
     -- If we damaged an enemy with a weapon that requires us to have direct LOS
     -- then assume target is visible anyway.
     function LOSMixin:OnTakeDamage(_, attacker, doer)
         local weaponTechId = doer and doer.GetTechId and doer:GetTechId()
 
-        if attacker and weaponTechId and kHitRayLongRangeWeapons[weaponTechId] then
+        if attacker and weaponTechId and kHitRequiresLOSWeapons[weaponTechId] then
             local range = attacker:GetOrigin():GetDistanceTo(self:GetOrigin())
             if range <= kUnitMaxLOSDistance then
                 attacker.timeLastHit = Shared.GetTime()
@@ -264,13 +266,20 @@ if Server then
         end
         
         -- Check if this entity is beyond our vision radius.
-        local maxDist = (HasMixin(entity, "Cloakable") and entity:GetIsCloaked()) and entity:GetInvisibleRange() or viewer:GetVisionRadius()
-        local dist = (entity:GetOrigin() - viewer:GetOrigin()):GetLengthSquared()
-        if dist > (maxDist * maxDist) then      --FIXME This should be a per-instance constant (i.e. computed at MixinInit time)
+        local maxDist = (HasMixin(entity, "Cloakable") and entity:GetIsCloaked())
+                and entity:GetInvisibleRange() or viewer.cachedVisionRadius or viewer:GetVisionRadius()
+
+        -- allocation-free squared distance, this is the hottest path in the mixin
+        local eo, vo = entity:GetOrigin(), viewer:GetOrigin()
+        local dx = eo.x - vo.x
+        local dy = eo.y - vo.y
+        local dz = eo.z - vo.z
+        local dist = dx * dx + dy * dy + dz * dz
+
+        if dist > (maxDist * maxDist) then
             return false
         end
-        
-        -- If close enough to a non player entity, we see it no matter what.
+
         if not entity:isa("Player") and dist < (kUnitMinLOSDistance * kUnitMinLOSDistance) then
             return true
         end
@@ -281,6 +290,14 @@ if Server then
         local skipTrace = entity.timeLastSightedWithTrace and entity.timeLastSightedWithTrace + skipDuration > now
         local rval = GetCanSeeEntity(viewer, entity, nil, nil, skipTrace)
 
+        if not rval and not skipTrace then
+            local eyeViewer = GetEntityEyePos(viewer)
+            local eyeTarget = GetEntityEyePos(entity)
+            local filter = EntityFilterTwo(viewer, entity)
+            local trace = Shared.TraceRay(eyeViewer, eyeTarget, CollisionRep.LOS, PhysicsMask.All, filter)
+            rval = trace.endPoint:GetDistanceTo(eyeTarget) < 0.5
+        end
+
         if rval and not skipTrace then
             entity.timeLastSightedWithTrace = now
             VectorCopy(entity:GetOrigin(), entity.origLastSightedWithTrace)
@@ -289,6 +306,7 @@ if Server then
         
     end
     
+    local kLosScratch = table.array(32)  -- reused query results, LOS is not reentrant
     local function LookForEnemies(self)
     
         PROFILE("LOSMixin:LookForEnemies")
@@ -298,11 +316,15 @@ if Server then
         end
         
         local now = Shared.GetTime()
-        local entities = Shared.GetEntitiesWithTagInRange("LOS", self:GetOrigin(), self:GetVisionRadius())
+        local radius = self.cachedVisionRadius or self:GetVisionRadius()
+
+        -- clear both sides: the engine writes 1..count and leaves stale
+        -- tail entries in a reused table untouched
+        table.clear(kLosScratch)
+        Shared.GetEntitiesWithTagInRange("LOS", self:GetOrigin(), radius, nil, kLosScratch)
         
-        for e = 1, #entities do
-        
-            local otherEntity = entities[e]
+        for e = 1, #kLosScratch do
+            local otherEntity = kLosScratch[e]
             
             if not otherEntity.sighted then
             
@@ -315,6 +337,8 @@ if Server then
             end
             
         end
+        
+        table.clear(kLosScratch)
         
     end
     
@@ -333,34 +357,55 @@ if Server then
         end
         
         local lastViewer = self:GetLastViewer()
-        
+
         if not seen and lastViewer then
-        
-            -- prevents flickering, ARCs for example would lose their target
-            seen = GetCanSee(lastViewer, self)
-            
+
+            local viewerAlive = not HasMixin(lastViewer, "Live") or lastViewer:GetIsAlive()
+            local viewerRadius = lastViewer.GetVisionRadius and lastViewer:GetVisionRadius() or kUnitMinLOSDistance
+            local inRange = (lastViewer:GetOrigin() - self:GetOrigin()):GetLengthSquared()
+                    <= viewerRadius * viewerRadius
+
+            if viewerAlive and inRange then
+                -- prevents flickering, ARCs for example would lose their target
+                seen = GetCanSee(lastViewer, self)
+            end
+
         end
         
         self:SetIsSighted(seen, lastViewer)
         
     end
     
+    local kDirtyScratch = table.array(16)
     local function MarkNearbyDirty(self)
     
         self.updateLOS = true
-        
-        for _, entity in ipairs(GetEntitiesWithMixinForTeamWithinRange("LOS", GetEnemyTeamNumber(self:GetTeamNumber()), self:GetOrigin(), kUnitLOSDirtyDistance)) do
-            entity.updateLOS = true
+        self.cachedVisionRadius = self:GetVisionRadius()
+
+        table.clear(kDirtyScratch)
+        GetEntitiesWithMixinForTeamWithinRange("LOS", GetEnemyTeamNumber(self:GetTeamNumber()),
+                self:GetOrigin(), kUnitLOSDirtyDistance, kDirtyScratch)
+
+        for i = 1, #kDirtyScratch do
+            kDirtyScratch[i].updateLOS = true
         end
-        
+
     end
     
     local function SharedUpdate(self)
     
         PROFILE("LOSMixin:SharedUpdate")
         
+        local teamNumber = self:GetTeamNumber()
+        if teamNumber ~= kTeam1Index and teamNumber ~= kTeam2Index then
+            -- ready-room / spectators: nobody can sight us, we sight nobody
+            return
+        end
+
         local now = Shared.GetTime()
-        if self.dirtyLOS and self.timeLastLOSDirty + 0.2 < now then
+        local interval = self.losUpdateInterval
+
+        if self.dirtyLOS and self.timeLastLOSDirty + interval < now then
         
             MarkNearbyDirty(self)
             self.dirtyLOS = false
@@ -368,7 +413,7 @@ if Server then
             
         end
         
-        if self.updateLOS and self.timeLastLOSUpdate + 0.2 < now then
+        if self.updateLOS and self.timeLastLOSUpdate + interval < now then
         
             UpdateSelfSighted(self)
             LookForEnemies(self)
