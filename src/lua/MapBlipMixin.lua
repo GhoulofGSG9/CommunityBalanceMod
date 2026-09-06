@@ -99,15 +99,17 @@ local mapBlipMixinDirtyTable = unique_set()
 local function MapBlipMixinOnUpdateServer()
     PROFILE("MapBlipMixin:OnUpdateServer")
 
-    for entityId in mapBlipMixinDirtyTable:Iterate() do
+    -- Swap out the dirty set so marks added during the flush
+    -- (via UpdateBlip -> MarkBlipDirty) survive to the next tick.
+    local flushed = mapBlipMixinDirtyTable
+    mapBlipMixinDirtyTable = unique_set()
+
+    for entityId in flushed:Iterate() do
         local entity = Shared.GetEntity(entityId)
         if entity then
             entity:UpdateBlip()
         end
     end
-
-    mapBlipMixinDirtyTable:Clear()
-
 end
 
 
@@ -171,9 +173,9 @@ end
 --
 function MapBlipMixin:SetOrigin(orig)
     if self.lastBlipOrigin ~= orig then
-        self.lastBlipOrigin = orig
+        self.lastBlipOrigin = Vector(orig)
 
-        local isInitTick = not self.mapBlipSyncTick or Shared.GetTime() == self.mapBlipSyncTick
+        local isInitTick = not self.mapBlipSyncTick or Shared.GetTime() - self.mapBlipSyncTick <= 0.1
         if isInitTick then
             self:UpdateBlip()
         else
@@ -192,7 +194,7 @@ function MapBlipMixin:SetAngles(angles)
         -- Minimap blips, only look for left/right
         local diff = currentYaw - lastYaw
         local absDiff = diff < 0 and -diff or diff
-        local isInitTick = not self.mapBlipSyncTick or Shared.GetTime() == self.mapBlipSyncTick
+        local isInitTick = not self.mapBlipSyncTick or Shared.GetTime() - self.mapBlipSyncTick <= 0.1
         if isInitTick or (currentYaw ~= lastYaw and absDiff >= kMinYawDelta) then --currentYaw ~= lastYaw then
             if isInitTick then
                 self:UpdateBlip()
@@ -343,8 +345,8 @@ function MapBlipMixin:IsFogEntityDetached()
     return kFogOfWarEnts_fogToHost[self:GetId()] == nil
 end
 
+local kMaxQueueSize = 25
 function MapBlipMixin:StashFogEntity()
-    local kMaxQueueSize = 25
 
     -- Make sure the link to us as been cleared
     assert(self:isa("FogOfWarEntity") and self:IsFogEntityDetached())
@@ -714,19 +716,22 @@ end
 
 function MapBlipMixin:OnDestroy()
 
-    local hostId = self:GetId()
-    local fogId = kFogOfWarEnts_hostToFog[hostId]
-    if fogId then
-        kFogOfWarEnts_hostToFog[hostId] = nil
-        kFogOfWarEnts_fogToHost[fogId] = nil
-    end
-
     if self:isa("FogOfWarEntity") then
+        -- We are the fog ghost: clear both sides of the link via the reverse map.
+        local hostId = kFogOfWarEnts_fogToHost[self:GetId()]
+        if hostId then
+            kFogOfWarEnts_fogToHost[self:GetId()] = nil
+            if kFogOfWarEnts_hostToFog[hostId] == self:GetId() then
+                kFogOfWarEnts_hostToFog[hostId] = nil
+            end
+        end
         self:RemoveFromFogPool()
+    else
+        -- We are a host: detach and stash our ghost (mirrors OnKill).
+        self:DetachFogEntity()
     end
 
     self:DestroyBlip()
     UpdateEntityForTeamBrains(self, true)
 end
-
 Event.Hook("UpdateServer", MapBlipMixinOnUpdateServer)
