@@ -104,7 +104,7 @@ local networkVars =
     silenced = "boolean",
     variant = "enum kBabblerVariants",
     -- updates every 10 and [] means no compression used (not updates are send in this case)
-    m_angles = "interpolated angles (by 0.1 [2 3 5], by 0.3 [2 3 5], by 0.3 [2 3 5])",
+    m_angles = "interpolated angles (by 0.05 [2 3 5], by 0.1 [2 3 5], by 0.05 [2 3 5])",
     m_origin = "compensated interpolated position (by 0.05 [2 3 5], by 0.05 [2 3 5], by 0.05 [2 3 5])",
 }
 
@@ -610,7 +610,7 @@ if Server then
         idleRange     = 1.5,          -- idle action delay, calm: 1..2.5s
         panicMin      = 0.1,          -- panicked: chain strolls back-to-back
         panicRange    = 0.2,
-        panicSpeedMult = 4.0,
+        panicSpeedMult = 3.0,
         stackMax      = 2.0,          -- cap for stacking re-triggered panic
 
         chatterMin   = 6,
@@ -1947,6 +1947,24 @@ elseif Client then
 
     function Babbler:OnAdjustModelCoords(modelCoords)
 
+        if self:GetIsOnWeb() then
+
+            local now = Shared.GetTime()
+
+            if self.webSmoothCoords == nil then
+                self.webSmoothOrigin = Vector(modelCoords.origin)
+            end
+
+            -- exponential chase toward the engine-interpolated position;
+            -- rate ~14 keeps lag well under 100 ms while eating the bursts
+            local alpha = Clamp((now - (self.lastWebSmoothTime or now)) * 10, 0, 1)
+            self.webSmoothOrigin = Lerp(self.webSmoothOrigin, modelCoords.origin, alpha)
+            modelCoords.origin = Vector(self.webSmoothOrigin)
+
+            self.lastWebSmoothTime = now
+
+        end
+
         if not self:GetIsClinged() and self.moveDirection and not self:GetIsOnWeb() then
             modelCoords = Coords.GetLookIn(modelCoords.origin, self.moveDirection)
             modelCoords.origin.y = modelCoords.origin.y - Babbler.kRadius
@@ -2048,8 +2066,8 @@ elseif Client then
 
         PROFILE("Babbler:OnUpdatePoseParameters")
 
-        local moveSpeed = 0
         local moveYaw = 0
+        local targetSpeed = 0
 
         if self.clientVelocity then
 
@@ -2060,18 +2078,23 @@ elseif Client then
 
             moveYaw = Math_Wrap(Math_Degrees( math_atan2(z,x) ), -180, 180) + 180
 
-            local speed = self.clientVelocity:GetLength()
-
-            -- The babbler moves much slower on a web than on the ground; normalize
-            -- against the web speed there, so the animation graph sees a value near
-            -- the range its run cycle was tuned for instead of ~0.13.
             local maxSpeed = self.onWeb and Babbler.kWebWalkSpeed or kBabblerRunSpeed
-            moveSpeed = Clamp(speed / maxSpeed, 0, 1)
+            targetSpeed = Clamp(self.clientVelocity:GetLength() / maxSpeed, 0, 1)
 
         end
 
+        -- explicit, frame-rate independent delta — OnUpdatePoseParameters
+        -- does not receive deltaTime, and a global of that name may hold
+        -- a stale value set by unrelated code
+        local now = Shared.GetTime()
+        local dt = self.lastPoseParamTime and (now - self.lastPoseParamTime) or 0.016
+        self.lastPoseParamTime = now
+        dt = Clamp(dt, 0.001, 0.1)   -- absorb pauses (alt-tab, hitching)
+
+        self.smoothedMoveSpeed = Slerp(self.smoothedMoveSpeed or 0, targetSpeed, dt * 10)
+
         self:SetPoseParams({
-            {"move_speed", moveSpeed},
+            {"move_speed", self.smoothedMoveSpeed},
             {"move_yaw", moveYaw}
         })
 

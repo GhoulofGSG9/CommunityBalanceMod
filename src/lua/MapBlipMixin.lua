@@ -700,6 +700,27 @@ function MapBlipMixin:DetachFogEntity()
             fogEntity:SetFogEntMapBlipInfo(false)
         end
     end
+    if idx then
+        table.remove(kFogOfWarEntsPool, idx)
+    end
+end
+
+-- Called when a HOST is killed, to clear/stash its fog ghost. Not used for
+-- OnDestroy -- see MapBlipMixin:OnDestroy.
+function MapBlipMixin:DetachFogEntity()
+    local hostId = self:GetId()
+    local fogEntity = kFogOfWarEnts_hostToFog[hostId]
+    if fogEntity then
+        -- Detach FIRST so IsFogEntityDetached() is true and the stash actually
+        -- fires below (mirrors DisableAllFogEntities). Without this, a killed
+        -- host's fog ghost was left behind forever, showing a stale "last
+        -- seen" position that never cleared.
+        kFogOfWarEnts_fogToHost[fogEntity:GetId()] = nil
+        kFogOfWarEnts_hostToFog[hostId] = nil
+        fogEntity:SetFogEntMapBlipInfo(false)
+    else
+        kFogOfWarEnts_hostToFog[hostId] = nil
+    end
 end
 
 function MapBlipMixin:OnKill()
