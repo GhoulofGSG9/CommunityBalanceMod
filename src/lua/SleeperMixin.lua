@@ -37,35 +37,33 @@ SleeperMixin.kDeltaTimeToleranz = 1 / 30
 SleeperMixin.averageDeltaTime = 0.05
 SleeperMixin.lastDeltaTimes = {}
 SleeperMixin.currentDeltaTimeIndex = 1
-SleeperMixin.kNumDeltaTimes = 12 -- store the last 10 deltaTimes and get average out of those
+SleeperMixin.kNumDeltaTimes = 12 -- store the last X deltaTimes and get average out of those
 
 -- update this amount of sleepers at high tick rate. it would be better to save the actual computation time required and translate that to an entity amount
 SleeperMixin.kNumUpdates = 25
 
 SleeperMixin.kMinimumAwakeTime = 3
 
-local function ComputerAverageDeltaTime(currentDeltaTime)
+local SleeperDeltaTimesSum = 0
+local function ComputeAverageDeltaTime(currentDeltaTime)
 
-    PROFILE("SleeperMixin:ComputerAverageDeltaTime")
+    PROFILE("SleeperMixin:ComputeAverageDeltaTime")
 
     if currentDeltaTime then
 
-        if table.icount(SleeperMixin.lastDeltaTimes) < SleeperMixin.kNumDeltaTimes then
+        local count = table.icount(SleeperMixin.lastDeltaTimes)
+
+        if count < SleeperMixin.kNumDeltaTimes then
             table.insert(SleeperMixin.lastDeltaTimes, currentDeltaTime)
+            SleeperDeltaTimesSum = SleeperDeltaTimesSum + currentDeltaTime
         else
-            SleeperMixin.lastDeltaTimes[SleeperMixin.currentDeltaTimeIndex] = currentDeltaTime
-
-            -- reset to 1 and overwrite old times if limit has been reached
-            SleeperMixin.currentDeltaTimeIndex = ConditionalValue(SleeperMixin.currentDeltaTimeIndex + 1 <= 10, SleeperMixin.currentDeltaTimeIndex + 1, 1)
+            local idx = SleeperMixin.currentDeltaTimeIndex
+            SleeperDeltaTimesSum = SleeperDeltaTimesSum - SleeperMixin.lastDeltaTimes[idx] + currentDeltaTime
+            SleeperMixin.lastDeltaTimes[idx] = currentDeltaTime
+            SleeperMixin.currentDeltaTimeIndex = idx % SleeperMixin.kNumDeltaTimes + 1
         end
 
-        SleeperMixin.averageDeltaTime = 0
-
-        for _, deltaTime in ipairs(SleeperMixin.lastDeltaTimes) do
-            SleeperMixin.averageDeltaTime = SleeperMixin.averageDeltaTime + deltaTime
-        end
-
-        SleeperMixin.averageDeltaTime = SleeperMixin.averageDeltaTime / table.icount(SleeperMixin.lastDeltaTimes)
+        SleeperMixin.averageDeltaTime = SleeperDeltaTimesSum / table.icount(SleeperMixin.lastDeltaTimes)
 
     end
 
@@ -139,7 +137,7 @@ function SleeperOnUpdateServer(deltaTime)
 
     local now = Shared.GetTime()
     SleeperMixin.CheckDirtyTable()
-    ComputerAverageDeltaTime(deltaTime)
+    ComputeAverageDeltaTime(deltaTime)
     --Print("average deltaTime: %s", tostring(SleeperMixin.averageDeltaTime))
 
     if SleeperMixin.timeLastCheckAll + 2 < now then
@@ -161,7 +159,8 @@ function SleeperOnUpdateServer(deltaTime)
         local entityId = SleeperMixin.sleepers:GetValueAtIndex(index)
         if SleeperMixin.timeNextSleeperUpdate[entityId] == nil then
             SleeperMixin.timeNextSleeperUpdate[entityId] = now
-            SleeperMixin.lastSleeperOrigin[entityId] = Vector(0,0,0)
+            local ent = Shared.GetEntity(entityId)
+            SleeperMixin.lastSleeperOrigin[entityId] = ent and ent:GetOrigin() or Vector(0,0,0)
         end
 
         local entityDeltaTime = now - SleeperMixin.timeNextSleeperUpdate[entityId]
