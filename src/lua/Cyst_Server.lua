@@ -386,7 +386,7 @@ end
 function Cyst:ScanForNearbyEnemy()
 
     self.lastDetectedTime = self.lastDetectedTime or 0
-    if self.lastDetectedTime + kDetectInterval < Shared.GetTime() then
+    if self.lastDetectedTime + kCystEnemyDetectInterval < Shared.GetTime() then
 
         local done = false
 
