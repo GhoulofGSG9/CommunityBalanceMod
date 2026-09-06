@@ -99,9 +99,8 @@ local networkVars =
     barrelYawDegrees = "compensated float",
     barrelPitchDegrees = "compensated float",
     
-    -- pose parameters for forward track (should be compensated??)
-    forwardTrackYawDegrees = "float",
-    forwardTrackPitchDegrees = "float",
+    forwardTrackYawDegrees = "compensated float",
+    forwardTrackPitchDegrees = "compensated float",
     
     -- So we can update angles and pose parameters smoothly on client
     targetDirection = "vector",
@@ -513,7 +512,7 @@ function ARC:UpdateAngles(deltaTime)
             
         end
         
-    elseif self.deployMode == ARC.kDeployMode.Deployed or self.mode == ARC.kMode.Targeting then
+    elseif self:GetInAttackMode() then
     
         self.desiredYawDegrees = 0
         self.desiredPitchDegrees = 0
