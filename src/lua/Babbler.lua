@@ -1414,11 +1414,12 @@ if Server then
 
         local detachOffset = Vector(RandomNegate(math.random(15, 70) / 100), 0.25, RandomNegate(math.random(15, 70) / 100))
         -- Check so babbler scatter is not thru walls etc.
-        if GetWallBetween(self:GetOrigin(), self:GetOrigin() + detachOffset, parent) then
+        local orig = self:GetOrigin()
+        if GetWallBetween(orig, orig + detachOffset, parent) then
             detachOffset = Vector(0, 0.25, 0)
             self.timeLastJump = 0
         end
-        local newOrig = self:GetOrigin() + detachOffset
+        local newOrig = orig + detachOffset
 
         -- Prevents them from falling through the floor
         local owner = self:GetOwner()
@@ -1426,7 +1427,7 @@ if Server then
         local groundDist = newOrig.y - ground.y
         local minDist = 0.6
         if groundDist <= minDist then
-            self:SetOrigin(Vector(newOrig.x, owner:GetOrigin().y + 0.5, newOrig.z))
+            self:SetOrigin(Vector(newOrig.x, ground.y + minDist, newOrig.z))
         else
             self:SetOrigin(newOrig)
         end
