@@ -413,7 +413,15 @@ function Babbler:UpdateBabbler(deltaTime)
 
     if Server then
 
+        if self.squadReactUntil then
+            if Shared.GetTime() < self.squadReactUntil then
+                return
+            end
+            self.squadReactUntil = nil
+        end
+
         if self:GetIsOnWeb() then
+            self:UpdateWebBehavior(deltaTime)
             self:UpdateRelevancy()
             return
         end
@@ -546,9 +554,9 @@ function Babbler:OnProcessMove(input)
 
     if Server then
 
-        if self:GetIsOnWeb() then
-            self:UpdateWebBehavior(deltaTime)
-        end
+        -- if self:GetIsOnWeb() then
+        --     self:UpdateWebBehavior(deltaTime)
+        -- end
 
         local parent = self:GetParent()
         if parent then
@@ -770,6 +778,8 @@ if Server then
         self:AddTimedCallback(Babbler.MoveRandom, kUpdateMoveInterval + math.random() / 5)
         self:AddTimedCallback(Babbler.UpdateWag, 0.4)
 
+        self.timeLastJump = 0
+
     end
 
     function Babbler:GetWeb()
@@ -913,14 +923,17 @@ if Server then
     end
 
     function Babbler:Jump(velocity)
-
+        -- a zero-impulse call is a physics-state reset (see SetMoveType /
+        -- BabblerSetLinearDampingCallback), not a jump: it must not arm the
+        -- timeLastJump movement gate or squads stall after group orders
+        if velocity:GetLengthSquared() > 0 then
+            self.timeLastJump = Shared.GetTime()
+        end
         self:SetGroundMoveType(false)
         if self.physicsBody then
             self.physicsBody:SetCoords(self:GetCoords())
             self.physicsBody:AddImpulse(self:GetOrigin(), velocity)
         end
-        self.timeLastJump = Shared.GetTime()
-
     end
 
     function Babbler:Move(targetPos, deltaTime)
@@ -1147,16 +1160,27 @@ if Server then
 
     end
 
-    -- Line of sight to the target counts as reachable; anything else, the
-    -- babbler just closes distance on foot. No caller needs the obstacle
-    -- normal, so don't compute one.
+    -- Line of sight counts as reachable; failing that, melee range does. The
+    -- navmesh-based IsTargetReached is too expensive to poll per attacking
+    -- babbler per tick.
     local function CanReachTarget(self, target)
 
         local trace = Shared.TraceRay(self:GetOrigin() + kEyeOffset, GetEngagementOrOrigin(target),
-                CollisionRep.LOS, PhysicsMask.All, EntityFilterAll())
+                CollisionRep.Move, PhysicsMask.All, EntityFilterAll())
 
-        return trace.fraction >= 0.9 or self:IsTargetReached(target:GetOrigin(), 1)
+        if trace.fraction >= 0.9 then
+            return true
+        end
 
+        -- occluded but effectively at bite range: jump anyway
+        return (target:GetOrigin() - self:GetOrigin()):GetLength() < 1.5
+
+    end
+
+    local function NoObstacleInWay(self, targetPosition, ignoreEntity)
+        local trace = Shared.TraceRay(self:GetOrigin() + kEyeOffset, targetPosition,
+                CollisionRep.Move, PhysicsMask.All, EntityFilterTwo(self, ignoreEntity))
+        return trace.fraction == 1
     end
 
     -- try to jump into the enemy
@@ -1274,10 +1298,10 @@ if Server then
 
     function Babbler:UpdateCling(deltaTime)
         if not self:Attach(deltaTime) then
+            self:SetMoveType(kBabblerMoveType.None, nil, nil, true)
             self:Detach()
             return false
         end
-
         return true
     end
 
@@ -1297,10 +1321,13 @@ if Server then
             end
 
             if attachPointOrigin then
-                local moveDir = GetNormalizedVector(attachPointOrigin - self:GetOrigin())
-
                 local distance = (self:GetOrigin() - attachPointOrigin):GetLength()
                 local travelDistance = deltaTime * 15
+                local moveDir = GetNormalizedVector(attachPointOrigin - self:GetOrigin())
+
+                -- disable physics simulation for the whole approach: otherwise
+                -- UpdateJumpPhysics drags the entity back onto the body every tick
+                self:SetGroundMoveType(true)
 
                 if distance < travelDistance then
 
@@ -1327,11 +1354,20 @@ if Server then
 
                 end
 
-                -- disable physic simulation
-                self:SetGroundMoveType(true)
-                local newOrigin = self:GetOrigin() + moveDir * travelDistance
-                if not GetWallBetween(self:GetOrigin(), newOrigin, target) then
-                    self:SetOrigin(newOrigin)
+                -- Final approach: direct, only when close AND line of sight is clear
+                -- (this is short-range, so the original wall-clipping risk is minimal)
+                if distance < 7 and NoObstacleInWay(self, attachPointOrigin, target) then
+                    self:SetOrigin(self:GetOrigin() + moveDir * travelDistance)
+                    self:SyncPhysicsCoords()
+                    return true
+                end
+
+                local done = self:MoveToTarget(PhysicsMask.AIMovement, attachPointOrigin, kBabblerRunSpeed, deltaTime)
+
+                if done and (self:GetOrigin() - attachPointOrigin):GetLength() > 0.5 then
+                    -- Path finished but we're not at the attach point
+                    -- (off-navmesh target, e.g. web on a wall) -> give up cleanly
+                    return false
                 end
 
                 return true
@@ -1380,6 +1416,7 @@ if Server then
         -- Check so babbler scatter is not thru walls etc.
         if GetWallBetween(self:GetOrigin(), self:GetOrigin() + detachOffset, parent) then
             detachOffset = Vector(0, 0.25, 0)
+            self.timeLastJump = 0
         end
         self:SetOrigin(self:GetOrigin() + detachOffset)
         ResumeFreeBehavior(self)
@@ -1511,8 +1548,13 @@ if Server then
         end
 
         self.webOrderWebId = web:GetId()
-        self.webOrderPos = position and Vector(position) or Vector(web:GetOrigin())
-        self:SetMoveType(kBabblerMoveType.Move, nil, self.webOrderPos, true, 0.2)
+        local pos = position and Vector(position) or Vector(web:GetOrigin())
+        local ground = GetGroundAt(self, pos, PhysicsMask.AIMovement)
+        if ground ~= pos then
+            pos = ground  -- order was midair; path to the floor point below instead
+        end
+        self.webOrderPos = pos
+        self:SetMoveType(kBabblerMoveType.Move, nil, pos, true, 0.2)
         return true
 
     end
@@ -1617,13 +1659,6 @@ if Server then
 
     end
 
-    local function NoObstacleInWay(self, targetPosition)
-
-        local trace = Shared.TraceRay(self:GetOrigin() + kEyeOffset, targetPosition, CollisionRep.LOS, PhysicsMask.All, EntityFilterAll())
-        return trace.fraction == 1
-
-    end
-
     function Babbler:UpdateMove(deltaTime)
 
         PROFILE("Babbler:UpdateMove")
@@ -1663,8 +1698,10 @@ if Server then
                             jumpProbability = distance / 6
                         end
 
+                        local canJumpNow = self.timeLastJump + 0.5 < Shared.GetTime()
                         local done = false
-                        if self.jumpAttempts < 3 and jumpProbability >= shouldJump and NoObstacleInWay(self, targetPosition) then
+                        if canJumpNow and self.jumpAttempts < 3 and jumpProbability >= shouldJump
+                                and NoObstacleInWay(self, targetPosition) then
                             done = self:Jump(self:GetMoveVelocity(targetPosition))
                             self.jumpAttempts = self.jumpAttempts + 1
                         else
@@ -1673,12 +1710,21 @@ if Server then
 
                         if done or (self:GetOrigin() - targetPosition):GetLengthXZ() < 0.5 then
                             self:SyncPhysicsCoords()
-                            self:SetMoveType(target and kBabblerMoveType.Attack or kBabblerMoveType.None,
-                                    target, targetPosition)
-                            if self:GetTarget() then
-                                -- Call it here once to prevent babblers to stare at the marine
-                                -- for a few seconds before attacking after reaching it
-                                self:UpdateAttack(true)
+
+                            if self.webOrderWebId then
+                                local pos = self.webOrderPos
+                                local web = Shared.GetEntity(self.webOrderWebId)
+                                self.webOrderWebId = nil
+                                self.webOrderPos = nil
+                                if web and web:GetIsAlive() and not self:GetIsOnWeb() then
+                                    self:AttachToWeb(web, pos or web:GetOrigin())
+                                end
+                            else
+                                self:SetMoveType(target and kBabblerMoveType.Attack or kBabblerMoveType.None,
+                                        target, targetPosition)
+                                if self:GetTarget() then
+                                    self:UpdateAttack(true)
+                                end
                             end
                         end
 
@@ -1795,7 +1841,8 @@ if Server then
             self.physicsBody:SetLinearDamping(Babbler.kLinearDampingAtSpawn)
             self.physicsBody:SetRestitution(Babbler.kRestitution)
 
-            self:AddTimedCallback(BabblerSetLinearDampingCallback, kFinalDampingAfterDelay)
+            self:AddTimedCallback(BabblerSetLinearDampingCallback,
+                    kFinalDampingAfterDelay * (0.75 + math.random() * 0.5))
 
         elseif (self.clinged or self.onWeb) and self.physicsBody then
         
