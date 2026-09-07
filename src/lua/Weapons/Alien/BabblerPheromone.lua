@@ -64,7 +64,6 @@ function BabblerPheromone:GetTarget(owner)
     local ownerOrig = owner:GetOrigin()
     local midWayOrig = (orig + ownerOrig) * 0.5
 
-    -- Direction from owner to pheromone
     local dir = orig - ownerOrig
     local dirLength = dir:GetLength()
     local searchRange = dir:GetLength() * 0.5 + kBabblerTargetSearchRange
@@ -85,16 +84,11 @@ function BabblerPheromone:GetTarget(owner)
 
             local toEnt = ent:GetOrigin() - ownerOrig
 
-            -- Projection along owner->pheromone axis
             local alongDir = Math.DotProduct(toEnt, dir)
 
-            -- Only consider entities at or beyond the owner, in the pheromone's direction
             if alongDir > 0 then
 
-                -- Perpendicular distance from the owner->pheromone ray
                 local lateral = (toEnt - dir * alongDir):GetLength()
-
-                -- Score: prioritize being on the owner->pheromone line, then closeness to owner
                 local score = alongDir + lateral * kBabblerTargetLateralPenalty
 
                 if not bestScore or score < bestScore then
@@ -111,7 +105,6 @@ function BabblerPheromone:GetTarget(owner)
     return bestEnt
 end
 
--- Force order for all babblers to the same target
 function BabblerPheromone:MoveBabblers()
 	local orig = self:GetOrigin()
 	local owner = self:GetOwner()
@@ -127,10 +120,8 @@ function BabblerPheromone:MoveBabblers()
 			end
 
 			if target then
-				-- Log("Attack group order issued by the bait toward %s", target)
 				babbler:SetMoveType(kBabblerMoveType.Attack, target, targetPos, true)
-			else --if babbler.moveType ~= kBabblerMoveType.Attack then
-				-- Log("Move group order issued by the bait toward %s", target)
+			else
 				babbler:SetMoveType(kBabblerMoveType.Move, nil, self:GetOrigin(), true)
 			end
 
@@ -207,18 +198,14 @@ if Server then
     end
 
     local function CanGetAttach(self, entity)
-        -- Can only attach to friends
         if not GetAreFriends(self, entity) then
             return false
         end
 
-        -- Can only attach when there are attach points available
         if HasMixin(entity, "BabblerCling") and not entity:GetCanAttachBabbler() then
             return false
         end
 
-        -- Don't attach to babbler owners that allready have max babblers
-        -- Exclude current owner so gorge can reattack own bablers
         local owner = self:GetOwner()
         if entity ~= owner and HasMixin(entity, "BabblerOwner")
                 and entity:GetBabblerCount() >= entity:GetMaxBabblers() then
@@ -228,7 +215,6 @@ if Server then
         return true
     end
 
-    -- Helper function to adjust babbler move type
     local function GetMoveType(self, entity)
         local moveType = kBabblerMoveType.Move
 
@@ -273,7 +259,7 @@ if Server then
             if babbler:GetIsClinged() then
                 babbler:Detach()
             end
-            -- SetWebOrder can refuse (dead web, already webbed); only count real dispatches
+
             local randPoint = math.random() * length
             if babbler:SetWebOrder(web, startPoint + axis * randPoint) then
                 spots = spots - 1
@@ -285,11 +271,10 @@ if Server then
     function BabblerPheromone:ProcessHit(entity, surface, normal, endPoint )
 
         if not entity then
-            self:MoveBabblers() -- world bounce: recall the squad
+            self:MoveBabblers()
             return false
         end
 
-        -- Recalling the whole roster
         if not self.worldCollision then
             self.worldCollision = true
             if not entity:isa("Web") and not GetAreFriends(self, entity) then
@@ -320,7 +305,6 @@ if Server then
         self.triggeredPuff = true
 
         if isWeb then
-            -- Only dispatch as many babblers as the strand has room for
             SendBabblersToWeb(self, entity, endPoint, webSpotsLeft)
         else
 
@@ -359,7 +343,7 @@ if Server then
 
         end
 
-        DestroyEntity(self) -- Now handled inside CreateBabblerPheromone()
+        DestroyEntity(self)
         return true
 
     end
