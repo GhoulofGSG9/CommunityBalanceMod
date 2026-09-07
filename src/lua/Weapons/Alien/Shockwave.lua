@@ -16,6 +16,8 @@ Script.Load("lua/ScriptActor.lua")
 
 class 'Shockwave' (ScriptActor)
 
+Shockwave.OverrideCheckVision = function() return false end
+
 Shockwave.kMapName = "Shockwave"
 -- Shockwave.kModelName = PrecacheAsset("models/marine/rifle/rifle_grenade.model") -- for debugging
 Shockwave.kRadius = 0.01
