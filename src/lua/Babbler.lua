@@ -524,11 +524,10 @@ function Babbler:ForceAttack(deltaTime)
     if 0.25 < lifetime then -- Time to spread babblers on hatch a bit
         if self.hatchAttack and target and isTargetEnemy and target:isa("Player") and lifetime < 1 then
             local targetPosition = GetEngagementOrOrigin(target)
-            local direction = (targetPosition - self:GetOrigin()):GetUnit()
             local distToTarget = self:GetOrigin():GetDistanceTo(targetPosition)
 
-            self:SetOrigin(self:GetOrigin() + direction * deltaTime * kBabblerRunSpeed * 1.50)
-            self:SyncPhysicsCoords()
+            self:SetGroundMoveType(true)
+            self:MoveToTarget(PhysicsMask.AIMovement, targetPosition, kBabblerRunSpeed * 1.50, deltaTime)
 
             if distToTarget < 1.5 then
                 self:SetMoveType(kBabblerMoveType.Attack, target, targetPosition)
@@ -854,7 +853,19 @@ if Server then
     function Babbler:GetIsSafeJumpVelocity(velocity)
 
         local landingPos = self:GetOrigin() + Vector(velocity.x, 0, velocity.z) * kJumpHangTimeEstimate
-        return GetGroundAt(self, landingPos, PhysicsMask.AIMovement) ~= landingPos
+
+        -- must have ground to land on...
+        if GetGroundAt(self, landingPos, PhysicsMask.AIMovement) == landingPos then
+            return false
+        end
+
+        -- ...and no wall directly between here and there. The actual jump
+        -- arcs up and back down rather than moving in a straight line, but a
+        -- wall blocking the straight line will just as surely block the arc.
+        local trace = Shared.TraceRay(self:GetOrigin() + kEyeOffset, landingPos + kEyeOffset,
+                CollisionRep.Move, PhysicsMask.All, EntityFilterOneAndIsa(self, "Babbler"))
+
+        return trace.fraction == 1
 
     end
 
@@ -1323,7 +1334,6 @@ if Server then
             end
 
             if attachPointOrigin then
-                local moveDir = GetNormalizedVector(attachPointOrigin - self:GetOrigin())
 
                 local distance = (self:GetOrigin() - attachPointOrigin):GetLength()
                 local travelDistance = deltaTime * 15
@@ -1336,7 +1346,6 @@ if Server then
                             self.clinged = true
 
                             self:DestroyHitbox()
-                            travelDistance = distance
                         else -- Just for safety
                             return false
                         end
@@ -1355,7 +1364,7 @@ if Server then
 
                 -- disable physic simulation
                 self:SetGroundMoveType(true)
-                self:SetOrigin(self:GetOrigin() + moveDir * travelDistance)
+                self:MoveToTarget(PhysicsMask.AIMovement, attachPointOrigin, 15, deltaTime)
 
                 return true
 
