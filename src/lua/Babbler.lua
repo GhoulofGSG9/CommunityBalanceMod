@@ -1425,7 +1425,6 @@ if Server then
         local groundDist = newOrig.y - ground.y
         local minDist = 0.6
         if groundDist <= minDist then
-            Log("Ground dist for %s - %s", self, groundDist)
             self:SetOrigin(Vector(newOrig.x, ground.y + minDist + 0.1, newOrig.z))
         else
             self:SetOrigin(newOrig)
