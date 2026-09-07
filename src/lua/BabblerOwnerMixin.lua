@@ -4,8 +4,7 @@ BabblerOwnerMixin.type = "BabblerOwner"
 BabblerOwnerMixin.networkVars = 
 {
     babblerCount = "integer (0 to 18)",
-    bombBabblerCount = "integer (0 to 18)",
-    webbedBabblerCount = "integer (0 to 18)",
+    bombBabblerCount = "integer (0 to 18)"
 }
 
 kBabblerHatchTime = 2.5
@@ -33,10 +32,6 @@ function BabblerOwnerMixin:GetMaxBabblers()
 	return 6
 end
 
--- server: bump in AttachToWeb success and wherever babblers leave webs
-function BabblerOwnerMixin:GetNumWebbedBabblers()
-    return self.webbedBabblerCount or 0
-end
 
 function BabblerOwnerMixin:OnWeaponAdded(weapon)
     if weapon:GetMapName() == BabblerAbility.kMapName then
