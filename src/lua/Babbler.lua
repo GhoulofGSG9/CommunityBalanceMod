@@ -1421,11 +1421,12 @@ if Server then
         local newOrig = self:GetOrigin() + detachOffset
 
         -- Prevents them from falling through the floor
-        local ground = GetGroundAt(self, newOrig, PhysicsMask.AIMovement)
+        local owner = self:GetOwner()
+        local ground = owner and owner:GetOrigin() or GetGroundAt(self, newOrig, PhysicsMask.AIMovement)
         local groundDist = newOrig.y - ground.y
         local minDist = 0.6
         if groundDist <= minDist then
-            self:SetOrigin(Vector(newOrig.x, ground.y + minDist + 0.1, newOrig.z))
+            self:SetOrigin(Vector(newOrig.x, owner:GetOrigin().y + 0.5, newOrig.z))
         else
             self:SetOrigin(newOrig)
         end
