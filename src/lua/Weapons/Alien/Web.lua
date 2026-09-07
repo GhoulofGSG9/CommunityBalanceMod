@@ -214,8 +214,8 @@ if Server then
 
     function Web:AddWebbedBabbler(babbler)
         local owner = babbler:GetOwner()
-        if owner then
-            owner.webbedBabblerCount = owner.webbedBabblerCount + 1
+        if owner and not babbler.babblerBombSpawned and HasMixin(owner, "BabblerCling") then
+            owner:WebBabblerAdded()
         end
         self.webbedBabblers[babbler:GetId()] = true
         self.numWebbedBabblers = self.numWebbedBabblers + 1
@@ -223,8 +223,8 @@ if Server then
 
     function Web:RemoveWebbedBabbler(babbler)
         local owner = babbler:GetOwner()
-        if owner then
-            owner.webbedBabblerCount = math.max(0, owner.webbedBabblerCount - 1)
+        if owner and not babbler.babblerBombSpawned and HasMixin(owner, "BabblerCling") then
+            owner:WebBabblerRemoved()
         end
         self.webbedBabblers[babbler:GetId()] = nil
         self.numWebbedBabblers = math.max(0, self.numWebbedBabblers - 1)
