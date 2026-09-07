@@ -106,28 +106,28 @@ function BabblerPheromone:GetTarget(owner)
 end
 
 function BabblerPheromone:MoveBabblers()
-	local orig = self:GetOrigin()
-	local owner = self:GetOwner()
-	local ownerId = self:GetOwnerId()
-	
-	local target = self:GetTarget(owner)
-	local targetPos = target and (target.GetEngagementPoint and target:GetEngagementPoint() or target:GetOrigin())
+    local orig = self:GetOrigin()
+    local owner = self:GetOwner()
+    local ownerId = self:GetOwnerId()
+    
+    local target = self:GetTarget(owner)
+    local targetPos = target and (target.GetEngagementPoint and target:GetEngagementPoint() or target:GetOrigin())
 
-	for _, babbler in ipairs(GetEntitiesForTeamWithinRange("Babbler", self:GetTeamNumber(), orig, kBabblerSearchRange)) do
-		if babbler:GetOwnerId() == ownerId and not babbler:GetIsOnWeb() then
-			if babbler:GetIsClinged() and babbler:GetParent() == owner then
-				babbler:Detach()
-			end
+    for _, babbler in ipairs(GetEntitiesForTeamWithinRange("Babbler", self:GetTeamNumber(), orig, kBabblerSearchRange)) do
+        if babbler:GetOwnerId() == ownerId and not babbler:GetIsOnWeb() then
+            if babbler:GetIsClinged() and babbler:GetParent() == owner then
+                babbler:Detach()
+            end
 
-			if target then
-				babbler:SetMoveType(kBabblerMoveType.Attack, target, targetPos, true)
-			else
-				babbler:SetMoveType(kBabblerMoveType.Move, nil, self:GetOrigin(), true)
-			end
+            if target then
+                babbler:SetMoveType(kBabblerMoveType.Attack, target, targetPos, true)
+            else
+                babbler:SetMoveType(kBabblerMoveType.Move, nil, self:GetOrigin(), true)
+            end
 
             babbler:RefreshFreeRoam()
-		end
-	end
+        end
+    end
 end
 
 function BabblerPheromone:GetProjectileModel()
