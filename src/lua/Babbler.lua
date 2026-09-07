@@ -511,43 +511,6 @@ function Babbler:OnFinishPhysics()
     self:UpdatePhysics()
 end
 
-function Babbler:ForceAttack(deltaTime)
-
-    if not Server then
-        return false
-    end
-
-    local lifetime = Shared.GetTime() - self:GetCreationTime()
-    local target = self:GetTarget()
-    local isTargetEnemy = target and HasMixin(target, "Team") and target:GetTeamNumber() == GetEnemyTeamNumber(self:GetTeamNumber())
-
-    if 0.25 < lifetime then -- Time to spread babblers on hatch a bit
-        if self.hatchAttack and target and isTargetEnemy and target:isa("Player") and lifetime < 1 then
-            local targetPosition = GetEngagementOrOrigin(target)
-            local distToTarget = self:GetOrigin():GetDistanceTo(targetPosition)
-
-            self:SetGroundMoveType(true)
-            self:MoveToTarget(PhysicsMask.AIMovement, targetPosition, kBabblerRunSpeed * 1.50, deltaTime)
-
-            if distToTarget < 1.5 then
-                self:SetMoveType(kBabblerMoveType.Attack, target, targetPosition)
-                self:UpdateAttack(true)
-                self.hatchAttack = false
-            else
-                self:SetGroundMoveType(true)
-                return true
-            end
-            return false
-        else
-            if self.hatchAttack then
-                self.hatchAttack = false
-                self:SetGroundMoveType(false)
-            end
-        end
-    end
-
-    return false
-end
 
 function Babbler:OnUpdate(deltaTime)
     PROFILE("Babbler:OnUpdate")
@@ -1334,6 +1297,7 @@ if Server then
             end
 
             if attachPointOrigin then
+                local moveDir = GetNormalizedVector(attachPointOrigin - self:GetOrigin())
 
                 local distance = (self:GetOrigin() - attachPointOrigin):GetLength()
                 local travelDistance = deltaTime * 15
@@ -1346,6 +1310,7 @@ if Server then
                             self.clinged = true
 
                             self:DestroyHitbox()
+                            travelDistance = distance
                         else -- Just for safety
                             return false
                         end
@@ -1364,7 +1329,10 @@ if Server then
 
                 -- disable physic simulation
                 self:SetGroundMoveType(true)
-                self:MoveToTarget(PhysicsMask.AIMovement, attachPointOrigin, 15, deltaTime)
+                local newOrigin = self:GetOrigin() + moveDir * travelDistance
+                if not GetWallBetween(self:GetOrigin(), newOrigin, target) then
+                    self:SetOrigin(newOrigin)
+                end
 
                 return true
 
