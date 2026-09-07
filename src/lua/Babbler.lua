@@ -1418,7 +1418,19 @@ if Server then
             detachOffset = Vector(0, 0.25, 0)
             self.timeLastJump = 0
         end
-        self:SetOrigin(self:GetOrigin() + detachOffset)
+        local newOrig = self:GetOrigin() + detachOffset
+
+        -- Prevents them from falling through the floor
+        local ground = GetGroundAt(self, newOrig, PhysicsMask.AIMovement)
+        local groundDist = newOrig.y - ground.y
+        local minDist = 0.6
+        if groundDist <= minDist then
+            Log("Ground dist for %s - %s", self, groundDist)
+            self:SetOrigin(Vector(newOrig.x, ground.y + minDist + 0.1, newOrig.z))
+        else
+            self:SetOrigin(newOrig)
+        end
+
         ResumeFreeBehavior(self)
     end
 
@@ -1981,16 +1993,201 @@ elseif Client then
 
     end
 
+
+
+    local kSpinPeriod   = 4.0
+    local kIdleEnd      = 0.40  -- idle fraction of each segment
+    local kGlanceEnd    = 0.55  -- glance-to-spin-direction window
+    local kGlanceAmount = math.rad(30)
+    local kSpinEnd      = 0.95  -- spin completes by here, then holds
+
+    local kClientWorldUp = Vector(0, 1, 0)
+    local kFacingTurnRate = math.pi * 3   -- rad/s: a 180-degree pirouette in ~0.33s
+
+    local function GetWebPoseCoords(origin, axis, facingAngle, rollAngle)
+
+        -- perch frame: up = world-up projected perpendicular to the strand
+        local up0 = kClientWorldUp - axis * axis.y
+        if up0:GetLengthSquared() < 0.01 then
+            up0 = Vector(1, 0, 0)          -- near-vertical strand fallback
+        else
+            up0:Normalize()
+        end
+        local w = axis:CrossProduct(up0)   -- tangent around the strand
+
+        -- roll the whole frame around the strand together: up and its
+        -- tangent t stay orthonormal by construction
+        local cu, su = math.cos(rollAngle), math.sin(rollAngle)
+        local up = up0 * cu + w * su
+        local t  = w * cu - up0 * su
+
+        -- facing pirouettes within the rolled frame (axis/t plane), which is
+        -- perpendicular to up by construction: the frame can never shear
+        local cf, sf = math.cos(facingAngle), math.sin(facingAngle)
+        local forward = axis * cf + t * sf
+
+        local co = Coords.GetIdentity()
+        co.origin = origin
+        co.xAxis = up:CrossProduct(forward)
+        co.yAxis = up
+        co.zAxis = forward
+
+        return co
+
+    end
+
+    local function Smoothstep(e)
+        e = Clamp(e, 0, 1)
+        return e * e * (3 - 2 * e)
+    end
+
+    -- deterministic per-(babbler, segment) pseudo-random
+    local function Hash01(a, b)
+        local v = math.sin(a * 12.9898 + b * 78.233) * 43758.5453
+        return v - math.floor(v)
+    end
+
+    -- signed turn for one spin event: mostly 30-60 degrees, occasionally a
+    -- big swing, so the bounded random walk eventually visits the underside
+    local function GetSpinDelta(id, seg)
+        local sign = Hash01(id, seg) < 0.5 and -1 or 1
+        local mag = math.rad(30 + Hash01(id, seg + 101) * 30)
+        if Hash01(id, seg + 202) < 0.25 then
+            mag = mag + math.rad(60 + Hash01(id, seg + 303) * 30)
+        end
+        return sign * mag
+    end
+
+    function Babbler:GetSpinRenderAngle()
+
+        if not self.spinPhase then
+            self.spinPhase = 0
+            self.spinSeg = 0
+            self.spinAngle = 0
+        end
+
+        if not self.spinSeg then
+            self.spinSeg = math.floor(self.spinPhase or 0)
+            self.spinAngle = 0
+        end
+
+        local id = self:GetId()
+        local seg = math.floor(self.spinPhase)
+        local u = self.spinPhase - seg
+
+        -- latch completed events; with the clock above, this only ever
+        -- advances one step, hitches slow the spin instead of skipping it
+        while self.spinSeg < seg do
+            self.spinSeg = self.spinSeg + 1
+            self.spinAngle = self.spinAngle + GetSpinDelta(id, self.spinSeg)
+        end
+
+        local delta = GetSpinDelta(id, seg)
+        local glance = (delta >= 0 and 1 or -1) * kGlanceAmount
+
+        if u < kIdleEnd then
+            return self.spinAngle
+        elseif u < kGlanceEnd then
+            return self.spinAngle + glance * Smoothstep((u - kIdleEnd) / (kGlanceEnd - kIdleEnd))
+        elseif u < 0.60 then
+            return self.spinAngle + glance
+        else
+            return self.spinAngle + glance + (delta - glance) * Smoothstep((u - 0.60) / (kSpinEnd - 0.60))
+        end
+
+    end
+
     function Babbler:OnAdjustModelCoords(modelCoords)
 
-        if not self:GetIsClinged() and self.moveDirection then
-            modelCoords = Coords.GetLookIn(modelCoords.origin, self.moveDirection)
-            if not self:GetIsOnWeb() then
-                modelCoords.origin.y = modelCoords.origin.y - Babbler.kRadius
+        if self:GetIsOnWeb() then
+
+            if self.clientSpinAxis then
+                return GetWebPoseCoords(modelCoords.origin, self.clientSpinAxis,
+                        self.webFacingAngle or 0, self:GetSpinRenderAngle())
             end
+            return modelCoords
+
+        end
+
+        if not self:GetIsClinged() and self.moveDirection
+                and self.moveDirection:GetLengthSquaredXZ() >= kEpsilon then
+            modelCoords = Coords.GetLookIn(modelCoords.origin, self.moveDirection)
+            modelCoords.origin.y = modelCoords.origin.y - Babbler.kRadius
         end
 
         return modelCoords
+
+    end
+
+    local kSpinAxisMinSpeed = 0.05
+    function Babbler:UpdateSpinAxis(deltaTime)
+
+        if not self:GetIsOnWeb() then
+            self.clientSpinAxis = nil
+            self.spinAngle = nil
+            self.spinSeg = nil
+            self.spinPhase = nil
+            self.webFacingAngle = nil
+            return
+        end
+
+        local dt = Clamp(deltaTime, 0, 0.1)   -- one clamped dt for everything
+
+        local moving = false
+        if self.clientVelocity then
+
+            local speed = self.clientVelocity:GetLength()
+
+            if speed > kSpinAxisMinSpeed then
+
+                local axis = Vector(self.clientVelocity)
+                axis:Normalize()
+
+                if self.clientSpinAxis and self.clientSpinAxis:DotProduct(axis) < 0 then
+                    axis:Scale(-1)
+                end
+
+                if self.clientSpinAxis then
+                    self.clientSpinAxis = self.clientSpinAxis + axis * dt * 5
+                else
+                    self.clientSpinAxis = axis
+                end
+                self.clientSpinAxis:Normalize()
+
+                local along = self.clientVelocity:DotProduct(self.clientSpinAxis)
+                if not self.webWalkSign then
+                    self.webWalkSign = along >= 0 and 1 or -1
+                elseif along < -0.15 and self.webWalkSign > 0 then
+                    self.webWalkSign = -1
+                elseif along > 0.15 and self.webWalkSign < 0 then
+                    self.webWalkSign = 1
+                end
+
+                local target = self.clientVelocity:DotProduct(self.clientSpinAxis) >= 0
+                        and 0 or math.pi
+                local a = self.webFacingAngle or 0
+                local d = Math.Wrap(target - a, -math.pi, math.pi)
+                a = math.abs(d) < 0.01 and target or a + Clamp(d, -kFacingTurnRate * dt, kFacingTurnRate * dt)
+                self.webFacingAngle = a
+
+                moving = true
+
+            end
+
+        end
+
+        -- clock in segment units, advanced only while walking
+        local phase = self.spinPhase or 0
+        if moving then
+            phase = phase + dt / kSpinPeriod
+        else
+            local boundary = math.floor(phase) + 1
+            local u = phase - boundary + 1
+            if u > kIdleEnd and u < kSpinEnd then
+                phase = math.min(phase + dt / kSpinPeriod, boundary)
+            end
+        end
+        self.spinPhase = phase
 
     end
 
@@ -2011,6 +2208,8 @@ elseif Client then
             if self.clientGroundMove ~= self.doesGroundMove and self.doesGroundMove then
                 self:TriggerEffects("babbler_move")
             end
+
+            self:UpdateSpinAxis(deltaTime)
         end
 
         self.clientGroundMove = self.doesGroundMove
@@ -2079,21 +2278,18 @@ elseif Client then
         local moveYaw = 0
         local targetSpeed = 0
 
+        if self.onWeb then
+            targetSpeed = self.webWalking and 1 or 0
+        elseif self.clientVelocity then
+            local moveDirection = ConditionalValue(self.clientVelocity:GetLengthXZ() > 0,
+                    GetNormalizedVectorXZ(self.clientVelocity), self.moveDirection)
+            local coords = Coords.GetLookIn(self:GetOrigin(), Vector(moveDirection.x, 0, moveDirection.z))
 
-
-        if self.clientVelocity then
-
-            local yaw = self.renderYaw or 0
-            local coords = Coords.GetLookIn(self:GetOrigin(), Vector(math.sin(yaw), 0, math.cos(yaw)))
-            local moveDirection = ConditionalValue(self.clientVelocity:GetLengthXZ() > 0, GetNormalizedVectorXZ(self.clientVelocity), self.moveDirection)
             local x = coords.xAxis:DotProduct(moveDirection)
             local z = coords.zAxis:DotProduct(moveDirection)
 
             moveYaw = Math_Wrap(Math_Degrees( math_atan2(z,x) ), -180, 180) + 180
-
-            local maxSpeed = self.onWeb and Babbler.kWebWalkSpeed or kBabblerRunSpeed
-            targetSpeed = Clamp(self.clientVelocity:GetLength() / maxSpeed, 0, 1)
-
+            targetSpeed = Clamp(self.clientVelocity:GetLength() / kBabblerRunSpeed, 0, 1)
         end
 
         -- explicit, frame-rate independent delta — OnUpdatePoseParameters
