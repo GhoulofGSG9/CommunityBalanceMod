@@ -1901,8 +1901,6 @@ if Server then
 
 elseif Client then
 
-    local kFaceRefMinTravelSq = 0.01 -- 0.1^2
-
     function Babbler:OnUpdateRender()
         PROFILE("Babbler:OnUpdateRender")
 
@@ -2006,22 +2004,19 @@ elseif Client then
                 self.moveDirection = Vector(0, 0, 0)
             end
 
-            local moveDirection = nil
             local target = self:GetTarget()
-            if target then
-                moveDirection = GetNormalizedVectorXZ(target:GetOrigin() - orig)
-                self.faceRefOrigin = Vector(orig)
-            else
-                self.faceRefOrigin = self.faceRefOrigin or Vector(orig)
-                local refDelta = orig - self.faceRefOrigin
-                if refDelta:GetLengthSquaredXZ() >= kFaceRefMinTravelSq then
-                    moveDirection = GetNormalizedVectorXZ(refDelta)
-                    self.faceRefOrigin = Vector(orig)
-                end
-            end
+            local rawDir = target and (target:GetOrigin() - orig) or (orig - self.lastOrigin)
 
-            if moveDirection then
-                self.moveDirection = Vector(moveDirection)
+            -- Skip near-zero deltas rather than normalizing them -- holds the
+            -- last good facing instead of feeding NaN into the blend below.
+            if rawDir:GetLengthSquaredXZ() >= kEpsilon then
+
+                local moveDirection = GetNormalizedVectorXZ(rawDir)
+
+                -- smooth out turning of babblers
+                self.moveDirection = self.moveDirection + moveDirection * deltaTime * (moveDirection - self.moveDirection):GetLength() * 5
+                self.moveDirection:Normalize()
+
             end
 
             if deltaTime > 0 then
