@@ -1981,53 +1981,17 @@ elseif Client then
 
     end
 
-    local kRenderYawDeadZone = math.rad(15)
-    local kRenderYawMaxTurn  = math.rad(720)
-
     function Babbler:OnAdjustModelCoords(modelCoords)
 
-        if self:GetIsClinged() or not self.moveDirection then
-            return modelCoords
-        end
-
-        local dir = self.moveDirection
-        -- holds facing when paused: also catches the NaN that normalizing a
-        -- zero delta produces, since NaN fails every comparison
-        if not (dir.x * dir.x + dir.z * dir.z >= kEpsilon) then
-            return modelCoords
-        end
-
-        local targetYaw = math.atan2(dir.x, dir.z)
-
-        local now = Shared.GetTime()
-        if not self.renderYaw then
-            self.renderYaw = targetYaw
-            self.renderYawTime = now
-        else
-            -- this callback gets no deltaTime, derive it ourselves
-            local dt = Clamp(now - self.renderYawTime, 0.001, 0.1)
-            self.renderYawTime = now
-
-            -- shortest signed angular difference
-            local diff = Math_Wrap(targetYaw - self.renderYaw, -math.pi, math.pi)
-
-            if math.abs(diff) > kRenderYawDeadZone then
-                local maxStep = kRenderYawMaxTurn * dt
-                self.renderYaw = self.renderYaw + Clamp(diff, -maxStep, maxStep)
+        if not self:GetIsClinged() and self.moveDirection then
+            modelCoords = Coords.GetLookIn(modelCoords.origin, self.moveDirection)
+            if not self:GetIsOnWeb() then
+                modelCoords.origin.y = modelCoords.origin.y - Babbler.kRadius
             end
         end
 
-        -- Pure yaw rotation: forward is horizontal at the smoothed angle, so
-        -- GetLookIn keeps the frame orthonormal and the model upright. No
-        -- axis is ever assigned by hand.
-        local forward = Vector(math.sin(self.renderYaw), 0, math.cos(self.renderYaw))
-        modelCoords = Coords.GetLookIn(modelCoords.origin, forward)
-
-        if not self:GetIsOnWeb() then
-            modelCoords.origin.y = modelCoords.origin.y - Babbler.kRadius
-        end
-
         return modelCoords
+
     end
 
     function Babbler:UpdateMoveDirection(deltaTime)
