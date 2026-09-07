@@ -96,7 +96,7 @@ function LOSMixin:__initmixin()
 
         self:SetIsSighted(false)
         UpdateLOS(self)
-        self.oldSighted = true
+        self.oldSighted = self.sighted
         self.lastViewerId = Entity.invalidId
 
         -- To skip LOS traces for combat
