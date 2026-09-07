@@ -267,7 +267,7 @@ if Server then
         
         -- Check if this entity is beyond our vision radius.
         local maxDist = (HasMixin(entity, "Cloakable") and entity:GetIsCloaked())
-                and entity:GetInvisibleRange() or viewer.cachedVisionRadius or viewer:GetVisionRadius()
+                and entity:GetInvisibleRange() or viewer:GetVisionRadius()
 
         -- allocation-free squared distance, this is the hottest path in the mixin
         local eo, vo = entity:GetOrigin(), viewer:GetOrigin()
@@ -280,6 +280,7 @@ if Server then
             return false
         end
 
+        -- If close enough to a non player entity, we see it no matter what.
         if not entity:isa("Player") and dist < (kUnitMinLOSDistance * kUnitMinLOSDistance) then
             return true
         end
@@ -316,7 +317,7 @@ if Server then
         end
         
         local now = Shared.GetTime()
-        local radius = self.cachedVisionRadius or self:GetVisionRadius()
+        local radius = self:GetVisionRadius()
 
         -- clear both sides: the engine writes 1..count and leaves stale
         -- tail entries in a reused table untouched
@@ -376,22 +377,21 @@ if Server then
         
     end
     
-    local kDirtyScratch = table.array(16)
     local function MarkNearbyDirty(self)
     
         self.updateLOS = true
-        self.cachedVisionRadius = self:GetVisionRadius()
 
-        table.clear(kDirtyScratch)
+        table.clear(kLosScratch)
         GetEntitiesWithMixinForTeamWithinRange("LOS", GetEnemyTeamNumber(self:GetTeamNumber()),
-                self:GetOrigin(), kUnitLOSDirtyDistance, kDirtyScratch)
+                self:GetOrigin(), kUnitLOSDirtyDistance, kLosScratch)
 
-        for i = 1, #kDirtyScratch do
-            kDirtyScratch[i].updateLOS = true
+        for i = 1, #kLosScratch do
+            kLosScratch[i].updateLOS = true
         end
 
     end
     
+
     local function SharedUpdate(self)
     
         PROFILE("LOSMixin:SharedUpdate")
