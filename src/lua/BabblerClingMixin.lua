@@ -36,6 +36,7 @@ local kMaxShield = kBabblerShieldMaxAmount
 BabblerClingMixin.networkVars =
 {
     numBabblers = "integer (0 to 6)",
+    webbedBabblerCount = "integer (0 to 6)",
     babblerShieldRemaining = string.format("float (0 to %f by 0.0625)", kMaxShield)
 }
 
@@ -48,6 +49,7 @@ function BabblerClingMixin:__initmixin()
     table.copy(kBabblerAttachPoints, self.freeAttachPoints)
 
     self.babblerShieldRemaining = 0
+    self.webbedBabblerCount = 0
 
     local babblerShieldPercent = self.GetBabblerShieldPercentage and self:GetBabblerShieldPercentage() or kBabblerShieldPercent
     self.babblerShieldMaxAmount = math.min(math.round(self:GetBaseHealth() * babblerShieldPercent), kMaxShield)
@@ -56,6 +58,17 @@ end
 
 function BabblerClingMixin:GetNumClingedBabblers()
     return self.numBabblers
+end
+
+function BabblerClingMixin:WebBabblerAdded()
+    self.webbedBabblerCount = math.min(6, self.webbedBabblerCount + 1)
+end
+function BabblerClingMixin:WebBabblerRemoved()
+    self.webbedBabblerCount = math.max(0, self.webbedBabblerCount - 1)
+end
+
+function BabblerClingMixin:GetNumWebbedBabblers()
+    return self.webbedBabblerCount or 0
 end
 
 function BabblerClingMixin:GetMaxClingedBabblers()
