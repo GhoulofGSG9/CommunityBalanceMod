@@ -241,7 +241,7 @@ if Server then
         return moveType
     end
 
-    local function CollectRecruits(self)
+    local function CollectBabblers(self)
 
         local owner = self:GetOwner()
         local searchOrigin = owner and owner:GetOrigin() or self:GetOrigin()
@@ -266,7 +266,7 @@ if Server then
 
     local function SendBabblersToWeb(self, web, impactPoint, spots)
 
-        for _, babbler in ipairs(CollectRecruits(self)) do
+        for _, babbler in ipairs(CollectBabblers(self)) do
             if spots <= 0 then break end
             if babbler:GetIsClinged() then
                 babbler:Detach()
@@ -330,21 +330,20 @@ if Server then
                 spots = math.max(entity:GetMaxClingedBabblers() - entity:GetNumClingedBabblers(), 0)
             end
 
-            for _, babbler in ipairs(CollectRecruits(self)) do
+            for _, babbler in ipairs(CollectBabblers(self)) do
 
                 if spots <= 0 then break end
 
-                local isRider = babbler:GetIsClinged() and babbler:GetParent() == owner
+                local isOwner = babbler:GetIsClinged() and babbler:GetParent() == owner
 
-                -- Riders only join Cling dispatches (where a slot is budgeted
-                -- for them); Attack/Move orders are for babblers already free
-                if moveType == kBabblerMoveType.Cling or not isRider then
+                if moveType == kBabblerMoveType.Cling or not isOwner then
 
-                    if isRider then
+                    if isOwner then
                         babbler:Detach()
                     end
 
                     babbler:SetMoveType(moveType, entity, position, true)
+                    babbler.squadReactUntil = Shared.GetTime() + math.random() * 0.25
                     if moveType == kBabblerMoveType.Attack then
                         babbler:TriggerEffects("babbler_engage")
                     end
