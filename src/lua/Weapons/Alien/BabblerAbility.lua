@@ -217,7 +217,10 @@ if Client then
             elseif target and GetAreFriends(self, target) and HasMixin(target, "BabblerCling") and target:GetCanAttachBabbler() and target:GetIsAlive() then
                 self.babblerMoveType = kBabblerMoveType.Cling
 
-            elseif target and GetAreFriends(self, target) and target:isa("Web") and target:GetIsAlive() and target:GetNumWebbedBabblers() < kWebMaxBabblers then
+            elseif target and GetAreFriends(self, target) and target:isa("Web") and target:GetIsAlive()
+                and target:GetNumWebbedBabblers() < kWebMaxBabblers -- Check for web free slots
+                and HasMixin(player, "BabblerOwner") and HasMixin(player, "BabblerCling") and player:GetBabblerCount() - player:GetNumWebbedBabblers() > 0 
+                then
                 self.babblerMoveType = kBabblerMoveType.Cling
             
             else
