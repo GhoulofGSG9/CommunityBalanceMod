@@ -266,13 +266,16 @@ if Server then
 
     local function SendBabblersToWeb(self, web, impactPoint, spots)
 
+        local startPoint, axis, length = web:GetWebAxis()
+
         for _, babbler in ipairs(CollectBabblers(self)) do
             if spots <= 0 then break end
             if babbler:GetIsClinged() then
                 babbler:Detach()
             end
             -- SetWebOrder can refuse (dead web, already webbed); only count real dispatches
-            if babbler:SetWebOrder(web, impactPoint) then
+            local randPoint = math.random() * length
+            if babbler:SetWebOrder(web, startPoint + axis * randPoint) then
                 spots = spots - 1
             end
         end
