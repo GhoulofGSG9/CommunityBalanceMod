@@ -457,32 +457,45 @@ if Server then
     
     -- this causes an issue: when the distance is too big (going to ready room, moving through phase gate) MarkNearbyDirty(self) will miss previous revealed entities.
     function LOSMixin:SetOrigin(origin)
-    
+
         -- matso: optimization; SetOrigin is called A LOT, so we just add us to an update-los queue when we move enough
         -- we'll get flushed now and then
-        if not self.dirtyLOS and (self.prevLOSorigin - origin):GetLengthSquared() > 0.3 then
-        
+
+        -- entities that can never see do not need to announce movement: their
+        -- dirty state only amplifies LOS work on real viewers nearby
+        if self.kStaticNoVision or self.dirtyLOS then
+            return
+        end
+
+        if (self.prevLOSorigin - origin):GetLengthSquared() > 0.3 then
+
             self.dirtyLOS = true
             VectorCopy(origin, self.prevLOSorigin)
-            
+
         end
-        
+
     end
-    
-    function LOSMixin:SetCoords(coords)
-    
-        if not self.dirtyLOS and self.prevLOSCoords ~= coords then
         
+    function LOSMixin:SetCoords(coords)
+
+        if self.kStaticNoVision or self.dirtyLOS then
+            return
+        end
+
+        -- cheap identity check first; Coords(coords) allocates, so keep it
+        -- behind the guard instead of paying it per call
+        if self.prevLOSCoords ~= coords then
             self.dirtyLOS = true
             self.prevLOSCoords = Coords(coords)
-            
         end
-        
+
     end
-    
+        
     function LOSMixin:SetAngles(angles)
-    
-        --PROFILE("LOSMixin:SetAngles")
+
+        if self.kStaticNoVision then
+            return
+        end
 
         if self.prevLOSYaw ~= angles.yaw and not self.dirtyLOS then
             local yaw = math_floor(angles.yaw * 100) / 100
@@ -494,7 +507,7 @@ if Server then
                 self.prevFlooredLOSYaw = yaw
             end
         end
-        
+
     end
     
     function LOSMixin:SetViewAngles(angles)
