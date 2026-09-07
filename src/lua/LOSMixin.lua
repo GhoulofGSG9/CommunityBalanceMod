@@ -291,14 +291,6 @@ if Server then
         local skipTrace = entity.timeLastSightedWithTrace and entity.timeLastSightedWithTrace + skipDuration > now
         local rval = GetCanSeeEntity(viewer, entity, nil, nil, skipTrace)
 
-        if not rval and not skipTrace then
-            local eyeViewer = GetEntityEyePos(viewer)
-            local eyeTarget = GetEntityEyePos(entity)
-            local filter = EntityFilterTwo(viewer, entity)
-            local trace = Shared.TraceRay(eyeViewer, eyeTarget, CollisionRep.LOS, PhysicsMask.All, filter)
-            rval = trace.endPoint:GetDistanceTo(eyeTarget) < 0.5
-        end
-
         if rval and not skipTrace then
             entity.timeLastSightedWithTrace = now
             VectorCopy(entity:GetOrigin(), entity.origLastSightedWithTrace)
