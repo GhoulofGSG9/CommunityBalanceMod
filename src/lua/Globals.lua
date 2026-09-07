@@ -114,9 +114,6 @@ kPoisonedColor = Color(0, 1, 0, 1)
 kCountDownLength = 6
 kTunnelLength = 27
 
-kWebNumBabblers = 0 -- number of babblers spawned attached to each web
-kWebMaxBabblers = 4  -- max babblers allowed on a single web
-
 -- Team numbers and indices
 kTeamInvalid = -1
 kTeamReadyRoom = 0
