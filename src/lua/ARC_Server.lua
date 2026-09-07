@@ -188,10 +188,16 @@ end
 function ARC:UpdateTargetingPosition()
 
     local targetEntity = Shared.GetEntity(self.targetedEntity)
-    if targetEntity then
-        self.targetPosition = GetTargetOrigin(targetEntity)
+
+    if not targetEntity or not self:ValidateTarget(targetEntity) then
+        self.targetPosition = nil
+        self.targetedEntity = Entity.invalidId
+        return false
     end
 
+    self.targetPosition = GetTargetOrigin(targetEntity)
+
+    -- Ink + range stay enforced continuously.
     if self:ValidateTargetPosition(self.targetPosition) then
         self:SetTargetDirection(self.targetPosition)
         return true
@@ -200,7 +206,7 @@ function ARC:UpdateTargetingPosition()
         self.targetedEntity = Entity.invalidId
         return false
     end
-    
+
 end
 
 function ARC:UpdateOrders(deltaTime)
@@ -320,11 +326,16 @@ function ARC:PerformAttack()
         
     end
     
+    local targetEnt = (self.targetedEntity and self.targetedEntity ~= Entity.invalidId)
+            and Shared.GetEntity(self.targetedEntity) or nil
+
     -- reset target position and acquire new target
     local currentOrder = self:GetCurrentOrder()
-    if not currentOrder or currentOrder:GetType() ~= kTechId.Attack then
+    local canStillBeShot = targetEnt:GetIsSighted() or GetIsTargetDetected(targetEnt)
+    if not currentOrder or currentOrder:GetType() ~= kTechId.Attack or not canStillBeShot then
         self.targetPosition = nil
         self.targetedEntity = Entity.invalidId
+        self:SetMode(ARC.kMode.Stationary)
     end
     
 end
