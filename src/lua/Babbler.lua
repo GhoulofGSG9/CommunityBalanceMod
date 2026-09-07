@@ -414,7 +414,6 @@ function Babbler:UpdateBabbler(deltaTime)
     if Server then
 
         if self:GetIsOnWeb() then
-            self:UpdateWebBehavior(deltaTime)
             self:UpdateRelevancy()
             return
         end
@@ -582,9 +581,13 @@ end
 function Babbler:OnProcessMove(input)
     local deltaTime = input.time
     self:UpdateBabbler(deltaTime)
-    
+
     if Server then
-        
+
+        if self:GetIsOnWeb() then
+            self:UpdateWebBehavior(deltaTime)
+        end
+
         local parent = self:GetParent()
         if parent then
             self:SetOrigin(parent:GetOrigin())
@@ -843,6 +846,18 @@ if Server then
 
     end
 
+    -- Rough hang-time estimate for a jump's horizontal carry -- doesn't need
+    -- to match the physics exactly, just needs to catch "there's nothing
+    -- under me a moment from now" before a personality/random hop commits to
+    -- it. Reuses the same GetGroundAt check as GetIsBabblerOffMap.
+    local kJumpHangTimeEstimate = 0.8
+    function Babbler:GetIsSafeJumpVelocity(velocity)
+
+        local landingPos = self:GetOrigin() + Vector(velocity.x, 0, velocity.z) * kJumpHangTimeEstimate
+        return GetGroundAt(self, landingPos, PhysicsMask.AIMovement) ~= landingPos
+
+    end
+
     local function KillCallback(this)
         this:Kill()
         return -- remove callback
@@ -969,8 +984,10 @@ if Server then
                 moveVel:Scale(kBabblerJumpSpeed / jumpSpeed)
             end
 
-            self:Jump(moveVel)
-            self:TriggerUncloak()
+            if self:GetIsSafeJumpVelocity(moveVel) then
+                self:Jump(moveVel)
+                self:TriggerUncloak()
+            end
 
             -- The constant added delay has to be higher than the self.timeLastJump delay in the function
             -- so we are sure that we are not jumping as soon as we reached so floor
@@ -1010,7 +1027,20 @@ if Server then
     end
 
     function Babbler:JumpRandom()
-        self:Jump(Vector( (math.random() * 3) - 1.5, 3 + math.random() * 2, (math.random() * 3) - 1.5 ))
+
+        local velocity
+        for _ = 1, 4 do
+            local candidate = Vector((math.random() * 3) - 1.5, 3 + math.random() * 2, (math.random() * 3) - 1.5)
+            if self:GetIsSafeJumpVelocity(candidate) then
+                velocity = candidate
+                break
+            end
+        end
+
+        -- No safe direction found nearby (likely on a ledge) -- hop straight
+        -- up in place instead of risking a fall.
+        self:Jump(velocity or Vector(0, 3 + math.random() * 2, 0))
+
     end
 
     local kOffMapOffset = Vector(0, 0.001, 0)
