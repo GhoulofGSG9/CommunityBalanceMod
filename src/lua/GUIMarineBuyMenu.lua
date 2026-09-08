@@ -459,7 +459,7 @@ local kTechIdInfo =
     {
         ButtonTextureIndex = 14,
         BigPictureIndex = 0,
-        Description = "DUALMINIGUN_BUYDESCRIPTION",
+        Description = "EXOSUIT_MODULAR_BUYDESCRIPTION",
         Stats = GetStatsForTechId(kTechId.DualMinigunExosuit),
         Special = kSpecial.Massive
     },
@@ -1919,9 +1919,12 @@ local kEnabledColor = Color(1, 1, 1, 1)
 --     +-----------------------------------------------------------------------------+ 811
 --
 -- The configuration area is everything right of the module details column.
+-- The area is measured from the background texture at init (GetConfigAreaSize), because
+-- CBM ships its own prototypelab_background.dds (1700x1000) while vanilla's is 1383x811;
+-- with fixed numbers the page sat in the top left of the larger frame.
 local kConfigAreaOffsetX = -40      -- background x 540, where the vanilla item list ended
-local kConfigAreaWidth = 820        -- 540 .. 1360, out to the right edge of the frame
-local kConfigAreaHeight = 770       -- 38 .. 808
+local kConfigAreaRightMargin = 23   -- frame edge to the right of the last arm column
+local kConfigAreaBottomMargin = 3   -- frame edge below the buy row
 
 -- Slot panels. Every panel is a labelled group: a title sitting above a framed box of
 -- buttons, the way the vanilla WEAPONS / UTILITY groups read.
@@ -2091,8 +2094,18 @@ GUIMarineBuyMenu.kExoSlotData = {
     },
 }
 
+-- Width and height of the configuration area, in unscaled background pixels: everything
+-- right of the module details column and below the right-side root, minus the margins.
+local function GetConfigAreaSize(self)
+    local bgSize = self.background:GetSize()
+    local width = bgSize.x - (kPrototypeLabRightSidePos.x + kConfigAreaOffsetX) - kConfigAreaRightMargin
+    local height = bgSize.y - kPrototypeLabRightSidePos.y - kConfigAreaBottomMargin
+    return width, height
+end
+
 function GUIMarineBuyMenu:_InitializeExoModularButtons()
     local canHaveDualArm = true --GetHasTech(self,kTechId.DualMinigunTech)
+    local kConfigAreaWidth, kConfigAreaHeight = GetConfigAreaSize(self)
 	local canHaveUtilityModules = true --GetHasTech(self,kTechId.CoresExosuitTech)
 
     self.activeExoConfig = nil

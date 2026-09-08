@@ -1827,11 +1827,11 @@ function BuildTechData()
         {
             [kTechDataId] = kTechId.DualMinigunExosuit,
             [kTechIDShowEnables] = false,
-            [kTechDataDisplayName] = "DUALMINIGUN_EXOSUIT",
+            [kTechDataDisplayName] = "EXOSUIT",
             [kTechDataMapName] = "exo",
             [kTechDataCostKey] = kDualExosuitCost,
             [kTechDataHotkey] = Move.E,
-            [kTechDataTooltipInfo] = "DUALMINIGUN_EXOSUIT_TECH_TOOLTIP",
+            [kTechDataTooltipInfo] = "EXOSUIT_MODULAR_TOOLTIP",
             [kTechDataSpawnHeightOffset] = kCommanderEquipmentDropSpawnHeight,
         },
 
