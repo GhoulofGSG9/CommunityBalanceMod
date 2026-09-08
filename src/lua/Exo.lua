@@ -70,9 +70,7 @@ local networkVars = {
     leftArmModuleType    = "enum kExoModuleTypes",
     utilityModuleType    = "enum kExoModuleTypes",
     abilityModuleType    = "enum kExoModuleTypes",
-    repairActive         = "boolean",
-    nanoshieldActive     = "boolean",
-    catpackActive        = "boolean",
+    timeSupportAbilityReady = "private time",
     hasThrusters         = "boolean",
     --hasPhaseModule       = "boolean",
     hasNanoRepair        = "boolean",
@@ -361,11 +359,11 @@ function Exo:OnInitialized()
     --   self.armorBonus = armorModuleData and armorModuleData.armorBonus or 0
     -- self.hasPhaseModule = (self.utilityModuleType == kExoModuleTypes.PhaseModule)
     self.hasThrusters = (self.utilityModuleType == kExoModuleTypes.Thrusters)
-    self.hasNanoRepair = (self.utilityModuleType == kExoModuleTypes.NanoRepair)
+    self.hasNanoRepair = (self.abilityModuleType == kExoModuleTypes.NanoRepair)
     self.hasNanoShield = (self.abilityModuleType == kExoModuleTypes.NanoShield)
     self.hasCatPack = (self.abilityModuleType == kExoModuleTypes.CatPack)
 	self.hasEjectionSeat = (self.utilityModuleType == kExoModuleTypes.EjectionSeat)
-    self.hasPlasmaLauncher = (self.leftArmModuleType == 6 or self.rightArmModuleType == 6) -- "PlasmaLauncher" is enumerated to 6
+    self.hasPlasmaLauncher = (self.leftArmModuleType == kExoModuleTypes.PlasmaLauncher or self.rightArmModuleType == kExoModuleTypes.PlasmaLauncher)
     
     -- Only set the model on the Server, the Client
     -- will already have the correct model at this point.
@@ -379,13 +377,7 @@ function Exo:OnInitialized()
     
     Player.OnInitialized(self)
     
-    self.nanoshieldActive = false
-    self.repairActive = false
-    self.catpackActive = false
-    self.timeAutoRepairHealed = 0
-    self.lastActivatedRepair = 0
-    self.lastActivatedNanoShield = 0
-    self.lastActivatedCatPack = 0
+    self.timeSupportAbilityReady = 0
     
     if Server then
         
@@ -1377,12 +1369,14 @@ function Exo:HandleButtons(input)
     Player.HandleButtons(self, input)
     
     self:UpdateThrusters(input)
-    self:UpdateRepairs(input)
-    self:UpdateNanoShields(input)
-    self:UpdateCatPack(input)
+    self:UpdateSupportAbility(input)
     
-    if bit_band(input.commands, Move.Drop) ~= 0 then
-        self:EjectExo()
+    -- Manual eject: hold the drop key for kExoEjectHoldTime seconds outside combat.
+    -- In combat the only way out is the Ejection Seat core (auto-eject at 0 armor).
+    -- Server only: the client re-simulates moves during prediction, so a hold timer
+    -- kept there would be restarted constantly. The client gets ejectHoldFraction.
+    if Server then
+        self:UpdateEjectHold(input)
     end
 
 end
@@ -1435,7 +1429,7 @@ function Exo:GetIsThrusterAllowed()
     
     end
     
-    return (not self.nanoshieldActive or not self.repairActive or not self.catpackActive) and (self.hasThrusters and allowed)
+    return self.hasThrusters and allowed
 end
 
 function Exo:UpdateThrusters(input)
@@ -1755,7 +1749,7 @@ end
 
 -- for jetpack fuel display
 function Exo:ConsumingFuel()
-    return self.thrustersActive or self.nanoshieldActive or self.repairActive or self.catpackActive
+    return self.thrustersActive
 end
 
 function Exo:GetFuel()
@@ -1778,12 +1772,6 @@ function Exo:GetFuelUsageRate()
 		else 
 			return kExoThrusterFuelUsageRate --* usageScalar
 		end
-    elseif self.repairActive then
-        return kExoRepairFuelUsageRate --* usageScalar
-    elseif self.nanoshieldActive then
-        return kExoNanoShieldFuelUsageRate --* usageScalarelse
-    elseif self.catpackActive then
-        return kExoCatPackFuelUsageRate --* usageScalar
     else
         return 1
     end
@@ -2015,122 +2003,117 @@ if Server then
 
 end
 
-function Exo:GetCatPackAllowed()
-    return self.hasCatPack and not (self.thrustersActive or self.repairActive or self.nanoshieldActive)
+-- ============================================================================
+-- Support Ability slot: area-of-effect buffs for nearby marines.
+-- Server authoritative, triggered with Move.Reload, shared cooldown.
+-- ============================================================================
+
+function Exo:GetHasSupportAbility()
+    return self.abilityModuleType ~= nil and self.abilityModuleType ~= kExoModuleTypes.None
 end
 
-function Exo:GetNanoShieldAllowed()
-    return self.hasNanoShield and not (self.thrustersActive or self.repairActive or self.catpackActive)
+function Exo:GetSupportAbilityTimeRemaining()
+    return math.max(0, (self.timeSupportAbilityReady or 0) - Shared.GetTime())
 end
 
-function Exo:GetRepairAllowed()
-    return self.hasNanoRepair and not (self.thrustersActive or self.nanoshieldActive or self.catpackActive)
+function Exo:GetSupportAbilityReady()
+    return self:GetHasSupportAbility() and self:GetSupportAbilityTimeRemaining() == 0
 end
 
-function Exo:TriggerNanoShield()
-    
-    local entities = GetEntitiesWithMixinForTeamWithinRange("NanoShieldAble", self:GetTeamNumber(), self:GetOrigin(), 6)
-    Shared.PlayPrivateSound(self, MarineCommander.kTriggerNanoShieldSound, nil, 1.0, self:GetOrigin())
-    for _, entity in ipairs(entities) do
-        
-        if not entity:isa("Exo") then
-            entity:ActivateNanoShield()
+-- Marines and JetpackMarines only. Never exos (including ourselves), MACs, ARCs or structures.
+local function GetSupportAbilityTargets(self)
+
+    local targets = {}
+
+    for _, target in ipairs(GetEntitiesForTeamWithinRange("Marine", self:GetTeamNumber(), self:GetOrigin(), kExoSupportRadius)) do
+
+        if target ~= self and not target:isa("Exo") and HasMixin(target, "Live") and target:GetIsAlive() then
+            table.insert(targets, target)
         end
+
     end
+
+    return targets
 
 end
 
-function Exo:StopNanoShield()
-    
-    local entities = GetEntitiesWithMixinForTeamWithinRange("NanoShieldAble", self:GetTeamNumber(), self:GetOrigin(), 6)
-    Shared.PlayPrivateSound(self, MarineCommander.kTriggerNanoShieldSound, nil, 1.0, self:GetOrigin())
-    for _, entity in ipairs(entities) do
-        
-        if entity:GetIsNanoShielded() then
-            entity:DeactivateNanoShield()
-        end
+local function RegenFieldTick(self)
+
+    local ticksLeft = self.regenFieldTicksLeft or 0
+
+    if ticksLeft <= 0 or not self:GetIsAlive() then
+        self.regenFieldTicksLeft = nil
+        return false
     end
+
+    self.regenFieldTicksLeft = ticksLeft - 1
+
+    for _, target in ipairs(GetSupportAbilityTargets(self)) do
+        target:AddHealth(kExoRegenFieldHealPerSecond, false, false, false, self)
+    end
+
+    if self.regenFieldTicksLeft <= 0 then
+        self.regenFieldTicksLeft = nil
+        return false
+    end
+
+    return true
 
 end
 
-function Exo:TriggerCatPack()
-    
-    local entities = GetEntitiesWithMixinForTeamWithinRange("CatPack", self:GetTeamNumber(), self:GetOrigin(), 6)
-    for _, entity in ipairs(entities) do
-        
-        if HasMixin(entity, "CatPack") then
-            entity:ApplyCatPack()
-            entity:TriggerEffects("catpack_pickup", { effecthostcoords = entity:GetCoords() })
-        
+function Exo:UpdateSupportAbility(input)
+
+    if not Server then
+        return
+    end
+
+    if not self:GetHasSupportAbility() or not self:GetIsAlive() then
+        return
+    end
+
+    if bit_band(input.commands, Move.Reload) == 0 then
+        return
+    end
+
+    if Shared.GetTime() < (self.timeSupportAbilityReady or 0) then
+        return
+    end
+
+    local moduleType = self.abilityModuleType
+    local targets = GetSupportAbilityTargets(self)
+
+    if moduleType == kExoModuleTypes.NanoShield then
+
+        for _, target in ipairs(targets) do
+
+            if HasMixin(target, "NanoShieldAble") and target:GetCanBeNanoShielded() then
+                target:ActivateNanoShield()
+            end
+
         end
-    end
 
-end
+    elseif moduleType == kExoModuleTypes.CatPack then
 
-function Exo:UpdateNanoShields(input)
-    
-    if self:GetNanoShieldAllowed() and bit_band(input.commands, Move.Reload) ~= 0 then
-        -- todo shield
-        if self:GetFuel() >= kExoNanoShieldMinFuel and not self.nanoshieldActive and self.lastActivatedNanoShield + 1 < Shared.GetTime() then
-            self:SetFuel(self:GetFuel())
-            self.nanoshieldActive = true
-            self.lastActivatedNanoShield = Shared.GetTime()
-            self:TriggerNanoShield()
-        
+        for _, target in ipairs(targets) do
+
+            if HasMixin(target, "CatPack") then
+                target:ApplyCatPack()
+                target:TriggerEffects("catpack_pickup", { effecthostcoords = target:GetCoords() })
+            end
+
         end
-    end
-    
-    if self.nanoshieldActive and (self:GetFuel() == 0 or not buttonPressed) then
-        self:SetFuel(self:GetFuel())
-        self:StopNanoShield()
-        self.nanoshieldActive = false
-    end
 
-end
+    elseif moduleType == kExoModuleTypes.NanoRepair then
 
-function Exo:UpdateCatPack(input)
-    
-    if self:GetCatPackAllowed() and bit_band(input.commands, Move.Reload) ~= 0 then
-        
-        if self:GetFuel() >= kExoCatPackMinFuel and not self.catpackActive and self.lastActivatedCatPack + 1 < Shared.GetTime() then
-            self:SetFuel(self:GetFuel())
-            self.catpackActive = true
-            self.lastActivatedCatPack = Shared.GetTime()
-            self:TriggerCatPack()
-        
+        if self.regenFieldTicksLeft == nil then
+            self.regenFieldTicksLeft = kExoRegenFieldDuration
+            self:AddTimedCallback(RegenFieldTick, 1)
         end
-    end
-    
-    if self.catpackActive and (self:GetFuel() == 0 or not buttonPressed) then
-        self:SetFuel(self:GetFuel())
-        self.catpackActive = false
-        self.catpackboost = false
-        self:ClearCatPackMixin()
+
     end
 
-end
-
-function Exo:UpdateRepairs(input)
-    
-    local repairDesired = self:GetArmor() < self:GetMaxArmor()
-    if self:GetRepairAllowed() and repairDesired and bit_band(input.commands, Move.MovementModifier) ~= 0 then
-        
-        if self:GetFuel() >= kExoRepairMinFuel and not self.repairActive and self.lastActivatedRepair + 1 < Shared.GetTime() then
-            self:SetFuel(self:GetFuel())
-            self.lastActivatedRepair = Shared.GetTime()
-            self.repairActive = true
-        end
-    end
-    
-    if self.repairActive and (self:GetFuel() == 0 or bit_band(input.commands, Move.MovementModifier) == 0 or not repairDesired) then
-        self:SetFuel(self:GetFuel())
-        self.repairActive = false
-    end
-    
-    if self.repairActive and self.timeAutoRepairHealed + kExoRepairInterval < Shared.GetTime() then
-        self:SetArmor(self:GetArmor() + kExoRepairInterval * kExoRepairPerSecond, false)
-        self.timeAutoRepairHealed = Shared.GetTime()
-    end
+    self.timeSupportAbilityReady = Shared.GetTime() + kExoSupportAbilityCooldown
+    self:TriggerEffects("exo_support_field")
 
 end
 

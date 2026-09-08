@@ -359,6 +359,15 @@ kGeneralEffectData =
         },
     },
     
+    -- Exosuit Support Ability slot activation (Nano Shield / Adrenaline / Regen field)
+    exo_support_field =
+    {
+        exoSupportFieldEffects =
+        {
+            {sound = "sound/NS2.fev/marine/common/catalyst"},
+        },
+    },
+    
     -- Structure deploy animations handled in code ("deploy")
     deploy =
     {

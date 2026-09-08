@@ -4503,18 +4503,35 @@ function Player:GetShowAtmosphericLight()
     return true
 end
 
-function PlayerUI_GetExoRepairAvailable()
+-- Returns the equipped Support Ability module type and the seconds left on its
+-- cooldown (0 when it is ready to fire).
+function PlayerUI_GetExoSupportAbility()
     
     local player = Client.GetLocalPlayer()
     
-    if player and player:GetIsPlaying() and player:isa("Exo") and player.GetRepairAllowed then
-        
-        return player:GetRepairAllowed(), player:GetFuel() >= kExoRepairMinFuel, player.repairActive
-    
+    if player and player:GetIsPlaying() and player:isa("Exo") and player.GetHasSupportAbility and player:GetHasSupportAbility() then
+        return player.abilityModuleType, player:GetSupportAbilityTimeRemaining()
     end
     
-    return false, false, false
+    return kExoModuleTypes.None, 0
 
+end
+
+-- Legacy shape kept for the HUD: available, ready, active
+local function GetExoSupportAbilityState(moduleType)
+    
+    local equipped, secondsUntilReady = PlayerUI_GetExoSupportAbility()
+    
+    if equipped ~= moduleType then
+        return false, false, false
+    end
+    
+    return true, secondsUntilReady == 0, false
+
+end
+
+function PlayerUI_GetExoRepairAvailable()
+    return GetExoSupportAbilityState(kExoModuleTypes.NanoRepair)
 end
 
 function PlayerUI_GetExoThrustersAvailable()
@@ -4532,31 +4549,11 @@ function PlayerUI_GetExoThrustersAvailable()
 end
 
 function PlayerUI_GetExoNanoShieldAvailable()
-
-    local player = Client.GetLocalPlayer()
-
-    if player and player:GetIsPlaying() and player:isa("Exo") and player.GetNanoShieldAllowed then
-
-        return player:GetNanoShieldAllowed(), player:GetFuel() >= kExoNanoShieldMinFuel, player.nanoshieldActive
-
-    end
-
-    return false, false, false
-
+    return GetExoSupportAbilityState(kExoModuleTypes.NanoShield)
 end
 
 function PlayerUI_GetExoCatPackAvailable()
-    
-    local player = Client.GetLocalPlayer()
-    
-    if player and player:GetIsPlaying() and player:isa("Exo") and player.GetCatPackAllowed then
-        
-        return player:GetCatPackAllowed(), player:GetFuel() >= kExoCatPackMinFuel, player.catpackActive
-    
-    end
-    
-    return false, false, false
-
+    return GetExoSupportAbilityState(kExoModuleTypes.CatPack)
 end
 
 function PlayerUI_GetHasThrusters()
