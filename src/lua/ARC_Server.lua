@@ -331,7 +331,7 @@ function ARC:PerformAttack()
 
     -- reset target position and acquire new target
     local currentOrder = self:GetCurrentOrder()
-    local canStillBeShot = targetEnt:GetIsSighted() or GetIsTargetDetected(targetEnt)
+    local canStillBeShot = targetEnt ~= nil and (targetEnt:GetIsSighted() or GetIsTargetDetected(targetEnt))
     if not currentOrder or currentOrder:GetType() ~= kTechId.Attack or not canStillBeShot then
         self.targetPosition = nil
         self.targetedEntity = Entity.invalidId
