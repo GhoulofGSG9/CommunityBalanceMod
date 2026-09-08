@@ -514,6 +514,14 @@ function ModularExo_GetIsConfigValid(config)
                 -- For example, an armor module in a weapon slot
                 return false, "wrong slot type" -- not a valid config
             end
+
+            -- Arm-side rules used to live only in the buy menu; enforce them here too
+            if moduleTypeData.leftArmOnly and slotType == kExoModuleSlots.RightArm then
+                return false, "left arm only"
+            end
+            if moduleTypeData.rightArmOnly and slotType == kExoModuleSlots.LeftArm then
+                return false, "right arm only"
+            end
             
             --if kMarineTeamType and moduleTypeData.requiredTechId and not GetIsTechResearched(kMarineTeamType, moduleTypeData.requiredTechId) then
             --     return false, "tech not researched"
