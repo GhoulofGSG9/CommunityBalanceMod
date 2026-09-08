@@ -59,10 +59,7 @@ function ExoFlamer:OnCreate()
     InitMixin(self, PointGiverMixin)
     InitMixin(self, EffectsMixin)
     
-    self.timeWeldStarted = 0
-    self.timeLastWeld = 0
     self.loopingSoundEntId = Entity.invalidId
-    self.range = 10
     self.heatAmount = 0
     self.overheated = false
     
@@ -72,7 +69,7 @@ function ExoFlamer:OnCreate()
         self.createParticleEffects = false
         self.loopingFireSound = Server.CreateEntity(SoundEffect.kMapName)
         self.loopingFireSound:SetAsset(kFireLoopingSound)
-        -- SoundEffect will automatically be destroyed when the parent is destroyed (the Welder).
+        -- SoundEffect will automatically be destroyed when the parent is destroyed (the ExoFlamer).
         self.loopingFireSound:SetParent(self)
         self.loopingSoundEntId = self.loopingFireSound:GetId()
         
@@ -119,12 +116,6 @@ function ExoFlamer:OnUpdateAnimationInput(modelMixin)
     local parent = self:GetParent()
     local activity = self.isShooting and "primary" or "none"
     -- modelMixin:SetAnimationInput("activity_" .. self:GetExoWeaponSlotName(), activity)
-end
-
-function ExoFlamer:ModifyMaxSpeed(maxSpeedTable)
-    if self.isShooting then
-        maxSpeedTable.maxSpeed = maxSpeedTable.maxSpeed * kMinigunMovementSlowdown
-    end
 end
 
 function ExoFlamer:GetIsAffectedByWeaponUpgrades()
@@ -197,33 +188,6 @@ function ExoFlamer:BurnSporesAndUmbra(startPoint, endPoint)
 
 end
 
-function ExoFlamer:CreateFlame(player, position, normal, direction)
-    
-    -- create flame entity, but prevent spamming:
-    local nearbyFlames = GetEntitiesForTeamWithinRange("Flame", player:GetTeamNumber(), position, 1.5)
-    
-    if #nearbyFlames == 0 then
-        
-        local flame = CreateEntity(Flame.kMapName, position, player:GetTeamNumber())
-        flame:SetOwner(player)
-        
-        local coords = Coords.GetTranslation(position)
-        coords.yAxis = normal
-        coords.zAxis = direction
-        
-        coords.xAxis = coords.yAxis:CrossProduct(coords.zAxis)
-        coords.xAxis:Normalize()
-        
-        coords.zAxis = coords.xAxis:CrossProduct(coords.yAxis)
-        coords.zAxis:Normalize()
-        
-        flame:SetCoords(coords)
-    
-    end
-
-
-end
-
 function ExoFlamer:GetMeleeOffset()
     
     return 0
@@ -231,142 +195,73 @@ function ExoFlamer:GetMeleeOffset()
 end
 
 function ExoFlamer:ApplyConeDamage(player)
-    
+
     local eyePos = player:GetEyePos()
     local DamageEnts = {}
-	local WeldingEnts = {}
-	local count = 0
-	local kTraceOrder = { 4, 1, 3, 5, 7, 0, 2, 6, 8 }
-    
-	local coords = player:GetViewAngles():GetCoords()
-	local fireDirection = player:GetViewCoords().zAxis
+    local kTraceOrder = { 4, 1, 3, 5, 7, 0, 2, 6, 8 }
+
+    local coords = player:GetViewAngles():GetCoords()
+    local fireDirection = player:GetViewCoords().zAxis
     local extents = Vector(kExoFlamerConeWidth/6, kExoFlamerConeWidth/6, kExoFlamerConeWidth/6)
     local range = self:GetRange()
-	local damageHeight = self.kDamageRadius / 2
-    
+
     local startPoint = Vector(eyePos)
     local filterEnts = { self, player }
-    
-    --[[if Server then
-        self:BurnSporesAndUmbra(startPoint, endPoint)
-    end]]
-    
-	for _, pointIndex in ipairs(kTraceOrder) do
+
+    -- The first entry of kTraceOrder is the centre of the cone. That trace stands in for the
+    -- marine flamethrower's single trace when burning clouds and when dropping a ground flame,
+    -- so the cone does that work once per tick instead of once per trace point.
+    local burnEndPoint = eyePos + fireDirection * range
+
+    for _, pointIndex in ipairs(kTraceOrder) do
 
         local dx = pointIndex % 3 - 1
         local dy = math.floor(pointIndex / 3) - 1
         local point = eyePos + coords.xAxis * (dx * kExoFlamerConeWidth / 3) + coords.yAxis * (dy * kExoFlamerConeWidth / 3)
         local trace = TraceMeleeBox(self, point, fireDirection, extents, range, PhysicsMask.Flame, EntityFilterList(filterEnts))
-	
-	    local endPoint = trace.endPoint
-		local normal = trace.normal
-	
-		if trace.fraction ~= 1 then
-			
-			local traceEnt = trace.entity
-			if traceEnt and HasMixin(traceEnt, "Live") and traceEnt:GetCanTakeDamage() and traceEnt:GetTeamNumber() ~= self:GetTeamNumber() then
-				if not table.find(DamageEnts, traceEnt) then
-					table.insert(DamageEnts, traceEnt)
-					count = count + 1
-				end
-			end
-			
-			if traceEnt and HasMixin(traceEnt, "Live") and HasMixin(traceEnt, "Weldable") and traceEnt:GetTeamNumber() == self:GetTeamNumber() then
-				if not table.find(WeldingEnts, traceEnt) and traceEnt:GetHealthScalar() < 1 then
-					table.insert(WeldingEnts, traceEnt)
-					count = count + 1
-				end
-			end
-		
-        --Create Flame
-        --[[if Server then
-            --Create flame below target
-            if trace.entity then
-                local groundTrace = Shared.TraceRay(endPoint, endPoint + Vector(0, -2.6, 0), CollisionRep.Default, PhysicsMask.CystBuild, EntityFilterAllButIsa("TechPoint"))
-                if groundTrace.fraction ~= 1 then
-                    fireDirection = fireDirection * 0.55 + normal
-                    fireDirection:Normalize()
-                    
-                    self:CreateFlame(player, groundTrace.endPoint, groundTrace.normal, fireDirection)
+
+        local endPoint = trace.endPoint
+        local isCenterTrace = pointIndex == 4
+
+        if isCenterTrace then
+            burnEndPoint = endPoint
+        end
+
+        if trace.fraction ~= 1 then
+
+            local traceEnt = trace.entity
+            if traceEnt and HasMixin(traceEnt, "Live") and traceEnt:GetCanTakeDamage() and traceEnt:GetTeamNumber() ~= self:GetTeamNumber() then
+                if not table.find(DamageEnts, traceEnt) then
+                    table.insert(DamageEnts, traceEnt)
                 end
-            else
-                fireDirection = fireDirection * 0.55 + normal
-                fireDirection:Normalize()
-                
-                self:CreateFlame(player, endPoint, normal, fireDirection)
             end
-        
-        end]]
-		end
-    end
-	
-    for i = 1, #DamageEnts do
-        
-        local ent = DamageEnts[i]
-        local enemyOrigin = ent:GetModelOrigin()
-        
-        if ent ~= player and enemyOrigin then
-            
-            local toEnemy = GetNormalizedVector(enemyOrigin - eyePos)
-            
-            local health = ent:GetHealth()
-            self:DoDamage(kExoFlamerExoFlamerDamage/count, ent, enemyOrigin, toEnemy)
-            
-            -- Only light on fire if we successfully damaged them
-            --[[if ent:GetHealth() ~= health and HasMixin(ent, "Fire") then
-                ent:SetOnFire(player, self)
-            end]]
+
         end
     end
 
-    for i = 1, #WeldingEnts do
-        
-        local target = WeldingEnts[i]
-
-		if target:GetHealthScalar() < 1 then
-			
-			local prevHealthScalar = target:GetHealthScalar()
-			local prevHealth = target:GetHealth()
-			local prevArmor = target:GetArmor()
-			if target:GetCanBeWelded(player) then
-				if target.OnWeldOverride then
-					target:OnWeldOverride(player, kExoFlamerFireRate)
-				else
-					target:AddHealth(self:GetRepairRate(target) * kExoFlamerFireRate/count)
-				end
-				if player and player.OnWeldTarget then
-					player:OnWeldTarget(target)
-				end
-			end
-			
-			success = prevHealthScalar ~= target:GetHealthScalar()
-			
-			if success then
-				
-				local addAmount = (target:GetHealth() - prevHealth) + (target:GetArmor() - prevArmor)
-				player:AddContinuousScore("WeldHealth", addAmount, kExoFlamerWelderAmountHealedForPoints, kExoFlamerWelderHealScoreAdded)
-				
-				-- weld owner as well
-				-- player:SetArmor(player:GetArmor() + kExoFlamerFireRate * kExoFlamerWelderSelfWeldAmount)
-			
-			end
-		end
-		
-		if HasMixin(target, "Construct") then
-			target:Construct(kExoFlamerFireRate, player)
-		end    
+    -- Check for spores in the way.
+    if Server then
+        self:BurnSporesAndUmbra(startPoint, burnEndPoint)
     end
-end
 
-function ExoFlamer:GetRepairRate(repairedEntity)
-    
-    local repairRate = kExoFlamerWelderPlayerWeldRate
-    if repairedEntity.GetReceivesStructuralDamage and repairedEntity:GetReceivesStructuralDamage() then
-        repairRate = kExoFlamerWelderStructureWeldRate
+    for i = 1, #DamageEnts do
+
+        local ent = DamageEnts[i]
+        local enemyOrigin = ent:GetModelOrigin()
+
+        if ent ~= player and enemyOrigin then
+
+            local toEnemy = GetNormalizedVector(enemyOrigin - eyePos)
+
+            local health = ent:GetHealth()
+            self:DoDamage(kExoFlamerExoFlamerDamage, ent, enemyOrigin, toEnemy)
+
+            -- Only light on fire if we successfully damaged them
+            if ent:GetHealth() ~= health and HasMixin(ent, "Fire") then
+                ent:SetOnFire(player, self)
+            end
+        end
     end
-    
-    return repairRate
-
 end
 
 function ExoFlamer:GetBarrelPoint()
@@ -567,15 +462,6 @@ function ExoFlamer:ModifyDamageTaken(damageTable, attacker, doer, damageType)
     if damageType ~= kDamageType.Corrode then
         damageTable.damage = 0
     end
-end
-
-function ExoFlamer:UpdateViewModelPoseParameters(viewModel)
-    viewModel:SetPoseParam("welder", 1)
-end
-
-function ExoFlamer:OnUpdatePoseParameters(viewModel)
-    PROFILE("ExoFlamer:OnUpdatePoseParameters")
-    self:SetPoseParam("welder", 1)
 end
 
 Shared.LinkClassToMap("ExoFlamer", ExoFlamer.kMapName, networkVars)

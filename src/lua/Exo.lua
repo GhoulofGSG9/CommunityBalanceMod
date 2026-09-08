@@ -111,8 +111,8 @@ if Client then
     local precached2 = PrecacheAsset("cinematics/vfx_materials/heal_exo_view.surface_shader")
 end
 
-local PreCacheAssetFolder = { "models/claw/", "models/claw/", "models/claw/", "models/plasma/", "models/railgun/", "models/railgun/" }
-local PreCacheAssetList = { "cm", "cr", "cp", "pp", "rp", "pr" }
+local PreCacheAssetFolder = { "models/claw/", "models/claw/", "models/claw/", "models/claw/", "models/plasma/", "models/railgun/", "models/railgun/" }
+local PreCacheAssetList = { "cm", "cr", "cp", "cf", "pp", "rp", "pr" }
 
 local precached3 = {}
 

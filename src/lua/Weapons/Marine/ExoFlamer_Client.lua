@@ -6,7 +6,6 @@
 --
 -- ========= For more information, visit us at http:--www.unknownworlds.com =====================
 
-local kTrailLength = 9.5
 local kImpactEffectRate = 0.3
 local kSmokeEffectRate = 1.5
 local kPilotEffectRate = 0.3
@@ -15,7 +14,7 @@ local kFlameImpactCinematic = PrecacheAsset("cinematics/marine/flamethrower/flam
 local kFlameSmokeCinematic = PrecacheAsset("cinematics/marine/flamethrower/flame_trail_light.cinematic")
 local kPilotCinematicName = PrecacheAsset("cinematics/marine/flamethrower/pilot.cinematic")
 
---[[local kFirstPersonTrailCinematics =
+local kFirstPersonTrailCinematics =
 {
     PrecacheAsset("cinematics/marine/flamethrower/flame_trail_1p_part1.cinematic"),
     PrecacheAsset("cinematics/marine/flamethrower/flame_trail_1p_part2.cinematic"),
@@ -23,23 +22,18 @@ local kPilotCinematicName = PrecacheAsset("cinematics/marine/flamethrower/pilot.
     PrecacheAsset("cinematics/marine/flamethrower/flame_trail_1p_part2.cinematic"),
     PrecacheAsset("cinematics/marine/flamethrower/flame_trail_1p_part3.cinematic"),
     PrecacheAsset("cinematics/marine/flamethrower/flame_trail_1p_part3.cinematic"),
-}]]
-
-local kTrailCinematics = {
-    PrecacheAsset("cinematics/modularexo/blowtorch_trail_part1.cinematic"),
-    PrecacheAsset("cinematics/modularexo/blowtorch_trail_part2.cinematic"),
-    PrecacheAsset("cinematics/modularexo/blowtorch_trail_part2.cinematic"),
-    PrecacheAsset("cinematics/modularexo/blowtorch_trail_part2.cinematic"),
-    PrecacheAsset("cinematics/modularexo/blowtorch_trail_part2.cinematic"),
 }
 
-local kFirstPersonTrailCinematics = {
-    PrecacheAsset("cinematics/modularexo/blowtorch_trail_part1.cinematic"),
-    PrecacheAsset("cinematics/modularexo/blowtorch_trail_part2.cinematic"),
-    PrecacheAsset("cinematics/modularexo/blowtorch_trail_part2.cinematic"),
-    PrecacheAsset("cinematics/modularexo/blowtorch_trail_part2.cinematic"),
-    PrecacheAsset("cinematics/modularexo/blowtorch_trail_part2.cinematic"),
-    PrecacheAsset("cinematics/modularexo/blowtorch_trail_part2.cinematic"),
+local kTrailCinematics =
+{
+    PrecacheAsset("cinematics/marine/flamethrower/flame_trail_part1.cinematic"),
+    PrecacheAsset("cinematics/marine/flamethrower/flame_trail_part2.cinematic"),
+    PrecacheAsset("cinematics/marine/flamethrower/flame_trail_part2.cinematic"),
+    PrecacheAsset("cinematics/marine/flamethrower/flame_trail_part2.cinematic"),
+    PrecacheAsset("cinematics/marine/flamethrower/flame_trail_part2.cinematic"),
+    PrecacheAsset("cinematics/marine/flamethrower/flame_trail_part2.cinematic"),
+    PrecacheAsset("cinematics/marine/flamethrower/flame_trail_part3.cinematic"),
+    PrecacheAsset("cinematics/marine/flamethrower/flame_trail_part3.cinematic"),
 }
 
 local kFadeOutCinematicNames = {
@@ -125,7 +119,7 @@ function ExoFlamer:OnProcessSpectate(deltaTime)
 
 end
 
-function UpdatePilotEffect(self, visible)
+local function UpdatePilotEffect(self, visible)
     
     if visible then
         
@@ -179,7 +173,10 @@ function ExoFlamer:OnUpdateRender()
         end
         local heatDisplayUI = self.heatDisplayUI
         if not heatDisplayUI then
-            heatDisplayUI = Client.CreateGUIView(242, 720)
+            -- The flamer arm uses the railgun cockpit art, so the heat display renders into
+            -- the railgun screen texture. Size must match GUIFlamer.lua (and GUIRailgun.lua),
+            -- otherwise the layout is stretched across the railgun screen quad.
+            heatDisplayUI = Client.CreateGUIView(246, 256)
             heatDisplayUI:Load("lua/GUI" .. self:GetExoWeaponSlotName():gsub("^%l", string.upper) .. "FlamerDisplay.lua")
             heatDisplayUI:SetTargetTexture("*exo_railgun_" .. self:GetExoWeaponSlotName())
             self.heatDisplayUI = heatDisplayUI
@@ -217,7 +214,7 @@ function ExoFlamer:InitTrailCinematic(effectType, player)
     self.trailCinematic = Client.CreateTrailCinematic(RenderScene.Zone_Default)
     
     local minHardeningValue = 0.5
-    local numFlameSegments = 30
+    local numFlameSegments = 6
     
     if effectType == kEffectType.FirstPerson then
         
@@ -250,19 +247,19 @@ function ExoFlamer:InitTrailCinematic(effectType, player)
             -- attach to third person fx node otherwise with an X offset since we align it along the X-Axis (the attackpoint is oriented in the model like that)
             self.trailCinematic:AttachTo(player, TRAIL_ALIGN_X, Vector(0.8, 0, 0), player:GetAttachPointIndex("fxnode_lrailgunmuzzle"))
             minHardeningValue = 0.1
-            numFlameSegments = 16
+            numFlameSegments = 8
         
         elseif self:GetIsRightSlot() then
             
             -- attach to third person fx node otherwise with an X offset since we align it along the X-Axis (the attackpoint is oriented in the model like that)
             self.trailCinematic:AttachTo(player, TRAIL_ALIGN_X, Vector(0.8, 0, 0), player:GetAttachPointIndex("fxnode_rrailgunmuzzle"))
             minHardeningValue = 0.1
-            numFlameSegments = 16
+            numFlameSegments = 8
         end
     
     end
     
-    --self.trailCinematic:SetFadeOutCinematicNames(kFadeOutCinematicNames)
+    self.trailCinematic:SetFadeOutCinematicNames(kFadeOutCinematicNames)
     self.trailCinematic:SetIsVisible(false)
     self.trailCinematic:SetRepeatStyle(Cinematic.Repeat_Endless)
     self.trailCinematic:SetOptions({
@@ -326,7 +323,6 @@ function ExoFlamer:OnProcessMove(input)
 
 		local eyePos = player:GetEyePos()
 		local DamageEnts = {}
-		local WeldingEnts = {}
 		local count = 0
 		local kTraceOrder = { 4, 1, 3, 5, 7, 0, 2, 6, 8 }
 		
@@ -360,24 +356,12 @@ function ExoFlamer:OnProcessMove(input)
 						table.insert(self.blowtorchTargetId, traceEnt:GetId())
 					end
 				end
-				
-				if traceEnt and HasMixin(traceEnt, "Live") and HasMixin(traceEnt, "Weldable") and traceEnt:GetTeamNumber() == self:GetTeamNumber() then
-					if not table.find(WeldingEnts, traceEnt) and traceEnt:GetHealthScalar() < 1 then
-						table.insert(WeldingEnts, traceEnt)
-						table.insert(self.blowtorchTargetId, traceEnt:GetId())
-					end
-				end
 			end
 		end
 		
 		for i = 1, #DamageEnts do
 			local Ent = DamageEnts[i]
 			Ent:SetBlowtorchTargetDamage()
-		end
-		
-		for i = 1, #WeldingEnts do
-			local Ent = WeldingEnts[i]
-			Ent:SetBlowtorchTargetWeld()
 		end
 
 	end
