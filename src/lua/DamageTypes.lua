@@ -371,7 +371,7 @@ local function ApplyTargetModifiers(target, attacker, doer, damage, armorFractio
         target:ModifyDamageTaken(damageTable, attacker, doer, damageType, hitPoint, weapon)
     end
 	
-	if (target:isa("Alien") or target:isa("PhaseGate")) and damage > 0 and Server then
+	if Server and damage > 0 and target.OnHealthArmorDamageTaken then
         target:OnHealthArmorDamageTaken()
     end
 
