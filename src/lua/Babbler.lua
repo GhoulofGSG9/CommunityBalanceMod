@@ -123,6 +123,7 @@ function Babbler:CreateHitBox(coords)
     if self:GetIsAlive() and not self:GetIsDestroyed() and not self.clinged and not self.hitBox then
 
         coords = coords or self:GetCoords()
+        Log("Creating hitbox at %s for %s (inside Babbler:CreateHitBox())", coords.origin, self)
         self.hitBox = Shared.CreatePhysicsSphereBody(false, Babbler.kRadius * 2, Babbler.kMass, coords )
         self.hitBox:SetGroup(PhysicsGroup.BabblerGroup)
         self.hitBox:SetCoords(coords)
@@ -1419,10 +1420,10 @@ if Server then
         DebugCapsule(newOrig, newOrig, 0.2, 0.2, 6)
 
         self:SetOrigin(newOrig)
+        Log("Setting origin to %s for %s (inside Babbler:Detach())", self:GetOrigin(), self)
         self:CreateHitBox(self:CreateHitBox(Coords.GetTranslation(newOrig)))
 
         self:SetGroundMoveType(true)
-        Log("Setting origin to %s for %s (inside Babbler:Detach())", self:GetOrigin(), self)
 
         ResumeFreeBehavior(self)
     end
