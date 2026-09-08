@@ -909,6 +909,9 @@ function BaseModelMixin:SetModel(modelName, graphName)
     local prevModelIndex = self.modelIndex
 
     self.kCachedIndex = {}
+    -- Constant animation inputs are only ever written once per graph state.
+    -- A new graph state starts without them, so let them be applied again.
+    table.clear(self.animationInputValuesConstant)
     if modelName == nil then
         self.modelIndex = 0
     else
