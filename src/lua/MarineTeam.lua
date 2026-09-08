@@ -713,7 +713,7 @@ function MarineTeam:InitTechTree()
     self.techTree:AddMenu(kTechId.WeaponsMenu)
 
     -- Marine tier 3
-    self.techTree:AddBuildNode(kTechId.PrototypeLab,          kTechId.AdvancedArmory,              kTechId.None)
+    self.techTree:AddBuildNode(kTechId.PrototypeLab,          kTechId.Armory,                      kTechId.None)
 
     --Exosuit with advanced Proto
     self.techTree:AddUpgradeNode(kTechId.UpgradeToExoPrototypeLab,  kTechId.PrototypeLab)

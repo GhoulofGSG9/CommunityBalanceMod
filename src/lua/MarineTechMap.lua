@@ -71,8 +71,6 @@ if kCBMaddon then
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.CommandStation, kTechId.Armory),
 		--GetLinePositionForTechMap(kMarineTechMap, kTechId.CommandStation, kTechId.PrototypeLab),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.CommandStation, kTechId.RoboticsFactory),
-		--For Chair to Proto:
-		{7, 1 , 8.25, 3.0},	{8.25, 3.0, 8.25, 7.0},
 		
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armory, kTechId.GrenadeTech),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armory, kTechId.MinesTech),
@@ -81,10 +79,10 @@ if kCBMaddon then
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armory, kTechId.ShotgunTech),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armory, kTechId.AdvancedArmory),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.AdvancedArmory, kTechId.AdvancedWeaponry),
+		-- Armory to Proto:
+		{5.75, 3.0, 8.25, 3.0},	{8.25, 3.0, 8.25, 7.0},
 		--GetLinePositionForTechMap(kMarineTechMap, kTechId.AdvancedArmory, kTechId.InfantryPrototypeLab),
 		--GetLinePositionForTechMap(kMarineTechMap, kTechId.InfantryPrototypeLab, kTechId.JetpackTech),
-		--For AA to Proto:
-		{5.75, 7.0, 8.25, 7.0, 0}, -- 5th Number Color
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.PrototypeLab, kTechId.JetpackTech),
 		
 		--GetLinePositionForTechMap(kMarineTechMap, kTechId.PrototypeLab, kTechId.InfantryPrototypeLab),
@@ -166,8 +164,6 @@ else
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.CommandStation, kTechId.Observatory),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.CommandStation, kTechId.Armory),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.CommandStation, kTechId.RoboticsFactory),
-		-- For Chair to Proto:
-		{7, 1 , 8.25, 3.0},	{8.25, 3.0, 8.25, 7.0},
 		
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armory, kTechId.GrenadeTech),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armory, kTechId.MinesTech),
@@ -175,8 +171,8 @@ else
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armory, kTechId.ShotgunTech),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armory, kTechId.AdvancedArmory),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.AdvancedArmory, kTechId.AdvancedWeaponry),
-		--For AA to Proto:
-		{5.75, 7.0, 8.25, 7.0, 0}, -- 5th Number Color
+		-- Armory to Proto:
+		{5.75, 3.0, 8.25, 3.0},	{8.25, 3.0, 8.25, 7.0},
 		
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.PrototypeLab, kTechId.JetpackTech),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.PrototypeLab, kTechId.ExoPrototypeLab),
