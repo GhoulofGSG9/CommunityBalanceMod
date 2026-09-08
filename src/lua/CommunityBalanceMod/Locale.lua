@@ -217,9 +217,10 @@ if Client then
 	Locale.substitutions["EXO_ABILITY_ADRENALINE_FIELD_TOOLTIP"] = "Pulse a catalyst boost onto every marine within 8 meters. Marines only, exosuits are not affected. Boost lasts 5 seconds. 120 second cooldown."
 	Locale.substitutions["EXO_ABILITY_REGEN_FIELD"] = "Regen Field"
 	Locale.substitutions["EXO_ABILITY_REGEN_FIELD_TOOLTIP"] = "Heal every marine within 8 meters for 8 health per second over 5 seconds (40 health, no armor). Marines only, exosuits are not affected. 120 second cooldown."
-	Locale.substitutions["EXO_MODULE_NANOSHIELD_DESC"] = "Support ability on the reload key: nano shields every marine within 8 meters for 3 seconds, cutting the damage they take by a third. Marines only, never exosuits, and a 120 second cooldown."
-	Locale.substitutions["EXO_MODULE_CATPACK_DESC"] = "Support ability on the reload key: gives every marine within 8 meters a catalyst boost for 5 seconds, so they move and reload faster. Marines only, never exosuits, and a 120 second cooldown."
-	Locale.substitutions["EXO_MODULE_NANOREPAIR_DESC"] = "Support ability on the reload key: heals every marine within 8 meters for 8 health a second over 5 seconds, 40 health in all. Health only, no armor, marines only, and a 120 second cooldown."
+	Locale.substitutions["EXO_MODULE_NANOSHIELD_DESC"] = "Support ability on the reload key: nano shields every marine within 8 meters for 3 seconds, cutting the damage they take by a third. Marines only, never exosuits, and a 120 second cooldown. If no marine is in range the press is refused and the charge is kept."
+	Locale.substitutions["EXO_MODULE_CATPACK_DESC"] = "Support ability on the reload key: gives every marine within 8 meters a catalyst boost for 5 seconds, so they move and reload faster. Marines only, never exosuits, and a 120 second cooldown. If no marine is in range the press is refused and the charge is kept."
+	Locale.substitutions["EXO_MODULE_NANOREPAIR_DESC"] = "Support ability on the reload key: heals every marine within 8 meters for 8 health a second over 5 seconds, 40 health in all. Health only, no armor, marines only, and a 120 second cooldown. If no marine is in range the press is refused and the charge is kept."
+	Locale.substitutions["EXO_ABILITY_NO_TARGETS"] = "No marines in range"
 	Locale.substitutions["EXO_ABILITY_COOLDOWN_FORMAT"] = "%s  %d s"
 	
 	-- Exosuit buy menu readouts

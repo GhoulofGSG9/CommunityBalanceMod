@@ -32,6 +32,10 @@ class 'GUIExoEject' (GUIScript)
 -- Module types without an activated ability (None included) are simply absent.
 local gAbilityLocaleKeys
 
+-- How long the "no marines in range" caption replaces the ability name after a press
+-- that found nobody (the server keeps the charge in that case).
+local kAbilityMissedHintTime = 1.5
+
 local function GetSupportAbilityLocaleKey(moduleType)
 
     if not gAbilityLocaleKeys then
@@ -183,6 +187,7 @@ function GUIExoEject:Initialize()
 
     self.lastAbilityModuleType = nil
     self.lastAbilitySecondsLeft = nil
+    self.lastAbilityMissed = nil
 
     -- false, not nil: nil is a valid "eject is available" reason value.
     self.lastEjectReason = false
@@ -275,27 +280,34 @@ function GUIExoEject:Update(deltaTime)
 
     -- Support Ability: name of the equipped module, plus the seconds left while it is
     -- recharging. Nothing is drawn when no ability module is equipped.
-    local moduleType, secondsUntilReady = PlayerUI_GetExoSupportAbility()
+    local moduleType, secondsUntilReady, sinceMissed = PlayerUI_GetExoSupportAbility()
     local localeKey = GetSupportAbilityLocaleKey(moduleType)
     local secondsLeft = math.ceil(secondsUntilReady or 0)
+    local missed = (sinceMissed or math.huge) < kAbilityMissedHintTime
 
     self.abilityButton:SetIsVisible(localeKey ~= nil and hudVisible and self.visible)
 
-    if localeKey and (moduleType ~= self.lastAbilityModuleType or secondsLeft ~= self.lastAbilitySecondsLeft) then
+    if localeKey and (moduleType ~= self.lastAbilityModuleType or secondsLeft ~= self.lastAbilitySecondsLeft
+            or missed ~= self.lastAbilityMissed) then
 
         local ready = secondsLeft <= 0
-        local fontColor = ready and kMarineFontColor or kHintUnavailableColor
+        local fontColor = (ready and not missed) and kMarineFontColor or kHintUnavailableColor
 
-        self.abilityButton:SetColor(ready and kHintReadyColor or kHintUnavailableColor)
+        self.abilityButton:SetColor((ready and not missed) and kHintReadyColor or kHintUnavailableColor)
         self.abilityButtonText:SetColor(fontColor)
         self.abilityText:SetColor(fontColor)
 
         local name = Locale.ResolveString(localeKey)
-        self.abilityText:SetText(ready and name or
-                string.format(Locale.ResolveString("EXO_ABILITY_COOLDOWN_FORMAT"), name, secondsLeft))
+        if missed then
+            self.abilityText:SetText(Locale.ResolveString("EXO_ABILITY_NO_TARGETS"))
+        else
+            self.abilityText:SetText(ready and name or
+                    string.format(Locale.ResolveString("EXO_ABILITY_COOLDOWN_FORMAT"), name, secondsLeft))
+        end
 
         self.lastAbilityModuleType = moduleType
         self.lastAbilitySecondsLeft = secondsLeft
+        self.lastAbilityMissed = missed
 
     end
 

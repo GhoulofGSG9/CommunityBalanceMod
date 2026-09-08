@@ -71,6 +71,7 @@ local networkVars = {
     utilityModuleType    = "enum kExoModuleTypes",
     abilityModuleType    = "enum kExoModuleTypes",
     timeSupportAbilityReady = "private time",
+    timeSupportAbilityMissed = "private time",
     hasThrusters         = "boolean",
     --hasPhaseModule       = "boolean",
     hasNanoRepair        = "boolean",
@@ -378,6 +379,7 @@ function Exo:OnInitialized()
     Player.OnInitialized(self)
     
     self.timeSupportAbilityReady = 0
+    self.timeSupportAbilityMissed = 0
     
     if Server then
         
@@ -2081,6 +2083,7 @@ function Exo:UpdateSupportAbility(input)
 
     local moduleType = self.abilityModuleType
     local targets = GetSupportAbilityTargets(self)
+    local affected = 0
 
     if moduleType == kExoModuleTypes.NanoShield then
 
@@ -2088,6 +2091,7 @@ function Exo:UpdateSupportAbility(input)
 
             if HasMixin(target, "NanoShieldAble") and target:GetCanBeNanoShielded() then
                 target:ActivateNanoShield()
+                affected = affected + 1
             end
 
         end
@@ -2099,6 +2103,7 @@ function Exo:UpdateSupportAbility(input)
             if HasMixin(target, "CatPack") then
                 target:ApplyCatPack()
                 target:TriggerEffects("catpack_pickup", { effecthostcoords = target:GetCoords() })
+                affected = affected + 1
             end
 
         end
@@ -2108,8 +2113,17 @@ function Exo:UpdateSupportAbility(input)
         if self.regenFieldTicksLeft == nil then
             self.regenFieldTicksLeft = kExoRegenFieldDuration
             self:AddTimedCallback(RegenFieldTick, 1)
+            affected = 1
         end
 
+    end
+
+    -- Nobody in range: keep the charge instead of burning the cooldown on empty air.
+    -- The client shows "no marines in range" on the badge and hears the invalid sound.
+    if affected == 0 then
+        self.timeSupportAbilityMissed = Shared.GetTime()
+        self:TriggerEffects("exo_support_field_empty")
+        return
     end
 
     self.timeSupportAbilityReady = Shared.GetTime() + kExoSupportAbilityCooldown

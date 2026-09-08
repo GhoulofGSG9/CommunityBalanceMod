@@ -367,6 +367,15 @@ kGeneralEffectData =
             {sound = "sound/NS2.fev/marine/common/catalyst"},
         },
     },
+
+    -- Support Ability pressed with no marine in range: charge kept, nothing happens
+    exo_support_field_empty =
+    {
+        exoSupportFieldEmptyEffects =
+        {
+            {private_sound = "sound/NS2.fev/common/invalid"},
+        },
+    },
     
     -- Structure deploy animations handled in code ("deploy")
     deploy =

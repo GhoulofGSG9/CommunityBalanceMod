@@ -4503,17 +4503,20 @@ function Player:GetShowAtmosphericLight()
     return true
 end
 
--- Returns the equipped Support Ability module type and the seconds left on its
--- cooldown (0 when it is ready to fire).
+-- Returns the equipped Support Ability module type, the seconds left on its
+-- cooldown (0 when it is ready to fire) and the seconds since the last press that
+-- found no marine in range (huge when there was none).
 function PlayerUI_GetExoSupportAbility()
     
     local player = Client.GetLocalPlayer()
     
     if player and player:GetIsPlaying() and player:isa("Exo") and player.GetHasSupportAbility and player:GetHasSupportAbility() then
-        return player.abilityModuleType, player:GetSupportAbilityTimeRemaining()
+        local missed = player.timeSupportAbilityMissed or 0
+        local sinceMissed = missed > 0 and (Shared.GetTime() - missed) or math.huge
+        return player.abilityModuleType, player:GetSupportAbilityTimeRemaining(), sinceMissed
     end
     
-    return kExoModuleTypes.None, 0
+    return kExoModuleTypes.None, 0, math.huge
 
 end
 
