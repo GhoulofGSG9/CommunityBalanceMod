@@ -400,7 +400,7 @@ function ClipWeapon:OnPrimaryAttackEnd(player)
         self.primaryAttacking = false
         self.timeAttackEnded = Shared.GetTime()
         
-        idleTime = Shared.GetTime()
+        self.idleTime = Shared.GetTime()
     end
     
     self.shooting = false
