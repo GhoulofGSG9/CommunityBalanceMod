@@ -271,6 +271,7 @@ local function UpdateDesiredCloakFraction(self, deltaTime)
     
     local newDesiredCloakFraction = self.cloakingDesired and 1 or 0
     local isInInk = self:GetIsInInk()
+    local isShadeCloaked = timeNow < self.timeCloaked
     
     -- Update cloaked fraction according to our speed and max speed
     if newDesiredCloakFraction > 0 and self.GetSpeedScalar then
