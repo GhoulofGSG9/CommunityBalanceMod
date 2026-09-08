@@ -330,7 +330,7 @@ kFlamethrowerMaxBurnDuration = 6
 kExoDualMinigunModifier = 1
 kExoDualRailgunModifier = 1
 
-kMinigunDamage = 7
+kMinigunDamage = 6
 kMinigunDamageType = kDamageType.Heavy
 
 kClawDamage = 50
@@ -979,7 +979,7 @@ kInfantryPrototypeLabPointValue = kPrototypeLabPointValue -- 20
 -- Module Pricing
 kRailgunCost = 25
 kPlasmaLauncherCost = 25
-kExoFlamerCost = 20
+kExoFlamerCost = 25
 kMinigunCost = 25
 kExoShieldCost = 15
 kClawCost = 15
@@ -1050,7 +1050,7 @@ kPlasmaDamageType = kDamageType.Normal
 kPlasmaLauncherWeight = 0.08
 
 -- Exo flamethrower arm
-kExoFlamerWeight = 0.04
+kExoFlamerWeight = 0.06
 kExoFlamerConeWidth = 2
 kExoFlamerCoolDownRate = 0.20
 kExoFlamerHeatUpRate = 0.10
@@ -1070,7 +1070,7 @@ kNanoShieldWeight = 0.05 -- (depreciated)
 kEjectionSeatWeight = 0.025
 
 -- Armor values
-kBaseExoArmor = 170
+kBaseExoArmor = 140 -- exos arrive earlier than vanilla; armor research carries more of the total
 kClawArmor = 60
 kMinigunArmor = 90
 kRailgunArmor = 60

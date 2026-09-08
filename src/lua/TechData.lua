@@ -4930,7 +4930,7 @@ function BuildTechData()
 		{ 
 			[kTechDataId] = kTechId.UpgradeToExoPrototypeLab,
 			[kTechDataCostKey] = kExoPrototypeLabUpgradeCost,
-			[kTechIDShowEnables] = false,
+			[kTechIDShowEnables] = true,
 			[kTechDataResearchTimeKey] = kExoPrototypeLabResearchTime,
 			[kTechDataDisplayName] = "RESEARCH_EXOSUITS", -- "Research Exosuits"            text for commander UI
 			[kTechDataTooltipInfo] = "EXOSUIT_TECH_TOOLTIP", -- "Allows Exosuits to be purchased"   text for description

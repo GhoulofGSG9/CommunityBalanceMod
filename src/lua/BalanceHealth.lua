@@ -47,7 +47,7 @@ kMatureBabblerEggHealth = 350 kMatureBabblerEggArmor = 0
 
         
 kArmorPerUpgradeLevel = 20
-kExosuitArmorPerUpgradeLevel = 30
+kExosuitArmorPerUpgradeLevel = 40
 kArmorHealScalar = 1 -- 0.75
 
 kParasitePlayerPointValue = 1

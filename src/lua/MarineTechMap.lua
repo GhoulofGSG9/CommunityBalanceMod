@@ -144,7 +144,7 @@ else
 			{ kTechId.Welder, 7, 3.0 }, { kTechId.GrenadeTech, 7, 4.0 }, { kTechId.MinesTech, 7, 5.0 }, { kTechId.ShotgunTech, 4.75, 4.0 }, { kTechId.AdvancedWeaponry, 4.75, 7.0 },
 				
 			
-			{ kTechId.PrototypeLab, 8.25, 7.0 }, { kTechId.ExoPrototypeLab, 9.00, 9.0 }, { kTechId.JetpackTech, 7.5, 9.0 },
+			{ kTechId.PrototypeLab, 3.5, 11.5 }, { kTechId.JetpackTech, 2.5, 10.5 }, { kTechId.ExoPrototypeLab, 2.5, 12.5 },
 			
 			{ kTechId.RoboticsFactory, 10.75, 3.0 }, { kTechId.ARCRoboticsFactory, 10.75, 5.0 },
 			{ kTechId.MAC, 11.75, 3.0}, { kTechId.Sentry, 11.75, 4.0 }, { kTechId.SentryBattery, 11.75, 5.0 }, { kTechId.ARC, 11.75, 6.0 },		      
@@ -171,9 +171,8 @@ else
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armory, kTechId.ShotgunTech),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armory, kTechId.AdvancedArmory),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.AdvancedArmory, kTechId.AdvancedWeaponry),
-		-- Armory to Proto:
-		{5.75, 3.0, 8.25, 3.0},	{8.25, 3.0, 8.25, 7.0},
-		
+
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.ArmsLab, kTechId.PrototypeLab),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.PrototypeLab, kTechId.JetpackTech),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.PrototypeLab, kTechId.ExoPrototypeLab),
 
