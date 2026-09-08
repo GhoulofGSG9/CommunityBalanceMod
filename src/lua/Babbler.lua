@@ -564,7 +564,7 @@ function Babbler:OnProcessMove(input)
         if self:GetIsClinged() then
             local parent = self:GetParent()
             if parent  then
-                local attachedOrigin = parent:GetAttachedOrigin(self)
+                local attachedOrigin = parent:GetOrigin() --parent:GetAttachedOrigin(self)
                 self:SetOrigin(attachedOrigin)
             end
         end
