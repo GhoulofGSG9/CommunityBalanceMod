@@ -116,6 +116,7 @@ local function _DealDamage(self, attacker, weapon, damage, damageType, target, d
     local overshieldDamage = 0
 
     local damageDone = 0
+    local killedFromDamage = false
     local rawDamage = damage
     
     if target and HasMixin(target, "Live") and damage > 0 then  
@@ -127,7 +128,7 @@ local function _DealDamage(self, attacker, weapon, damage, damageType, target, d
 
         -- Get the target entity id before takedamage so we can add the killing shot damage to our damage total.
         local targetEntityId = target:GetId()
-        local killedFromDamage, damageDone = target:TakeDamage(damage + overshieldDamage, attacker, doer, point, direction, armorUsed, healthUsed, damageType, nil)
+        killedFromDamage, damageDone = target:TakeDamage(damage + overshieldDamage, attacker, doer, point, direction, armorUsed, healthUsed, damageType, nil)
 
         if rawDamage > 0 then
                             
