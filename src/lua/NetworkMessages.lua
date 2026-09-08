@@ -454,7 +454,7 @@ function SendMarkEnemyMessage( attacker, target, amount, weapon )
 
     if attacker and target and target:isa("Player") and amount > 0 and IsAllowedWeaponToMarkEnemy(weapon) then
 
-        local msg = BuildMarkEnemyMessage(target, weapon)
+        local msg = BuildMarkEnemyMessage(target:GetId(), weapon)
 
         -- mark enemy must always be reliable when not spectating
         Server.SendNetworkMessage(attacker, "MarkEnemy", msg, true)
