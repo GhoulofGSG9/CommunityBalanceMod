@@ -78,7 +78,7 @@ local function InternalSleep(self)
     SleeperMixin.sleepers:Insert(self:GetId())
 
     -- Todo make class instance var
-    local rate = self.GetUpdatesRate and self:GetUpdatesRate() or kRealTimeUpdateRate
+    local rate = self.GetSleepUpdatesRate and self:GetSleepUpdatesRate() or kUpdateIntervalLow
     SleeperMixin.timeNextSleeperUpdate[self:GetId()] = Shared.GetTime() + rate
     SleeperMixin.lastSleeperOrigin[self:GetId()] = self:GetOrigin()
 
