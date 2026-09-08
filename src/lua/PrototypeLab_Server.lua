@@ -37,7 +37,7 @@ function PrototypeLab:UpdateLoggedIn()
 
     -- Exo is not a Marine subclass, so collect both: an exo at the lab pulls the screens out too.
     local players = GetEntitiesForTeamWithinRange("Marine", self:GetTeamNumber(), self:GetOrigin(), 2 * PrototypeLab.kResupplyUseRange)
-    local exos = GetEntitiesForTeamWithinRange("Exo", self:GetTeamNumber(), self:GetOrigin(), 2 * PrototypeLab.kResupplyUseRange)
+    local exos = GetEntitiesForTeamWithinRange("Exo", self:GetTeamNumber(), self:GetOrigin(), 2 * PrototypeLab.kResupplyUseRange + kExoStructureUseSlack)
     for i = 1, #exos do
         players[#players + 1] = exos[i]
     end
@@ -54,7 +54,8 @@ function PrototypeLab:UpdateLoggedIn()
             for playerIndex, player in ipairs(players) do
             
                 -- See if player is nearby
-                if player:GetIsAlive() and (player:GetModelOrigin() - worldUseOrigin):GetLength() < PrototypeLab.kResupplyUseRange then
+                local useRange = PrototypeLab.kResupplyUseRange + (player:isa("Exo") and kExoStructureUseSlack or 0)
+                if player:GetIsAlive() and (player:GetModelOrigin() - worldUseOrigin):GetLength() < useRange then
                 
                     newState = true
                     break

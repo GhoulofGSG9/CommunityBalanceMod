@@ -706,7 +706,7 @@ function GUIMarineBuyMenu:_GetPigPicturePixelCoordinatesForTechID(techId)
 
     local pictureWidth = 651 -- armory dimensions
     local pictureHeight = 319
-    if self.hostStructure:isa("PrototypeLab") then
+    if self.usePrototypeLabLayout then
         pictureWidth = 403
         pictureHeight = 424
     end
@@ -942,30 +942,55 @@ function GUIMarineBuyMenu:_InitializeWeaponGroup(groupItem, buttonPositions, pur
 
 end
 
+-- An exo standing at a built armory is there to refit the suit it is already in. It gets
+-- the prototype lab menu - the same background, the same configuration page - because the
+-- armory has nothing else to offer it, and the marine item list is never reachable from
+-- there. Buying a new exosuit stays an Exosuit Prototype Lab affair.
+local function GetIsExoRefitHost(hostStructure)
+
+    local localPlayer = Client.GetLocalPlayer()
+    return localPlayer ~= nil and localPlayer:isa("Exo") and hostStructure:isa("Armory")
+        and hostStructure:GetIsBuilt()
+
+end
+
 function GUIMarineBuyMenu:SetHostStructure(hostStructure)
 
     assert(hostStructure)
 
     self.hostStructure = hostStructure
 
-    if self.hostStructure:isa("Armory") then
-        self:CreateArmoryUI()
-    elseif self.hostStructure:isa("PrototypeLab") then
+    -- Decided once, here: the local player and the host cannot change while the menu is
+    -- open, so the update path reads these instead of asking again every frame.
+    self.exoRefitHost = GetIsExoRefitHost(hostStructure)
+    self.usePrototypeLabLayout = self.exoRefitHost or hostStructure:isa("PrototypeLab")
+
+    if self.usePrototypeLabLayout then
         self:CreatePrototypeLabUI()
+    elseif self.hostStructure:isa("Armory") then
+        self:CreateArmoryUI()
     else
         Log(string.format("ERROR: No generator found for class: %s", self.hostStructure:GetClassName()))
     end
 	
-    if hostStructure:isa("PrototypeLab") then
+    if self.usePrototypeLabLayout then
         self:_InitializeExoModularButtons()
         -- A player who is already in an exo came to refit, so open straight on the
-        -- configuration page; everyone else starts on the vanilla item list. Only an
-        -- Exosuit Prototype Lab can sell a configuration, so a plain lab keeps the list.
+        -- configuration page; everyone else starts on the vanilla item list. Only a host
+        -- that can hand over a configuration opens on the page, so a plain lab keeps the
+        -- list.
         local localPlayer = Client.GetLocalPlayer()
         self.exoConfigPageActive = localPlayer ~= nil and localPlayer:isa("Exo")
-            and hostStructure:GetTechId() == kTechId.ExoPrototypeLab
+            and self:_GetHostCanSellExoConfig()
         self:_RefreshExoModularButtons()
     end	
+end
+
+-- Whether the host can hand over an exosuit configuration at all. An Exosuit Prototype Lab
+-- builds one for anybody; a built armory only refits the suit an exo is already wearing.
+-- Mirrors the host test ModularExo_HandleExoModularBuy runs on the server.
+function GUIMarineBuyMenu:_GetHostCanSellExoConfig()
+    return self.exoRefitHost == true or self.hostStructure:GetTechId() == kTechId.ExoPrototypeLab
 end
 
 function GUIMarineBuyMenu:CreatePrototypeLabUI()
@@ -1314,7 +1339,7 @@ function GUIMarineBuyMenu:_CreateRightSide(startPos)
     y = y + 75
 
     local bigPicturesTexture = kArmoryBigPicturesTexture
-    if self.hostStructure:isa("PrototypeLab") then
+    if self.usePrototypeLabLayout then
         bigPicturesTexture = kPrototypeLabBigPicturesTexture
     end
 
@@ -1343,7 +1368,7 @@ function GUIMarineBuyMenu:_CreateRightSide(startPos)
 
     local buttonGroupX = 97
     local buttonGroupY = 149 + 373 + 20
-    if self.hostStructure:isa("PrototypeLab") then
+    if self.usePrototypeLabLayout then
 
         self.specialFrame:AddAsChildTo(self.background)
         self.specialFrame:SetPosition(Vector(buttonGroupX, buttonGroupY, 0))
@@ -1365,10 +1390,10 @@ function GUIMarineBuyMenu:_CreateRightSide(startPos)
     self.specialTexts = {}
 
     local maxSpecials = 0
-    if self.hostStructure:isa("Armory") then
-        maxSpecials = 2
-    elseif self.hostStructure:isa("PrototypeLab") then
+    if self.usePrototypeLabLayout then
         maxSpecials = 5
+    elseif self.hostStructure:isa("Armory") then
+        maxSpecials = 2
     end
 
     for _ = 1, maxSpecials do
@@ -1382,7 +1407,7 @@ function GUIMarineBuyMenu:_CreateRightSide(startPos)
         table.insert(self.specialTexts, specialText)
     end
 
-    if self.hostStructure:isa("PrototypeLab") then
+    if self.usePrototypeLabLayout then
         local buttonGroupX = 97
         local buttonGroupY = (149 + 373 + 20) + 150
         self.specialFrame:SetPosition(Vector(buttonGroupX, buttonGroupY, 0))
@@ -1797,14 +1822,16 @@ local function HandleItemClicked(self)
         end
         -- ModularExo_HandleExoModularBuy drops a request it does not like without telling
         -- anyone, so closing the menu on a refused buy looks exactly like a successful one.
-        -- Test the same three things the server does - the lab, the configuration and the
-        -- price - and leave the page up when any of them fails. Note this is the lab test,
-        -- not _GetResearchInfo: the button paint and the server both gate on the host being
-        -- an ExoPrototypeLab, and the click has to agree with them.
-        if GetIsMouseOver(self, self.modularExoBuyButton) and self.hostStructure:GetTechId() == kTechId.ExoPrototypeLab then
+        -- Test the same four things the server does - the host, the configuration, the
+        -- research and the price - and leave the page up when any of them fails. Note this
+        -- is the host test, not _GetResearchInfo: the button paint and the server both gate
+        -- on the host being able to hand over a configuration, and the click has to agree
+        -- with them.
+        if GetIsMouseOver(self, self.modularExoBuyButton) and self:_GetHostCanSellExoConfig() then
 
             local isValid, _, resourceCost = ModularExo_GetIsConfigValid(self.exoConfig)
-            if isValid and PlayerUI_GetPlayerResources() >= self:_GetExoConfigPrice(resourceCost) then
+            local lockedTechId = ModularExo_GetConfigLockedTechId(self.exoConfig)
+            if isValid and lockedTechId == nil and PlayerUI_GetPlayerResources() >= self:_GetExoConfigPrice(resourceCost) then
                 Client.SendNetworkMessage("ExoModularBuy", ModularExo_ConvertConfigToNetMessage(self.exoConfig))
                 MarineBuy_OnClose()
                 return true, true
@@ -2257,51 +2284,55 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
     --BUY/UPGRADE BUTTON ENDS HERE
 
     -- BACK button: leaves the configuration page and puts the vanilla item list back. Built
-    -- from the same parts as the buy button so the two read as one control set.
-    self.modularExoBackButtonBackground = self:CreateAnimatedGraphicItem()
-    table.insert(self.modularExoGraphicItemsToDestroyList, self.modularExoBackButtonBackground)
-    self.modularExoBackButtonBackground:SetIsScaling(false)
-    self.modularExoBackButtonBackground:SetSize(kExoConfigBackButtonSize)
-    self.modularExoBackButtonBackground:SetPosition(kExoConfigBackButtonPos - self.rightSideRoot:GetPosition())
-    self.modularExoBackButtonBackground:SetTexture(kButtonTexture)
-    self.modularExoBackButtonBackground:SetColor(kSlotPanelBackgroundColor)
-    self.modularExoBackButtonBackground:SetOptionFlag(GUIItem.CorrectScaling)
-    self.rightSideRoot:AddChild(self.modularExoBackButtonBackground)
+    -- from the same parts as the buy button so the two read as one control set. An exo
+    -- refitting at an armory has no item list to go back to, so it never gets the button.
+    if self.exoRefitHost then
 
-    self.modularExoBackButton = self:CreateAnimatedGraphicItem()
-    self.modularExoBackButton:SetIsScaling(false)
-    self.modularExoBackButton:SetAnchor(GUIItem.Left, GUIItem.Top)
-    self.modularExoBackButton:SetSize(kExoConfigBackButtonSize)
-    self.modularExoBackButton:SetPosition(Vector(0, 0, 0))
-    self.modularExoBackButton:SetTexture(kMenuSelectionTexture)
-    self.modularExoBackButton:SetLayer(kGUILayerMarineBuyMenu)
-    self.modularExoBackButton:SetOptionFlag(GUIItem.CorrectScaling)
-    self.modularExoBackButtonBackground:AddChild(self.modularExoBackButton)
+        self.modularExoBackButtonBackground = nil
+        self.modularExoBackButton = nil
+        self.modularExoBackButtonText = nil
 
-    self.modularExoBackButtonText = self:CreateAnimatedTextItem()
-    self.modularExoBackButtonText:SetIsScaling(false)
-    self.modularExoBackButtonText:SetAnchor(GUIItem.Middle, GUIItem.Center)
-    self.modularExoBackButtonText:SetPosition(Vector(0, 0, 0))
-    self.modularExoBackButtonText:SetFontName(kFont)
-    self.modularExoBackButtonText:SetTextAlignmentX(GUIItem.Align_Center)
-    self.modularExoBackButtonText:SetTextAlignmentY(GUIItem.Align_Center)
-    self.modularExoBackButtonText:SetText(Locale.ResolveString("BACK"))
-    self.modularExoBackButtonText:SetFontIsBold(true)
-    self.modularExoBackButtonText:SetColor(kCloseButtonColor)
-    self.modularExoBackButtonText:SetOptionFlag(GUIItem.CorrectScaling)
-    GUIMakeFontScale(self.modularExoBackButtonText, "kAgencyFB", kFontSize)
-    self.modularExoBackButton:AddChild(self.modularExoBackButtonText)
-    local slotData
-    local panelRects = {}
-    if not canHaveUtilityModules then
-        slotData = {
-            [kExoModuleSlots.RightArm] = GUIMarineBuyMenu.kExoSlotData[kExoModuleSlots.RightArm],
-            [kExoModuleSlots.LeftArm] = GUIMarineBuyMenu.kExoSlotData[kExoModuleSlots.LeftArm],
-			}
-	else
-		slotData = GUIMarineBuyMenu.kExoSlotData
+    else
+
+        self.modularExoBackButtonBackground = self:CreateAnimatedGraphicItem()
+        table.insert(self.modularExoGraphicItemsToDestroyList, self.modularExoBackButtonBackground)
+        self.modularExoBackButtonBackground:SetIsScaling(false)
+        self.modularExoBackButtonBackground:SetSize(kExoConfigBackButtonSize)
+        self.modularExoBackButtonBackground:SetPosition(kExoConfigBackButtonPos - self.rightSideRoot:GetPosition())
+        self.modularExoBackButtonBackground:SetTexture(kButtonTexture)
+        self.modularExoBackButtonBackground:SetColor(kSlotPanelBackgroundColor)
+        self.modularExoBackButtonBackground:SetOptionFlag(GUIItem.CorrectScaling)
+        self.rightSideRoot:AddChild(self.modularExoBackButtonBackground)
+
+        self.modularExoBackButton = self:CreateAnimatedGraphicItem()
+        self.modularExoBackButton:SetIsScaling(false)
+        self.modularExoBackButton:SetAnchor(GUIItem.Left, GUIItem.Top)
+        self.modularExoBackButton:SetSize(kExoConfigBackButtonSize)
+        self.modularExoBackButton:SetPosition(Vector(0, 0, 0))
+        self.modularExoBackButton:SetTexture(kMenuSelectionTexture)
+        self.modularExoBackButton:SetLayer(kGUILayerMarineBuyMenu)
+        self.modularExoBackButton:SetOptionFlag(GUIItem.CorrectScaling)
+        self.modularExoBackButtonBackground:AddChild(self.modularExoBackButton)
+
+        self.modularExoBackButtonText = self:CreateAnimatedTextItem()
+        self.modularExoBackButtonText:SetIsScaling(false)
+        self.modularExoBackButtonText:SetAnchor(GUIItem.Middle, GUIItem.Center)
+        self.modularExoBackButtonText:SetPosition(Vector(0, 0, 0))
+        self.modularExoBackButtonText:SetFontName(kFont)
+        self.modularExoBackButtonText:SetTextAlignmentX(GUIItem.Align_Center)
+        self.modularExoBackButtonText:SetTextAlignmentY(GUIItem.Align_Center)
+        self.modularExoBackButtonText:SetText(Locale.ResolveString("BACK"))
+        self.modularExoBackButtonText:SetFontIsBold(true)
+        self.modularExoBackButtonText:SetColor(kCloseButtonColor)
+        self.modularExoBackButtonText:SetOptionFlag(GUIItem.CorrectScaling)
+        GUIMakeFontScale(self.modularExoBackButtonText, "kAgencyFB", kFontSize)
+        self.modularExoBackButton:AddChild(self.modularExoBackButtonText)
+
     end
-	
+
+    local slotData = GUIMarineBuyMenu.kExoSlotData
+    local panelRects = {}
+
     for slotType, slotGUIDetails in pairs(slotData) do
         local panelBackground = self:CreateAnimatedGraphicItem()
         table.insert(self.modularExoGraphicItemsToDestroyList, panelBackground)
@@ -2771,8 +2802,10 @@ function GUIMarineBuyMenu:_UpdateExoModularButtons()
         self:_RefreshExoModularButtons()
 				
         -- local researched = self:_GetResearchInfo(kTechId.DualMinigunExosuit)
-		local researched = self.hostStructure:GetTechId() == kTechId.ExoPrototypeLab
-        if not researched or PlayerUI_GetPlayerResources() < self:_GetExoConfigPrice() then
+		local researched = self:_GetHostCanSellExoConfig()
+        -- A configuration carrying a module the commander has not researched, or a second
+        -- shooting arm without Dual Arms, is refused by the server, so BUY refuses too.
+        if not researched or self.exoConfigLockedTechId ~= nil or PlayerUI_GetPlayerResources() < self:_GetExoConfigPrice() then
             self.modularExoBuyButton:SetColor(Color(1, 0, 0, 1))
             self.modularExoBuyButtonText:SetColor(Color(0.5, 0.5, 0.5, 1))
             self.modularExoCostText:SetColor(kCannotBuyColor)

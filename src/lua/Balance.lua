@@ -1002,6 +1002,7 @@ kExosuitMinTimeBetweenThrusterActivations = 0.5
 kExosuitMaxSpeed = 6.25
 kExosuitSpeedCap = 7.25
 kExosuitDeployDuration = 1.4
+kExoStructureUseSlack = 1.5 -- extra metres an exo may stand from an armory or lab and still use it; its capsule keeps the origin further out
 kExoFuelRechargeRate = 5
 kExoThrusterMinFuel = 0.25 -- Energy Min
 kExoThrusterFuelUsageRate = 4 --Energy Cost/s

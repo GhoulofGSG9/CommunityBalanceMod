@@ -186,8 +186,8 @@ if Client then
 	Locale.substitutions["HELP_SCREEN_BIOMASS_REQUIREMENT_10"] = "Requires biomass 10"
 	
 	-- Exosuit configuration page
-	Locale.substitutions["EXOSUIT_MODULAR_TOOLTIP"] = "Configurable heavy armor. Arms, core module and support ability are chosen at the Exosuit Prototype Lab."
-	Locale.substitutions["EXOSUIT_MODULAR_BUYDESCRIPTION"] = "Configurable heavy armor. Select the suit to choose two arms, a core module and a support ability; armor, speed and price follow the modules you pick."
+	Locale.substitutions["EXOSUIT_MODULAR_TOOLTIP"] = "Configurable heavy armor. Arms, core module and support ability are chosen at the Exosuit Prototype Lab, and a fitted exosuit can be refitted at any Armory."
+	Locale.substitutions["EXOSUIT_MODULAR_BUYDESCRIPTION"] = "Configurable heavy armor. Select the suit to choose two arms, a core module and a support ability; armor, speed and price follow the modules you pick. A fitted exosuit can be refitted at any Armory."
 	Locale.substitutions["EXO_MODULESLOT_LEFT_ARM"] = "Left Arm Weapon"
 	Locale.substitutions["EXO_MODULESLOT_RIGHT_ARM"] = "Right Arm Weapon"
 	Locale.substitutions["EXO_MODULESLOT_UTILITY"] = "Core Module"

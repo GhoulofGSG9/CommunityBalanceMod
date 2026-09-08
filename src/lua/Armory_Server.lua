@@ -292,7 +292,13 @@ end
 
 function Armory:UpdateLoggedIn()
 
+    -- Exo is not a Marine subclass, so collect both: an exo refitting at the armory opens
+    -- its side too. The exo capsule keeps its model origin further out, hence the slack.
     local players = GetEntitiesForTeamWithinRange("Marine", self:GetTeamNumber(), self:GetOrigin(), 2 * Armory.kResupplyUseRange)
+    local exos = GetEntitiesForTeamWithinRange("Exo", self:GetTeamNumber(), self:GetOrigin(), 2 * Armory.kResupplyUseRange + kExoStructureUseSlack)
+    for i = 1, #exos do
+        players[#players + 1] = exos[i]
+    end
     local armoryCoords = self:GetAngles():GetCoords()
     
     for i = 1, 4 do
@@ -306,7 +312,8 @@ function Armory:UpdateLoggedIn()
             for _, player in ipairs(players) do
             
                 -- See if valid player is nearby
-                if player:GetIsAlive() and (player:GetModelOrigin() - worldUseOrigin):GetLength() < Armory.kResupplyUseRange then
+                local useRange = Armory.kResupplyUseRange + (player:isa("Exo") and kExoStructureUseSlack or 0)
+                if player:GetIsAlive() and (player:GetModelOrigin() - worldUseOrigin):GetLength() < useRange then
                 
                     newState = true
                     break

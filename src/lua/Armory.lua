@@ -63,6 +63,7 @@ gArmoryHealthHeight = 1.4
 -- Players can use menu and be supplied by armor inside this range
 Armory.kResupplyUseRange = 2
 Armory.kMaxUseableRange = 1.185
+Armory.kMaxUseableRangeExo = 2.4 -- exo eye sits higher and its capsule keeps it further out
 
 
 if Server then
@@ -221,18 +222,23 @@ end
 
 function Armory:GetCanBeUsed(player, useSuccessTable)
 
-    if player:isa("Exo") then
+    -- A built armory refits the modules of the suit an exo is already wearing, so an exo may
+    -- use one. An unfinished armory still cannot be touched: an exo cannot construct.
+    if player:isa("Exo") and not self:GetIsBuilt() then
         useSuccessTable.useSuccess = false
     end
 
 end
 
-function Armory:GetUseMaxRange()    --Dictates when BuyMenu use-key appears
+function Armory:GetUseMaxRange(player)    --Dictates when BuyMenu use-key appears
+    if player and player:isa("Exo") then
+        return self.kMaxUseableRangeExo
+    end
     return self.kMaxUseableRange
 end
 
 function Armory:GetCanBeUsedConstructed(byPlayer)
-    return not byPlayer:isa("Exo")
+    return true
 end
 
 function Armory:GetRequiresPower()
@@ -379,7 +385,13 @@ function Armory:GetDamagedAlertId()
     return kTechId.MarineAlertStructureUnderAttack
 end
 
-function Armory:GetItemList()
+function Armory:GetItemList(forPlayer)
+
+    -- An exo comes here to refit its modules, never to buy: the marine item list has nothing
+    -- an exo could take, so it is not offered one.
+    if forPlayer and forPlayer:isa("Exo") then
+        return { }
+    end
 
     local itemList =
     {

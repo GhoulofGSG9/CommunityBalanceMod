@@ -16,6 +16,10 @@ local kTextOffset
 -- "Adrenaline Field  120 s") and is the floor; Initialize() widens it when the locale in
 -- use needs more, measured from the real strings (see GetWidestCaptionWidth).
 local kAbilityButtonOffset
+
+-- How long the "no marines in range" caption replaces the ability name after a press
+-- that found nobody (the server keeps the charge in that case).
+local kAbilityMissedHintTime = 1.5
 local kCaptionGap
 
 local kFontName = Fonts.kAgencyFB_Small
