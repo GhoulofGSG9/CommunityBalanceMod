@@ -369,17 +369,27 @@ if Server then
         
     end
     
+    -- Own buffer: LookForEnemies may be part way through kLosScratch when a
+    -- sighting change marks its neighbours dirty.
+    local kLosDirtyScratch = table.array(32)
+
     local function MarkNearbyDirty(self)
     
         self.updateLOS = true
 
-        table.clear(kLosScratch)
-        GetEntitiesWithMixinForTeamWithinRange("LOS", GetEnemyTeamNumber(self:GetTeamNumber()),
-                self:GetOrigin(), kUnitLOSDirtyDistance, kLosScratch)
+        -- GetEntitiesWithMixinForTeamWithinRange returns a new filtered table and
+        -- leaves the buffer holding the raw query, so filter by team here instead.
+        table.clear(kLosDirtyScratch)
+        Shared.GetEntitiesWithTagInRange("LOS", self:GetOrigin(), kUnitLOSDirtyDistance, nil, kLosDirtyScratch)
 
-        for i = 1, #kLosScratch do
-            kLosScratch[i].updateLOS = true
+        local enemyTeamNumber = GetEnemyTeamNumber(self:GetTeamNumber())
+        for i = 1, #kLosDirtyScratch do
+            local entity = kLosDirtyScratch[i]
+            if HasMixin(entity, "Team") and entity:GetTeamNumber() == enemyTeamNumber then
+                entity.updateLOS = true
+            end
         end
+        table.clear(kLosDirtyScratch)
 
     end
     
