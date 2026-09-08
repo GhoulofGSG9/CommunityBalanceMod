@@ -1419,7 +1419,7 @@ if Server then
         DebugCapsule(newOrig, newOrig, 0.2, 0.2, 6)
 
         self:SetOrigin(newOrig)
-        self:CreateHitBox()
+        self:CreateHitBox(self:CreateHitBox(Coords.GetTranslation(newOrig)))
 
         self:SetGroundMoveType(true)
         Log("Setting origin to %s for %s (inside Babbler:Detach())", self:GetOrigin(), self)
