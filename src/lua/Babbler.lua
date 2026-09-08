@@ -1421,7 +1421,7 @@ if Server then
 
         self:SetOrigin(newOrig)
         Log("Setting origin to %s for %s (inside Babbler:Detach())", self:GetOrigin(), self)
-        self:CreateHitBox(self:CreateHitBox(Coords.GetTranslation(newOrig)))
+        self:CreateHitBox(Coords.GetTranslation(newOrig))
 
         self:SetGroundMoveType(true)
 
