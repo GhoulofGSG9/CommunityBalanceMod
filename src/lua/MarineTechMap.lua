@@ -26,7 +26,6 @@ if kCBMaddon then
 				
 			
 			{ kTechId.PrototypeLab, 8.25, 7.0 }, { kTechId.ExoPrototypeLab, 9.00, 9.0 }, { kTechId.JetpackTech, 7.5, 9.0 }, --{ kTechId.CoresExosuitTech, 8.25, 7.0 }, { kTechId.DualMinigunTech, 8.25, 9.0 },
-			{ kTechId.ExosuitTech, 10.0, 9.0 },
 			
 			{ kTechId.RoboticsFactory, 10.75, 3.0 }, { kTechId.ARCRoboticsFactory, 10.75, 5.0 }, { kTechId.DIS, 10.25, 7.0 }, { kTechId.BattleMAC, 11.25, 7.0 },	
 			{ kTechId.MAC, 11.75, 3.0},{ kTechId.Sentry, 11.75, 4.0 }, { kTechId.SentryBattery, 11.75, 5.0 }, { kTechId.ARC, 11.75, 6.0 },  		      
@@ -90,7 +89,6 @@ if kCBMaddon then
 		
 		--GetLinePositionForTechMap(kMarineTechMap, kTechId.PrototypeLab, kTechId.InfantryPrototypeLab),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.PrototypeLab, kTechId.ExoPrototypeLab),
-		GetLinePositionForTechMap(kMarineTechMap, kTechId.ExoPrototypeLab, kTechId.ExosuitTech),
 		--GetLinePositionForTechMap(kMarineTechMap, kTechId.ExoPrototypeLab, kTechId.CoresExosuitTech),
 		--GetLinePositionForTechMap(kMarineTechMap, kTechId.CoresExosuitTech, kTechId.DualMinigunTech),
 
@@ -101,7 +99,6 @@ if kCBMaddon then
 		--GetLinePositionForTechMap(kMarineTechMap, kTechId.CargoTech, kTechId.CargoGate),
 		--Adv Obs to Phasegate / Armory to Obs Tech:
 		{3.25, 5.0, 2.25, 4.0, 0}, -- 5th Number Color
-		{5.75, 3.0, 3.25, 3.0, 0}, -- 5th Number Color
 		--GetLinePositionForTechMap(kMarineTechMap, kTechId.AdvancedObservatory, kTechId.ScanGrenadeTech),
 		--GetLinePositionForTechMap(kMarineTechMap, kTechId.PhaseTech, kTechId.CargoTech),
 		
@@ -150,7 +147,6 @@ else
 				
 			
 			{ kTechId.PrototypeLab, 8.25, 7.0 }, { kTechId.ExoPrototypeLab, 9.00, 9.0 }, { kTechId.JetpackTech, 7.5, 9.0 },
-			{ kTechId.ExosuitTech, 10.0, 9.0 },
 			
 			{ kTechId.RoboticsFactory, 10.75, 3.0 }, { kTechId.ARCRoboticsFactory, 10.75, 5.0 },
 			{ kTechId.MAC, 11.75, 3.0}, { kTechId.Sentry, 11.75, 4.0 }, { kTechId.SentryBattery, 11.75, 5.0 }, { kTechId.ARC, 11.75, 6.0 },		      
@@ -172,8 +168,6 @@ else
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.CommandStation, kTechId.RoboticsFactory),
 		-- For Chair to Proto:
 		{7, 1 , 8.25, 3.0},	{8.25, 3.0, 8.25, 7.0},
-		-- Armory to Obs Tech:
-		{5.75, 3.0, 3.25, 3.0, 0}, -- 5th Number Color
 		
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armory, kTechId.GrenadeTech),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armory, kTechId.MinesTech),
@@ -186,7 +180,6 @@ else
 		
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.PrototypeLab, kTechId.JetpackTech),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.PrototypeLab, kTechId.ExoPrototypeLab),
-		GetLinePositionForTechMap(kMarineTechMap, kTechId.ExoPrototypeLab, kTechId.ExosuitTech),
 
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.Observatory, kTechId.PhaseTech),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.PhaseTech, kTechId.PhaseGate),

@@ -48,6 +48,7 @@ local kUpdateLoginTime = 0.3
 -- Players can use menu and be supplied by PrototypeLab inside this range
 PrototypeLab.kResupplyUseRange = 2
 PrototypeLab.kMaxUseableRange = 1.15
+PrototypeLab.kMaxUseableRangeExo = 2.4 -- exo eye sits higher and its capsule keeps it further out
 
 PrototypeLab.kModelName = PrecacheAsset("models/marine/prototype_lab/prototype_lab.model")
 
@@ -220,7 +221,10 @@ function PrototypeLab:GetCanBeUsed(player, useSuccessTable)
     
 end
 
-function PrototypeLab:GetUseMaxRange()    --Dictates when BuyMenu use-key appears
+function PrototypeLab:GetUseMaxRange(player)    --Dictates when BuyMenu use-key appears
+    if player and player:isa("Exo") then
+        return self.kMaxUseableRangeExo
+    end
     return self.kMaxUseableRange
 end
 

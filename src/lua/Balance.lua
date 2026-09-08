@@ -126,11 +126,11 @@ kNerveGasCloudRadius = 7
 
 kJetpackCost = 15
 kJetpackDropCost = 15
-kJetpackTechResearchCost = 20
+kJetpackTechResearchCost = 25
 kJetpackFuelTechResearchCost = 15
 kJetpackArmorTechResearchCost = 15
 
-kExosuitTechResearchCost = 20
+kExosuitTechResearchCost = 25
 kExosuitLockdownTechResearchCost = 20
 
 kExosuitCost = 40
@@ -598,10 +598,10 @@ kMineResearchTime  = 20
 kTechEMPResearchTime = 60
 kTechMACSpeedResearchTime = 15
 
-kJetpackTechResearchTime = 90
+kJetpackTechResearchTime = 110
 kJetpackFuelTechResearchTime = 60
 kJetpackArmorTechResearchTime = 60
-kExosuitTechResearchTime = 90
+kExosuitTechResearchTime = 110
 kExosuitLockdownTechResearchTime = 60
 kExosuitUpgradeTechResearchTime = 60
 
@@ -959,7 +959,7 @@ kBabblerBombResearchTime = kBileBombResearchTime
 kBabblerBombResearchCost = 15
 
 -- ExoProtolab
-kExoPrototypeLabResearchTime = 90
+kExoPrototypeLabResearchTime = kExosuitTechResearchTime -- 110
 kExoPrototypeLabUpgradeCost = kExosuitTechResearchCost -- 20
 kExoPrototypeLabHealth = kPrototypeLabHealth  -- 3000
 kExoPrototypeLabArmor = kPrototypeLabArmor -- 500   

@@ -35,7 +35,12 @@ local indexToUseOrigin =
 
 function PrototypeLab:UpdateLoggedIn()
 
+    -- Exo is not a Marine subclass, so collect both: an exo at the lab pulls the screens out too.
     local players = GetEntitiesForTeamWithinRange("Marine", self:GetTeamNumber(), self:GetOrigin(), 2 * PrototypeLab.kResupplyUseRange)
+    local exos = GetEntitiesForTeamWithinRange("Exo", self:GetTeamNumber(), self:GetOrigin(), 2 * PrototypeLab.kResupplyUseRange)
+    for i = 1, #exos do
+        players[#players + 1] = exos[i]
+    end
     local ptLabCoords = self:GetAngles():GetCoords()
     
     for i = 1, 4 do
