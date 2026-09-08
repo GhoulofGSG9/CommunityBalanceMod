@@ -29,6 +29,17 @@ if kCBMaddon then
 	
 	## Balance and QoL Changes
 	### Exosuits
+	  - Modular exosuit rework: every build is re-anchored on the vanilla exosuit. Claw + Minigun at 40 pres has 320 armor (410 at Armor 3) and moves at about 5.4 m/s; other arm combinations are sideways trades instead of strictly worse ones.
+	  - Exosuit base speed is 6.25 m/s (from 7) and armor per Armor upgrade is 30 (from 40). Arm cost / armor / weight: Claw 15 / 60 / 0.04, Minigun 25 / 90 / 0.10, Railgun 25 / 60 / 0.06, Plasma Launcher 25 / 60 / 0.08, Flamethrower 20 / 40 / 0.04.
+	  - Railgun deals 30 on a tap and 130 on a full charge (one-shots any skulk). Range stays at 30 m: it must remain under the 40 m relevancy distance so lerks never die to an exo their client has not received.
+	  - Plasma Launcher reworked into a grenade launcher with a pulse grenade: one bomb type with a 2 s fuse that detonates on contact or on expiry, a 4 m blast plus burn, and an electrify pulse that drains 20 energy from enemies. Energy regenerates at 0.40/s, a bomb costs 0.5.
+	  - Flamethrower arm is back as a pure weapon: marine flamethrower damage, range and burn, no ground flames and no welding. Exosuits can no longer repair other exosuits.
+	  - New Armor Plating utility module: +80 armor for 10 pres and 10% weight.
+	  - New Support Ability slot (10 pres, no weight): Nano Shield Field, Adrenaline Field or Regen Field pulse an 8 m field that affects marines but not exosuits, 120 s cooldown. Press Reload to trigger.
+	  - Eject by holding the drop key for 2 s. The HUD badge shows the hold progress and the reason when ejecting is blocked (combat, airborne, deploying). The marine keeps their weapon when the key is still held through the eject.
+	  - Buy menu: selecting the Exosuit tile at a prototype lab opens a full-width configuration page with a Back button, a description for every module, live armor and speed readouts and per-module affordability colouring. Exosuit pilots land on the page directly. Buying requires an Exosuit Prototype Lab.
+	  - Prototype lab: exosuits can use it from 2.4 m instead of hugging it, its screens deploy for exosuits too, and Research Exosuits takes 110 s (from 90). Jetpack and Exosuit research cost 25 pres and take 110 s again (vanilla values; CBM had 20 pres / 90 s). The tech map no longer shows a second Exosuit node or the stray Armory to Observatory line.
+	  - Fixed the ExoModularBuy network message being handled twice on the server and Exo:OnDestroy not chaining to Player:OnDestroy.
 	  - Fixed vanilla bug with railgunTargetMixin (enemy highlight), increased refresh rate, and changed color back to TSF blue.
 	  - Exo thrusters use 3x the fuel when off the ground instead of 2x the fuel.
 	  - Updated classic ammo counter system to display avaliable shots for plasma launcher.
@@ -637,6 +648,17 @@ else
 	
 	## Balance and QoL Changes
 	### Exosuits
+	  - Modular exosuit rework: every build is re-anchored on the vanilla exosuit. Claw + Minigun at 40 pres has 320 armor (410 at Armor 3) and moves at about 5.4 m/s; other arm combinations are sideways trades instead of strictly worse ones.
+	  - Exosuit base speed is 6.25 m/s (from 7) and armor per Armor upgrade is 30 (from 40). Arm cost / armor / weight: Claw 15 / 60 / 0.04, Minigun 25 / 90 / 0.10, Railgun 25 / 60 / 0.06, Plasma Launcher 25 / 60 / 0.08, Flamethrower 20 / 40 / 0.04.
+	  - Railgun deals 30 on a tap and 130 on a full charge (one-shots any skulk). Range stays at 30 m: it must remain under the 40 m relevancy distance so lerks never die to an exo their client has not received.
+	  - Plasma Launcher reworked into a grenade launcher with a pulse grenade: one bomb type with a 2 s fuse that detonates on contact or on expiry, a 4 m blast plus burn, and an electrify pulse that drains 20 energy from enemies. Energy regenerates at 0.40/s, a bomb costs 0.5.
+	  - Flamethrower arm is back as a pure weapon: marine flamethrower damage, range and burn, no ground flames and no welding. Exosuits can no longer repair other exosuits.
+	  - New Armor Plating utility module: +80 armor for 10 pres and 10% weight.
+	  - New Support Ability slot (10 pres, no weight): Nano Shield Field, Adrenaline Field or Regen Field pulse an 8 m field that affects marines but not exosuits, 120 s cooldown. Press Reload to trigger.
+	  - Eject by holding the drop key for 2 s. The HUD badge shows the hold progress and the reason when ejecting is blocked (combat, airborne, deploying). The marine keeps their weapon when the key is still held through the eject.
+	  - Buy menu: selecting the Exosuit tile at a prototype lab opens a full-width configuration page with a Back button, a description for every module, live armor and speed readouts and per-module affordability colouring. Exosuit pilots land on the page directly. Buying requires an Exosuit Prototype Lab.
+	  - Prototype lab: exosuits can use it from 2.4 m instead of hugging it, its screens deploy for exosuits too, and Research Exosuits takes 110 s (from 90). Jetpack and Exosuit research cost 25 pres and take 110 s again (vanilla values; CBM had 20 pres / 90 s). The tech map no longer shows a second Exosuit node or the stray Armory to Observatory line.
+	  - Fixed the ExoModularBuy network message being handled twice on the server and Exo:OnDestroy not chaining to Player:OnDestroy.
 	  - Fixed vanilla bug with railgunTargetMixin (enemy highlight), increased refresh rate, and changed color back to TSF blue.
 	  - Exo thrusters use 3x the fuel when off the ground instead of 2x the fuel.
 	  - Updated classic ammo counter system to display avaliable shots for plasma launcher.

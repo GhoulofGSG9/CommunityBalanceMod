@@ -184,5 +184,60 @@ if Client then
 	Locale.substitutions["SYNC_TWENTYONE"] = "Research sync level 21"
 	
 	Locale.substitutions["HELP_SCREEN_BIOMASS_REQUIREMENT_10"] = "Requires biomass 10"
+	
+	-- Exosuit configuration page
+	Locale.substitutions["EXO_MODULESLOT_LEFT_ARM"] = "Left Arm Weapon"
+	Locale.substitutions["EXO_MODULESLOT_RIGHT_ARM"] = "Right Arm Weapon"
+	Locale.substitutions["EXO_MODULESLOT_UTILITY"] = "Core Module"
+	Locale.substitutions["EXO_MODULESLOT_ABILITY"] = "Support Ability"
+	Locale.substitutions["EXO_MODULE_NONE"] = "None"
+	Locale.substitutions["EXO_MODULE_NONE_TOOLTIP"] = "It appears to be a lot of nothing."
+	Locale.substitutions["EXO_MODULE_NONE_DESC"] = "Leave this slot empty. It costs nothing and adds no weight, but the exosuit gives up whatever the slot could have carried."
+	Locale.substitutions["EXO_MODULE_CLAW"] = "Claw"
+	Locale.substitutions["EXO_MODULE_CLAW_DESC"] = "Left arm only: a 50 structural damage swing at melee range that never runs dry, and +60 armor for 4% of the exosuit's speed. It cannot shoot, so the right arm has to do the killing."
+	Locale.substitutions["EXO_MODULE_MINIGUN_DESC"] = "Close range bullet hose with no ammo to reload: 7 heavy damage a round, the pick against big armored lifeforms. It overheats after five seconds of held fire and is the heaviest arm, 10% of the exosuit's speed for +90 armor."
+	Locale.substitutions["EXO_MODULE_RAILGUN_DESC"] = "Long range shot: charge for a second to take it from 30 to 130 structural damage, and the slug pierces every target in its line out to 30 meters. +60 armor for 6% of the exosuit's speed, so it wants to fight from the back."
+	Locale.substitutions["EXO_MODULE_PLASMALAUNCHER"] = "Plasma Launcher"
+	Locale.substitutions["EXO_MODULE_PLASMALAUNCHER_DESC"] = "Lobbed plasma charge: 35 damage in a 4 meter blast plus a lingering burn, and every alien caught is electrified for 3.5 seconds, stripped of mucous and enzyme and left attacking slower. Swarm control, not a siege weapon. Two bombs from a full cell, then one every 1.25 seconds, for +60 armor and 8% of the exosuit's speed."
+	Locale.substitutions["EXO_MODULE_FLAMETHROWER_DESC"] = "Fits any arm that takes a railgun, but not next to a minigun: the marine flamethrower's cone, 9 damage a tick out to 9 meters, setting aliens and structures on fire and burning away spores, umbra and bile bombs. It cannot weld. Lightest arm at 4% of the exosuit's speed for +40 armor, and it overheats after ten seconds."
+	Locale.substitutions["EXO_MODULE_THRUSTERS"] = "Thrusters"
+	Locale.substitutions["EXO_MODULE_THRUSTERS_DESC"] = "Core module: a ground dash worth 2 extra speed on demand, burning 4 energy a second out of the fuel cell. Good for closing on a target or breaking a chase; it gives no lift and costs 2.5% of the exosuit's speed."
+	Locale.substitutions["EXO_MODULE_EJECTIONSEAT"] = "Ejection Seat"
+	Locale.substitutions["EXO_MODULE_EJECTIONSEAT_DESC"] = "Core module: when the suit's armor runs out you are thrown clear instead of dying in it, and the exosuit is left standing with 40 armor for someone to weld back up. It saves the marine and the shell, not the fight."
+	Locale.substitutions["EXO_MODULE_ARMOR"] = "Armor Plating"
+	Locale.substitutions["EXO_MODULE_ARMOR_TOOLTIP"] = "Bolt-on plating: 80 extra armor for 10% of the exosuit's speed."
+	Locale.substitutions["EXO_MODULE_ARMOR_DESC"] = "Core module: 80 extra armor bolted on, paid for with 10% of the exosuit's speed. The cheapest way to live through one more focused hit, at the price of making an already slow suit slower."
+	
+	-- Exosuit support abilities
+	Locale.substitutions["EXO_ABILITY_NANOSHIELD_FIELD"] = "Nano Shield Field"
+	Locale.substitutions["EXO_ABILITY_NANOSHIELD_FIELD_TOOLTIP"] = "Pulse a nano shield onto every marine within 8 meters. Marines only, exosuits are not affected. Shield lasts 3 seconds. 120 second cooldown."
+	Locale.substitutions["EXO_ABILITY_ADRENALINE_FIELD"] = "Adrenaline Field"
+	Locale.substitutions["EXO_ABILITY_ADRENALINE_FIELD_TOOLTIP"] = "Pulse a catalyst boost onto every marine within 8 meters. Marines only, exosuits are not affected. Boost lasts 5 seconds. 120 second cooldown."
+	Locale.substitutions["EXO_ABILITY_REGEN_FIELD"] = "Regen Field"
+	Locale.substitutions["EXO_ABILITY_REGEN_FIELD_TOOLTIP"] = "Heal every marine within 8 meters for 8 health per second over 5 seconds (40 health, no armor). Marines only, exosuits are not affected. 120 second cooldown."
+	Locale.substitutions["EXO_MODULE_NANOSHIELD_DESC"] = "Support ability on the reload key: nano shields every marine within 8 meters for 3 seconds, cutting the damage they take by a third. Marines only, never exosuits, and a 120 second cooldown."
+	Locale.substitutions["EXO_MODULE_CATPACK_DESC"] = "Support ability on the reload key: gives every marine within 8 meters a catalyst boost for 5 seconds, so they move and reload faster. Marines only, never exosuits, and a 120 second cooldown."
+	Locale.substitutions["EXO_MODULE_NANOREPAIR_DESC"] = "Support ability on the reload key: heals every marine within 8 meters for 8 health a second over 5 seconds, 40 health in all. Health only, no armor, marines only, and a 120 second cooldown."
+	Locale.substitutions["EXO_ABILITY_COOLDOWN_FORMAT"] = "%s  %d s"
+	
+	-- Exosuit buy menu readouts
+	Locale.substitutions["EXO_DETAILS_ARMOR_FORMAT"] = "+%d ARMOR"
+	Locale.substitutions["EXO_DETAILS_SPEED_FORMAT"] = "-%d%% SPEED"
+	Locale.substitutions["EXO_DETAILS_NO_STAT_CHANGE"] = "NO STAT CHANGE"
+	Locale.substitutions["EXO_BUY_ARMOR_SPEED_FORMAT"] = "%d armor   %d%% speed"
+	
+	-- Exosuit hold-to-eject HUD
+	Locale.substitutions["EXO_EJECT_HOLD_HINT"] = "Hold to eject"
+	Locale.substitutions["EXO_EJECT_HOLD_PROGRESS"] = "Ejecting %d%%"
+	Locale.substitutions["EXO_EJECT_BLOCKED_FORMAT"] = "Hold to eject - %s"
+	Locale.substitutions["EXO_EJECT_REASON_COMBAT"] = "combat"
+	Locale.substitutions["EXO_EJECT_REASON_AIRBORNE"] = "airborne"
+	Locale.substitutions["EXO_EJECT_REASON_DEPLOYING"] = "deploying"
+	Locale.substitutions["EXO_EJECT_REASON_BASE"] = "base"
+	
+	-- Help screen
+	Locale.substitutions["HELP_SCREEN_EXO_PLASMA_LAUNCHER"] = "PLASMA LAUNCHER"
+	Locale.substitutions["HELP_SCREEN_EXO_PLASMA_LAUNCHER_DESCRIPTION"] = "Charge up and lob a ball of superheated plasma that detonates on impact, splashing everything nearby and leaving the survivors burning.  Each shot drains the energy cell, so watch the meter before you pick a fight."
+	
 end
 
