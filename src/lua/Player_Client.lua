@@ -4597,6 +4597,41 @@ function PlayerUI_GetHasCatPack()
     return false
 end
 
+-- Fraction (0-1) of the manual eject hold the local Exo has completed. Server
+-- authoritative (see Exo:UpdateEjectHold), so it survives client prediction.
+function PlayerUI_GetExoEjectHoldFraction()
+    local player = Client.GetLocalPlayer()
+    if player and player:GetIsPlaying() and player:isa("Exo") then
+        return player.ejectHoldFraction or 0
+    end
+    return 0
+end
+
+-- Locale key naming why the local Exo may not eject right now, or nil when it may.
+-- Same predicate the server holds the eject on, see Exo:GetEjectBlockedReason.
+-- That predicate runs a GetEntitiesForTeamWithinRange scan, so the answer is cached
+-- for a quarter second instead of being recomputed on every HUD frame. false stands
+-- in for "not blocked" in the cache so a nil answer is still a cache hit.
+local kExoEjectReasonCacheTime = 0.25
+function PlayerUI_GetExoEjectBlockedReason()
+
+    local player = Client.GetLocalPlayer()
+    if not (player and player:GetIsPlaying() and player:isa("Exo") and player.GetEjectBlockedReason) then
+        return nil
+    end
+
+    local now = Shared.GetTime()
+    if not player.timeNextEjectReasonCheck or now >= player.timeNextEjectReasonCheck then
+
+        player.cachedEjectBlockedReason = player:GetEjectBlockedReason() or false
+        player.timeNextEjectReasonCheck = now + kExoEjectReasonCacheTime
+
+    end
+
+    return player.cachedEjectBlockedReason or nil
+
+end
+
 function PlayerUI_GetHasPlasmaLauncher()
     local player = Client.GetLocalPlayer()
     if player and player:GetIsPlaying() and player:isa("Exo") and player.GetHasPlasmaLauncher then

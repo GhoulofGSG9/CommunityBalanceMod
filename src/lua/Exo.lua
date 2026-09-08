@@ -62,6 +62,7 @@ local networkVars = {
     hasDualGuns          = "private boolean",
     creationTime         = "private time",
     ejecting             = "compensated boolean",
+    ejectHoldFraction    = "private float (0 to 1 by 0.05)",
     timeFuelChanged      = "private time",
     fuelAtChange         = "private float (0 to 1 by 0.01)",
     --powerModuleType      = "enum kExoModuleTypes",
@@ -166,7 +167,6 @@ local kThrusterAirAcceleration = 9
 local kHorizontalThrusterAddSpeed = 2.5
 
 local kExoEjectDuration = 0
-local kExoDeployDuration = 1.4
 
 local gHurtCinematic
 
@@ -280,6 +280,7 @@ function Exo:OnCreate()
     self.inventoryWeight = 0
     self.thrusterMode = kExoThrusterMode.Vertical
     self.ejecting = false
+    self.ejectHoldFraction = 0
     
     self.creationTime = Shared.GetTime()
     
@@ -516,7 +517,7 @@ function Exo:GetCanCrouch()
 end
 
 function Exo:GetHasThrusters()
-    return self.hasThrusters and Exo.GetHasThrusters
+    return self.hasThrusters == true
 end
 
 function Exo:GetHasNanoShield()
@@ -897,8 +898,41 @@ end
 
 function Exo:GetCanEject()
     return self:GetIsPlaying() and not self.ejecting and self:GetIsOnGround() and not self:GetIsOnEntity()
-            and self.creationTime + kExoDeployDuration < Shared.GetTime()
+            and self.creationTime + kExosuitDeployDuration < Shared.GetTime()
             and #GetEntitiesForTeamWithinRange("CommandStation", self:GetTeamNumber(), self:GetOrigin(), 2.5) == 0
+end
+
+-- Why the manual eject (hold the drop key) is unavailable right now, as a locale key,
+-- or nil when it is available. Shared, so the HUD can grey the eject badge with exactly
+-- the reason the server refuses the hold for (Exo:UpdateEjectHold is the only other
+-- caller). Deliberately not folded into GetCanEject: the Ejection Seat auto-eject fires
+-- in combat by definition and must never be blocked by the combat check.
+function Exo:GetEjectBlockedReason()
+
+    -- Already on the way out. Reuses the deploying key rather than adding a locale
+    -- string: from the pilot's side both mean "the suit is mid-transition, wait".
+    if self.ejecting then
+        return "EXO_EJECT_REASON_DEPLOYING"
+    end
+
+    if self:GetIsInCombat() then
+        return "EXO_EJECT_REASON_COMBAT"
+    end
+
+    if not self:GetIsOnGround() or self:GetIsOnEntity() then
+        return "EXO_EJECT_REASON_AIRBORNE"
+    end
+
+    if self.creationTime + kExosuitDeployDuration >= Shared.GetTime() then
+        return "EXO_EJECT_REASON_DEPLOYING"
+    end
+
+    if #GetEntitiesForTeamWithinRange("CommandStation", self:GetTeamNumber(), self:GetOrigin(), 2.5) > 0 then
+        return "EXO_EJECT_REASON_BASE"
+    end
+
+    return nil
+
 end
 
 function Exo:GetIsEjecting()
@@ -910,6 +944,7 @@ function Exo:EjectExo()
     if self:GetCanEject() then
         
         self.ejecting = true
+        self.ejectHoldFraction = 0
         self:TriggerEffects("eject_exo_begin")
         
         if Server then
@@ -1000,6 +1035,12 @@ if Server then
             local reuseWeapons = self.storedWeaponsIds ~= nil
             
             local marine = self:Replace(self.prevPlayerMapName or Marine.kMapName, self:GetTeamNumber(), false, self:GetOrigin() + Vector(0, 0.2, 0), { preventWeapons = reuseWeapons })
+
+            -- The client is still driving an Exo for another round trip, so the moves it
+            -- already sent keep the re-asserted Move.Drop bit set and arrive after this
+            -- Replace(). Mark the marine so it swallows that stale hold instead of
+            -- throwing its weapon away (see Marine:HandleButtons).
+            marine.timeEjected = Shared.GetTime()
             marine:SetHealth(self.prevPlayerHealth or kMarineHealth)
             marine:SetMaxArmor(self.prevPlayerMaxArmor or kMarineArmor)
             marine:SetArmor(self.prevPlayerArmor or kMarineArmor)
@@ -1270,6 +1311,52 @@ function Exo:OnTag(tagName)
     
     if tagName == "deploy_end" then
         self.deployed = true
+    end
+
+end
+
+-- Times the manual eject hold and publishes the progress to the owning client.
+-- Only ever called on the server.
+function Exo:UpdateEjectHold(input)
+
+    local dropHeld = bit_band(input.commands, Move.Drop) ~= 0
+
+    if not dropHeld then
+
+        self.timeEjectHoldStart = nil
+        self.ejectHoldConsumed = false
+        self.ejectHoldFraction = 0
+        return
+
+    end
+
+    -- Do not re-arm while the key is still held down from the eject we just did.
+    if self.ejectHoldConsumed or self.ejecting then
+        self.ejectHoldFraction = 0
+        return
+    end
+
+    if not self:GetIsPlaying() or self:GetEjectBlockedReason() then
+
+        self.timeEjectHoldStart = nil
+        self.ejectHoldFraction = 0
+        return
+
+    end
+
+    local now = Shared.GetTime()
+    self.timeEjectHoldStart = self.timeEjectHoldStart or now
+
+    local heldTime = now - self.timeEjectHoldStart
+    self.ejectHoldFraction = Clamp(heldTime / math.max(kExoEjectHoldTime, 0.01), 0, 1)
+
+    if heldTime >= kExoEjectHoldTime then
+
+        self.timeEjectHoldStart = nil
+        self.ejectHoldConsumed = true
+        self.ejectHoldFraction = 0
+        self:EjectExo()
+
     end
 
 end
@@ -1837,6 +1924,38 @@ elseif Client then
             end
         end
     end
+
+    -- InputHandler only sets Move.Drop on the move in which the key goes down
+    -- (_keyPressed is emptied after every generated move and the OS key repeat is
+    -- filtered out), so holding the key never produced more than one move with the
+    -- bit set and the hold timer could never complete. Track the key here and keep
+    -- the bit set for as long as it is actually down, but stop the moment the eject
+    -- itself starts: every further move with the bit set would only reach the marine
+    -- the server replaces us with, and be read there as "throw your weapon away".
+    function Exo:SendKeyEvent(key, down)
+
+        if GetIsBinding(key, "Drop") then
+            self.clientEjectKeyDown = down
+        end
+
+        return Player.SendKeyEvent(self, key, down)
+
+    end
+
+    function Exo:OverrideInput(input)
+
+        input = Player.OverrideInput(self, input)
+
+        if MainMenu_GetIsOpened() or ChatUI_EnteringChatMessage() then
+            self.clientEjectKeyDown = false
+        elseif self.clientEjectKeyDown and not self.ejecting and not self:isa("ReadyRoomExo") then
+            input.commands = bit.bor(input.commands, Move.Drop)
+        end
+
+        return input
+
+    end
+
 end
 
 function Exo:GetWebSlowdownScalar()
@@ -1854,11 +1973,11 @@ function Exo:PlayerCameraCoordsAdjustment(cameraCoords)
             self.clientExoEjecting = self.ejecting
         end
         
-        if Shared.GetTime() - self.creationTime < kExoDeployDuration then
+        if Shared.GetTime() - self.creationTime < kExosuitDeployDuration then
             
             self.animStartTime = self.creationTime
             self.animDirection = 1
-            self.animDuration = kExoDeployDuration
+            self.animDuration = kExosuitDeployDuration
         
         end
         
