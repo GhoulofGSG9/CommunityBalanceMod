@@ -593,7 +593,9 @@ function Exo:GetMaxBackwardSpeedScalar()
 end
 
 function Exo:OnDestroy()
-    	
+
+    Player.OnDestroy(self)
+
     if self.flashlight ~= nil then
         Client.DestroyRenderLight(self.flashlight)
     end

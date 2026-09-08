@@ -1405,7 +1405,7 @@ if Server then
         local playerPos = self:GetOrigin()
         local nearestProto = GetNearest(playerPos, "PrototypeLab", kMarineTeamType)
 
-        if not isValid or resCost > self:GetResources() or nearestProto:GetTechId() ~= kTechId.ExoPrototypeLab then
+        if not isValid or resCost > self:GetResources() or not nearestProto or nearestProto:GetTechId() ~= kTechId.ExoPrototypeLab then
             Print("Invalid exo config: %s", badReason)
             return
         end
@@ -1431,8 +1431,13 @@ if Server then
             return
         end
         if self:isa("Exo") then
-            exo:SetMaxArmor(self:GetMaxArmor())
-            exo:SetArmor(self:GetArmor())
+            -- Refit: the new exo already derived its max armor from the new module
+            -- config, so keep that and carry over the damage taken as a fraction.
+            -- Copying the old max armor here would let a heavy config be refitted
+            -- into a light one while keeping the heavy suit's armor pool.
+            local oldMaxArmor = self:GetMaxArmor()
+            local armorFraction = oldMaxArmor > 0 and (self:GetArmor() / oldMaxArmor) or 1
+            exo:SetArmor(exo:GetMaxArmor() * armorFraction)
         else
             exo.prevPlayerMapName = self:GetMapName()
             exo.prevPlayerHealth = self:GetHealth()
