@@ -22,7 +22,9 @@ Railgun.kMapName = "railgun"
 local kChargeTime = 1 -- Changed from vanilla value 2
 -- The Railgun will automatically shoot if it is charged for too long.
 local kChargeForceShootTime = 2.5 --  vanilla value 2.5
-local kRailgunRange = 30 -- Vanilla 400
+-- Must stay below kMaxRelevancyDistance (40): a longer slug hits aliens whose client has not
+-- even received the exo entity, so lerks died to shooters they could not see (vanilla 400).
+local kRailgunRange = kMaxRelevancyDistance - 10
 local kRailgunSpread = Math.Radians(0)
 local kBulletSize = 0.3
 
