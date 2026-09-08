@@ -223,6 +223,11 @@ if Client then
 	Locale.substitutions["EXO_ABILITY_NO_TARGETS"] = "No marines in range"
 	Locale.substitutions["EXO_ABILITY_COOLDOWN_FORMAT"] = "%s  %d s"
 	
+	-- Flamethrowers no longer destroy bile bombs
+	Locale.substitutions["HELP_SCREEN_BILE_BOMB_DESCRIPTION"] = "Launch a blob of corrosive throat-gunk.  Excellent against structures and armored targets."
+	Locale.substitutions["HELP_SCREEN_FLAMETHROWER_DESCRIPTION"] = "Temporarily disable enemy structures, destroy spores and umbra, and reduce enemy energy regeneration.  Being set on fire is exhausting."
+	Locale.substitutions["TIPVIDEO_1_MARINE_BURN_EFFECTS"] = "Flamethrowers can burn up gas left by Lerks and umbra from Crags."
+	
 	-- Exosuit buy menu readouts
 	Locale.substitutions["EXO_DETAILS_ARMOR_FORMAT"] = "+%d ARMOR"
 	Locale.substitutions["EXO_DETAILS_SPEED_FORMAT"] = "-%d%% SPEED"

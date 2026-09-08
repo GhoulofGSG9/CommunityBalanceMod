@@ -172,17 +172,7 @@ function Flamethrower:BurnSporesAndUmbra(startPoint, endPoint)
         table.copy(GetEntitiesWithinRange("MucousMembrane", checkAtPoint, MucousMembrane.kRadius), clouds, true)
         table.copy(GetEntitiesWithinRange("EnzymeCloud", checkAtPoint, EnzymeCloud.kRadius), clouds, true)
 
-        local bombs = GetEntitiesWithinRange("Bomb", checkAtPoint, 1.6)
-        table.copy(GetEntitiesWithinRange("WhipBomb", checkAtPoint, 1.6), bombs, true)
-
         local burnSpent = false
-
-        for i = 1, #bombs do
-            local bomb = bombs[i]
-            bomb:TriggerEffects("burn_bomb", { effecthostcoords = Coords.GetTranslation(bomb:GetOrigin()) } )
-            DestroyEntity(bomb)
-            burnSpent = true
-        end
 
         for i = 1, #spores do
             local spore = spores[i]
