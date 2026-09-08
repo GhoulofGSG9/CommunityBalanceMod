@@ -46,7 +46,7 @@ function Shared.GetEntitiesWithTagInRange(tag, origin, radius, filter, results)
 
         for i = 1, count do
             if filter(tempResults[i]) then
-                results[#results] = tempResults[i]
+                results[#results + 1] = tempResults[i]
             end
         end
         table.clear(tempResults)
