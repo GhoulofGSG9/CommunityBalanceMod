@@ -4517,23 +4517,6 @@ function PlayerUI_GetExoSupportAbility()
 
 end
 
--- Legacy shape kept for the HUD: available, ready, active
-local function GetExoSupportAbilityState(moduleType)
-    
-    local equipped, secondsUntilReady = PlayerUI_GetExoSupportAbility()
-    
-    if equipped ~= moduleType then
-        return false, false, false
-    end
-    
-    return true, secondsUntilReady == 0, false
-
-end
-
-function PlayerUI_GetExoRepairAvailable()
-    return GetExoSupportAbilityState(kExoModuleTypes.NanoRepair)
-end
-
 function PlayerUI_GetExoThrustersAvailable()
     
     local player = Client.GetLocalPlayer()
@@ -4546,14 +4529,6 @@ function PlayerUI_GetExoThrustersAvailable()
     
     return false, false, false
 
-end
-
-function PlayerUI_GetExoNanoShieldAvailable()
-    return GetExoSupportAbilityState(kExoModuleTypes.NanoShield)
-end
-
-function PlayerUI_GetExoCatPackAvailable()
-    return GetExoSupportAbilityState(kExoModuleTypes.CatPack)
 end
 
 function PlayerUI_GetHasThrusters()

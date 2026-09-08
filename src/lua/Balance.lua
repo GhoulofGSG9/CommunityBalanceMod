@@ -12,6 +12,9 @@ Script.Load("lua/BalanceMisc.lua")
 kCBMaddon = true -- Enables AMAC, SPARC, SMG, Adv Obs, Adv Gate, Bio 5, and Advanced Structures.
 
 kRelevancyRangeCap = 41 -- Relevancy range is 40 m, so 1 m buffer
+-- Railgun stays well under relevancy: a longer slug hits aliens whose client has not even
+-- received the exo entity, so lerks died to shooters they could not see (vanilla 400).
+kRailgunRange = kMaxRelevancyDistance - 10
 
 kTransformResourcesTime = 15
 kTransformResourcesCost = 15
@@ -960,7 +963,7 @@ kBabblerBombResearchCost = 15
 
 -- ExoProtolab
 kExoPrototypeLabResearchTime = kExosuitTechResearchTime -- 110
-kExoPrototypeLabUpgradeCost = kExosuitTechResearchCost -- 20
+kExoPrototypeLabUpgradeCost = kExosuitTechResearchCost -- 25
 kExoPrototypeLabHealth = kPrototypeLabHealth  -- 3000
 kExoPrototypeLabArmor = kPrototypeLabArmor -- 500   
 kExoPrototypeLabPointValue = kPrototypeLabPointValue -- 20

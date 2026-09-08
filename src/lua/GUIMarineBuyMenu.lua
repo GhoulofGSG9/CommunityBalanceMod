@@ -959,9 +959,11 @@ function GUIMarineBuyMenu:SetHostStructure(hostStructure)
     if hostStructure:isa("PrototypeLab") then
         self:_InitializeExoModularButtons()
         -- A player who is already in an exo came to refit, so open straight on the
-        -- configuration page; everyone else starts on the vanilla item list.
+        -- configuration page; everyone else starts on the vanilla item list. Only an
+        -- Exosuit Prototype Lab can sell a configuration, so a plain lab keeps the list.
         local localPlayer = Client.GetLocalPlayer()
         self.exoConfigPageActive = localPlayer ~= nil and localPlayer:isa("Exo")
+            and hostStructure:GetTechId() == kTechId.ExoPrototypeLab
         self:_RefreshExoModularButtons()
     end	
 end

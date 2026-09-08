@@ -54,7 +54,6 @@ kExoModuleTypes = enum {
     --"PhaseModule",
     "CatPack",
 	"EjectionSeat",
-	"Flamethrower",
 }
 
 -- Information to decide which model to use for weapon combos
