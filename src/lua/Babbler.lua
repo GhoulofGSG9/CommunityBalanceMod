@@ -118,12 +118,11 @@ AddMixinNetworkVars(DetectableMixin, networkVars)
 AddMixinNetworkVars(FireMixin, networkVars)
 AddMixinNetworkVars(GameEffectsMixin, networkVars)
 
-function Babbler:CreateHitBox()
+function Babbler:CreateHitBox(coords)
 
     if self:GetIsAlive() and not self:GetIsDestroyed() and not self.clinged and not self.hitBox then
-    
-        local coords = self:GetCoords()
-        coords.origin = self:GetOrigin()
+
+        coords = coords or self:GetCoords()
         self.hitBox = Shared.CreatePhysicsSphereBody(false, Babbler.kRadius * 2, Babbler.kMass, coords )
         self.hitBox:SetGroup(PhysicsGroup.BabblerGroup)
         self.hitBox:SetCoords(self:GetCoords())
