@@ -2081,7 +2081,6 @@ function Exo:UpdateSupportAbility(input)
 
     local moduleType = self.abilityModuleType
     local targets = GetSupportAbilityTargets(self)
-    local affected = 0
 
     if moduleType == kExoModuleTypes.NanoShield then
 
@@ -2089,7 +2088,6 @@ function Exo:UpdateSupportAbility(input)
 
             if HasMixin(target, "NanoShieldAble") and target:GetCanBeNanoShielded() then
                 target:ActivateNanoShield()
-                affected = affected + 1
             end
 
         end
@@ -2101,7 +2099,6 @@ function Exo:UpdateSupportAbility(input)
             if HasMixin(target, "CatPack") then
                 target:ApplyCatPack()
                 target:TriggerEffects("catpack_pickup", { effecthostcoords = target:GetCoords() })
-                affected = affected + 1
             end
 
         end
@@ -2111,14 +2108,8 @@ function Exo:UpdateSupportAbility(input)
         if self.regenFieldTicksLeft == nil then
             self.regenFieldTicksLeft = kExoRegenFieldDuration
             self:AddTimedCallback(RegenFieldTick, 1)
-            affected = 1
         end
 
-    end
-
-    -- Nothing in range: keep the charge instead of burning the cooldown on empty air.
-    if affected == 0 then
-        return
     end
 
     self.timeSupportAbilityReady = Shared.GetTime() + kExoSupportAbilityCooldown
