@@ -120,8 +120,15 @@ AddMixinNetworkVars(GameEffectsMixin, networkVars)
 
 function Babbler:CreateHitBox(coords)
 
-    if self:GetIsAlive() and not self:GetIsDestroyed() and not self.clinged and not self.hitBox then
+    if self:GetIsAlive() and not self:GetIsDestroyed() and not self.clinged then
 
+        if self.hitBox then
+            if coords then
+                self.hitBox:SetCoords(coords)
+            end
+            return
+        end
+        
         coords = coords or self:GetCoords()
         Log("Creating hitbox at %s for %s (inside Babbler:CreateHitBox())", coords.origin, self)
         self.hitBox = Shared.CreatePhysicsSphereBody(false, Babbler.kRadius * 2, Babbler.kMass, coords )
@@ -1422,7 +1429,6 @@ if Server then
         self:SetOrigin(newOrig)
         Log("Setting origin to %s for %s (inside Babbler:Detach())", self:GetOrigin(), self)
         self:CreateHitBox(Coords.GetTranslation(newOrig))
-
         self:SetGroundMoveType(true)
 
         ResumeFreeBehavior(self)
