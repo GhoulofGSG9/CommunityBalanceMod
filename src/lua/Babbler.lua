@@ -130,7 +130,7 @@ function Babbler:CreateHitBox(coords)
         end
         
         coords = coords or self:GetCoords()
-        self.hitBox = Shared.CreatePhysicsSphereBody(false, Babbler.kRadius * 2, Babbler.kMass, coords )
+        self.hitBox = Shared.CreatePhysicsSphereBody(false, Babbler.kRadius * 1.5, Babbler.kMass, coords )
         self.hitBox:SetGroup(PhysicsGroup.BabblerGroup)
         self.hitBox:SetCoords(coords)
         self.hitBox:SetEntity(self)
@@ -421,7 +421,7 @@ function Babbler:UpdateBabbler(deltaTime)
         end
     end
 
-    if not self:GetIsAlive() or self:GetIsClinged() then
+    if self:GetIsClinged() or not self:GetIsAlive() then
         return
     end
 
@@ -564,12 +564,12 @@ function Babbler:OnProcessMove(input)
         if self:GetIsClinged() then
             local parent = self:GetParent()
             if parent  then
-                local attachedOrigin = parent:GetOrigin() --parent:GetAttachedOrigin(self)
+                -- Somehow this position is used when I detach in specific cases on direct babbler balls hit
+                -- So I have to set it correctly... even thought it should not be needed
+                local attachedOrigin = parent:GetAttachedOrigin(self)
                 self:SetOrigin(attachedOrigin)
             end
         end
-
-    
 
     end
     
@@ -914,14 +914,18 @@ if Server then
     end
 
     function Babbler:Jump(velocity)
+
+        self:SetGroundMoveType(false)
+
         if velocity:GetLengthSquared() > 0 then
             self.timeLastJump = Shared.GetTime()
-            self:SetGroundMoveType(false)
         end
+
         if self.physicsBody then
             self.physicsBody:SetCoords(self:GetCoords())
             self.physicsBody:AddImpulse(self:GetOrigin(), velocity)
         end
+
     end
 
     function Babbler:Move(targetPos, deltaTime)
@@ -1287,7 +1291,7 @@ if Server then
         return true
     end
 
-    function Babbler:Attach(deltaTime)
+  function Babbler:Attach(deltaTime)
         local target = self:GetTarget()
         if not target then return false end
 
@@ -1303,15 +1307,13 @@ if Server then
             end
 
             if attachPointOrigin then
-                local distance = (self:GetOrigin() - attachPointOrigin):GetLength()
-                local travelDistance = deltaTime * 15
                 local moveDir = GetNormalizedVector(attachPointOrigin - self:GetOrigin())
 
-                -- disable physics simulation for the whole approach: otherwise
-                -- UpdateJumpPhysics drags the entity back onto the body every tick
-                self:SetGroundMoveType(true)
+                local distance = (self:GetOrigin() - attachPointOrigin):GetLength()
+                local step = deltaTime * 15           -- unclamped: arrival threshold
+                local travelDistance = math.min(step, distance)  -- clamped: actual movement
 
-                if distance < travelDistance then
+                if distance <= step then
 
                     if HasMixin(target, "BabblerCling") then
 
@@ -1319,7 +1321,9 @@ if Server then
                             self.clinged = true
 
                             self:DestroyHitbox()
-                            travelDistance = distance
+                            self:SetOrigin(attachPointOrigin)
+                            self:SyncPhysicsCoords()
+                            return true
                         else -- Just for safety
                             return false
                         end
@@ -1336,8 +1340,12 @@ if Server then
 
                 end
 
-                -- Final approach: direct, only when close AND line of sight is clear
-                -- (this is short-range, so the original wall-clipping risk is minimal)
+                -- disable physics simulation for the whole approach: otherwise
+                -- UpdateJumpPhysics drags the entity back onto the body every tick
+                self:SetGroundMoveType(true)
+
+                -- final approach: direct, only when close AND line of sight is
+                -- clear; fall back to navmesh otherwise
                 if distance < 7 and NoObstacleInWay(self, attachPointOrigin, target) then
                     self:SetOrigin(self:GetOrigin() + moveDir * travelDistance)
                     self:SyncPhysicsCoords()
@@ -1347,8 +1355,8 @@ if Server then
                 local done = self:MoveToTarget(PhysicsMask.AIMovement, attachPointOrigin, kBabblerRunSpeed, deltaTime)
 
                 if done and (self:GetOrigin() - attachPointOrigin):GetLength() > 0.5 then
-                    -- Path finished but we're not at the attach point
-                    -- (off-navmesh target, e.g. web on a wall) -> give up cleanly
+                    -- path finished but not at the attach point (off-navmesh
+                    -- target, e.g. web on a wall) -> give up cleanly
                     return false
                 end
 
@@ -1359,10 +1367,6 @@ if Server then
         end
 
         return false
-    end
-
-    local function RandomNegate(value)
-        return math.random() > 0.5 and -value or value
     end
 
     function Babbler:ReleaseFromParentCling(parent)
@@ -1523,7 +1527,7 @@ if Server then
             pos = ground  -- order was midair; path to the floor point below instead
         end
         self.webOrderPos = pos
-        self:SetMoveType(kBabblerMoveType.Move, web, pos, true, 0.2)
+        self:SetMoveType(kBabblerMoveType.Cling, web, pos, true)
         return true
 
     end
@@ -1556,6 +1560,7 @@ if Server then
         -- Walk to wherever the gorge placed us, projected onto the strand
         self.webTargetT = Clamp((position - origin):DotProduct(axis), margin, length - margin)
         local myT = (self:GetOrigin() - origin):DotProduct(axis)
+
         self.webWalkDir = (self.webTargetT >= myT) and 1 or -1
         self.webFastTravel = true
         self.webTravelStartT = myT
