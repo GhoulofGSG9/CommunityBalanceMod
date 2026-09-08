@@ -193,6 +193,7 @@ if kCBMaddon then
 			resourceCost   = kExoSupportModuleCost,
 			weight         = 0,
 			armorValue     = 0,
+			requiredTechId = kExoSupportModuleTech
 		},
 		[kExoModuleTypes.CatPack]     = {
 			category       = kExoModuleCategories.Ability,
@@ -200,6 +201,7 @@ if kCBMaddon then
 			resourceCost   = kExoSupportModuleCost,
 			weight         = 0,
 			armorValue     = 0,
+			requiredTechId = kExoSupportModuleTech
 		},
 		[kExoModuleTypes.NanoRepair]  = {
 			category       = kExoModuleCategories.Ability,
@@ -207,6 +209,7 @@ if kCBMaddon then
 			resourceCost   = kExoSupportModuleCost,
 			weight         = 0,
 			armorValue     = 0,
+			requiredTechId = kExoSupportModuleTech
 		},
 		
 		[kExoModuleTypes.None]       = { },
@@ -308,6 +311,7 @@ else
 			resourceCost   = kExoSupportModuleCost,
 			weight         = 0,
 			armorValue     = 0,
+			requiredTechId = kExoSupportModuleTech
 		},
 		[kExoModuleTypes.CatPack]     = {
 			category       = kExoModuleCategories.Ability,
@@ -315,6 +319,7 @@ else
 			resourceCost   = kExoSupportModuleCost,
 			weight         = 0,
 			armorValue     = 0,
+			requiredTechId = kExoSupportModuleTech
 		},
 		[kExoModuleTypes.NanoRepair]  = {
 			category       = kExoModuleCategories.Ability,
@@ -322,6 +327,7 @@ else
 			resourceCost   = kExoSupportModuleCost,
 			weight         = 0,
 			armorValue     = 0,
+			requiredTechId = kExoSupportModuleTech
 		},
 		
 		[kExoModuleTypes.None]       = { },

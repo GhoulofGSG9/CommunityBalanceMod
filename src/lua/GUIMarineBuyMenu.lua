@@ -1998,6 +1998,18 @@ local kModuleButtonHoverColor = Color(0, 0.7, 1, 1)
 -- gets the same treatment: grey name and picture, red cost, no hover, click ignored.
 local kModuleUnaffordableColor = Color(0.55, 0.6, 0.64, 1)
 
+-- Player facing name of a research node, for the "Requires ..." line on a locked module.
+-- The research title is the short one ("Exosuit Cores"); the display name is the commander
+-- button label ("Research Exosuit Core Tech"), so it is only the fallback.
+local function GetResearchDisplayName(techId)
+
+    local nameKey = LookupTechData(techId, kTechDataResearchName)
+                 or LookupTechData(techId, kTechDataDisplayName)
+
+    return nameKey and Locale.ResolveString(nameKey) or ""
+
+end
+
 -- Agency FB has no fixed advance and a module label has to sit inside a fixed button, so
 -- measure what was actually set and step the size down until it fits.
 local kMinFittedFontSize = 18
@@ -2096,8 +2108,13 @@ GUIMarineBuyMenu.kExoSlotData = {
     },
 }
 
+-- Every slot and every module is built here regardless of what the commander has researched.
+-- Research does not take buttons away, it locks them: _RefreshExoModularButtons greys a
+-- locked module and the details box names the research it is waiting on, so a player can see
+-- the whole suit and what it would take to finish it.
 -- Width and height of the configuration area, in unscaled background pixels: everything
 -- right of the module details column and below the right-side root, minus the margins.
+-- Vanilla background: 820 x 770.
 local function GetConfigAreaSize(self)
     local bgSize = self.background:GetSize()
     local width = bgSize.x - (kPrototypeLabRightSidePos.x + kConfigAreaOffsetX) - kConfigAreaRightMargin
@@ -2106,9 +2123,8 @@ local function GetConfigAreaSize(self)
 end
 
 function GUIMarineBuyMenu:_InitializeExoModularButtons()
-    local canHaveDualArm = true --GetHasTech(self,kTechId.DualMinigunTech)
+
     local kConfigAreaWidth, kConfigAreaHeight = GetConfigAreaSize(self)
-	local canHaveUtilityModules = true --GetHasTech(self,kTechId.CoresExosuitTech)
 
     self.activeExoConfig = nil
     local player = Client.GetLocalPlayer()
@@ -2331,11 +2347,7 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
             if isSameType and slotTypeData.category == kExoModuleCategories.Weapon and moduleTypeData.rightArmOnly and kExoModuleSlots.LeftArm == slotType then
                 isSameType = false
             end
-						
-            if isSameType and slotTypeData.category == kExoModuleCategories.Weapon and moduleTypeData.singleRightArmOnly and kExoModuleSlots.LeftArm == slotType and not canHaveDualArm then
-                isSameType = false
-            end
-			
+
             if isSameType then
                 local buttonGraphic, newOffsetX, newOffsetY = slotGUIDetails.makeButton(self, moduleType, moduleTypeData, offsetX, offsetY)
                 offsetX, offsetY = newOffsetX, newOffsetY
@@ -2677,9 +2689,11 @@ function GUIMarineBuyMenu:_UpdateExoModularVisibility()
         -- when that module changes - otherwise this ran string.format and WordWrap over
         -- the same text every frame. The transition above clears the record, so coming
         -- back to the page repaints even when the same module is still the hovered one.
-        if self.modularExoDetailsModule ~= self.exoDetailsShownModule then
+        if self.modularExoDetailsModule ~= self.exoDetailsShownModule
+        or self.modularExoDetailsLockedTechId ~= self.exoDetailsShownLockedTechId then
             self.exoDetailsShownModule = self.modularExoDetailsModule
-            self:_SetDetailsSectionExoModule(self.modularExoDetailsModule)
+            self.exoDetailsShownLockedTechId = self.modularExoDetailsLockedTechId
+            self:_SetDetailsSectionExoModule(self.modularExoDetailsModule, self.modularExoDetailsLockedTechId)
         end
 
     end
@@ -2689,7 +2703,10 @@ end
 -- Modular counterpart of _SetDetailsSectionTechId: fills the details section from an exo
 -- module instead of a techId. Name, cost, the armour and weight the module contributes, and
 -- a one line description out of EXO_MODULE_<NAME>_DESC.
-function GUIMarineBuyMenu:_SetDetailsSectionExoModule(moduleType)
+-- lockedTechId is the research the hovered button is still waiting on, or nil. When it is
+-- set, the stat line gives up its numbers to say what has to be researched first: a module
+-- that cannot be bought yet is better explained than measured.
+function GUIMarineBuyMenu:_SetDetailsSectionExoModule(moduleType, lockedTechId)
 
     if moduleType == nil or self.modularExoDetailStats == nil then
         return
@@ -2719,8 +2736,15 @@ function GUIMarineBuyMenu:_SetDetailsSectionExoModule(moduleType)
     if speedPenalty ~= 0 then
         table.insert(statParts, string.format(Locale.ResolveString("EXO_DETAILS_SPEED_FORMAT"), speedPenalty))
     end
-    local statText = #statParts > 0 and table.concat(statParts, "    ") or Locale.ResolveString("EXO_DETAILS_NO_STAT_CHANGE")
-    self.modularExoDetailStats:SetText(statText)
+    if lockedTechId then
+        self.modularExoDetailStats:SetText(string.format(Locale.ResolveString("EXO_MODULE_LOCKED_FORMAT"),
+                                                         GetResearchDisplayName(lockedTechId)))
+        self.modularExoDetailStats:SetColor(kCannotBuyColor)
+    else
+        local statText = #statParts > 0 and table.concat(statParts, "    ") or Locale.ResolveString("EXO_DETAILS_NO_STAT_CHANGE")
+        self.modularExoDetailStats:SetText(statText)
+        self.modularExoDetailStats:SetColor(GUIMarineBuyMenu.kSpecialTextContentColor)
+    end
 
     local descriptionKey = string.format("EXO_MODULE_%s_DESC", string.upper(kExoModuleTypes[moduleType]))
     local description = Locale.ResolveString(descriptionKey)
@@ -2781,9 +2805,11 @@ function GUIMarineBuyMenu:_UpdateExoModularButtons()
         end
 
         local hoveredModuleType = nil
+        local hoveredLockedTechId = nil
         for buttonI, buttonData in ipairs(self.modularExoModuleButtonList) do
             if GetIsMouseOver(self, buttonData.buttonGraphic) then
                 hoveredModuleType = buttonData.moduleType
+                hoveredLockedTechId = buttonData.lockedTechId
                 if buttonData.state == "enabled" then
                     buttonData.buttonGraphic:SetColor(kModuleButtonHoverColor)
                 end
@@ -2793,9 +2819,12 @@ function GUIMarineBuyMenu:_UpdateExoModularButtons()
         end
 
         -- The details box follows the mouse, and keeps the last module it was given so it
-        -- never blanks out while the mouse travels between two buttons.
+        -- never blanks out while the mouse travels between two buttons. The lock travels with
+        -- it: the same module can be free in one slot and locked in the other, so the button
+        -- that was hovered is what decides, not the module on its own.
         if hoveredModuleType then
             self.modularExoDetailsModule = hoveredModuleType
+            self.modularExoDetailsLockedTechId = hoveredLockedTechId
         end
     end
 end
@@ -2839,6 +2868,11 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
     local playerResources = PlayerUI_GetPlayerResources()
     local armorLevels = PlayerUI_GetArmorLevel and PlayerUI_GetArmorLevel() or 0
 
+    -- The two prototype lab research nodes, read once per repaint. They are cache keys below
+    -- as well, so finishing a research while the menu is open repaints the grid.
+    local hasCoresTech    = ModularExo_GetIsTechResearched(kTechId.CoresExosuitTech)
+    local hasDualArmsTech = ModularExo_GetIsTechResearched(kTechId.DualMinigunTech)
+
     -- Repainting the grid costs one ModularExo_GetIsConfigValid call per button plus a
     -- string per label, and this is called on every frame the page is up. None of it can
     -- change unless the configuration, the player's resources or the armour level changed,
@@ -2857,7 +2891,9 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
     and self.exoButtonsPaintedRightArm == rightArm
     and self.exoButtonsPaintedLeftArm == leftArm
     and self.exoButtonsPaintedUtility == utility
-    and self.exoButtonsPaintedAbility == ability then
+    and self.exoButtonsPaintedAbility == ability
+    and self.exoButtonsPaintedCoresTech == hasCoresTech
+    and self.exoButtonsPaintedDualArmsTech == hasDualArmsTech then
         return
     end
 
@@ -2868,6 +2904,12 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
     self.exoButtonsPaintedLeftArm = leftArm
     self.exoButtonsPaintedUtility = utility
     self.exoButtonsPaintedAbility = ability
+    self.exoButtonsPaintedCoresTech = hasCoresTech
+    self.exoButtonsPaintedDualArmsTech = hasDualArmsTech
+
+    -- What the configuration on screen is still waiting on, if anything. The BUY button and
+    -- the click handler gate on this, and it is the same call the server makes.
+    self.exoConfigLockedTechId = ModularExo_GetConfigLockedTechId(self.exoConfig)
 
     local _, _, resourceCost, _, _ = ModularExo_GetIsConfigValid(self.exoConfig)
     resourceCost = resourceCost or 0
@@ -2889,6 +2931,16 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
         local col = nil
         local canAfford = true
 
+        -- The module's own research gate, if it has one. The Dual Arms gate is not a property
+        -- of a module but of the pair of arms a click would leave behind, so it is worked out
+        -- from the candidate configuration below.
+        local buttonModuleTypeData = kExoModuleTypesData[buttonData.moduleType]
+        local requiredTechId = buttonModuleTypeData and buttonModuleTypeData.requiredTechId
+        local lockedTechId = nil
+        if requiredTechId and not ModularExo_GetIsTechResearched(requiredTechId) then
+            lockedTechId = requiredTechId
+        end
+
         if current == buttonData.moduleType then
 
             -- Already selected. It still has to be paid for as part of the whole
@@ -2897,10 +2949,19 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
             canAfford = playerResources >= currentConfigPrice
             col = kEnabledColor
 
+            -- The configuration on screen is the candidate here, so an outstanding Dual Arms
+            -- research belongs on both arm buttons.
+            if lockedTechId == nil
+            and self.exoConfigLockedTechId == kTechId.DualMinigunTech
+            and kExoModuleSlotsData[buttonData.slotType].category == kExoModuleCategories.Weapon then
+                lockedTechId = kTechId.DualMinigunTech
+            end
+
         else
 
             self.exoConfig[buttonData.slotType] = buttonData.moduleType
             local isValid, badReason, candidateCost = ModularExo_GetIsConfigValid(self.exoConfig)
+            local candidateNeedsDualArms = ModularExo_GetConfigNeedsDualArmsTech(self.exoConfig)
             if buttonData.slotType == kExoModuleSlots.LeftArm and badReason == "bad model right" then
 
                 -- Picking this left arm drags the right arm to the same module, so price the
@@ -2912,10 +2973,15 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
                 self.exoConfig[kExoModuleSlots.RightArm] = buttonData.moduleType
                 local _, _, dualCost = ModularExo_GetIsConfigValid(self.exoConfig)
                 candidateCost = dualCost or candidateCost
+                candidateNeedsDualArms = ModularExo_GetConfigNeedsDualArmsTech(self.exoConfig)
                 self.exoConfig[kExoModuleSlots.RightArm] = restoreRightArm
 
             else
                 buttonData.forceRightToDual = false
+            end
+
+            if lockedTechId == nil and candidateNeedsDualArms and not hasDualArmsTech then
+                lockedTechId = kTechId.DualMinigunTech
             end
 
             -- THIS IS FOR WHEN THE RIGHT ARM CONTROLS THE UI!
@@ -2926,11 +2992,15 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
                 buttonData.forceLeftToDual = false
             end]]
 
-            if isValid then
+            if not isValid then
+                buttonData.state = "disabled"
+            elseif lockedTechId then
+                -- Buildable, just not researched yet. It reads like an unaffordable module -
+                -- greyed, no hover, click ignored - and the details box says which research.
+                buttonData.state = "locked"
+            else
                 canAfford = playerResources >= self:_GetExoConfigPrice(candidateCost or 0)
                 buttonData.state = canAfford and "enabled" or "unaffordable"
-            else
-                buttonData.state = "disabled"
             end
             col = kDisabledColor
 
@@ -2944,13 +3014,15 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
 
         -- Unaffordable reads through the contents, not through the button frame, so that a
         -- module that is both selected and unaffordable still shows the selected highlight.
+        -- A locked module gets the same treatment: nothing about it can be bought either.
         local contentColor = col
         local costColor = col
-        if not canAfford then
+        if not canAfford or lockedTechId then
             contentColor = kModuleUnaffordableColor
             costColor = kCannotBuyColor
         end
 
+        buttonData.lockedTechId = lockedTechId
         buttonData.col = col
         buttonData.buttonGraphic:SetColor(col)
 

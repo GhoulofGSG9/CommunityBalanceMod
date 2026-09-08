@@ -153,9 +153,9 @@ if Client then
 	Locale.substitutions["JETPACK_TECH_TOOLTIP"] = "Allows Jetpacks to be purchased."
 	Locale.substitutions["RESEARCH_JETPACKS_TITLE"] = "Jetpacks"
 	
-	Locale.substitutions["RESEARCH_CORES_EXOSUIT"] = "Research Exosuit Core Tech"
-	Locale.substitutions["RESEARCH_CORES_EXOSUIT_TITLE"] = "Exosuit Cores"
-	Locale.substitutions["CORES_EXOSUIT_TECH_TOOLTIP"] = "Unlocks exosuit core tech."
+	Locale.substitutions["RESEARCH_CORES_EXOSUIT"] = "Research Exosuit Modules"
+	Locale.substitutions["RESEARCH_CORES_EXOSUIT_TITLE"] = "Exosuit Modules"
+	Locale.substitutions["CORES_EXOSUIT_TECH_TOOLTIP"] = "Unlocks exosuit modules: Thrusters, Ejection Seat, Armor Plating and the support abilities."
 	
 	Locale.substitutions["RESEARCH_DUAL_EXOS"] = "Research Dual Exosuit Tech"
 	Locale.substitutions["RESEARCH_DUAL_EXOS_TITLE"] = "Dual Exosuits"
@@ -241,6 +241,12 @@ if Client then
 	-- Help screen
 	Locale.substitutions["HELP_SCREEN_EXO_PLASMA_LAUNCHER"] = "PLASMA LAUNCHER"
 	Locale.substitutions["HELP_SCREEN_EXO_PLASMA_LAUNCHER_DESCRIPTION"] = "Charge up and lob a ball of superheated plasma that detonates on impact, splashing everything nearby and leaving the survivors burning.  Each shot drains the energy cell, so watch the meter before you pick a fight."
+	
+	
+	-- Exosuit research gates and armory refit
+	Locale.substitutions["DUAL_ARMS_TECH"] = "Dual Arms"
+	Locale.substitutions["DUAL_ARMS_TECH_TOOLTIP"] = "Allows exosuits to mount a weapon on both arms instead of a claw on one of them."
+	Locale.substitutions["EXO_MODULE_LOCKED_FORMAT"] = "Requires %s"
 	
 end
 

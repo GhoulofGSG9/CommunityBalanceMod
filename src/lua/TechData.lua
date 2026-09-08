@@ -1595,10 +1595,10 @@ function BuildTechData()
             [kTechDataId] = kTechId.DualMinigunTech,
             [kTechDataCostKey] = kDualMinigunTechResearchCost,
             [kTechDataResearchTimeKey] = kDualMinigunTechResearchTime,
-            [kTechDataDisplayName] = "RESEARCH_DUAL_EXOS",
-			[kTechDataResearchName] = "RESEARCH_DUAL_EXOS_TITLE",
+            [kTechDataDisplayName] = "DUAL_ARMS_TECH",
+			[kTechDataResearchName] = "DUAL_ARMS_TECH",
             [kTechDataHotkey] = Move.D,
-            [kTechDataTooltipInfo] = "DUAL_MINIGUN_TECH_TOOLTIP",
+            [kTechDataTooltipInfo] = "DUAL_ARMS_TECH_TOOLTIP",
         },
 
         {

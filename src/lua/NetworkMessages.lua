@@ -1393,20 +1393,50 @@ if Server then
     function ModularExo_HandleExoModularBuy(self, message)
         local exoConfig = ModularExo_ConvertNetMessageToConfig(message)
 
+        -- Refund for the suit already worn. Priced without a team number on purpose: this is a
+        -- valuation of something the player already owns, not a request to be gated.
         local discount = 0
         if self:isa("Exo") then
-            local isValid, badReason, resCost = ModularExo_GetIsConfigValid(ModularExo_ConvertNetMessageToConfig(self))
-            discount = resCost
+            local _, _, wornResCost = ModularExo_GetIsConfigValid(ModularExo_ConvertNetMessageToConfig(self))
+            discount = wornResCost or 0
         end
-        
-        local isValid, badReason, resCost = ModularExo_GetIsConfigValid(exoConfig)
-        resCost = math.max(0,resCost - discount)
 
+        -- The team number is what turns the research gates on: a client that asks for a module
+        -- its commander has not researched is refused here rather than trusted.
+        local isValid, badReason, resCost = ModularExo_GetIsConfigValid(exoConfig, self:GetTeamNumber())
+        if not isValid then
+            -- An invalid config carries no cost, so bail out before the arithmetic below.
+            Print("Invalid exo config: %s", badReason or "unknown")
+            return
+        end
+
+        resCost = math.max(0, (resCost or 0) - discount)
+
+        -- The host has to be within resupply range, the same rule the buy menu uses to stay
+        -- open (GetIsCloseToMenuStructure). GetNearest alone accepted a crafted message
+        -- from anywhere on the map. An Exosuit Prototype Lab builds a suit for anyone; a
+        -- built armory only refits the suit a player is already wearing, so a marine on foot
+        -- standing at one is refused here.
         local playerPos = self:GetOrigin()
-        local nearestProto = GetNearest(playerPos, "PrototypeLab", kMarineTeamType)
+        local nearestHost
+        for _, lab in ipairs(GetEntitiesForTeamWithinRange("PrototypeLab", self:GetTeamNumber(), playerPos, PrototypeLab.kResupplyUseRange + kExoStructureUseSlack)) do
+            if lab:GetTechId() == kTechId.ExoPrototypeLab and lab:GetIsBuilt() then
+                nearestHost = lab
+                break
+            end
+        end
 
-        if not isValid or resCost > self:GetResources() or not nearestProto or nearestProto:GetTechId() ~= kTechId.ExoPrototypeLab then
-            Print("Invalid exo config: %s", badReason)
+        if not nearestHost and self:isa("Exo") then
+            for _, armory in ipairs(GetEntitiesForTeamWithinRange("Armory", self:GetTeamNumber(), playerPos, Armory.kResupplyUseRange + kExoStructureUseSlack)) do
+                if armory:GetIsBuilt() then
+                    nearestHost = armory
+                    break
+                end
+            end
+        end
+
+        if resCost > self:GetResources() or not nearestHost then
+            Print("Invalid exo config: %s", "no lab or not enough resources")
             return
         end
 

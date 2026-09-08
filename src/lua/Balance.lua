@@ -610,7 +610,7 @@ kExosuitUpgradeTechResearchTime = 60
 
 kFlamethrowerTechResearchTime = 60
 
-kDualMinigunTechResearchTime = 90
+kDualMinigunTechResearchTime = 60
 kClawRailgunTechResearchTime = 60
 kDualRailgunTechResearchTime = 60
 kCatPackTechResearchTime = 45
@@ -1015,15 +1015,19 @@ kExoRegenFieldDuration = 5 -- Seconds
 
 -- Exo Tech Research
 kExoShieldTech = kTechId.ExosuitTech -- (depreciated)
-kExoFlamerTech = kTechId.ExosuitTech
+kExoFlamerTech = kTechId.ExosuitTech -- ungated for the first playtests; candidate gate: DualMinigunTech or AdvancedWeaponry
 kRailgunTech = kTechId.ExosuitTech
-kPlasmaLauncherTech = kTechId.ExosuitTech
+kPlasmaLauncherTech = kTechId.ExosuitTech -- ungated for the first playtests; candidate gate: DualMinigunTech or AdvancedWeaponry
 kMinigunTech = kTechId.ExosuitTech
-kExoArmorModuleTech = kTechId.ExosuitTech
-kExoThrusterModuleTech = kTechId.ExosuitTech
-kEjectionSeatModuleTech = kTechId.ExosuitTech
-kCoreExosuitTechResearchCost = 25 -- (depreciated)
-kCoreExosuitTechResearchTime = 60 -- (depreciated)
+-- Core (utility) and support (ability) modules sit behind the Exosuit Cores research at the
+-- exo prototype lab. The arms only ever need the exosuit itself; pairing two of them is what
+-- kTechId.DualMinigunTech pays for, and that rule lives in ModularExo_GetIsConfigValid.
+kExoArmorModuleTech = kTechId.CoresExosuitTech
+kExoThrusterModuleTech = kTechId.CoresExosuitTech
+kEjectionSeatModuleTech = kTechId.CoresExosuitTech
+kExoSupportModuleTech = kTechId.CoresExosuitTech
+kCoreExosuitTechResearchCost = 15
+kCoreExosuitTechResearchTime = 45
 
 -- Plasmalauncher arm
 kPlasmaT3LifeTime = kGrenadeLifetime -- same fuse as the grenade launcher

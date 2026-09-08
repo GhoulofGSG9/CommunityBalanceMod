@@ -192,10 +192,10 @@ function PrototypeLab:GetTechButtons(techId)
 		techButtons[1] = kTechId.UpgradeToInfantryPrototypeLab
 	end]]
 	
-	--[[if self:GetTechId() == kTechId.ExoPrototypeLab then
-        techButtons[2] = kTechId.CoresExosuitTech
+	if self:GetTechId() == kTechId.ExoPrototypeLab then
+		techButtons[2] = kTechId.CoresExosuitTech
 		techButtons[3] = kTechId.DualMinigunTech
-	end]]
+	end
 
 	return techButtons
 end

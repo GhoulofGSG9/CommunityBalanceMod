@@ -491,7 +491,73 @@ function ModularExo_GetConfigArmor(config, armorLevels)
     return armor
 end
 
-function ModularExo_GetIsConfigValid(config)
+-- Has the given team finished a research node? GetTechTree takes a team number on the server
+-- and ignores its argument on the client, where it always answers for the local player's
+-- team, so the one call covers both VMs. TechNode:GetResearched already reports true while
+-- warm up is running, so warm up needs no special case here.
+function ModularExo_GetIsTechResearched(techId, teamNumber)
+
+    if techId == nil or techId == kTechId.None then
+        return true
+    end
+
+    local techTree = GetTechTree(teamNumber)
+    if techTree == nil then
+        return false
+    end
+
+    local techNode = techTree:GetTechNode(techId)
+    if techNode == nil then
+        return false
+    end
+
+    return techNode:GetResearched()
+
+end
+
+-- True when the config puts a real weapon in both arms. A claw on one side is what an
+-- unresearched exo gets, so only two shooting arms need the Dual Arms research.
+function ModularExo_GetConfigNeedsDualArmsTech(config)
+
+    local leftData  = kExoModuleTypesData[config[kExoModuleSlots.LeftArm] or kExoModuleTypes.None]
+    local rightData = kExoModuleTypesData[config[kExoModuleSlots.RightArm] or kExoModuleTypes.None]
+    local leftArmType  = leftData and leftData.armType
+    local rightArmType = rightData and rightData.armType
+
+    return leftArmType ~= nil and rightArmType ~= nil
+       and leftArmType ~= kExoArmTypes.Claw and rightArmType ~= kExoArmTypes.Claw
+
+end
+
+-- The first research this config is still waiting on, or nil when everything it carries is
+-- unlocked. One place for the rule, so the buy menu paints exactly what the server enforces.
+-- Pass no team number on the client; GetTechTree answers for the local team there.
+function ModularExo_GetConfigLockedTechId(config, teamNumber)
+
+    for slotType, _ in pairs(kExoModuleSlotsData) do
+        local moduleType = config[slotType]
+        if moduleType ~= nil and moduleType ~= kExoModuleTypes.None then
+            local moduleTypeData = kExoModuleTypesData[moduleType]
+            local requiredTechId = moduleTypeData and moduleTypeData.requiredTechId
+            if requiredTechId and not ModularExo_GetIsTechResearched(requiredTechId, teamNumber) then
+                return requiredTechId
+            end
+        end
+    end
+
+    if ModularExo_GetConfigNeedsDualArmsTech(config)
+    and not ModularExo_GetIsTechResearched(kTechId.DualMinigunTech, teamNumber) then
+        return kTechId.DualMinigunTech
+    end
+
+    return nil
+
+end
+
+-- teamNumber is optional. Pass it on the server to have the research gates enforced; the buy
+-- menu leaves it out because it prices candidate configurations that are deliberately allowed
+-- to be locked, and paints those locks itself.
+function ModularExo_GetIsConfigValid(config, teamNumber)
     local resourceCost = 0
     --   local powerCost = 0
     --  local powerSupply = nil -- We don't know yet
@@ -523,10 +589,6 @@ function ModularExo_GetIsConfigValid(config)
                 return false, "right arm only"
             end
             
-            --if kMarineTeamType and moduleTypeData.requiredTechId and not GetIsTechResearched(kMarineTeamType, moduleTypeData.requiredTechId) then
-            --     return false, "tech not researched"
-            --end
-            
             if moduleTypeData.resourceCost then
                 resourceCost = resourceCost + moduleTypeData.resourceCost
             end
@@ -539,7 +601,18 @@ function ModularExo_GetIsConfigValid(config)
         end
     end
     -- Ok, we've iterated over certain module types and it seems OK
-    
+
+    -- Research gates. Only enforced when the caller named a team, i.e. server side: every
+    -- module has to have its own research done, and two shooting arms need Dual Arms on top.
+    if teamNumber then
+        local lockedTechId = ModularExo_GetConfigLockedTechId(config, teamNumber)
+        if lockedTechId == kTechId.DualMinigunTech then
+            return false, "dual arms not researched"
+        elseif lockedTechId then
+            return false, "tech not researched"
+        end
+    end
+
     local exoTexturePath = nil
     local modelDataForRightArmType = kExoWeaponRightLeftComboModels[rightArmType]
 	local modelDataForLeftArmType = kExoWeaponRightLeftComboModels[leftArmType]
