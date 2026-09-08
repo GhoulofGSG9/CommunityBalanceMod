@@ -479,6 +479,18 @@ function ModularExo_ConvertConfigToNetMessage(config)
     }
 end
 
+-- Max armor a config will have at the given armor upgrade level (0-3); mirrors Exo:GetArmorAmount.
+function ModularExo_GetConfigArmor(config, armorLevels)
+    local armor = kBaseExoArmor + (armorLevels or 0) * kExosuitArmorPerUpgradeLevel
+    for _, moduleType in pairs(config) do
+        local moduleTypeData = kExoModuleTypesData[moduleType]
+        if moduleTypeData and moduleTypeData.armorValue then
+            armor = armor + moduleTypeData.armorValue
+        end
+    end
+    return armor
+end
+
 function ModularExo_GetIsConfigValid(config)
     local resourceCost = 0
     --   local powerCost = 0
@@ -567,7 +579,15 @@ function ModularExo_GetConfigWeight(config)
     return weight
 end
 
-function ModularExo_GetConfigArmor(config)
+-- Fraction of the exo's base movement speed a config is left with; mirrors
+-- Exo:GetInventorySpeedScalar, which is 1 - the summed module weight.
+function ModularExo_GetConfigSpeedFraction(config)
+    return 1 - ModularExo_GetConfigWeight(config)
+end
+
+-- Armor the modules alone contribute, without the base exo armor or armor upgrades.
+-- Exo:GetArmorAmount adds those on top, so this is what Exo:CalculateArmor wants.
+function ModularExo_GetConfigArmorBonus(config)
     local armorBonus = 0
     for slotType, slotTypeData in pairs(kExoModuleSlotsData) do
         local moduleType = config[slotType]

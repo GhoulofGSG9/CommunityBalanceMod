@@ -321,9 +321,9 @@ kMinWeightJetpackFuelFactor = 0.8 --Min factor that gets applied on fuel usage o
 kLayMineWeight = 0.0
 kHandGrenadeWeight = 0.0
 
-kRailgunWeight = 0.12 
-kClawWeight = 0.08 
-kMinigunWeight = 0.2
+kRailgunWeight = 0.06 
+kClawWeight = 0.04 
+kMinigunWeight = 0.10
 
 --McG: Below values are only applicable to dropped weapons, not player movement.
 --this is also not accurate in the pure physics sense, it's just about how it feels in game.

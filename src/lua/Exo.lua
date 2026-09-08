@@ -1707,7 +1707,7 @@ function Exo:CalculateWeight()
 end
 
 function Exo:CalculateArmor()
-    return ModularExo_GetConfigArmor(ModularExo_ConvertNetMessageToConfig(self))
+    return ModularExo_GetConfigArmorBonus(ModularExo_ConvertNetMessageToConfig(self))
 end
 
 function Exo:OnUpdateAnimationInput(modelMixin)

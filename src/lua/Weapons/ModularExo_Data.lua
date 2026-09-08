@@ -54,6 +54,7 @@ kExoModuleTypes = enum {
     --"PhaseModule",
     "CatPack",
 	"EjectionSeat",
+	"Flamethrower",
 }
 
 -- Information to decide which model to use for weapon combos
@@ -62,6 +63,7 @@ kExoArmTypes = enum {
     "Minigun",
     "Railgun",
 	"PlasmaLauncher",
+	"Flamethrower",
 }
 
 kExoArmNames = {
@@ -124,19 +126,28 @@ if kCBMaddon then
 			leftArmOnly    = false,
 			singleRightArmOnly = true,
 		},
-		--[[[kExoModuleTypes.Flamethrower] = {
-			category 	   = kExoModuleCategories.Weapon,
-			powerCost 	   = 0,
+		[kExoModuleTypes.Flamethrower]    = {
+			category       = kExoModuleCategories.Weapon,
+			powerCost      = 0,
 			resourceCost   = kExoFlamerCost,
-			mapName 	   = ExoFlamer.kMapName,
-			armType 	   = kExoArmTypes.Railgun,
-			weight 		   = kExoFlamerWeight,
-			armorValue     = kExoFlamerWelderArmor,
+			mapName        = ExoFlamer.kMapName,
+			armType        = kExoArmTypes.Flamethrower,
+			weight         = kExoFlamerWeight,
+			armorValue     = kExoFlamerArmor,
 			requiredTechId = kExoFlamerTech,
 			leftArmOnly    = false,
 			singleRightArmOnly = true,
-		--]]
-		--},
+		},
+		-- Utility modules
+		[kExoModuleTypes.Thrusters]  = {
+			category       = kExoModuleCategories.Utility,
+			powerCost      = 0,
+			resourceCost   = kThrustersCost,
+			weight         = kThrustersWeight,
+			armorValue     = kThrustersArmor,
+			requiredTechId = kExoThrusterModuleTech
+			
+		},		
 		--[kExoModuleTypes.Shield] = {
 		--    category = kExoModuleCategories.Weapon,
 		--    powerCost = 0,
@@ -150,15 +161,6 @@ if kCBMaddon then
 		--},		
 		
 		-- Utility modules
-		[kExoModuleTypes.Thrusters]  = {
-			category       = kExoModuleCategories.Utility,
-			powerCost      = 0,
-			resourceCost   = kThrustersCost,
-			weight         = kThrustersWeight,
-			armorValue     = kThrustersArmor,
-			requiredTechId = kExoThrusterModuleTech
-			
-		},
 		--	[kExoModuleTypes.PhaseModule] = {
 		--    category = kExoModuleCategories.Utility,
 		--    powerCost = 0,
@@ -168,40 +170,6 @@ if kCBMaddon then
 		--
 		--},
 		
-		--[kExoModuleTypes.Armor]      = {
-		--    category       = kExoModuleCategories.Utility,
-		--    powerCost      = 0,
-		--    resourceCost   = kArmorModuleCost,
-		--    armorValue     = kArmorModuleArmor,
-		--    weight         = kArmorModuleWeight,
-		--    requiredTechId = kArmorModuleTech
-		--},
-		
-		--[kExoModuleTypes.NanoRepair] = {
-		--    category     = kExoModuleCategories.Utility,
-		--    powerCost    = 0,
-		--    resourceCost = kNanoModuleCost,
-		--    weight       = kNanoRepairWeight,
-		--    armorValue   = kNanoRepairArmor,
-		--    
-		--},
-		
-		--[kExoModuleTypes.NanoShield] = {
-		--    category     = kExoModuleCategories.Ability,
-		--    powerCost    = 0,
-		--    resourceCost = kExoNanoShieldCost,
-		--    weight       = kNanoShieldWeight,
-		--    
-		--},
-		--[kExoModuleTypes.CatPack]    = {
-		--    category     = kExoModuleCategories.Ability,
-		--    powerCost    = 0,
-		--    resourceCost = kExoCatPackCost,
-		--    weight       = kCatPackWeight,
-		--    armorValue   = kCatPackArmor,
-		--    
-		--},
-		
 		[kExoModuleTypes.EjectionSeat]  = {
 		category       = kExoModuleCategories.Utility,
 		powerCost      = 0,
@@ -209,6 +177,37 @@ if kCBMaddon then
 		weight         = kEjectionSeatWeight,
 		armorValue     = kEjectionSeatArmor,
 		requiredTechId = kEjectionSeatModuleTech
+		},
+		[kExoModuleTypes.Armor]  = {
+		category       = kExoModuleCategories.Utility,
+		powerCost      = 0,
+		resourceCost   = kExoArmorModuleCost,
+		weight         = kExoArmorModuleWeight,
+		armorValue     = kExoArmorModuleArmor,
+		requiredTechId = kExoArmorModuleTech
+		},
+		
+		-- Ability modules (Support Ability slot)
+		[kExoModuleTypes.NanoShield]  = {
+			category       = kExoModuleCategories.Ability,
+			powerCost      = 0,
+			resourceCost   = kExoSupportModuleCost,
+			weight         = 0,
+			armorValue     = 0,
+		},
+		[kExoModuleTypes.CatPack]     = {
+			category       = kExoModuleCategories.Ability,
+			powerCost      = 0,
+			resourceCost   = kExoSupportModuleCost,
+			weight         = 0,
+			armorValue     = 0,
+		},
+		[kExoModuleTypes.NanoRepair]  = {
+			category       = kExoModuleCategories.Ability,
+			powerCost      = 0,
+			resourceCost   = kExoSupportModuleCost,
+			weight         = 0,
+			armorValue     = 0,
 		},
 		
 		[kExoModuleTypes.None]       = { },
@@ -264,6 +263,18 @@ else
 			leftArmOnly    = false,
 			singleRightArmOnly = true,
 		},
+		[kExoModuleTypes.Flamethrower]    = {
+			category       = kExoModuleCategories.Weapon,
+			powerCost      = 0,
+			resourceCost   = kExoFlamerCost,
+			mapName        = ExoFlamer.kMapName,
+			armType        = kExoArmTypes.Flamethrower,
+			weight         = kExoFlamerWeight,
+			armorValue     = kExoFlamerArmor,
+			requiredTechId = kExoFlamerTech,
+			leftArmOnly    = false,
+			singleRightArmOnly = true,
+		},
 		-- Utility modules
 		[kExoModuleTypes.Thrusters]  = {
 			category       = kExoModuleCategories.Utility,
@@ -282,12 +293,45 @@ else
 		armorValue     = kEjectionSeatArmor,
 		requiredTechId = kEjectionSeatModuleTech
 		},
+		[kExoModuleTypes.Armor]  = {
+		category       = kExoModuleCategories.Utility,
+		powerCost      = 0,
+		resourceCost   = kExoArmorModuleCost,
+		weight         = kExoArmorModuleWeight,
+		armorValue     = kExoArmorModuleArmor,
+		requiredTechId = kExoArmorModuleTech
+		},
+		
+		-- Ability modules (Support Ability slot)
+		[kExoModuleTypes.NanoShield]  = {
+			category       = kExoModuleCategories.Ability,
+			powerCost      = 0,
+			resourceCost   = kExoSupportModuleCost,
+			weight         = 0,
+			armorValue     = 0,
+		},
+		[kExoModuleTypes.CatPack]     = {
+			category       = kExoModuleCategories.Ability,
+			powerCost      = 0,
+			resourceCost   = kExoSupportModuleCost,
+			weight         = 0,
+			armorValue     = 0,
+		},
+		[kExoModuleTypes.NanoRepair]  = {
+			category       = kExoModuleCategories.Ability,
+			powerCost      = 0,
+			resourceCost   = kExoSupportModuleCost,
+			weight         = 0,
+			armorValue     = 0,
+		},
 		
 		[kExoModuleTypes.None]       = { },
 	}
 end
 
 -- Model data for weapon combos (data[rightArmType][leftArmType])
+-- Flamethrower combos borrow the railgun art (exosuit_rr / exosuit_rp / exosuit_pr) until dedicated
+-- flamer models exist; only claw+flamer (exosuit_cf) has its own model.
 kExoWeaponRightLeftComboModels = {
     [kExoArmTypes.Minigun] = {
         isValid                = true,

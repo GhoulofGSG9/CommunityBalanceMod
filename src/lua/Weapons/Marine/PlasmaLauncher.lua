@@ -7,8 +7,6 @@ Script.Load("lua/AchievementGiverMixin.lua")
 Script.Load("lua/EffectsMixin.lua")
 Script.Load("lua/Weapons/ClientWeaponEffectsMixin.lua")
 
---Script.Load("lua/Weapons/PlasmaBallT1.lua") -- Unused now so don't waste network space by loading.
---Script.Load("lua/Weapons/PlasmaBallT2.lua") -- Unused now so don't waste network space by loading.
 Script.Load("lua/Weapons/PlasmaBallT3.lua")
 
 class 'PlasmaLauncher'(Entity)
@@ -27,9 +25,6 @@ local networkVars =
     timeOfLastShot = "time",
 	energyWAmount = "float (0 to 1 by 0.01)",
 	energyAnimation = "float (0 to 1 by 0.01)",
-	fireMode = "string (11)",
-	ReloadLastFrame = "boolean",
-	energyCost = "float (0 to 1 by 0.01)"
 }
 
 AddMixinNetworkVars(TechMixin, networkVars)
@@ -55,7 +50,6 @@ function PlasmaLauncher:OnCreate()
 	self.energyWAmount = 0.5
 	self.energyAnimation = 0
 	self.fireMode = "Bomb"
-	ReloadLastFrame = false
 	self.energyCost = kPlasmaBombEnergyCost
     
     if Client then
@@ -84,15 +78,7 @@ function PlasmaLauncher:OnDestroy()
         self.chargeDisplayUI = nil
         
     end
-	
-	--[[if self.fireModeGUI then
-		self.fireModeGUI:SetIsVisible(false)
-	end
 
-	if self.fireModeGUIBg then
-		self.fireModeGUIBg:SetIsVisible(false)
-	end]]
-			
 end
 
 function PlasmaLauncher:GetIsThrusterAllowed()
@@ -100,7 +86,7 @@ function PlasmaLauncher:GetIsThrusterAllowed()
 end
 
 function PlasmaLauncher:GetWeight()
-    return kPlasmaWeight
+    return kPlasmaLauncherWeight
 end
 
 function PlasmaLauncher:GetChargeAmount()
@@ -120,27 +106,7 @@ function PlasmaLauncher:ProcessMoveOnWeapon(player, input)
 	local dt = input.time
     local addAmount = dt * kPlasmaLauncherEnergyUpRate
     self.energyWAmount = math.min(1, math.max(0, self.energyWAmount + addAmount))
-	
-	--[[local reloadPressed = bit.band(input.commands, Move.Reload) ~= 0
-	if not self.ReloadLastFrame and reloadPressed then
-		if self.fireMode == "MultiShot" then
-			self.fireMode = "Bomb"
-			self.energyCost = kPlasmaBombEnergyCost
-		elseif self.fireMode == "Bomb" then
-			self.fireMode = "MultiShot"
-			self.energyCost = kPlasmaMultiEnergyCost
-		end
-	end
-	self.ReloadLastFrame = reloadPressed
-	
-	if bit.band(input.commands, Move.Weapon1) ~= 0 then
-		self.fireMode = "MultiShot"
-		self.energyCost = kPlasmaMultiEnergyCost
-	elseif bit.band(input.commands, Move.Weapon2) ~= 0 then
-		self.fireMode = "Bomb"
-		self.energyCost = kPlasmaBombEnergyCost
-	end]]
-	
+
 end
 
 function PlasmaLauncher:OnPrimaryAttack(player)
@@ -194,56 +160,11 @@ local function PlasmaBallProjectile(self, player)
 		local RightWeapon = exoWeaponHolder:GetRightSlotWeapon()	
 		
 		player:CreatePierceProjectile("PlasmaT3", startPoint, direction * kPlasmaBombSpeed, 0, 0, 9.81, nil, kPlasmaBombDamage, kPlasmaBombDOTDamage, kPlasmaHitBoxRadiusT3, kPlasmaBombDamageRadius, nil, player)
-		
-		--[[if self.fireMode == "MultiShot" then		
-			player:CreatePierceProjectile("PlasmaT2", startPoint, direction * kPlasmaMultiSpeed, 0, 0, 0, nil, kPlasmaMultiDamage, 0, kPlasmaHitBoxRadiusT2, kPlasmaMultiDamageRadius, nil, player)
-			
-			local shotDelay
-			for i = 1, 2 do
-				shotDelay = i*0.125
-				self:ShotSequence(player,shotDelay)
-			end
-		elseif self.fireMode == "Bomb" then		
-			player:CreatePierceProjectile("PlasmaT3", startPoint, direction * kPlasmaBombSpeed, 0, 0, 9.81, nil, kPlasmaBombDamage, kPlasmaBombDOTDamage, kPlasmaHitBoxRadiusT3, kPlasmaBombDamageRadius, nil, player)
-		end]]	
     end
-end
-
-function PlasmaLauncher:PlasmaBallProjectileMini()
-
-	local player = self:GetParent()
-	if not Predict then
-		
-		local viewAngles = player:GetViewAngles()
-		local shootCoords = viewAngles:GetCoords()
-
-		local eyePos = player:GetEyePos()
-		local viewCoords = player:GetViewCoords()
-
-		local startPoint
-
-		if self:GetIsLeftSlot() then
-			startPoint = eyePos + viewCoords.zAxis * 1.75 + viewCoords.xAxis * 0.65 + viewCoords.yAxis * -0.19
-		else
-			startPoint = eyePos + viewCoords.zAxis * 1.75 + viewCoords.xAxis * -0.65 + viewCoords.yAxis * -0.19
-		end
-
-		local spreadDirection = CalculateSpread(shootCoords, kPlasmaSpread, NetworkRandom)
-
-		local endPoint = eyePos + spreadDirection * kPlasmaRange		
-		local trace = Shared.TraceRay(eyePos, endPoint, CollisionRep.Damage, PhysicsMask.Bullets, EntityFilterAllButIsa("Tunnel"))
-		local direction = (trace.endPoint - startPoint):GetUnit()
-				
-		player:CreatePierceProjectile("PlasmaT2", startPoint, direction * kPlasmaMultiSpeed, 0, 0, 0, nil, kPlasmaMultiDamage, 0, kPlasmaHitBoxRadiusT2, kPlasmaMultiDamageRadius, nil, player)
-	end
 end
 
 function PlasmaLauncher:LockGun()
     self.timeOfLastShot = Shared.GetTime()
-end
-
-function PlasmaLauncher:ShotSequence(player,shotDelay)
-	self:AddTimedCallback(self.PlasmaBallProjectileMini, shotDelay)
 end
 
 local function Shoot(self, leftSide)
@@ -280,37 +201,6 @@ function PlasmaLauncher:OnUpdateRender()
 	local parent = self:GetParent()
 	local chargeAmount, Mode, minEnergy
 
-	--[[if parent and parent:GetIsLocalPlayer() then
-		
-		if not self.fireModeGUI then
-			self:GUIInitialize()
-		end
-		
-		if self.fireMode == "MultiShot" then
-			self.fireModeGUI:SetText("Mode #1: Multi-Shot")
-			self.fireModeGUI:SetColor(Color(0.25, 1, 1, 1))
-		elseif self.fireMode == "Bomb" then
-			self.fireModeGUI:SetText(("Mode #2: Plasma-Bomb"))
-			self.fireModeGUI:SetColor(Color(1, 0.25, 1, 1))
-		end	
-		
-		self.fireModeGUI:SetPosition(GUIScale(Vector(0, -156, 0)))
-		self.fireModeGUIBg:SetPosition(GUIScale(Vector(0, -156, 0)))
-		self.fireModeGUI:SetScale(GUIScale(Vector(0.4, 0.4, 0)))
-		self.fireModeGUIBg:SetScale(GUIScale(Vector(0.4, 0.4, 0)))
-		
-		else
-		
-		if self.fireModeGUI then
-			self.fireModeGUI:SetIsVisible(false)
-		end
-
-		if self.fireModeGUIBg then
-			self.fireModeGUIBg:SetIsVisible(false)
-		end
-		
-	end]]
-	
 	local exoWeaponHolder = parent:GetActiveWeapon()
 	local LeftWeapon = exoWeaponHolder:GetLeftSlotWeapon()
 	local RightWeapon = exoWeaponHolder:GetRightSlotWeapon()
@@ -399,42 +289,6 @@ end
 
 function PlasmaLauncher:OnResolutionChanged()
     self:UpdateItemsGUIScale()
-end
-
-function PlasmaLauncher:GUIInitialize()	
-	self.fireModeGUI, self.fireModeGUIBg = self:CreateItem(0,-156)
-	
-	if self.fireMode == "MultiShot" then
-		self.fireModeGUI:SetText("Mode #1: Multi-Shot")
-		self.fireModeGUI:SetColor(Color(0.25, 1, 1, 1))
-	elseif self.fireMode == "Bomb" then
-		self.fireModeGUI:SetText(("Mode #2: Plasma-Bomb"))
-		self.fireModeGUI:SetColor(Color(1, 0.25, 1, 1))
-	end	
-
-	self.fireModeGUI:SetScale(GUIScale(Vector(0.5, 0.5, 0)))
-	self.fireModeGUIBg:SetScale(GUIScale(Vector(0.5, 0.5, 0)))
-end
-
-function PlasmaLauncher:CreateItem(x, y)
-
-    local textBg = GUIManager:CreateTextItem()
-    textBg:SetFontName(Fonts.kMicrogrammaDMedExt_Medium)
-	textBg:SetAnchor(GUIItem.Middle, GUIItem.Bottom)   
-    textBg:SetTextAlignmentX(GUIItem.Align_Center)
-    textBg:SetTextAlignmentY(GUIItem.Align_Center)
-    textBg:SetPosition(GUIScale(Vector(x, y, 0)))
-	textBg:SetColor(Color(1, 1, 1, 1))
-
-    -- Text displaying the amount of reserve ammo
-    local text = GUIManager:CreateTextItem()
-    text:SetFontName(Fonts.kMicrogrammaDMedExt_Medium)
-	text:SetAnchor(GUIItem.Middle, GUIItem.Bottom)  
-    text:SetTextAlignmentX(GUIItem.Align_Center)
-    text:SetTextAlignmentY(GUIItem.Align_Center)
-    text:SetPosition(GUIScale(Vector(x, y, 0)))
-    
-    return text, textBg
 end
 
 function PlasmaLauncher:OnUpdateAnimationInput(modelMixin)

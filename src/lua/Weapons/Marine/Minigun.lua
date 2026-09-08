@@ -50,7 +50,7 @@ local kMinigunSpread = Math.Radians(5)
 
 local kBulletSize = 0.03
 
-Minigun.kHeatUpRate = 0.3
+Minigun.kHeatUpRate = 0.2
 Minigun.kCoolDownRate = 0.4
 
 Minigun.kOverheatAnimationBaseLength = 1.1666666269302368 -- from the art asset.

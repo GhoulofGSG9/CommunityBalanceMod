@@ -74,51 +74,88 @@ if Server then
         return 0 
     end
 
-    function PlasmaT3:ProcessHit(targetHit, surface, normal, hitPoint, shotDamage, shotDOTDamage, shotDamageRadius, ChargePercent)        
+    -- Shared explosion body. A contact hit and the fuse running out must produce the
+    -- exact same blast, so both go through here. self.detonated makes a second call a
+    -- no-op, so a bomb can never go off twice.
+    local function Detonate(self, position, surfaceNormal, surface, targetHit, shotDamage, shotDOTDamage)
 
-		local hitEntities = GetEntitiesWithMixinWithinRange("Live", self:GetOrigin() + normal*0.2, kPlasmaBombDamageRadius)
-		table.removevalue(hitEntities, self)
-		table.removevalue(hitEntities, self:GetOwner())
+        if self.detonated then
+            return
+        end
+        self.detonated = true
 
-		local dotMarker = CreateEntity(DotMarker.kMapName, self:GetOrigin() + normal*0.2, self:GetTeamNumber())
-		dotMarker:SetDamageType(kPlasmaDamageType)        
+        local center = position + surfaceNormal * 0.2
+        local owner = self:GetOwner()
+
+        local hitEntities = GetEntitiesWithMixinWithinRange("Live", center, kPlasmaBombDamageRadius)
+        table.removevalue(hitEntities, self)
+        table.removevalue(hitEntities, owner)
+
+        local dotMarker = CreateEntity(DotMarker.kMapName, center, self:GetTeamNumber())
+        dotMarker:SetDamageType(kPlasmaDamageType)
         dotMarker:SetLifeTime(kPlasmaDOTDuration)
         dotMarker:SetDamage(shotDOTDamage)
         dotMarker:SetRadius(kPlasmaBombDamageRadius)
         dotMarker:SetDamageIntervall(kPlasmaDOTInterval)
         dotMarker:SetDotMarkerType(DotMarker.kType.Static)
         dotMarker:SetDeathIconIndex(kDeathMessageIcon.EMPBlast)
-        dotMarker:SetOwner(self:GetOwner())
-		dotMarker:SetDebuff('pulse')
-		dotMarker:SetFallOffFunc(NoFalloff)
-		dotMarker:SetLoSCheck(true)
-				
-		for _, entity in ipairs(hitEntities) do
+        dotMarker:SetOwner(owner)
+        dotMarker:SetDebuff('pulse')
+        dotMarker:SetFallOffFunc(NoFalloff)
+        dotMarker:SetLoSCheck(true)
 
-			self:DoDamage(shotDamage, entity, self:GetOrigin(), GetNormalizedVector(entity:GetOrigin() - self:GetOrigin()), "none")
+        for _, entity in ipairs(hitEntities) do
 
-			if entity.SetElectrified then
-				entity:SetElectrified(kElectrifiedDuration)		
-			end
-		end
-					
-		local params = { surface = surface }
-		if not targetHit then
-			params[kEffectHostCoords] = Coords.GetLookIn( self:GetOrigin(), self:GetCoords().zAxis)
-		end
+            self:DoDamage(shotDamage, entity, position, GetNormalizedVector(entity:GetOrigin() - position), "none")
 
-		self:TriggerEffects("pulse_grenade_explode", params)
+            -- Same crowd control the pulse grenade applies: drain energy by distance and
+            -- electrify, which cuts alien attack speed and stops regeneration. Only the
+            -- shooter's enemies get it; the damage query above is left alone because the
+            -- damage rules already decide friendly fire.
+            if GetAreEnemies(self, entity) then
+
+                if entity.GetEnergy and entity.SetEnergy then
+
+                    local targetPoint = HasMixin(entity, "Target") and entity:GetEngagementPoint() or entity:GetOrigin()
+                    local energyToDrain = kPlasmaBombEnergyDamage * (1 - Clamp((targetPoint - position):GetLength() / kPlasmaBombDamageRadius, 0, 1))
+                    entity:SetEnergy(entity:GetEnergy() - energyToDrain)
+
+                end
+
+                if entity.SetElectrified then
+                    entity:SetElectrified(kPulseElectrifiedDuration)
+                end
+
+            end
+
+        end
+
+        local params = { surface = surface }
+        if not targetHit then
+            params[kEffectHostCoords] = Coords.GetLookIn( position, self:GetCoords().zAxis)
+        end
+
+        self:TriggerEffects("pulse_grenade_explode", params)
 
         CreateExplosionDecals(self)
-		DestroyEntity(self)
+
     end
-    
+
+    function PlasmaT3:ProcessHit(targetHit, surface, normal, hitPoint, shotDamage, shotDOTDamage, shotDamageRadius, ChargePercent)
+
+        Detonate(self, self:GetOrigin(), normal, surface, targetHit, shotDamage, shotDOTDamage)
+        DestroyEntity(self)
+
+    end
+
+    -- Fuse ran out before hitting anything: go off where the bomb is instead of just
+    -- vanishing. Same blast as a contact hit, with the nominal bomb damage values.
     function PlasmaT3:TimeUp(currentRate)
-	
-		self:TriggerEffects("plasma_impact", params)
+
+        Detonate(self, self:GetOrigin(), Vector.yAxis, nil, nil, kPlasmaBombDamage, kPlasmaBombDOTDamage)
         DestroyEntity(self)
         return false
-    
+
     end
 end
 
