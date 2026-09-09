@@ -326,9 +326,13 @@ kFlamethrowerBurnDuration = 2.1
 kFlamethrowerMaxBurnDuration = 6
 
 
--- affects dual minigun and dual railgun damage output
+-- Output levers for an exo carrying two gun arms, applied in Exo:ComputeDamageAttackerOverride.
+-- All four are 1: the hooks exist so a pair can be tuned without a code change, not because
+-- any pair is currently modified. A mixed pair takes the first lever its arms match.
 kExoDualMinigunModifier = 1
 kExoDualRailgunModifier = 1
+kExoDualPlasmaModifier = 1
+kExoDualFlamerModifier = 1
 
 kMinigunDamage = 6
 kMinigunDamageType = kDamageType.Heavy

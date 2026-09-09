@@ -476,14 +476,26 @@ function Exo:OnInitLocalClient()
 
 end
 
+-- The pair is read from the arm modules, not from the hasDualGuns netvar: nothing ever
+-- assigns that, and assigning it would lock a dual-armed exo out of the prototype lab
+-- through PrototypeLab:GetCanBeUsed. A mixed pair takes the lever of whichever arm the
+-- chain below matches first.
 function Exo:ComputeDamageAttackerOverride(_, damage, _, _, _, overshieldDamage)
     
-    if self.hasDualGuns then
+    local hasTwoGunArms = self.leftArmModuleType ~= kExoModuleTypes.Claw
+                      and self.leftArmModuleType ~= kExoModuleTypes.None
+                      and self.rightArmModuleType ~= kExoModuleTypes.None
+    
+    if hasTwoGunArms then
         
         if self:GetHasMinigun() then
             damage = damage * kExoDualMinigunModifier
         elseif self:GetHasRailgun() then
             damage = damage * kExoDualRailgunModifier
+        elseif self:GetHasPlasmaLauncher() then
+            damage = damage * kExoDualPlasmaModifier
+        elseif self:GetHasExoFlamer() then
+            damage = damage * kExoDualFlamerModifier
         end
     
     end
@@ -685,6 +697,13 @@ function Exo:GetHasMinigun()
     
     local weaponHolder = self:GetWeapon(ExoWeaponHolder.kMapName)
     return weaponHolder ~= nil and (weaponHolder:GetLeftSlotWeapon():isa("Minigun") or weaponHolder:GetRightSlotWeapon():isa("Minigun"))
+
+end
+
+function Exo:GetHasExoFlamer()
+    
+    return self.leftArmModuleType == kExoModuleTypes.Flamethrower
+        or self.rightArmModuleType == kExoModuleTypes.Flamethrower
 
 end
 
