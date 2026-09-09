@@ -1770,7 +1770,7 @@ function Exo:GetFuelUsageRate()
     --local usageScalar = self:GetHasMinigun() and kMinigunFuelUsageScalar or kRailgunFuelUsageScalar
     if self.thrustersActive then
 		if self.thrusterMode == kExoThrusterMode.Vertical then
-			return kExoThrusterFuelUsageRate * 0.33 -- This is triple fuel consumption
+			return kExoThrusterFuelUsageRate * 0.33 -- Vertical thrust burns a third of the rate
 		else 
 			return kExoThrusterFuelUsageRate --* usageScalar
 		end
