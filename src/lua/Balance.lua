@@ -1017,13 +1017,14 @@ kExoRegenFieldDuration = 5 -- Seconds
 
 -- Exo Tech Research
 kExoShieldTech = kTechId.ExosuitTech -- (depreciated)
-kExoFlamerTech = kTechId.ExosuitTech -- ungated for the first playtests; candidate gate: DualMinigunTech or AdvancedWeaponry
+kExoFlamerTech = kTechId.DualMinigunTech
 kRailgunTech = kTechId.ExosuitTech
-kPlasmaLauncherTech = kTechId.ExosuitTech -- ungated for the first playtests; candidate gate: DualMinigunTech or AdvancedWeaponry
+kPlasmaLauncherTech = kTechId.DualMinigunTech
 kMinigunTech = kTechId.ExosuitTech
 -- Core (utility) and support (ability) modules sit behind the Exosuit Cores research at the
--- exo prototype lab. The arms only ever need the exosuit itself; pairing two of them is what
--- kTechId.DualMinigunTech pays for, and that rule lives in ModularExo_GetIsConfigValid.
+-- exo prototype lab. kTechId.DualMinigunTech covers everything past the starting pair of arms:
+-- a weapon in both arms, which ModularExo_GetIsConfigValid decides, and the flame and plasma
+-- arms, which out-damage the minigun against everything it is not built for.
 kExoArmorModuleTech = kTechId.CoresExosuitTech
 kExoThrusterModuleTech = kTechId.CoresExosuitTech
 kEjectionSeatModuleTech = kTechId.CoresExosuitTech

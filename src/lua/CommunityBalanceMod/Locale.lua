@@ -249,8 +249,8 @@ if Client then
 	
 	
 	-- Exosuit research gates and armory refit
-	Locale.substitutions["DUAL_ARMS_TECH"] = "Dual Arms"
-	Locale.substitutions["DUAL_ARMS_TECH_TOOLTIP"] = "Allows exosuits to mount a weapon on both arms instead of a claw on one of them."
+	Locale.substitutions["DUAL_ARMS_TECH"] = "Advanced Exosuit Arms"
+	Locale.substitutions["DUAL_ARMS_TECH_TOOLTIP"] = "Unlocks the flame and plasma arms, and lets an exosuit mount a weapon on both arms instead of a claw on one of them."
 	Locale.substitutions["EXO_MODULE_LOCKED_FORMAT"] = "Requires %s"
 	
 end

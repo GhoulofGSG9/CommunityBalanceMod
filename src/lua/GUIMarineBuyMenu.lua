@@ -2988,10 +2988,14 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
             canAfford = playerResources >= currentConfigPrice
             col = kEnabledColor
 
-            -- The configuration on screen is the candidate here, so an outstanding Dual Arms
-            -- research belongs on both arm buttons.
+            -- The configuration on screen is the candidate here, so an outstanding pairing
+            -- research belongs on both arm buttons. It has to be read from the pairing rule
+            -- rather than from exoConfigLockedTechId, which now also carries that same techId
+            -- for a single flame or plasma arm - that arm's own requiredTechId already says so,
+            -- and a claw beside it requires nothing.
             if lockedTechId == nil
-            and self.exoConfigLockedTechId == kTechId.DualMinigunTech
+            and ModularExo_GetConfigNeedsDualArmsTech(self.exoConfig)
+            and not ModularExo_GetIsTechResearched(kTechId.DualMinigunTech)
             and kExoModuleSlotsData[buttonData.slotType].category == kExoModuleCategories.Weapon then
                 lockedTechId = kTechId.DualMinigunTech
             end

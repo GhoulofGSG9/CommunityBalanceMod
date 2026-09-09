@@ -29,7 +29,7 @@ if kCBMaddon then
 	
 	## Balance and QoL Changes
 	### Exosuits
-	  - Exosuit research is now two parallel projects at the Exosuit Prototype Lab: Exosuit Modules (15 tres, 45 s) unlocks Thrusters, Ejection Seat, Armor Plating and the support abilities, Dual Arms (25 tres, 60 s) allows a weapon on both arms instead of a claw on one of them. Locked modules stay visible in the configuration page and name the research they wait on.
+	  - Exosuit research is now two parallel projects at the Exosuit Prototype Lab: Exosuit Modules (15 tres, 45 s) unlocks Thrusters, Ejection Seat, Armor Plating and the support abilities, Advanced Exosuit Arms (25 tres, 60 s) unlocks the flame and plasma arms and allows a weapon on both arms instead of a claw on one of them. Locked modules stay visible in the configuration page and name the research they wait on.
 	  - The Prototype Lab is built off the Arms Lab instead of the Advanced Armory, and sits beside it on the tech map. Exosuits therefore arrive earlier, so base exosuit armor drops to 140 (from 170) while armor upgrades give 40 per level again.
 	  - Exosuits can refit at any built Armory, not only at the Prototype Lab, and only within use range of it. The Armory sells nothing else to an exosuit.
 	  - Minigun damage back to the vanilla 6 with the vanilla 0.3 heat-up. Flamethrower arm costs 25 pres at 0.06 weight.
@@ -655,7 +655,7 @@ else
 	
 	## Balance and QoL Changes
 	### Exosuits
-	  - Exosuit research is now two parallel projects at the Exosuit Prototype Lab: Exosuit Modules (15 tres, 45 s) unlocks Thrusters, Ejection Seat, Armor Plating and the support abilities, Dual Arms (25 tres, 60 s) allows a weapon on both arms instead of a claw on one of them. Locked modules stay visible in the configuration page and name the research they wait on.
+	  - Exosuit research is now two parallel projects at the Exosuit Prototype Lab: Exosuit Modules (15 tres, 45 s) unlocks Thrusters, Ejection Seat, Armor Plating and the support abilities, Advanced Exosuit Arms (25 tres, 60 s) unlocks the flame and plasma arms and allows a weapon on both arms instead of a claw on one of them. Locked modules stay visible in the configuration page and name the research they wait on.
 	  - The Prototype Lab is built off the Arms Lab instead of the Advanced Armory, and sits beside it on the tech map. Exosuits therefore arrive earlier, so base exosuit armor drops to 140 (from 170) while armor upgrades give 40 per level again.
 	  - Exosuits can refit at any built Armory, not only at the Prototype Lab, and only within use range of it. The Armory sells nothing else to an exosuit.
 	  - Minigun damage back to the vanilla 6 with the vanilla 0.3 heat-up. Flamethrower arm costs 25 pres at 0.06 weight.
