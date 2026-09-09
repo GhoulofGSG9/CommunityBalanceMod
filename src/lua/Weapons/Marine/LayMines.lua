@@ -282,6 +282,7 @@ end
 -- Given a gorge player's position and view angles, return a position and orientation
 -- for structure. Used to preview placement via a ghost structure and then to create it.
 -- Also returns bool if it's a valid position or not.
+local kMineCorners = { }
 function LayMines:GetPositionForStructure(player)
 
     local isPositionValid = false
@@ -386,15 +387,16 @@ function LayMines:GetPositionForStructure(player)
         end
         -- DebugLine(orig, orig + zAxis * 2, 0.1, 1, 1, 1, 1)
 
-        local c1 = orig + xAxis * extents.x/2 + zAxis * extents.z/2
-        local c2 = orig - xAxis * extents.x/2 + zAxis * extents.z/2
-        local c3 = orig + xAxis * extents.x/2 - zAxis * extents.z/2
-        local c4 = orig - xAxis * extents.x/2 - zAxis * extents.z/2
+        kMineCorners[1] = orig + xAxis * extents.x/2 + zAxis * extents.z/2
+        kMineCorners[2] = orig - xAxis * extents.x/2 + zAxis * extents.z/2
+        kMineCorners[3] = orig + xAxis * extents.x/2 - zAxis * extents.z/2
+        kMineCorners[4] = orig - xAxis * extents.x/2 - zAxis * extents.z/2
 
         local numPointsVisible = 0
         local minNumPointsVisible = 4 -- Out of 4 edges
 
-        for i, o in ipairs({c1, c2, c3, c4}) do
+        for i = 1, 4 do
+            local o = kMineCorners[i]
             local sp = orig + yAxis * 0.25 --player:GetEyePos()
             local ep = o
 
