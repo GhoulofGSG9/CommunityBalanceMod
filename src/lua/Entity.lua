@@ -571,9 +571,47 @@ function RadiusDamageMultiPoint(entities, centerOrigins, radius, fullDamage, doe
 end
 
 -- Fades damage linearly from center point to radius (0 at far end of radius)
+--
+-- The one element wrapper table used to reach RadiusDamageMultiPoint was
+-- allocated on every call. RadiusDamage is re-entrant - DoDamage can kill a
+-- mine that chains into another RadiusDamage - so a single shared table would
+-- be overwritten by the nested call. Keep a small stack indexed by call depth
+-- instead, and allocate past the expected chain length so a depth leaked by an
+-- error degrades to the old behaviour rather than corrupting a point.
+local kMaxRadiusDamageDepth = 8
+local gSinglePointStack = {}
+local gRadiusDamageDepth = 0
+
 function RadiusDamage(entities, centerOrigin, radius, fullDamage, doer, ignoreLOS, fallOffFunc, useXZDistance)
 
-    RadiusDamageMultiPoint(entities, {centerOrigin}, radius, fullDamage, doer, ignoreLOS, fallOffFunc, useXZDistance)
+    local depth = gRadiusDamageDepth + 1
+    local centerOrigins
+
+    if depth <= kMaxRadiusDamageDepth then
+
+        centerOrigins = gSinglePointStack[depth]
+        if not centerOrigins then
+            centerOrigins = { false }
+            gSinglePointStack[depth] = centerOrigins
+        end
+        gRadiusDamageDepth = depth
+
+    else
+        centerOrigins = { centerOrigin }
+    end
+
+    centerOrigins[1] = centerOrigin
+
+    RadiusDamageMultiPoint(entities, centerOrigins, radius, fullDamage, doer, ignoreLOS, fallOffFunc, useXZDistance)
+
+    -- Restored unconditionally, so every path out of this function leaves the
+    -- depth as it found it. Past the cap gRadiusDamageDepth was never raised,
+    -- so writing depth - 1 there is a no-op. An error thrown inside DoDamage
+    -- still unwinds past this line; that costs a pool slot and nothing else,
+    -- because a depth over the cap falls back to allocating exactly as the
+    -- original code did.
+    gRadiusDamageDepth = depth - 1
+    centerOrigins[1] = false
     
 end
 
