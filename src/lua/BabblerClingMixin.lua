@@ -17,6 +17,7 @@ BabblerClingMixin.type = "BabblerCling"
 
 BabblerClingMixin.expectedMixins =
 {
+    Usable = "For babbler donation"
 }
 
 local kBabblerAttachPoints =
@@ -130,9 +131,47 @@ function BabblerClingMixin:GetMaxBabblerShieldAmount()
     return self.babblerShieldMaxAmount
 end
 
+function BabblerClingMixin:GetCanBeUsed(entity, useSuccessTable)
+
+    local success = true
+
+    if not GetAreFriends(self, entity) or not HasMixin(self, "BabblerCling") or not HasMixin(entity, "BabblerCling") then
+        success = false
+    end
+
+    if success and not self:GetCanAttachBabbler() then
+        success = false
+    end
+
+    if success and entity:GetNumClingedBabblers() == 0 then
+        success = false
+    end
+
+    useSuccessTable.useSuccess = success
+    
+end
+
+function BabblerClingMixin:OnUse(player, elapsedTime, useSuccessTable)
+    if Server then
+        local isPlayerOwner = HasMixin(player, "BabblerOwner")
+        local isTargetOwner = HasMixin(self, "BabblerOwner")
+        for _, babbler in ipairs(player:GetClingedBabblers()) do
+            if not self:GetCanAttachBabbler() or (isTargetOwner and self:GetBabblerCount() >= self:GetMaxBabblers()) then
+                break
+            end
+            player:DetachBabbler(babbler)
+            -- Only give points if you are the original birth-giver of these babblers
+            -- Do not give point for giving them back to him
+            local disablePointsAward = not isPlayerOwner or isTargetOwner
+            self:AttachBabbler(babbler, disablePointsAward)
+        end
+    end
+    self:TriggerEffects("babbler_jump") 
+end
+
 if Server then
 
-    function BabblerClingMixin:AttachBabbler(babbler)
+    function BabblerClingMixin:AttachBabbler(babbler, disablePoints)
 
         if not self:GetIsAlive() or not self:GetCanAttachBabbler() then return false end
 
@@ -145,7 +184,7 @@ if Server then
 
             -- Do not count babblers you attach on yourself
             local previousOwner = babbler:GetOwner()
-            if previousOwner and previousOwner ~= self then
+            if previousOwner and previousOwner ~= self and not disablePoints then
                 local amountGiven = 1
                 previousOwner:AddContinuousScore("BabblerDonation", amountGiven, BabblerClingMixin.kAmountDonatedForPoints, BabblerClingMixin.kDonationScoreAdded)
                 --Log("%s detaching from %s and attaching to %s", babbler, babbler:GetOwner(), self)
@@ -166,10 +205,20 @@ if Server then
 
     end
 
+    function BabblerClingMixin:GetAttachedOrigin(babbler)
+        local babblerId = babbler:GetId()
+        local usedAttachPoint = self.attachedBabblers[babblerId]
+        local origin = self:GetAttachPointOrigin(usedAttachPoint)
+        return origin
+    end
+
     function BabblerClingMixin:DetachBabbler(babbler)
 
         local babblerId = babbler:GetId()
         local usedAttachPoint = self.attachedBabblers[babblerId]
+
+        self.attachedBabblers[babblerId] = nil
+        babbler:SetParent(nil)
 
         if usedAttachPoint then
             table.insert(self.freeAttachPoints, usedAttachPoint)
@@ -181,9 +230,6 @@ if Server then
             self.numBabblers = self.numBabblers - 1
             self.babblerShieldRemaining = math.min(self.babblerShieldRemaining, self.numBabblers * self.babblerShieldPerBabbler)
         end
-
-        self.attachedBabblers[babblerId] = nil
-        babbler:SetParent(nil)
 
     end
 
