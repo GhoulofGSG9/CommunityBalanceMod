@@ -488,7 +488,7 @@ function ModularExo_GetConfigArmor(config, armorLevels)
             armor = armor + moduleTypeData.armorValue
         end
     end
-    return armor
+    return math.min(kExoMaxTotalArmorCap, armor)
 end
 
 -- Has the given team finished a research node? GetTechTree takes a team number on the server

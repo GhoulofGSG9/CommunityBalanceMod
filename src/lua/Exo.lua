@@ -708,7 +708,7 @@ function Exo:GetArmorAmount(armorLevels)
     
     end
     
-    return kBaseExoArmor + self.armorBonus + armorLevels * kExosuitArmorPerUpgradeLevel
+    return math.min(kExoMaxTotalArmorCap, kBaseExoArmor + self.armorBonus + armorLevels * kExosuitArmorPerUpgradeLevel)
 end
 
 function Exo:GetFirstPersonHitEffectName()

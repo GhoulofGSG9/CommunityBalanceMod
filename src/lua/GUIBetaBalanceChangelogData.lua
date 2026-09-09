@@ -40,7 +40,7 @@ if kCBMaddon then
 	  - Railgun deals 20 on a tap and 120 on a full charge (still one-shots any skulk), and only one railgun charges at a time. Range stays at 30 m: it must remain under the 40 m relevancy distance so lerks never die to an exo their client has not received.
 	  - Plasma Launcher reworked into a grenade launcher with a pulse grenade: one bomb type with a 2 s fuse that detonates on contact or on expiry, a 4 m blast plus burn, and an electrify pulse that drains 20 energy from enemies. Energy regenerates at 0.40/s, a bomb costs 0.5.
 	  - Flamethrower arm is back as a pure weapon: marine flamethrower damage, range and burn, no ground flames and no welding. Exosuits can no longer repair other exosuits.
-	  - New Armor Plating utility module: +80 armor for 10 pres and 10% weight.
+	  - New Armor Plating utility module: +80 armor for 25 pres and 10% weight, priced like a weapon arm because it costs no arm slot. Total exosuit armor is capped at 520.
 	  - New Support Ability slot (10 pres, no weight): Nano Shield Field, Adrenaline Field or Regen Field pulse an 8 m field that affects marines but not exosuits, 120 s cooldown. Press Reload to trigger; with no marine in range the press is refused and the charge is kept.
 	  - Eject by holding the drop key for 2 s. The HUD badge shows the hold progress and the reason when ejecting is blocked (combat, airborne, deploying). The marine keeps their weapon when the key is still held through the eject.
 	  - Buy menu: selecting the Exosuit tile at a prototype lab opens a full-width configuration page with a Back button, a description for every module, live armor and speed readouts and per-module affordability colouring. Exosuit pilots land on the page directly. Buying requires an Exosuit Prototype Lab.
@@ -666,7 +666,7 @@ else
 	  - Railgun deals 20 on a tap and 120 on a full charge (still one-shots any skulk), and only one railgun charges at a time. Range stays at 30 m: it must remain under the 40 m relevancy distance so lerks never die to an exo their client has not received.
 	  - Plasma Launcher reworked into a grenade launcher with a pulse grenade: one bomb type with a 2 s fuse that detonates on contact or on expiry, a 4 m blast plus burn, and an electrify pulse that drains 20 energy from enemies. Energy regenerates at 0.40/s, a bomb costs 0.5.
 	  - Flamethrower arm is back as a pure weapon: marine flamethrower damage, range and burn, no ground flames and no welding. Exosuits can no longer repair other exosuits.
-	  - New Armor Plating utility module: +80 armor for 10 pres and 10% weight.
+	  - New Armor Plating utility module: +80 armor for 25 pres and 10% weight, priced like a weapon arm because it costs no arm slot. Total exosuit armor is capped at 520.
 	  - New Support Ability slot (10 pres, no weight): Nano Shield Field, Adrenaline Field or Regen Field pulse an 8 m field that affects marines but not exosuits, 120 s cooldown. Press Reload to trigger; with no marine in range the press is refused and the charge is kept.
 	  - Eject by holding the drop key for 2 s. The HUD badge shows the hold progress and the reason when ejecting is blocked (combat, airborne, deploying). The marine keeps their weapon when the key is still held through the eject.
 	  - Buy menu: selecting the Exosuit tile at a prototype lab opens a full-width configuration page with a Back button, a description for every module, live armor and speed readouts and per-module affordability colouring. Exosuit pilots land on the page directly. Buying requires an Exosuit Prototype Lab.

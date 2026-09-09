@@ -208,7 +208,7 @@ if Client then
 	Locale.substitutions["EXO_MODULE_EJECTIONSEAT_DESC"] = "Core module: when the suit's armor runs out you are thrown clear instead of dying in it, and the exosuit is left standing with 40 armor for someone to weld back up. It saves the marine and the shell, not the fight."
 	Locale.substitutions["EXO_MODULE_ARMOR"] = "Armor Plating"
 	Locale.substitutions["EXO_MODULE_ARMOR_TOOLTIP"] = "Bolt-on plating: 80 extra armor for 10% of the exosuit's speed."
-	Locale.substitutions["EXO_MODULE_ARMOR_DESC"] = "Core module: 80 extra armor bolted on, paid for with 10% of the exosuit's speed. The cheapest way to live through one more focused hit, at the price of making an already slow suit slower."
+	Locale.substitutions["EXO_MODULE_ARMOR_DESC"] = "Core module: 80 extra armor bolted on, paid for with 10% of the exosuit's speed. It costs as much as a weapon arm: the last stretch of armor is meant to be paid for."
 	
 	-- Exosuit support abilities
 	Locale.substitutions["EXO_ABILITY_NANOSHIELD_FIELD"] = "Nano Shield Field"
