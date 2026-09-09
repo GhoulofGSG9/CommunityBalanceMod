@@ -213,12 +213,15 @@ function DropStructureAbility:PerformPrimaryAttack(player)
                 self.timeLastDrop = Shared.GetTime()
                 success = true
 
+                -- Only clear the first click point once the drop actually succeeded.
+                -- An invalid/failed second click leaves it in place so the player can
+                -- simply re-click instead of having to restart the whole placement.
+                self.lastClickedPosition = nil
+                self.lastClickedPositionNormal = nil
+
             end
 
         end
-
-        self.lastClickedPosition = nil
-        self.lastClickedPositionNormal = nil
 
     elseif valid then
         self.lastClickedPosition = Vector(coords.origin)
@@ -562,7 +565,7 @@ function DropStructureAbility:ProcessMoveOnWeapon(input)
 end
 
 function DropStructureAbility:GetShowGhostModel()
-    return self.activeStructure ~= nil and not self:GetHasDropCooldown()
+    return self.activeStructure ~= nil
 end
 
 function DropStructureAbility:GetGhostModelCoords()
@@ -614,6 +617,13 @@ if Client then
             self.ghostCoords, self.placementValid = self:GetPositionForStructure(player:GetEyePos(), viewDirection, self:GetActiveStructure(), self.lastClickedPosition, self.lastClickedPositionNormal)
 
             if player:GetResources() < LookupTechData(self:GetActiveStructure():GetDropStructureId(), kTechDataCostKey) then
+                self.placementValid = false
+            end
+
+            -- Ghost is now always shown (see GetShowGhostModel), so during the drop
+            -- cooldown just flag placement as invalid to render it red instead of
+            -- hiding the ghost entirely.
+            if self:GetHasDropCooldown() then
                 self.placementValid = false
             end
 
