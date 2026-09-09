@@ -52,7 +52,6 @@ AddMixinNetworkVars(LOSMixin, networkVars)
 
 local precached = PrecacheAsset("models/alien/gorge/web.surface_shader")
 local kWebMaterial = PrecacheAsset("models/alien/gorge/web.material")
-local kWebWidth = 0.1
 
 function EntityFilterNonWebables()
     return function(test) return not HasMixin(test, "Webable") end
@@ -193,8 +192,12 @@ if Server then
     function Web:SetEndPoint(endPoint)
     
         self.endPoint = Vector(endPoint)
-        self.length = Clamp((self:GetOrigin() - self.endPoint):GetLength(), kMinWebLength, kMaxWebLength)
+        -- Reduces a bit more to account for the ends sticking out beyond geometry.
+        -- The hardcoded value seems the perfect value for both ends to be right on attached surfaces
+        local effectiveLength = Clamp((self:GetOrigin() - self.endPoint):GetLength(), kMinWebLength, kMaxWebLength)
         
+        self.length = effectiveLength
+
         local coords = Coords.GetIdentity()
         coords.origin = self:GetOrigin()
         coords.zAxis = GetNormalizedVector(self:GetOrigin() - self.endPoint)
@@ -213,6 +216,10 @@ end
 if Server then
 
     function Web:AddWebbedBabbler(babbler)
+        if self.numWebbedBabblers >= kWebMaxBabblers then
+            return
+        end
+
         local owner = babbler:GetOwner()
         if owner and not babbler.babblerBombSpawned and HasMixin(owner, "BabblerCling") then
             owner:WebBabblerAdded()
@@ -556,9 +563,21 @@ local function CheckForIntersection(self, fromPlayer)
 
 end
 
+function Web:GetFreeBabblerAttachPointOrigin()
+    local startPoint, axis, length = self:GetWebAxis()
+
+    if axis then
+        -- The free point oscillates left and right
+        local p = math.cos(Shared.GetTime() * 1.2) * 0.8 -- Do not go to the edges of the web
+        return startPoint + axis * (length / 2) + (axis * p * length / 2)
+    end
+    return nil
+end
+
 -- TODO: somehow the pose params dont work here when using clientmodelmixin. should figure out why this is broken and switch to clientmodelmixin
 function Web:OnUpdatePoseParameters()
-    self:SetPoseParam("scale", self.length)    
+    -- Model is a bit longer, scale length down
+    self:SetPoseParam("scale", self.length * 0.8425)
 end
 
 -- called by the players so they can predict the web effect
