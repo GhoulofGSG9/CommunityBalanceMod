@@ -101,8 +101,10 @@ local function GetHealOrigin(_, player)
 
     -- Don't project origin the full radius out in front of Gorge or we have edge-case problems with the Gorge
     -- not being able to hear himself
-    local startPos = player:GetEyePos()
-    local endPos = startPos + (player:GetViewAngles():GetCoords().zAxis * kHealsprayRadius * .9)
+    local viewDir = player:GetViewAngles():GetCoords().zAxis
+    local velocity = player:GetVelocity() -- If moving, adjust the effect to be ahead (no butt-healspraying)
+    local startPos = player:GetEyePos() + Vector(velocity.x, velocity.y / 2.5, velocity.z) / 5.5
+    local endPos = startPos + (viewDir * kHealsprayRadius * .9)
     local trace = Shared.TraceRay(startPos, endPos, CollisionRep.Damage, PhysicsMask.Bullets, EntityFilterOne(player))
     return trace.endPoint
     
