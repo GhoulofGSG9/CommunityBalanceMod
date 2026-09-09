@@ -45,9 +45,47 @@ end
 --]]
 
 ------------------------------------------
+--  Exo arms are modular: each slot can hold any exo weapon and the two
+--  slots do not have to match. Decide per slot whether the trigger should
+--  be held this frame, using only accessors the weapon in that slot has.
+------------------------------------------
+local function GetShouldFireExoWeapon( weapon, dist, target )
+
+    if not weapon then
+        return false
+    end
+
+    if weapon:isa("Railgun") then
+
+        -- Railguns charge while the trigger is held and fire on release
+        local railgunFireCharge = 0.98
+        if dist and dist < 10 and target and target:isa("Player") then
+            railgunFireCharge = 0.4 -- fire railgun shots more quickly against close players
+        end
+
+        return not weapon.GetChargeAmount or weapon:GetChargeAmount() < railgunFireCharge
+
+    end
+
+    if weapon:isa("PlasmaLauncher") then
+        -- Plasma spends an energy pool instead of charging up a shot
+        local energy = weapon.GetChargeAmount and weapon:GetChargeAmount() or 1
+        return energy >= (weapon.energyCost or 0)
+    end
+
+    -- Minigun and exo flamer build heat and lock out while overheated,
+    -- claws (and anything else) just keep swinging.
+    if weapon.overheated then
+        return false
+    end
+
+    return not weapon.heatAmount or weapon.heatAmount < 0.95
+
+end
+
+------------------------------------------
 --  Utility perform function used by multiple wants
 ------------------------------------------
-
 local function PerformAttackEntity( eyePos, target, lastSeenPos, bot, brain, move )
 
     assert(target ~= nil )
@@ -145,35 +183,17 @@ local function PerformAttackEntity( eyePos, target, lastSeenPos, bot, brain, mov
     
     if doFire or (brain.lastShootingTime and brain.lastShootingTime > Shared.GetTime() - 0.5) then
     
-        -- TODO: Make this work for both weapons....?
         local player = bot:GetPlayer()
-        local weaponHolder = player:GetActiveWeapon()    
-        local leftWeapon = weaponHolder:GetLeftSlotWeapon()
-        local rightWeapon = weaponHolder:GetRightSlotWeapon()
+        local weaponHolder = player:GetActiveWeapon()
+        local leftWeapon = weaponHolder and weaponHolder.GetLeftSlotWeapon and weaponHolder:GetLeftSlotWeapon()
+        local rightWeapon = weaponHolder and weaponHolder.GetRightSlotWeapon and weaponHolder:GetRightSlotWeapon()
 
-        if brain.isMinigun then
-
-            if not leftWeapon or not leftWeapon.heatAmount or leftWeapon.heatAmount < 0.95 then
-                move.commands = AddMoveCommand( move.commands, Move.PrimaryAttack )
-            end
-            if not rightWeapon or not rightWeapon.heatAmount or rightWeapon.heatAmount < 0.95 then
-                move.commands = AddMoveCommand( move.commands, Move.SecondaryAttack )
-            end
-
-        else
-
-            local railgunFireCharge = 0.98
-            if dist < 10 and target:isa("Player") then
-                railgunFireCharge = 0.4 -- fire railgun shots more quickly against close players
-            end
-
-            if leftWeapon and leftWeapon:GetChargeAmount() < railgunFireCharge then
-                move.commands = AddMoveCommand( move.commands, Move.PrimaryAttack )
-            end
-            if rightWeapon and rightWeapon:GetChargeAmount() < railgunFireCharge then
-                move.commands = AddMoveCommand( move.commands, Move.SecondaryAttack )
-            end
-
+        -- Left arm is fired by primary attack, right arm by secondary attack
+        if GetShouldFireExoWeapon( leftWeapon, dist, target ) then
+            move.commands = AddMoveCommand( move.commands, Move.PrimaryAttack )
+        end
+        if GetShouldFireExoWeapon( rightWeapon, dist, target ) then
+            move.commands = AddMoveCommand( move.commands, Move.SecondaryAttack )
         end
 
     else
@@ -553,6 +573,62 @@ kExoBrainActions =
 ------------------------------------------
 --  More urgent == should really attack it ASAP
 ------------------------------------------
+-- GetAttackUrgency runs once per remembered enemy per exo per brain tick and rebuilt both
+-- urgency tables (and rescanned kMinimapBlipType for Prowler) on every call. Entries are
+-- { numOthersThreshold, crowdedUrgency, urgency }, evaluated where the value is needed.
+local function GetUrgencyValue(entry, numOthers)
+    return numOthers >= entry[1] and entry[2] or entry[3]
+end
+
+local kExoActiveUrgencies =
+{
+    [kMinimapBlipType.Embryo] = { 1, 0.1, 1.0 },
+    [kMinimapBlipType.Hydra] = { 2, 0.1, 2.0 },
+    [kMinimapBlipType.Whip] = { 2, 0.1, 3.0 },
+    [kMinimapBlipType.WhipMature] = { 2, 0.1, 3.0 },
+    [kMinimapBlipType.FortressWhip] = { 2, 0.1, 3.0 },
+    [kMinimapBlipType.FortressWhipMature] = { 2, 0.1, 3.0 },
+    [kMinimapBlipType.Skulk] = { 2, 0.1, 4.0 },
+    [kMinimapBlipType.Gorge] = { 2, 0.1, 3.0 },
+    [kMinimapBlipType.Drifter] = { 1, 0.1, 1.0 },
+    [kMinimapBlipType.Lerk] = { 2, 0.1, 5.0 },
+    [kMinimapBlipType.Fade] = { 3, 0.1, 6.0 },
+    [kMinimapBlipType.Onos] = { 4, 0.1, 7.0 },
+}
+
+if table.contains(kMinimapBlipType, "Prowler") then
+    kExoActiveUrgencies[kMinimapBlipType.Prowler] = { 2, 0.1, 4.0 }
+end
+
+local kExoPassiveUrgencies =
+{
+    [kMinimapBlipType.Crag] = { 2, 0.2, 0.95 },
+    [kMinimapBlipType.FortressCrag] = { 2, 0.2, 0.95 },
+    [kMinimapBlipType.HiveFresh] = { 6, 0.5, 0.9 },
+    [kMinimapBlipType.HiveFreshOccupied] = { 6, 0.5, 0.9 },
+    [kMinimapBlipType.Hive] = { 6, 0.5, 0.9 },
+    [kMinimapBlipType.HiveOccupied] = { 6, 0.5, 0.9 },
+    [kMinimapBlipType.HiveMature] = { 6, 0.5, 0.9 },
+    [kMinimapBlipType.HiveMatureOccupied] = { 6, 0.5, 0.9 },
+    [kMinimapBlipType.HiveFreshFifthBio] = { 6, 0.5, 0.9 },
+    [kMinimapBlipType.HiveFreshOccupiedFifthBio] = { 6, 0.5, 0.9 },
+    [kMinimapBlipType.HiveFifthBio] = { 6, 0.5, 0.9 },
+    [kMinimapBlipType.HiveOccupiedFifthBio] = { 6, 0.5, 0.9 },
+    [kMinimapBlipType.HiveMatureFifthBio] = { 6, 0.5, 0.9 },
+    [kMinimapBlipType.HiveMatureOccupiedFifthBio] = { 6, 0.5, 0.9 },
+    [kMinimapBlipType.Harvester] = { 2, 0.4, 0.8 },
+    [kMinimapBlipType.Egg] = { 1, 0.2, 0.5 },
+    [kMinimapBlipType.Shade] = { 2, 0.2, 0.5 },
+    [kMinimapBlipType.FortressShade] = { 2, 0.2, 0.5 },
+    [kMinimapBlipType.Shift] = { 2, 0.2, 0.5 },
+    [kMinimapBlipType.FortressShift] = { 2, 0.2, 0.5 },
+    [kMinimapBlipType.Shell] = { 2, 0.2, 0.5 },
+    [kMinimapBlipType.Veil] = { 2, 0.2, 0.5 },
+    [kMinimapBlipType.Spur] = { 2, 0.2, 0.5 },
+    [kMinimapBlipType.TunnelEntrance] = { 1, 0.2, 0.5 },
+}
+
+
 local function GetAttackUrgency(bot, exo, mem)
 
     local teamBrain = bot.brain.teamBrain
@@ -579,87 +655,39 @@ local function GetAttackUrgency(bot, exo, mem)
     ------------------------------------------
     -- Passives - not an immediate threat, but attack them if you got nothing better to do
     ------------------------------------------
-    local passiveUrgencies =
-    {
-        [kMinimapBlipType.Crag] = numOthers >= 2           and 0.2 or 0.95, -- kind of a special case
-		[kMinimapBlipType.FortressCrag] = numOthers >= 2   and 0.2 or 0.95, -- kind of a special case
-        [kMinimapBlipType.HiveFresh] = numOthers >= 6           		and 0.5 or 0.9,
-		[kMinimapBlipType.HiveFreshOccupied] = numOthers >= 6       	and 0.5 or 0.9,
-		[kMinimapBlipType.Hive] = numOthers >= 6           				and 0.5 or 0.9,
-		[kMinimapBlipType.HiveOccupied] = numOthers >= 6            	and 0.5 or 0.9,
-		[kMinimapBlipType.HiveMature] = numOthers >= 6           		and 0.5 or 0.9,
-		[kMinimapBlipType.HiveMatureOccupied] = numOthers >= 6     		and 0.5 or 0.9,
-		[kMinimapBlipType.HiveFreshFifthBio] = numOthers >= 6       	and 0.5 or 0.9,
-		[kMinimapBlipType.HiveFreshOccupiedFifthBio] = numOthers >= 6   and 0.5 or 0.9,
-		[kMinimapBlipType.HiveFifthBio] = numOthers >= 6           		and 0.5 or 0.9,
-		[kMinimapBlipType.HiveOccupiedFifthBio] = numOthers >= 6        and 0.5 or 0.9,
-		[kMinimapBlipType.HiveMatureFifthBio] = numOthers >= 6          and 0.5 or 0.9,
-		[kMinimapBlipType.HiveMatureOccupiedFifthBio] = numOthers >= 6  and 0.5 or 0.9,
-        [kMinimapBlipType.Harvester] = numOthers >= 2      and 0.4 or 0.8,
-        [kMinimapBlipType.Egg] = numOthers >= 1            and 0.2 or 0.5,
-        [kMinimapBlipType.Shade] = numOthers >= 2          and 0.2 or 0.5,
-		[kMinimapBlipType.FortressShade] = numOthers >= 2  and 0.2 or 0.5,
-        [kMinimapBlipType.Shift] = numOthers >= 2          and 0.2 or 0.5,
-		[kMinimapBlipType.FortressShift] = numOthers >= 2  and 0.2 or 0.5,
-        [kMinimapBlipType.Shell] = numOthers >= 2          and 0.2 or 0.5,
-        [kMinimapBlipType.Veil] = numOthers >= 2           and 0.2 or 0.5,
-        [kMinimapBlipType.Spur] = numOthers >= 2           and 0.2 or 0.5,
-        [kMinimapBlipType.TunnelEntrance] = numOthers >= 1 and 0.2 or 0.5,
-    }
+    local passiveEntry = kExoPassiveUrgencies[ mem.btype ]
 
     if bot.brain.debug then
         if mem.btype == kMinimapBlipType.Hive then
-            Print("got Hive, urgency = %f", passiveUrgencies[mem.btype])
+            Print("got Hive, urgency = %f", GetUrgencyValue(passiveEntry, numOthers))
         end
     end
 
-    if passiveUrgencies[ mem.btype ] ~= nil then
+    if passiveEntry ~= nil then
         if target.GetIsGhostStructure and target:GetIsGhostStructure() and 
             mem.btype ~= kMinimapBlipType.Extractor then
             return nil
         end
-        return passiveUrgencies[ mem.btype ] + closeBonus * 0.3
+        return GetUrgencyValue(passiveEntry, numOthers) + closeBonus * 0.3
     end
 
     ------------------------------------------
     --  Active threats - ie. they can hurt you
     --  Only load balance if we cannot see the target
     ------------------------------------------
-    function EvalActiveUrgenciesTable(numOthers)
-        local activeUrgencies =
-        {
-            [kMinimapBlipType.Embryo] = numOthers >= 1 and 0.1 or 1.0,
-            [kMinimapBlipType.Hydra] = numOthers >= 2  and 0.1 or 2.0,
-            [kMinimapBlipType.Whip] = numOthers >= 2   and 0.1 or 3.0,
-			[kMinimapBlipType.WhipMature] = numOthers >= 2   and 0.1 or 3.0,
-			[kMinimapBlipType.FortressWhip] = numOthers >= 2   and 0.1 or 3.0,
-			[kMinimapBlipType.FortressWhipMature] = numOthers >= 2   and 0.1 or 3.0,
-            [kMinimapBlipType.Skulk] = numOthers >= 2  and 0.1 or 4.0,
-            [kMinimapBlipType.Gorge] =  numOthers >= 2  and 0.1 or 3.0,
-            [kMinimapBlipType.Drifter] = numOthers >= 1  and 0.1 or 1.0,
-            [kMinimapBlipType.Lerk] = numOthers >= 2   and 0.1 or 5.0,
-            [kMinimapBlipType.Fade] = numOthers >= 3   and 0.1 or 6.0,
-            [kMinimapBlipType.Onos] =  numOthers >= 4  and 0.1 or 7.0,
-        }
-        if table.contains(kMinimapBlipType, "Prowler") then
-            activeUrgencies[kMinimapBlipType.Prowler] = numOthers >= 2 and 0.1 or 4.0
-        end
-        return activeUrgencies
-    end
 
     -- Optimization: we only need to do visibilty check if the entity type is active
-    -- So get the table first with 0 others
-    local urgTable = EvalActiveUrgenciesTable(0)
+    -- So look the entry up before spending anything on numOthers
+    local activeEntry = kExoActiveUrgencies[ mem.btype ]
 
-    if urgTable[ mem.btype ] then
+    if activeEntry then
 
         -- For nearby active threads, respond no matter what - regardless of how many others are around
         if dist < 15 then
             numOthers = 0
         end
 
-        urgTable = EvalActiveUrgenciesTable(numOthers)
-        return urgTable[ mem.btype ] + closeBonus
+        return GetUrgencyValue(activeEntry, numOthers) + closeBonus
 
     end
 
