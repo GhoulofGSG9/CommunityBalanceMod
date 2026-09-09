@@ -232,6 +232,7 @@ if Client then
 	Locale.substitutions["EXO_DETAILS_ARMOR_FORMAT"] = "+%d ARMOR"
 	Locale.substitutions["EXO_DETAILS_SPEED_FORMAT"] = "-%d%% SPEED"
 	Locale.substitutions["EXO_DETAILS_NO_STAT_CHANGE"] = "NO STAT CHANGE"
+	Locale.substitutions["EXO_MODULE_INCOMPATIBLE"] = "Cannot be mounted next to the other arm"
 	Locale.substitutions["EXO_BUY_ARMOR_SPEED_FORMAT"] = "%d armor   %d%% speed"
 	
 	-- Exosuit hold-to-eject HUD

@@ -2721,10 +2721,12 @@ function GUIMarineBuyMenu:_UpdateExoModularVisibility()
         -- the same text every frame. The transition above clears the record, so coming
         -- back to the page repaints even when the same module is still the hovered one.
         if self.modularExoDetailsModule ~= self.exoDetailsShownModule
-        or self.modularExoDetailsLockedTechId ~= self.exoDetailsShownLockedTechId then
+        or self.modularExoDetailsLockedTechId ~= self.exoDetailsShownLockedTechId
+        or self.modularExoDetailsIncompatible ~= self.exoDetailsShownIncompatible then
             self.exoDetailsShownModule = self.modularExoDetailsModule
             self.exoDetailsShownLockedTechId = self.modularExoDetailsLockedTechId
-            self:_SetDetailsSectionExoModule(self.modularExoDetailsModule, self.modularExoDetailsLockedTechId)
+            self.exoDetailsShownIncompatible = self.modularExoDetailsIncompatible
+            self:_SetDetailsSectionExoModule(self.modularExoDetailsModule, self.modularExoDetailsLockedTechId, self.modularExoDetailsIncompatible)
         end
 
     end
@@ -2734,10 +2736,11 @@ end
 -- Modular counterpart of _SetDetailsSectionTechId: fills the details section from an exo
 -- module instead of a techId. Name, cost, the armour and weight the module contributes, and
 -- a one line description out of EXO_MODULE_<NAME>_DESC.
--- lockedTechId is the research the hovered button is still waiting on, or nil. When it is
--- set, the stat line gives up its numbers to say what has to be researched first: a module
--- that cannot be bought yet is better explained than measured.
-function GUIMarineBuyMenu:_SetDetailsSectionExoModule(moduleType, lockedTechId)
+-- lockedTechId is the research the hovered button is still waiting on, or nil; incompatible
+-- says the module cannot sit beside the other arm's. Either one makes the stat line give up
+-- its numbers to say why instead: a module that cannot be bought is better explained than
+-- measured, and the greyed button alone never said which of the two reasons applied.
+function GUIMarineBuyMenu:_SetDetailsSectionExoModule(moduleType, lockedTechId, incompatible)
 
     if moduleType == nil or self.modularExoDetailStats == nil then
         return
@@ -2767,7 +2770,10 @@ function GUIMarineBuyMenu:_SetDetailsSectionExoModule(moduleType, lockedTechId)
     if speedPenalty ~= 0 then
         table.insert(statParts, string.format(Locale.ResolveString("EXO_DETAILS_SPEED_FORMAT"), speedPenalty))
     end
-    if lockedTechId then
+    if incompatible then
+        self.modularExoDetailStats:SetText(Locale.ResolveString("EXO_MODULE_INCOMPATIBLE"))
+        self.modularExoDetailStats:SetColor(kCannotBuyColor)
+    elseif lockedTechId then
         self.modularExoDetailStats:SetText(string.format(Locale.ResolveString("EXO_MODULE_LOCKED_FORMAT"),
                                                          GetResearchDisplayName(lockedTechId)))
         self.modularExoDetailStats:SetColor(kCannotBuyColor)
@@ -2845,10 +2851,12 @@ function GUIMarineBuyMenu:_UpdateExoModularButtons()
 
         local hoveredModuleType = nil
         local hoveredLockedTechId = nil
+        local hoveredIncompatible = false
         for buttonI, buttonData in ipairs(self.modularExoModuleButtonList) do
             if GetIsMouseOver(self, buttonData.buttonGraphic) then
                 hoveredModuleType = buttonData.moduleType
                 hoveredLockedTechId = buttonData.lockedTechId
+                hoveredIncompatible = buttonData.incompatible
                 if buttonData.state == "enabled" then
                     buttonData.buttonGraphic:SetColor(kModuleButtonHoverColor)
                 end
@@ -2864,6 +2872,7 @@ function GUIMarineBuyMenu:_UpdateExoModularButtons()
         if hoveredModuleType then
             self.modularExoDetailsModule = hoveredModuleType
             self.modularExoDetailsLockedTechId = hoveredLockedTechId
+            self.modularExoDetailsIncompatible = hoveredIncompatible
         end
     end
 end
@@ -2976,6 +2985,7 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
         local buttonModuleTypeData = kExoModuleTypesData[buttonData.moduleType]
         local requiredTechId = buttonModuleTypeData and buttonModuleTypeData.requiredTechId
         local lockedTechId = nil
+        local incompatible = false
         if requiredTechId and not ModularExo_GetIsTechResearched(requiredTechId) then
             lockedTechId = requiredTechId
         end
@@ -3037,6 +3047,7 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
 
             if not isValid then
                 buttonData.state = "disabled"
+                incompatible = badReason == "bad model right"
             elseif lockedTechId then
                 -- Buildable, just not researched yet. It reads like an unaffordable module -
                 -- greyed, no hover, click ignored - and the details box says which research.
@@ -3066,6 +3077,7 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
         end
 
         buttonData.lockedTechId = lockedTechId
+        buttonData.incompatible = incompatible
         buttonData.col = col
         buttonData.buttonGraphic:SetColor(col)
 
