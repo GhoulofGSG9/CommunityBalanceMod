@@ -131,43 +131,124 @@ function ExoFlamer:GetRange()
     return kExoFlamerRange
 end
 
+local kBurnStepLength = 2
+local kBurnMaxSteps = 5
+local kSporeCloudTag = "class:SporeCloud"
+
+-- Cloud classes, in the order the merged list used to be built in. Only the
+-- tags are constant; the radii are class fields a mod can change, so they are
+-- re-read on every call into the reusable scratch table below.
+local kBurnCloudTags =
+{
+    "class:CragUmbra",
+    "class:StormCloud",
+    "class:MucousMembrane",
+    "class:EnzymeCloud",
+}
+local kBurnCloudCount = #kBurnCloudTags
+
+local gBurnCloudRadii = {}
+local gBurnCloudPresent = {}
+local gBurnCloudSweep = {}
+
+local function UpdateBurnCloudRadii()
+
+    gBurnCloudRadii[1] = CragUmbra.kRadius
+    gBurnCloudRadii[2] = StormCloud.kRadius
+    gBurnCloudRadii[3] = MucousMembrane.kRadius
+    gBurnCloudRadii[4] = EnzymeCloud.kRadius
+
+end
+
 function ExoFlamer:BurnSporesAndUmbra(startPoint, endPoint)
+    
+    PROFILE("ExoFlamer:BurnSporesAndUmbra")
     
     local toTarget = endPoint - startPoint
     local distanceToTarget = toTarget:GetLength()
     toTarget:Normalize()
     
-    local stepLength = 2
+    local stepLength = kBurnStepLength
     
-    for i = 1, 5 do
+    -- Same sample points as before: up to five steps of 2 m, stopping short
+    -- of the end point.
+    local numSteps = math.floor(distanceToTarget / stepLength)
+    if numSteps > kBurnMaxSteps then
+        numSteps = kBurnMaxSteps
+    end
+    
+    if numSteps < 1 then
+        return
+    end
+    
+    -- One sweep per cloud class over a sphere that contains every sample
+    -- point plus that class' radius. It is a strict superset of the per-point
+    -- queries, so a class that misses here cannot hit any sample point and its
+    -- five per-point queries can be skipped. Nothing burns on the vast
+    -- majority of flame ticks, which used to cost 25 range queries and three
+    -- table.copy each.
+    local sweepCenter = startPoint + toTarget * ((numSteps + 1) * 0.5 * stepLength)
+    local sweepSpan = (numSteps - 1) * 0.5 * stepLength
+    
+    local sporeSweep = Shared.GetEntitiesWithTagInRange(kSporeCloudTag, sweepCenter, sweepSpan + kSporesDustCloudRadius)
+    local sporesPossible = #sporeSweep > 0
+    local anyPossible = sporesPossible
+    
+    -- Radii are read here, not cached at first use, so a mod that changes a
+    -- cloud radius at runtime still gets the right query.
+    UpdateBurnCloudRadii()
+    
+    for q = 1, kBurnCloudCount do
         
-        -- stop when target has reached, any spores would be behind
-        if distanceToTarget < i * stepLength then
-            break
-        end
+        local sweep = Shared.GetEntitiesWithTagInRange(kBurnCloudTags[q], sweepCenter, sweepSpan + gBurnCloudRadii[q])
+        gBurnCloudSweep[q] = sweep
+        gBurnCloudPresent[q] = #sweep > 0
+        anyPossible = anyPossible or gBurnCloudPresent[q]
         
-        local checkAtPoint = startPoint + toTarget * i * stepLength
-        local spores = GetEntitiesWithinRange("SporeCloud", checkAtPoint, kSporesDustCloudRadius)
+    end
+    
+    if not anyPossible then
+        return
+    end
+    
+    -- With a single sample point the sweep sphere is that point with that
+    -- class' own radius, so the sweep result is the per-point result and the
+    -- query does not have to be repeated.
+    local sweepIsSamplePoint = numSteps == 1
+    
+    for i = 1, numSteps do
         
-        local clouds = GetEntitiesWithinRange("CragUmbra", checkAtPoint, CragUmbra.kRadius)
-        table.copy(GetEntitiesWithinRange("StormCloud", checkAtPoint, StormCloud.kRadius), clouds, true)
-        table.copy(GetEntitiesWithinRange("MucousMembrane", checkAtPoint, MucousMembrane.kRadius), clouds, true)
-        table.copy(GetEntitiesWithinRange("EnzymeCloud", checkAtPoint, EnzymeCloud.kRadius), clouds, true)
-        
+        local checkAtPoint = startPoint + toTarget * (i * stepLength)
         local burnSpent = false
         
-        for i = 1, #spores do
-            local spore = spores[i]
-            self:TriggerEffects("burn_spore", { effecthostcoords = Coords.GetTranslation(spore:GetOrigin()) })
-            DestroyEntity(spore)
-            burnSpent = true
+        if sporesPossible then
+            
+            local spores = sweepIsSamplePoint and sporeSweep
+                or Shared.GetEntitiesWithTagInRange(kSporeCloudTag, checkAtPoint, kSporesDustCloudRadius)
+            for s = 1, #spores do
+                local spore = spores[s]
+                self:TriggerEffects("burn_spore", { effecthostcoords = Coords.GetTranslation(spore:GetOrigin()) })
+                DestroyEntity(spore)
+                burnSpent = true
+            end
+            
         end
         
-        for i = 1, #clouds do
-            local cloud = clouds[i]
-            self:TriggerEffects("burn_umbra", { effecthostcoords = Coords.GetTranslation(cloud:GetOrigin()) })
-            DestroyEntity(cloud)
-            burnSpent = true
+        for q = 1, kBurnCloudCount do
+            
+            if gBurnCloudPresent[q] then
+                
+                local clouds = sweepIsSamplePoint and gBurnCloudSweep[q]
+                    or Shared.GetEntitiesWithTagInRange(kBurnCloudTags[q], checkAtPoint, gBurnCloudRadii[q])
+                for c = 1, #clouds do
+                    local cloud = clouds[c]
+                    self:TriggerEffects("burn_umbra", { effecthostcoords = Coords.GetTranslation(cloud:GetOrigin()) })
+                    DestroyEntity(cloud)
+                    burnSpent = true
+                end
+                
+            end
+            
         end
         
         if burnSpent then
