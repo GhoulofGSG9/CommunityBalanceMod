@@ -133,8 +133,6 @@ local kHealthWarningTrigger = 0.55
 local kHealthCritical = PrecacheAsset("sound/NS2.fev/marine/heavy/critical")
 local kHealthCriticalTrigger = 0.35
 
-local kWalkMaxSpeed = 3.7
-local kMaxSpeed = 5.75
 local kViewOffsetHeight = 2.3
 local kAcceleration = 20
 local kVerticalThrusterMaxSpeed = 0.8
@@ -1786,12 +1784,11 @@ function Exo:GetFuelRechargeRate()
 end
 
 function Exo:GetFuelUsageRate()
-    --local usageScalar = self:GetHasMinigun() and kMinigunFuelUsageScalar or kRailgunFuelUsageScalar
     if self.thrustersActive then
 		if self.thrusterMode == kExoThrusterMode.Vertical then
 			return kExoThrusterFuelUsageRate * 0.33 -- Vertical thrust burns a third of the rate
 		else 
-			return kExoThrusterFuelUsageRate --* usageScalar
+			return kExoThrusterFuelUsageRate
 		end
     else
         return 1

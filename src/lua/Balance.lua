@@ -996,8 +996,6 @@ kExoRefitCost = 10
 
 kMinigunMovementSlowdown = 1
 kRailgunMovementSlowdown = 1
-kMinigunFuelUsageScalar = 1 -- Usage commented out in Exo.lua
-kRailgunFuelUsageScalar = 1 -- Usage commented out in Exo.lua
 
 -- Exo Movement
 kExosuitHorizontalThrusterAddSpeed = 2 -- 10

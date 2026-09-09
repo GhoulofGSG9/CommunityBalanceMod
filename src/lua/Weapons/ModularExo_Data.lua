@@ -87,7 +87,6 @@ if kCBMaddon then
 			weight       = kClawWeight,
 			armorValue   = kClawArmor,
 			leftArmOnly  = true,
-			singleRightArmOnly = false,
 		},
 		[kExoModuleTypes.Minigun]    = {
 			category       = kExoModuleCategories.Weapon,
@@ -99,7 +98,6 @@ if kCBMaddon then
 			armorValue     = kMinigunArmor,
 			requiredTechId = kMinigunTech,
 			leftArmOnly    = false,
-			singleRightArmOnly = true,
 		},
 		[kExoModuleTypes.Railgun]    = {
 			category       = kExoModuleCategories.Weapon,
@@ -111,7 +109,6 @@ if kCBMaddon then
 			armorValue     = kRailgunArmor,
 			requiredTechId = kRailgunTech,
 			leftArmOnly    = false,
-			singleRightArmOnly = true,
 		},
 		[kExoModuleTypes.PlasmaLauncher]    = {
 			category       = kExoModuleCategories.Weapon,
@@ -123,7 +120,6 @@ if kCBMaddon then
 			armorValue     = kPlasmaLauncherArmor,
 			requiredTechId = kPlasmaLauncherTech,
 			leftArmOnly    = false,
-			singleRightArmOnly = true,
 		},
 		[kExoModuleTypes.Flamethrower]    = {
 			category       = kExoModuleCategories.Weapon,
@@ -135,7 +131,6 @@ if kCBMaddon then
 			armorValue     = kExoFlamerArmor,
 			requiredTechId = kExoFlamerTech,
 			leftArmOnly    = false,
-			singleRightArmOnly = true,
 		},
 		-- Utility modules
 		[kExoModuleTypes.Thrusters]  = {
@@ -227,7 +222,6 @@ else
 			weight       = kClawWeight,
 			armorValue   = kClawArmor,
 			leftArmOnly  = true,
-			singleRightArmOnly = false,
 		},
 		[kExoModuleTypes.Minigun]    = {
 			category       = kExoModuleCategories.Weapon,
@@ -239,7 +233,6 @@ else
 			armorValue     = kMinigunArmor,
 			requiredTechId = kMinigunTech,
 			leftArmOnly    = false,
-			singleRightArmOnly = true,
 		},
 		[kExoModuleTypes.Railgun]    = {
 			category       = kExoModuleCategories.Weapon,
@@ -251,7 +244,6 @@ else
 			armorValue     = kRailgunArmor,
 			requiredTechId = kRailgunTech,
 			leftArmOnly    = false,
-			singleRightArmOnly = true,
 		},
 		[kExoModuleTypes.PlasmaLauncher]    = {
 			category       = kExoModuleCategories.Weapon,
@@ -263,7 +255,6 @@ else
 			armorValue     = kPlasmaLauncherArmor,
 			requiredTechId = kPlasmaLauncherTech,
 			leftArmOnly    = false,
-			singleRightArmOnly = true,
 		},
 		[kExoModuleTypes.Flamethrower]    = {
 			category       = kExoModuleCategories.Weapon,
@@ -275,7 +266,6 @@ else
 			armorValue     = kExoFlamerArmor,
 			requiredTechId = kExoFlamerTech,
 			leftArmOnly    = false,
-			singleRightArmOnly = true,
 		},
 		-- Utility modules
 		[kExoModuleTypes.Thrusters]  = {
