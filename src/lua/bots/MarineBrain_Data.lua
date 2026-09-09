@@ -3625,24 +3625,71 @@ kMarineBrainActions =
 --  Active threats - ie. they can hurt you
 --  Only load balance if we cannot see the target
 ------------------------------------------
-local function EvalActiveUrgenciesTable(numOthers)
-    local activeUrgencies =
+-- GetAttackUrgency and GetStructureAttackUrgency run once per remembered
+-- enemy per marine bot per brain tick and used to rebuild their urgency
+-- tables on every call. The thresholds are constant, so the tables are built
+-- once; entries are { numOthersThreshold, crowdedUrgency, urgency }.
+local function GetUrgencyValue(entry, numOthers)
+    return numOthers >= entry[1] and entry[2] or entry[3]
+end
+
+local kMarineActiveUrgencies =
     {
-        [kMinimapBlipType.Onos] =       		numOthers >= 4 and 0.1 or 7.0,
-        [kMinimapBlipType.Fade] =       		numOthers >= 3 and 0.1 or 6.0,
-        [kMinimapBlipType.Lerk] =       		numOthers >= 2 and 0.1 or 5.0,
-        [kMinimapBlipType.Skulk] =      		numOthers >= 2 and 0.1 or 4.0,
-        [kMinimapBlipType.Gorge] =      		numOthers >= 2 and 0.1 or 3.0,
-        [kMinimapBlipType.Whip] = 				numOthers >= 2 and 0.1 or 3.0,
-		[kMinimapBlipType.WhipMature] = 		numOthers >= 2 and 0.1 or 3.0,
-		[kMinimapBlipType.FortressWhip] = 		numOthers >= 2 and 0.1 or 3.0,
-		[kMinimapBlipType.FortressWhipMature] = numOthers >= 2 and 0.1 or 3.0,
-        [kMinimapBlipType.Hydra] =      		numOthers >= 2 and 0.1 or 2.0,
-        [kMinimapBlipType.Drifter] =    		numOthers >= 1 and 0.1 or 1.0,
+        [kMinimapBlipType.Onos] = { 4, 0.1, 7.0 },
+        [kMinimapBlipType.Fade] = { 3, 0.1, 6.0 },
+        [kMinimapBlipType.Lerk] = { 2, 0.1, 5.0 },
+        [kMinimapBlipType.Skulk] = { 2, 0.1, 4.0 },
+        [kMinimapBlipType.Gorge] = { 2, 0.1, 3.0 },
+        [kMinimapBlipType.Whip] = { 2, 0.1, 3.0 },
+        [kMinimapBlipType.WhipMature] = { 2, 0.1, 3.0 },
+        [kMinimapBlipType.FortressWhip] = { 2, 0.1, 3.0 },
+        [kMinimapBlipType.FortressWhipMature] = { 2, 0.1, 3.0 },
+        [kMinimapBlipType.Hydra] = { 2, 0.1, 2.0 },
+        [kMinimapBlipType.Drifter] = { 1, 0.1, 1.0 },
     }
 
-    return activeUrgencies
-end
+
+local kMarinePassiveUrgencies =
+    {
+        [kMinimapBlipType.Drifter] =            { 2, 0.2, 0.98 },
+    }
+
+-- Structure urgencies do not depend on numOthers at all.
+local kMarineStructureUrgencies =
+    {
+    --See....here's the problem...Crag near Hive, yeah, high prio, crag at forward-base...not so much
+    --  e.g. Crag at forward-base with Tunnel ...Tunnel must die ...crag by itself...meh, etc, etc
+    --XXXX Perhaps find the centroid of all found structures (clustered?), and then derives a weight-bias accordingly to set-combos?
+        [kMinimapBlipType.Crag] =               0.95,
+        [kMinimapBlipType.FortressCrag] =             0.95,
+        [kMinimapBlipType.HiveFresh] =          0.93,
+        [kMinimapBlipType.HiveFreshOccupied] =  0.93,
+        [kMinimapBlipType.Hive] =               0.93,
+        [kMinimapBlipType.HiveOccupied] =       0.93,
+        [kMinimapBlipType.HiveMature] =         0.93,
+        [kMinimapBlipType.HiveMatureOccupied] = 0.93,
+        [kMinimapBlipType.HiveFreshFifthBio] =        0.93,
+        [kMinimapBlipType.HiveFreshOccupiedFifthBio] =  0.93,
+        [kMinimapBlipType.HiveFifthBio] =             0.93,
+        [kMinimapBlipType.HiveOccupiedFifthBio] =     0.93,
+        [kMinimapBlipType.HiveMatureFifthBio] =       0.93,
+        [kMinimapBlipType.HiveMatureOccupiedFifthBio] =  0.93,
+        [kMinimapBlipType.Harvester] =          0.9,
+        [kMinimapBlipType.Whip] =               0.89,
+        [kMinimapBlipType.WhipMature] =         0.89,
+        [kMinimapBlipType.FortressWhip] =             0.89,
+        [kMinimapBlipType.FortressWhipMature] =       0.89,
+        [kMinimapBlipType.Shell] =              0.6,
+        [kMinimapBlipType.Veil] =               0.6,
+        [kMinimapBlipType.Spur] =               0.6,
+        [kMinimapBlipType.Shade] =              0.5,
+        [kMinimapBlipType.FortressShade] =            0.5,
+        [kMinimapBlipType.Shift] =              0.5,
+        [kMinimapBlipType.FortressShift] =            0.5,
+        [kMinimapBlipType.TunnelEntrance] =     0.5,
+        [kMinimapBlipType.Egg] =                0.4,
+        [kMinimapBlipType.Embryo] =             0.385,  --Player-Eggs slightly lower, as we don't want Bots being assholes, now do we?
+    }
 
 local activeUrgencies =
     {
@@ -3701,55 +3748,7 @@ local function GetStructureAttackUrgency(bot, mem)
 
     local dist = GetBotWalkDistance(player, target)
 
-    local urgencies = 
-    {
-        --[[
-        --[kMinimapBlipType.Drifter] =            numOthers >= 2 and 0.2 or 0.98,
-        [kMinimapBlipType.Crag] =               numOthers >= 2 and 0.2 or 0.95, -- kind of a special case
-        [kMinimapBlipType.Hive] =               numOthers >= 6 and 0.8 or 0.93,
-        [kMinimapBlipType.Harvester] =          numOthers >= 2 and 0.5 or 0.9,
-        [kMinimapBlipType.Egg] =                numOthers >= 1 and 0.2 or 0.5,
-        [kMinimapBlipType.Shade] =              numOthers >= 2 and 0.2 or 0.5,
-        [kMinimapBlipType.Shift] =              numOthers >= 2 and 0.2 or 0.5,
-        [kMinimapBlipType.Shell] =              numOthers >= 2 and 0.2 or 0.5,
-        [kMinimapBlipType.Veil] =               numOthers >= 2 and 0.2 or 0.5,
-        [kMinimapBlipType.Spur] =               numOthers >= 2 and 0.2 or 0.5,
-        [kMinimapBlipType.TunnelEntrance] =     numOthers >= 1 and 0.2 or 0.5,
-        --]]
-
-    --See....here's the problem...Crag near Hive, yeah, high prio, crag at forward-base...not so much
-    --  e.g. Crag at forward-base with Tunnel ...Tunnel must die ...crag by itself...meh, etc, etc
-    --XXXX Perhaps find the centroid of all found structures (clustered?), and then derives a weight-bias accordingly to set-combos?
-        [kMinimapBlipType.Crag] =               		0.95,
-		[kMinimapBlipType.FortressCrag] = 				0.95,
-		[kMinimapBlipType.HiveFresh] = 					0.93,
-		[kMinimapBlipType.HiveFreshOccupied] = 			0.93,
-		[kMinimapBlipType.Hive] = 						0.93,
-		[kMinimapBlipType.HiveOccupied] = 				0.93,
-		[kMinimapBlipType.HiveMature] = 				0.93,
-		[kMinimapBlipType.HiveMatureOccupied] = 		0.93,
-		[kMinimapBlipType.HiveFreshFifthBio] = 			0.93,
-		[kMinimapBlipType.HiveFreshOccupiedFifthBio] =	0.93,
-		[kMinimapBlipType.HiveFifthBio] = 				0.93,
-		[kMinimapBlipType.HiveOccupiedFifthBio] = 		0.93,
-		[kMinimapBlipType.HiveMatureFifthBio] = 		0.93,
-		[kMinimapBlipType.HiveMatureOccupiedFifthBio] = 0.93,
-        [kMinimapBlipType.Harvester] =          0.9,
-        [kMinimapBlipType.Whip] =               0.89,
-		[kMinimapBlipType.WhipMature] =			0.89,
-		[kMinimapBlipType.FortressWhip] =		0.89,
-		[kMinimapBlipType.FortressWhipMature] = 0.89,
-        [kMinimapBlipType.Shell] =              0.6,
-        [kMinimapBlipType.Veil] =               0.6,
-        [kMinimapBlipType.Spur] =               0.6,
-        [kMinimapBlipType.Shade] =              0.5,
-		[kMinimapBlipType.FortressShade] =		0.5,
-        [kMinimapBlipType.Shift] =              0.5,
-		[kMinimapBlipType.FortressShift] =		0.5,
-        [kMinimapBlipType.TunnelEntrance] =     0.5,
-        [kMinimapBlipType.Egg] =                0.4,
-        [kMinimapBlipType.Embryo] =             0.385,  --Player-Eggs slightly lower, as we don't want Bots being assholes, now do we?
-    }
+    local urgencies = kMarineStructureUrgencies
 
     local closeBonus = 0
 
@@ -3793,11 +3792,20 @@ local function GetAttackUrgency(bot, player, mem)
     -- See if we know whether if it is alive or not
     local target = Shared.GetEntity(mem.entId)
     if not HasMixin(target, "Live") or not target:GetIsAlive() or (target.GetTeamNumber and target:GetTeamNumber() == bot:GetTeamNumber()) then
+
+        -- Gone, dead or now friendly: this is the only place the id is known
+        -- to be finished with, so evict it here or the map keeps every target
+        -- the bot ever weighed for the rest of the round.
+        if mem.entId and bot.brain.lastTargetCloakTimes[mem.entId] then
+            bot.brain.lastTargetCloakTimes[mem.entId] = nil
+        end
+
         return nil
     end
 
-    local isPartiallyCloaked =  HasMixin(target, "Cloakable") and target:GetCloakFraction() > 0.5 -- 5.2 is non-celerity sneak speed for skulks
-    local isFullyCloaked = HasMixin(target, "Cloakable") and target:GetCloakFraction() > 0.8
+    local isCloakable = HasMixin(target, "Cloakable")
+    local isPartiallyCloaked =  isCloakable and target:GetCloakFraction() > 0.5 -- 5.2 is non-celerity sneak speed for skulks
+    local isFullyCloaked = isCloakable and target:GetCloakFraction() > 0.8
     if isFullyCloaked then
         return nil -- Super slow movement
     elseif isPartiallyCloaked then
@@ -3806,7 +3814,9 @@ local function GetAttackUrgency(bot, player, mem)
         if timeSinceLastCloak < bot.brain.kCloakDelayTime then
             return nil
         end
-    else -- Update last time uncloaked
+    elseif isCloakable then -- Update last time uncloaked
+        -- Only a Cloakable target can ever read this back, so do not keep an
+        -- entry for every entity the bot has ever considered attacking.
         bot.brain.lastTargetCloakTimes[target:GetId()] = now
     end
 
@@ -3827,14 +3837,11 @@ local function GetAttackUrgency(bot, player, mem)
     ------------------------------------------
     -- Passives - not an immediate threat, but attack them if you got nothing better to do
     ------------------------------------------
-    local passiveUrgencies =
-    {
-        [kMinimapBlipType.Drifter] =            numOthers >= 2 and 0.2 or 0.98,
-    }
+    local passiveEntry = kMarinePassiveUrgencies[ mem.btype ]
 
-    if bot.brain.debug then
+    if bot.brain.debug and passiveEntry then
         if mem.btype == kMinimapBlipType.Hive then
-            Print("got Hive, urgency = %f", passiveUrgencies[mem.btype])
+            Print("got Hive, urgency = %f", GetUrgencyValue(passiveEntry, numOthers))
         end
     end
 
@@ -3843,7 +3850,7 @@ local function GetAttackUrgency(bot, player, mem)
         closeBonus = closeBonus + (0.3-target:GetHealthScalar()) * 3
     end
 
-    if passiveUrgencies[ mem.btype ] ~= nil then
+    if passiveEntry ~= nil then
 
         if dist < 20 then
             -- if passive target, then make sure they're all "equal" close bonus so that a marine bot will
@@ -3854,14 +3861,14 @@ local function GetAttackUrgency(bot, player, mem)
         end
 
 
-        return passiveUrgencies[ mem.btype ] + closeBonus
+        return GetUrgencyValue(passiveEntry, numOthers) + closeBonus
     end
 
     -- Optimization: we only need to do visibilty check if the entity type is active
     -- So get the table first with 0 others
-    local urgTable = EvalActiveUrgenciesTable(0)
+    local activeEntry = kMarineActiveUrgencies[ mem.btype ]
 
-    if urgTable[ mem.btype ] then
+    if activeEntry then
         -- For nearby active threads, respond no matter what - regardless of how many others are around
         if dist < 15 or player:GetIsInCombat() then
             numOthers = 0
@@ -3869,8 +3876,6 @@ local function GetAttackUrgency(bot, player, mem)
 
         -- local maxResponders = (urgentResponders[ mem.btype ] or 1) + (mem.threat > 1.0 and 1 or 0)
         -- local urgency = numOthers < maxResponders and activeUrgencies[ mem.btype ] or 0.1
-
-        urgTable = EvalActiveUrgenciesTable(numOthers)
 
         if dist < 20 then
             -- Do not modify numOthers here
@@ -3885,7 +3890,7 @@ local function GetAttackUrgency(bot, player, mem)
 
         -- return urgency + closeBonus + mem.threat
 
-        return urgTable[ mem.btype ] + closeBonus + mem.threat
+        return GetUrgencyValue(activeEntry, numOthers) + closeBonus + mem.threat
 
     end
     
