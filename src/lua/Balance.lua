@@ -1054,7 +1054,7 @@ kPlasmaLauncherWeight = 0.08
 
 -- Exo flamethrower arm
 kExoFlamerWeight = 0.06
-kExoFlamerConeWidth = 2
+kExoFlamerConeWidth = 1
 kExoFlamerCoolDownRate = 0.20
 kExoFlamerHeatUpRate = 0.10
 kExoFlamerFireRate = 1 / 3
