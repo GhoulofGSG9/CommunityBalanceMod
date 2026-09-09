@@ -36,8 +36,8 @@ if kCBMaddon then
 	  - Flamethrowers no longer destroy bile bombs or whip bombs, the exosuit flame arm included. They still burn spores and umbra.
 	  - Armories and prototype labs react to an exosuit standing at its own, wider use range instead of a marine's.
 	  - Modular exosuit rework: every build is re-anchored on the vanilla exosuit. Claw + Minigun at 40 pres has 320 armor (410 at Armor 3) and moves at about 5.4 m/s; other arm combinations are sideways trades instead of strictly worse ones.
-	  - Exosuit base speed is 6.25 m/s (from 7), base armor 140 (from 170) and armor per Armor upgrade 40. Arm cost / armor / weight: Claw 15 / 60 / 0.04, Minigun 25 / 90 / 0.10, Railgun 25 / 60 / 0.06, Plasma Launcher 25 / 60 / 0.08, Flamethrower 20 / 40 / 0.04.
-	  - Railgun deals 30 on a tap and 130 on a full charge (one-shots any skulk). Range stays at 30 m: it must remain under the 40 m relevancy distance so lerks never die to an exo their client has not received.
+	  - Exosuit base speed is 6.25 m/s (from 7), base armor 140 (from 170) and armor per Armor upgrade 40. Arm cost / armor / weight: Claw 15 / 90 / 0.04, Minigun 25 / 90 / 0.10, Railgun 25 / 60 / 0.06, Plasma Launcher 25 / 60 / 0.08, Flamethrower 20 / 40 / 0.04.
+	  - Railgun deals 20 on a tap and 120 on a full charge (still one-shots any skulk), and only one railgun charges at a time. Range stays at 30 m: it must remain under the 40 m relevancy distance so lerks never die to an exo their client has not received.
 	  - Plasma Launcher reworked into a grenade launcher with a pulse grenade: one bomb type with a 2 s fuse that detonates on contact or on expiry, a 4 m blast plus burn, and an electrify pulse that drains 20 energy from enemies. Energy regenerates at 0.40/s, a bomb costs 0.5.
 	  - Flamethrower arm is back as a pure weapon: marine flamethrower damage, range and burn, no ground flames and no welding. Exosuits can no longer repair other exosuits.
 	  - New Armor Plating utility module: +80 armor for 10 pres and 10% weight.
@@ -662,8 +662,8 @@ else
 	  - Flamethrowers no longer destroy bile bombs or whip bombs, the exosuit flame arm included. They still burn spores and umbra.
 	  - Armories and prototype labs react to an exosuit standing at its own, wider use range instead of a marine's.
 	  - Modular exosuit rework: every build is re-anchored on the vanilla exosuit. Claw + Minigun at 40 pres has 320 armor (410 at Armor 3) and moves at about 5.4 m/s; other arm combinations are sideways trades instead of strictly worse ones.
-	  - Exosuit base speed is 6.25 m/s (from 7), base armor 140 (from 170) and armor per Armor upgrade 40. Arm cost / armor / weight: Claw 15 / 60 / 0.04, Minigun 25 / 90 / 0.10, Railgun 25 / 60 / 0.06, Plasma Launcher 25 / 60 / 0.08, Flamethrower 20 / 40 / 0.04.
-	  - Railgun deals 30 on a tap and 130 on a full charge (one-shots any skulk). Range stays at 30 m: it must remain under the 40 m relevancy distance so lerks never die to an exo their client has not received.
+	  - Exosuit base speed is 6.25 m/s (from 7), base armor 140 (from 170) and armor per Armor upgrade 40. Arm cost / armor / weight: Claw 15 / 90 / 0.04, Minigun 25 / 90 / 0.10, Railgun 25 / 60 / 0.06, Plasma Launcher 25 / 60 / 0.08, Flamethrower 20 / 40 / 0.04.
+	  - Railgun deals 20 on a tap and 120 on a full charge (still one-shots any skulk), and only one railgun charges at a time. Range stays at 30 m: it must remain under the 40 m relevancy distance so lerks never die to an exo their client has not received.
 	  - Plasma Launcher reworked into a grenade launcher with a pulse grenade: one bomb type with a 2 s fuse that detonates on contact or on expiry, a 4 m blast plus burn, and an electrify pulse that drains 20 energy from enemies. Energy regenerates at 0.40/s, a bomb costs 0.5.
 	  - Flamethrower arm is back as a pure weapon: marine flamethrower damage, range and burn, no ground flames and no welding. Exosuits can no longer repair other exosuits.
 	  - New Armor Plating utility module: +80 armor for 10 pres and 10% weight.

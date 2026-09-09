@@ -122,12 +122,14 @@ function Railgun:PostDoDamage(target, damage)
 
 end
 
--- Allows railguns to fire simulataneously...
+-- Only one railgun charges at a time. Two charging together put a near instant burst
+-- downrange that no aim commitment paid for; build 320 banned it and the ban held.
 function Railgun:OnPrimaryAttack(player)
     
     local exoWeaponHolder = player:GetActiveWeapon()
     local otherSlotWeapon = self:GetExoWeaponSlot() == ExoWeaponHolder.kSlotNames.Left and exoWeaponHolder:GetRightSlotWeapon() or exoWeaponHolder:GetLeftSlotWeapon()
-    if self.timeOfLastShot + kRailgunChargeTime <= Shared.GetTime() then
+    local otherIsCharging = otherSlotWeapon ~= nil and otherSlotWeapon ~= self and otherSlotWeapon:isa("Railgun") and otherSlotWeapon.railgunAttacking
+    if not otherIsCharging and self.timeOfLastShot + kRailgunChargeTime <= Shared.GetTime() then
         
         if not self.railgunAttacking then
             self.timeChargeStarted = Shared.GetTime()

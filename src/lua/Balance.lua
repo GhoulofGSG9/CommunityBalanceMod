@@ -336,7 +336,7 @@ kMinigunDamageType = kDamageType.Heavy
 kClawDamage = 50
 kClawDamageType = kDamageType.Structural
 
-kRailgunDamage = 30
+kRailgunDamage = 20
 kRailgunChargeDamage = 100
 kRailgunDamageType = kDamageType.Structural
 
@@ -1073,7 +1073,7 @@ kEjectionSeatWeight = 0.025
 
 -- Armor values
 kBaseExoArmor = 140 -- exos arrive earlier than vanilla; armor research carries more of the total
-kClawArmor = 60
+kClawArmor = 90
 kMinigunArmor = 90
 kRailgunArmor = 60
 kPlasmaLauncherArmor = 60
