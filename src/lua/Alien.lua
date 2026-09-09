@@ -86,7 +86,7 @@ local kDefaultAttackSpeed = 1
 local networkVars =
 {
     -- The alien energy used for all alien weapons and abilities (instead of ammo)
-	timeAbilityEnergyChanged = "compensated time",
+    timeAbilityEnergyChanged = "compensated time",
     abilityEnergyOnChange = "compensated float (0 to " .. math.ceil(kAbilityMaxEnergy) .. " by 0.05 [] )",
     lastEnergyValue = "compensated float (0 to " .. math.ceil(kAbilityMaxEnergy) .. " by 0.05 [] )",
 
@@ -260,6 +260,18 @@ function Alien:OnInitialized()
         InitMixin(self, OrdersMixin, { kMoveOrderCompleteDistance = kPlayerMoveOrderCompleteDistance })
     end
 
+end
+
+function Alien:GetCanBeUsed(player, useSuccessTable)
+    useSuccessTable.useSuccess = true
+end
+
+function Alien:GetUseAllowedBeforeGameStart()
+    return true
+end
+
+function Alien:GetCanBeUsedDuringWarmup()
+    return true
 end
 
 function Alien:GetHasOutterController()
