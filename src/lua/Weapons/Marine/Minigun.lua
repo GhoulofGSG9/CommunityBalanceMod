@@ -389,6 +389,10 @@ function Minigun:ProcessMoveOnWeapon(player, input)
     
 end
 
+local kActivityInput = ExoWeaponSlotMixin.kActivityInput
+local kHeatAmountKey = ExoWeaponSlotMixin.GetSlotKeyTable("heatAmount")
+local kMinigunTextureKey = ExoWeaponSlotMixin.GetSlotKeyTable("*exo_minigun_")
+
 function Minigun:OnUpdateRender()
 
     PROFILE("Minigun:OnUpdateRender")
@@ -400,7 +404,7 @@ function Minigun:OnUpdateRender()
         if viewModel and viewModel:GetRenderModel() then
         
             viewModel:InstanceMaterials()
-            viewModel:GetRenderModel():SetMaterialParameter("heatAmount" .. self:GetExoWeaponSlotName(), self.heatAmount)
+            viewModel:GetRenderModel():SetMaterialParameter(kHeatAmountKey[self.exoWeaponSlot], self.heatAmount)
             
         end
         
@@ -410,12 +414,12 @@ function Minigun:OnUpdateRender()
             heatDisplayUI = Client.CreateGUIView(242 * heatUIScaleFactor, 720 * heatUIScaleFactor)
             
             heatDisplayUI:Load("lua/GUI" .. self:GetExoWeaponSlotName():gsub("^%l", string.upper) .. "MinigunDisplay.lua")
-            heatDisplayUI:SetTargetTexture("*exo_minigun_" .. self:GetExoWeaponSlotName())
+            heatDisplayUI:SetTargetTexture(kMinigunTextureKey[self.exoWeaponSlot])
             self.heatDisplayUI = heatDisplayUI
             heatDisplayUI:SetGlobal("scaleFactor", heatUIScaleFactor)
         end
         
-        heatDisplayUI:SetGlobal("heatAmount" .. self:GetExoWeaponSlotName(), self.heatAmount)
+        heatDisplayUI:SetGlobal(kHeatAmountKey[self.exoWeaponSlot], self.heatAmount)
         
     else
     
@@ -495,7 +499,7 @@ function Minigun:OnUpdateAnimationInput(modelMixin)
         activity = "primary"
     end
     
-    modelMixin:SetAnimationInput("activity_" .. self:GetExoWeaponSlotName(), activity)
+    modelMixin:SetAnimationInput(kActivityInput[self.exoWeaponSlot], activity)
     
     -- TODO calculate this once, and hard-code it in.  Updated every frame for now so balance team
     -- can make adjustments on-the-fly.

@@ -339,6 +339,11 @@ function Railgun:ProcessMoveOnWeapon(player, input)
     
 end
 
+local kActivityInput = ExoWeaponSlotMixin.kActivityInput
+local kChargeAmountKey = ExoWeaponSlotMixin.GetSlotKeyTable("chargeAmount")
+local kTimeSinceLastShotKey = ExoWeaponSlotMixin.GetSlotKeyTable("timeSinceLastShot")
+local kRailgunTextureKey = ExoWeaponSlotMixin.GetSlotKeyTable("*exo_railgun_")
+
 function Railgun:OnUpdateRender()
 
     PROFILE("Railgun:OnUpdateRender")
@@ -352,8 +357,9 @@ function Railgun:OnUpdateRender()
         
             viewModel:InstanceMaterials()
             local renderModel = viewModel:GetRenderModel()
-            renderModel:SetMaterialParameter("chargeAmount" .. self:GetExoWeaponSlotName(), chargeAmount)
-            renderModel:SetMaterialParameter("timeSinceLastShot" .. self:GetExoWeaponSlotName(), Shared.GetTime() - self.timeOfLastShot)
+            local slot = self.exoWeaponSlot
+            renderModel:SetMaterialParameter(kChargeAmountKey[slot], chargeAmount)
+            renderModel:SetMaterialParameter(kTimeSinceLastShotKey[slot], Shared.GetTime() - self.timeOfLastShot)
             
         end
         
@@ -362,13 +368,14 @@ function Railgun:OnUpdateRender()
         
             chargeDisplayUI = Client.CreateGUIView(246, 256)
             chargeDisplayUI:Load("lua/GUI" .. self:GetExoWeaponSlotName():gsub("^%l", string.upper) .. "RailgunDisplay.lua")
-            chargeDisplayUI:SetTargetTexture("*exo_railgun_" .. self:GetExoWeaponSlotName())
+            chargeDisplayUI:SetTargetTexture(kRailgunTextureKey[self.exoWeaponSlot])
             self.chargeDisplayUI = chargeDisplayUI
             
         end
         
-        chargeDisplayUI:SetGlobal("chargeAmount" .. self:GetExoWeaponSlotName(), chargeAmount)
-        chargeDisplayUI:SetGlobal("timeSinceLastShot" .. self:GetExoWeaponSlotName(), Shared.GetTime() - self.timeOfLastShot)
+        local slot = self.exoWeaponSlot
+        chargeDisplayUI:SetGlobal(kChargeAmountKey[slot], chargeAmount)
+        chargeDisplayUI:SetGlobal(kTimeSinceLastShotKey[slot], Shared.GetTime() - self.timeOfLastShot)
         
     else
     
@@ -427,7 +434,7 @@ function Railgun:OnUpdateAnimationInput(modelMixin)
     if self.railgunAttacking then
         activity = "primary"
     end
-    modelMixin:SetAnimationInput("activity_" .. self:GetExoWeaponSlotName(), activity)
+    modelMixin:SetAnimationInput(kActivityInput[self.exoWeaponSlot], activity)
     
 end
 

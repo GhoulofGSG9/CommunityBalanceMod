@@ -160,6 +160,9 @@ end
 
 local kEffectType = enum({ 'FirstPerson', 'ThirdPerson', 'None' })
 
+local kHeatAmountKey = ExoWeaponSlotMixin.GetSlotKeyTable("heatAmount")
+local kRailgunTextureKey = ExoWeaponSlotMixin.GetSlotKeyTable("*exo_railgun_")
+
 function ExoFlamer:OnUpdateRender()
     -- Entity.OnUpdateRender(self)
     local parent = self:GetParent()
@@ -169,7 +172,7 @@ function ExoFlamer:OnUpdateRender()
         local viewModel = parent:GetViewModelEntity()
         if viewModel and viewModel:GetRenderModel() then
             viewModel:InstanceMaterials()
-            viewModel:GetRenderModel():SetMaterialParameter("heatAmount" .. self:GetExoWeaponSlotName(), self.heatAmount)
+            viewModel:GetRenderModel():SetMaterialParameter(kHeatAmountKey[self.exoWeaponSlot], self.heatAmount)
         end
         local heatDisplayUI = self.heatDisplayUI
         if not heatDisplayUI then
@@ -178,10 +181,10 @@ function ExoFlamer:OnUpdateRender()
             -- otherwise the layout is stretched across the railgun screen quad.
             heatDisplayUI = Client.CreateGUIView(246, 256)
             heatDisplayUI:Load("lua/GUI" .. self:GetExoWeaponSlotName():gsub("^%l", string.upper) .. "FlamerDisplay.lua")
-            heatDisplayUI:SetTargetTexture("*exo_railgun_" .. self:GetExoWeaponSlotName())
+            heatDisplayUI:SetTargetTexture(kRailgunTextureKey[self.exoWeaponSlot])
             self.heatDisplayUI = heatDisplayUI
         end
-        heatDisplayUI:SetGlobal("heatAmount" .. self:GetExoWeaponSlotName(), self.heatAmount)
+        heatDisplayUI:SetGlobal(kHeatAmountKey[self.exoWeaponSlot], self.heatAmount)
     else
         if self.heatDisplayUI then
             Client.DestroyGUIView(self.heatDisplayUI)

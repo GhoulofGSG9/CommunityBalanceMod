@@ -194,6 +194,13 @@ local function Shoot(self, leftSide)
     
 end
 
+local kActivityInput = ExoWeaponSlotMixin.kActivityInput
+local kChargeAmountKey = ExoWeaponSlotMixin.GetSlotKeyTable("chargeAmount")
+local kTimeSinceLastShotKey = ExoWeaponSlotMixin.GetSlotKeyTable("timeSinceLastShot")
+local kRailgunTextureKey = ExoWeaponSlotMixin.GetSlotKeyTable("*exo_railgun_")
+local kModeKey = ExoWeaponSlotMixin.GetSlotKeyTable("Mode")
+local kMinEnergyKey = ExoWeaponSlotMixin.GetSlotKeyTable("minEnergy")
+
 function PlasmaLauncher:OnUpdateRender()
 
     PROFILE("PlasmaLauncher:OnUpdateRender")
@@ -218,8 +225,9 @@ function PlasmaLauncher:OnUpdateRender()
         
             viewModel:InstanceMaterials()
             local renderModel = viewModel:GetRenderModel()
-            renderModel:SetMaterialParameter("chargeAmount" .. self:GetExoWeaponSlotName(), chargeAmount)
-            renderModel:SetMaterialParameter("timeSinceLastShot" .. self:GetExoWeaponSlotName(), Shared.GetTime() - self.timeOfLastShot)
+            local slot = self.exoWeaponSlot
+            renderModel:SetMaterialParameter(kChargeAmountKey[slot], chargeAmount)
+            renderModel:SetMaterialParameter(kTimeSinceLastShotKey[slot], Shared.GetTime() - self.timeOfLastShot)
             
         end
         
@@ -228,14 +236,15 @@ function PlasmaLauncher:OnUpdateRender()
         
             chargeDisplayUI = Client.CreateGUIView(246, 256)
             chargeDisplayUI:Load("lua/GUI" .. self:GetExoWeaponSlotName():gsub("^%l", string.upper) .. "PlasmaDisplay.lua")
-            chargeDisplayUI:SetTargetTexture("*exo_railgun_" .. self:GetExoWeaponSlotName())
+            chargeDisplayUI:SetTargetTexture(kRailgunTextureKey[self.exoWeaponSlot])
             self.chargeDisplayUI = chargeDisplayUI
 			
         end
         
-        chargeDisplayUI:SetGlobal("chargeAmount" .. self:GetExoWeaponSlotName(), UIchargeAmount)
-        chargeDisplayUI:SetGlobal("Mode" .. self:GetExoWeaponSlotName(), Mode)
-		chargeDisplayUI:SetGlobal("minEnergy" .. self:GetExoWeaponSlotName(), minEnergy)
+        local slot = self.exoWeaponSlot
+        chargeDisplayUI:SetGlobal(kChargeAmountKey[slot], UIchargeAmount)
+        chargeDisplayUI:SetGlobal(kModeKey[slot], Mode)
+		chargeDisplayUI:SetGlobal(kMinEnergyKey[slot], minEnergy)
         		
     else
     
@@ -299,7 +308,7 @@ function PlasmaLauncher:OnUpdateAnimationInput(modelMixin)
         activity = "primary"
     end
     
-	modelMixin:SetAnimationInput("activity_" .. self:GetExoWeaponSlotName(), activity)
+	modelMixin:SetAnimationInput(kActivityInput[self.exoWeaponSlot], activity)
 end
 
 function PlasmaLauncher:UpdateViewModelPoseParameters(viewModel)
