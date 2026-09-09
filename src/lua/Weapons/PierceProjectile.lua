@@ -44,6 +44,9 @@ function PierceProjectileShooterMixin:__initmixin()
     self.nextProjectileId = 1
     self.PierceProjectiles = {}
     self.PierceProjectilesList = unique_set()
+    -- entity id -> projectile id, so OnEntityChange is a lookup instead of a
+    -- walk over every live projectile of every shooter.
+    self.PierceProjectileIdByEntity = {}
 end
 
 function PierceProjectileShooterMixin:CreatePierceProjectile(className, startPoint, velocity, bounce, friction, gravity, physicsMaskOverride, shotDamage, shotDOTDamage, shotHitBoxSize, shotDamageRadius, ChargePercent, player)
@@ -117,8 +120,22 @@ function PierceProjectileShooterMixin:CreatePierceProjectile(className, startPoi
 
     end
 
+    -- The slot at nextProjectileId can still hold a live entry: the counter
+    -- wraps at kMaxNumProjectiles and is not advanced at all for
+    -- kUseServerPosition classes, so drop the previous entry's entity id
+    -- before the slot is reused. Otherwise OnEntityChange for the long dead
+    -- projectile would resolve to the reused slot and destroy the live one.
+    local reusedEntry = self.PierceProjectiles[self.nextProjectileId]
+    if reusedEntry and reusedEntry.EntityId and reusedEntry.EntityId ~= Entity.invalidId then
+        self.PierceProjectileIdByEntity[reusedEntry.EntityId] = nil
+    end
+
     self.PierceProjectiles[self.nextProjectileId] = { Controller = projectileController, Model = projectileModel, EntityId = projectileEntId, CreationTime = Shared.GetTime(), Cinematic = projectileCinematic}
     self.PierceProjectilesList:Insert(self.nextProjectileId)
+
+    if projectileEntId and projectileEntId ~= Entity.invalidId then
+        self.PierceProjectileIdByEntity[projectileEntId] = self.nextProjectileId
+    end
 
     if not _G[className].kUseServerPosition then
 
@@ -191,16 +208,9 @@ end
 
 function PierceProjectileShooterMixin:OnEntityChange(oldId)
 
-    for _, projectileId in ipairs(self.PierceProjectilesList:GetList()) do
-
-        local entry = self.PierceProjectiles[projectileId]
-        if entry.EntityId == oldId then
-
-            self:SetProjectileDestroyed(projectileId)
-            break
-
-        end
-
+    local projectileId = oldId and self.PierceProjectileIdByEntity[oldId]
+    if projectileId then
+        self:SetProjectileDestroyed(projectileId)
     end
 
 end
@@ -239,6 +249,8 @@ local function DestroyProjectiles(self)
     self.PierceProjectiles = {}
     self.PierceProjectilesList:Clear()
 
+    self.PierceProjectileIdByEntity = {}
+
 end
 
 if Server then
@@ -258,7 +270,16 @@ function PierceProjectileShooterMixin:SetProjectileEntity(projectile)
 
     local entry = self.PierceProjectiles[projectile.projectileId]
     if entry then
+
+        if entry.EntityId and entry.EntityId ~= Entity.invalidId then
+            self.PierceProjectileIdByEntity[entry.EntityId] = nil
+        end
+
         entry.EntityId = projectile:GetId()
+        if entry.EntityId and entry.EntityId ~= Entity.invalidId then
+            self.PierceProjectileIdByEntity[entry.EntityId] = projectile.projectileId
+        end
+
     end
 
 end
@@ -280,6 +301,10 @@ function PierceProjectileShooterMixin:SetProjectileDestroyed(projectileId)
         if entry.Controller then
 
             entry.Controller:Uninitialize()
+        end
+
+        if entry.EntityId and entry.EntityId ~= Entity.invalidId then
+            self.PierceProjectileIdByEntity[entry.EntityId] = nil
         end
 
         self.PierceProjectiles[projectileId] = nil
