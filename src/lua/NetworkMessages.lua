@@ -1410,7 +1410,12 @@ if Server then
             return
         end
 
+        -- The flat fee is what keeps module choice a commitment: refunding the worn suit
+        -- at full value lets two configurations of equal price swap for nothing.
         resCost = math.max(0, (resCost or 0) - discount)
+        if discount > 0 then
+            resCost = resCost + kExoRefitCost
+        end
 
         -- The host has to be within resupply range, the same rule the buy menu uses to stay
         -- open (GetIsCloseToMenuStructure). GetNearest alone accepted a crafted message

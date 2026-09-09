@@ -45,6 +45,7 @@ if kCBMaddon then
 	  - Eject by holding the drop key for 2 s. The HUD badge shows the hold progress and the reason when ejecting is blocked (combat, airborne, deploying). The marine keeps their weapon when the key is still held through the eject.
 	  - Buy menu: selecting the Exosuit tile at a prototype lab opens a full-width configuration page with a Back button, a description for every module, live armor and speed readouts and per-module affordability colouring. Exosuit pilots land on the page directly. Buying requires an Exosuit Prototype Lab.
 	  - Prototype lab: exosuits can use it from 2.4 m instead of hugging it, its screens deploy for exosuits too, and Research Exosuits takes 110 s (from 90). Jetpack and Exosuit research cost 25 pres and take 110 s again (vanilla values; CBM had 20 pres / 90 s). The tech map no longer shows a second Exosuit node or the stray Armory to Observatory line.
+	  - Refitting an exosuit costs a flat 10 pres on top of the price difference. Swapping between two configurations of equal price is no longer free.
 	  - Fixed the ExoModularBuy network message being handled twice on the server and Exo:OnDestroy not chaining to Player:OnDestroy.
 	  - Fixed vanilla bug with railgunTargetMixin (enemy highlight), increased refresh rate, and changed color back to TSF blue.
 	  - Exo thrusters use 3x the fuel when off the ground instead of 2x the fuel.
@@ -670,6 +671,7 @@ else
 	  - Eject by holding the drop key for 2 s. The HUD badge shows the hold progress and the reason when ejecting is blocked (combat, airborne, deploying). The marine keeps their weapon when the key is still held through the eject.
 	  - Buy menu: selecting the Exosuit tile at a prototype lab opens a full-width configuration page with a Back button, a description for every module, live armor and speed readouts and per-module affordability colouring. Exosuit pilots land on the page directly. Buying requires an Exosuit Prototype Lab.
 	  - Prototype lab: exosuits can use it from 2.4 m instead of hugging it, its screens deploy for exosuits too, and Research Exosuits takes 110 s (from 90). Jetpack and Exosuit research cost 25 pres and take 110 s again (vanilla values; CBM had 20 pres / 90 s). The tech map no longer shows a second Exosuit node or the stray Armory to Observatory line.
+	  - Refitting an exosuit costs a flat 10 pres on top of the price difference. Swapping between two configurations of equal price is no longer free.
 	  - Fixed the ExoModularBuy network message being handled twice on the server and Exo:OnDestroy not chaining to Player:OnDestroy.
 	  - Fixed vanilla bug with railgunTargetMixin (enemy highlight), increased refresh rate, and changed color back to TSF blue.
 	  - Exo thrusters use 3x the fuel when off the ground instead of 2x the fuel.

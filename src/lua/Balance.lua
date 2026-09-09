@@ -988,6 +988,7 @@ kThrustersCost = 5
 kExoArmorModuleCost = 10
 kEjectionSeatCost = 5
 kExoSupportModuleCost = 10
+kExoRefitCost = 10
 
 kMinigunMovementSlowdown = 1
 kRailgunMovementSlowdown = 1

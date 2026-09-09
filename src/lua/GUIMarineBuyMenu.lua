@@ -2789,10 +2789,16 @@ end
 
 -- What buying the configuration on screen costs, priced exactly the way
 -- ModularExo_HandleExoModularBuy charges for it: the whole configuration, less a refund
--- for the one the player is already wearing, never below zero. Pass a cost to price a
--- candidate; omit it for whatever _RefreshExoModularButtons last measured.
+-- for the one the player is already wearing, never below zero, plus the flat refit fee.
+-- Pass a cost to price a candidate; omit it for whatever _RefreshExoModularButtons
+-- last measured.
 function GUIMarineBuyMenu:_GetExoConfigPrice(resourceCost)
-    return math.max(0, (resourceCost or self.exoConfigResourceCost or 0) - (self.activeExoConfigResCost or 0))
+    local refund = self.activeExoConfigResCost or 0
+    local price = math.max(0, (resourceCost or self.exoConfigResourceCost or 0) - refund)
+    if refund > 0 then
+        price = price + kExoRefitCost
+    end
+    return price
 end
 
 function GUIMarineBuyMenu:_UpdateExoModularButtons()
