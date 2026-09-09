@@ -19,7 +19,7 @@ class 'BabblerAbility' (Ability)
 BabblerAbility.kMapName = "babblerability"
 
 local kAnimationGraph = PrecacheAsset("models/alien/gorge/gorge_view.animation_graph")
-local kPheromoneTraceWidth = 0.3
+local kPheromoneTraceWidth = 0.33
 
 local networkVars =
 {
