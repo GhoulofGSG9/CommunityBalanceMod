@@ -249,7 +249,7 @@ function DropStructureAbility:DropStructure(player, origin, direction, structure
 
         local coords, valid, onEntity = self:GetPositionForStructure(origin, direction, structureAbility, lastClickedPosition, lastClickedPositionNormal)
 
-        if valid and ghostOrigin and (ghostOrigin - coords.origin):GetLength() < kGhostPlacementTolerance then
+        if valid and ghostOrigin and (ghostOrigin - coords.origin):GetLengthXZ() < kGhostPlacementTolerance then
             coords.origin = ghostOrigin
         end
 
