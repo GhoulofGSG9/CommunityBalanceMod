@@ -62,7 +62,7 @@ function DropStructureAbility:OnCreate()
     self.lastClickedPosition = nil
     self.lastClickedPositionNormal = nil
 
-    -- Result of the last ghost placement check (see OnProcessIntermediate)
+    -- Result of the last ghost placement check (see OnProcessIntermediate).
     self.ghostCoords = nil
     self.ghostNormal = nil
     self.placementValid = false
@@ -215,14 +215,11 @@ function DropStructureAbility:PerformPrimaryAttack(player)
             local cost = GetCostForTech(self:GetActiveStructure().GetDropStructureId())
             if player:GetResources() >= cost and not self:GetHasDropCooldown() then
 
-                local message = BuildGorgeDropStructureMessage(player:GetEyePos(), player:GetViewCoords().zAxis, self.activeStructure, self.lastClickedPosition, self.lastClickedPositionNormal)
+                local message = BuildGorgeDropStructureMessage(player:GetEyePos(), player:GetViewCoords().zAxis, self.activeStructure, self.lastClickedPosition, self.lastClickedPositionNormal, coords.origin, normal)
                 Client.SendNetworkMessage("GorgeBuildStructure", message, true)
                 self.timeLastDrop = Shared.GetTime()
                 success = true
 
-                -- Only clear the first click point once the drop actually succeeded.
-                -- An invalid/failed second click leaves it in place so the player can
-                -- simply re-click instead of having to restart the whole placement.
                 self.lastClickedPosition = nil
                 self.lastClickedPositionNormal = nil
 
@@ -244,12 +241,18 @@ function DropStructureAbility:PerformPrimaryAttack(player)
 
 end
 
-function DropStructureAbility:DropStructure(player, origin, direction, structureAbility, lastClickedPosition, lastClickedPositionNormal)
+local kGhostPlacementTolerance = 0.35
+function DropStructureAbility:DropStructure(player, origin, direction, structureAbility, lastClickedPosition, lastClickedPositionNormal, ghostOrigin, ghostNormal)
 
     -- If we have enough resources
     if Server then
 
         local coords, valid, onEntity = self:GetPositionForStructure(origin, direction, structureAbility, lastClickedPosition, lastClickedPositionNormal)
+
+        if valid and ghostOrigin and (ghostOrigin - coords.origin):GetLength() < kGhostPlacementTolerance then
+            coords.origin = ghostOrigin
+        end
+
         local techId = structureAbility:GetDropStructureId()
 
         local maxStructures = -1
@@ -371,7 +374,7 @@ function DropStructureAbility:DropStructure(player, origin, direction, structure
 
 end
 
-function DropStructureAbility:OnDropStructure(origin, direction, structureIndex, lastClickedPosition, lastClickedPositionNormal)
+function DropStructureAbility:OnDropStructure(origin, direction, structureIndex, lastClickedPosition, lastClickedPositionNormal, ghostOrigin, ghostNormal)
 
     local player = self:GetParent()
 
@@ -379,7 +382,7 @@ function DropStructureAbility:OnDropStructure(origin, direction, structureIndex,
 
         local structureAbility = DropStructureAbility.kSupportedStructures[structureIndex]
         if structureAbility then
-            self:DropStructure(player, origin, direction, structureAbility, lastClickedPosition, lastClickedPositionNormal)
+            self:DropStructure(player, origin, direction, structureAbility, lastClickedPosition, lastClickedPositionNormal, ghostOrigin, ghostNormal)
         end
 
     end
