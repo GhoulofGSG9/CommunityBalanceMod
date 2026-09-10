@@ -241,7 +241,7 @@ function DropStructureAbility:PerformPrimaryAttack(player)
 
 end
 
-local kGhostPlacementTolerance = 0.35
+local kGhostPlacementTolerance = 5
 function DropStructureAbility:DropStructure(player, origin, direction, structureAbility, lastClickedPosition, lastClickedPositionNormal, ghostOrigin, ghostNormal)
 
     -- If we have enough resources
