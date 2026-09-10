@@ -621,7 +621,7 @@ if Client then
 
         if player and self.activeStructure then
 
-            self.ghostCoords, self.placementValid, self.ghostEntity, self.ghostNormal = self:GetPositionForStructure(player:GetEyePos(), viewDirection, self:GetActiveStructure(), self.lastClickedPosition, self.lastClickedPositionNormal)
+            self.ghostCoords, self.placementValid, _, self.ghostNormal = self:GetPositionForStructure(player:GetEyePos(), viewDirection, self:GetActiveStructure(), self.lastClickedPosition, self.lastClickedPositionNormal)
 
             if player:GetResources() < LookupTechData(self:GetActiveStructure():GetDropStructureId(), kTechDataCostKey) then
                 self.placementValid = false
