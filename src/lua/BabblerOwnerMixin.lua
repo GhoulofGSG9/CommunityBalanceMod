@@ -32,7 +32,6 @@ function BabblerOwnerMixin:GetMaxBabblers()
 	return 6
 end
 
-
 function BabblerOwnerMixin:OnWeaponAdded(weapon)
     if weapon:GetMapName() == BabblerAbility.kMapName then
         self.babblerBaitId = weapon:GetId()
@@ -41,6 +40,17 @@ end
 
 -- Returns if the owner can hatch/spawn a babbler
 function BabblerOwnerMixin:GetCanHatchBabbler()
+    -- owner needs to be below the babbler limit
+    local aboveBabblerLimit = self:GetBabblerCount() >= self:GetMaxBabblers()
+    if aboveBabblerLimit then
+        return false
+    end
+
+    -- owner needs to be able to attach the babblers
+    if not self:GetCanAttachBabbler() then
+        return false
+    end
+
     -- owner needs to be on a playing team
     if not self:GetIsOnPlayingTeam() then
         return false
@@ -53,17 +63,6 @@ function BabblerOwnerMixin:GetCanHatchBabbler()
 	
     -- owner needs to be not under attack
     if self:GetIsUnderFire() then
-        return false
-    end
-
-    -- owner needs to be able to attach the babblers
-    if not self:GetCanAttachBabbler() then
-        return false
-    end
-
-    -- owner needs to be below the babbler limit
-    local aboveBabblerLimit = self:GetBabblerCount() >= self:GetMaxBabblers()
-    if aboveBabblerLimit then
         return false
     end
 
