@@ -132,6 +132,7 @@ local function CollectBabblers(self)
 
 end
 
+local kDisptatchSpreadedPosition = Vector(0,0,0)
 -- The single dispatch point for every order this ball ever gives. 'order'
 -- is always one of the three outcomes from GetBabblerBallOrder (or plain
 -- Move for "nothing worth clinging/attacking here, just walk over"). Clinged
@@ -152,7 +153,11 @@ local function DispatchBabblers(babblers, order, entity, position, spots)
         elseif order == kBabblerMoveType.Attack then
             babbler:OrderAttack(entity, position)
         else
-            babbler:OrderMove(position)
+            VectorCopy(position, kDisptatchSpreadedPosition)
+            -- Spread a bit the order so babblers won't end up 100% stacked on the same position
+            kDisptatchSpreadedPosition.x = kDisptatchSpreadedPosition.x + (math.random()-0.5)/2
+            kDisptatchSpreadedPosition.z = kDisptatchSpreadedPosition.z + (math.random()-0.5)/2
+            babbler:OrderMove(kDisptatchSpreadedPosition)
         end
 
         babbler:RefreshFreeRoam()
@@ -253,6 +258,10 @@ if Server then
     -- Babbler:OrderCling/OrderAttack/OrderMove so there is exactly one
     -- place that decides "what does this hit mean".
     function BabblerPheromone:ProcessHit(entity, surface, normal, endPoint )
+
+        if self.babblerOrderingDisabled then
+            return false
+        end
 
         -- If we bounce close enough to our own owner, treat it as hitting
         -- them (don't wait for the small ball hitbox to register a real
