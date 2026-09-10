@@ -171,7 +171,7 @@ end
 function OnCommandGorgeBuildStructure(client, message)
 
     local player = client:GetControllingPlayer()
-    local origin, direction, structureIndex, lastClickedPosition, lastClickedPositionNormal = ParseGorgeBuildMessage(message)
+    local origin, direction, structureIndex, lastClickedPosition, lastClickedPositionNormal, ghostOrigin, ghostNormal = ParseGorgeBuildMessage(message)
     
     local dropStructureAbility = player:GetWeapon(DropStructureAbility.kMapName)
 
@@ -180,7 +180,7 @@ function OnCommandGorgeBuildStructure(client, message)
         after the player has gone back to the ready room for example.
     ]]
     if dropStructureAbility then
-        dropStructureAbility:OnDropStructure(origin, direction, structureIndex, lastClickedPosition, lastClickedPositionNormal)
+        dropStructureAbility:OnDropStructure(origin, direction, structureIndex, lastClickedPosition, lastClickedPositionNormal, ghostOrigin, ghostNormal)
     end
     
 end
@@ -503,8 +503,8 @@ end
 local function OnSetDualRailLockMessage(client, message)
     if client then
         local player = client:GetControllingPlayer()
-		if player and player:GetActiveWeapon() and player:GetActiveWeapon():isa("ExoWeaponHolder") then
-			player:GetActiveWeapon():SetDualRailLock(message.dualrailfiring)
+        if player and player:GetActiveWeapon() and player:GetActiveWeapon():isa("ExoWeaponHolder") then
+            player:GetActiveWeapon():SetDualRailLock(message.dualrailfiring)
         end
     else
         Log("Error: No client for locking dual exosuit!")
@@ -514,8 +514,8 @@ end
 local function OnSetDualMiniLockMessage(client, message)
     if client then
         local player = client:GetControllingPlayer()
-		if player and player:GetActiveWeapon() and player:GetActiveWeapon():isa("ExoWeaponHolder") then
-			player:GetActiveWeapon():SetDualMiniLock(message.dualminifiring)
+        if player and player:GetActiveWeapon() and player:GetActiveWeapon():isa("ExoWeaponHolder") then
+            player:GetActiveWeapon():SetDualMiniLock(message.dualminifiring)
         end
     else
         Log("Error: No client for locking dual exosuit!")
@@ -525,8 +525,8 @@ end
 local function OnSetDualBTLockMessage(client, message)
     if client then
         local player = client:GetControllingPlayer()
-		if player and player:GetActiveWeapon() and player:GetActiveWeapon():isa("ExoWeaponHolder") then
-			player:GetActiveWeapon():SetDualBTLock(message.dualBTfiring)
+        if player and player:GetActiveWeapon() and player:GetActiveWeapon():isa("ExoWeaponHolder") then
+            player:GetActiveWeapon():SetDualBTLock(message.dualBTfiring)
         end
     else
         Log("Error: No client for locking dual exosuit!")
@@ -536,8 +536,8 @@ end
 local function OnSetDualPLLockMessage(client, message)
     if client then
         local player = client:GetControllingPlayer()
-		if player and player:GetActiveWeapon() and player:GetActiveWeapon():isa("ExoWeaponHolder") then
-			player:GetActiveWeapon():SetDualPLLock(message.dualPLfiring)
+        if player and player:GetActiveWeapon() and player:GetActiveWeapon():isa("ExoWeaponHolder") then
+            player:GetActiveWeapon():SetDualPLLock(message.dualPLfiring)
         end
     else
         Log("Error: No client for locking dual exosuit!")
