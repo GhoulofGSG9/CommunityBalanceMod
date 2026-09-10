@@ -80,7 +80,7 @@ function BabblerClingMixin:GetCanAttachBabbler()
     local numClingedBabbler = self:GetNumClingedBabblers()
     local numAttachPoints = self:GetMaxClingedBabblers()
 
-    return (not self:isa("Hallucination") and not self.isHallucination and numClingedBabbler < numAttachPoints)
+    return (not self.isHallucination and numClingedBabbler < numAttachPoints and not self:isa("Hallucination"))
 end
 
 function BabblerClingMixin:ModifyDamageTaken(damageTable, attacker, doer, damageType, hitPoint, weapon)
