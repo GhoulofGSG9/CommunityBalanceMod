@@ -66,6 +66,7 @@ function DropStructureAbility:OnCreate()
     self.ghostCoords = nil
     self.ghostNormal = nil
     self.placementValid = false
+    self.placementValidIgnoringCooldown = false
 
 end
 
@@ -81,6 +82,7 @@ function DropStructureAbility:SetActiveStructure(structureNum)
     self.ghostCoords = nil
     self.ghostNormal = nil
     self.placementValid = false
+    self.placementValidIgnoringCooldown = false
 
 end
 
@@ -200,11 +202,18 @@ function DropStructureAbility:PerformPrimaryAttack(player)
 
     local success = false
 
-    local coords, valid, normal = self.ghostCoords, self.placementValid, self.ghostNormal
+    local coords, normal = self.ghostCoords, self.ghostNormal
     local secondClick = true
 
     if LookupTechData(self:GetActiveStructure().GetDropStructureId(), kTechDataSpecifyOrientation, false) then
         secondClick = self.lastClickedPosition ~= nil
+    end
+
+    local valid
+    if secondClick then
+        valid = self.placementValid
+    else
+        valid = self.placementValidIgnoringCooldown
     end
 
     if secondClick then
@@ -241,6 +250,7 @@ function DropStructureAbility:PerformPrimaryAttack(player)
 
 end
 
+
 local kGhostPlacementTolerance = 5
 function DropStructureAbility:DropStructure(player, origin, direction, structureAbility, lastClickedPosition, lastClickedPositionNormal, ghostOrigin, ghostNormal)
 
@@ -249,7 +259,7 @@ function DropStructureAbility:DropStructure(player, origin, direction, structure
 
         local coords, valid, onEntity = self:GetPositionForStructure(origin, direction, structureAbility, lastClickedPosition, lastClickedPositionNormal)
 
-        if valid and ghostOrigin and (ghostOrigin - coords.origin):GetLengthXZ() < kGhostPlacementTolerance then
+        if valid and ghostOrigin and (ghostOrigin - coords.origin):GetLength() < kGhostPlacementTolerance then
             coords.origin = ghostOrigin
         end
 
@@ -624,15 +634,14 @@ if Client then
 
         if player and self.activeStructure then
 
-            self.ghostCoords, self.placementValid, _, self.ghostNormal = self:GetPositionForStructure(player:GetEyePos(), viewDirection, self:GetActiveStructure(), self.lastClickedPosition, self.lastClickedPositionNormal)
+            self.ghostCoords, self.placementValid, self.ghostEntity, self.ghostNormal = self:GetPositionForStructure(player:GetEyePos(), viewDirection, self:GetActiveStructure(), self.lastClickedPosition, self.lastClickedPositionNormal)
 
             if player:GetResources() < LookupTechData(self:GetActiveStructure():GetDropStructureId(), kTechDataCostKey) then
                 self.placementValid = false
             end
 
-            -- Ghost is now always shown (see GetShowGhostModel), so during the drop
-            -- cooldown just flag placement as invalid to render it red instead of
-            -- hiding the ghost entirely.
+            self.placementValidIgnoringCooldown = self.placementValid
+
             if self:GetHasDropCooldown() then
                 self.placementValid = false
             end
