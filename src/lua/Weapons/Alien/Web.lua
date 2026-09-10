@@ -568,7 +568,7 @@ function Web:GetFreeBabblerAttachPointOrigin()
 
     if axis then
         -- The free point oscillates left and right
-        local p = math.cos(Shared.GetTime() * 1.2) * 0.8 -- Do not go to the edges of the web
+        local p = math.cos(Shared.GetTime() * 2) * 0.8 -- Do not go to the edges of the web
         return startPoint + axis * (length / 2) + (axis * p * length / 2)
     end
     return nil
