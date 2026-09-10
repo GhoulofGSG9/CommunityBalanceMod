@@ -118,8 +118,9 @@ local function CreateBabblerPheromone(self, player)
     
     -- destroy at first all other pheromones
     for _, pheromone in ientitylist(Shared.GetEntitiesWithClassname("BabblerPheromone")) do
-        if pheromone:GetOwner() == player and (Shared.GetTime() - pheromone:GetCreationTime()) > 1.5 then
-            DestroyEntity(pheromone)
+        if pheromone:GetOwner() == player then
+            --DestroyEntity(pheromone)
+            pheromone.babblerOrderingDisabled = true
         end
     end
 
