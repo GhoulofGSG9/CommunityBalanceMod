@@ -1309,7 +1309,7 @@ Shared.RegisterNetworkMessage("AutoConcedeWarning", kAutoConcedeWarning)
 
 local kScoreUpdate =
 {
-    points = "integer (0 to " .. kMaxScore .. ")",
+    points = "float (0 to " .. kMaxScore .. " by 0.5)",
     res = "integer (0 to " .. kMaxPersonalResources .. ")",
     wasKill = "boolean"
 }
