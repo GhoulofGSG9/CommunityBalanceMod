@@ -43,25 +43,41 @@ NanoShieldMixin.networkVars =
 {
     nanoShielded = "boolean",
     timeNanoShieldInit = "private time",
+    -- A shield from an exosuit's support field: shorter and weaker than the commander's.
+    nanoShieldWeak = "private boolean",
 }
 
 function NanoShieldMixin:__initmixin()
-    
+
     PROFILE("NanoShieldMixin:__initmixin")
-    
+
     if Server then
-    
+
         self.timeNanoShieldInit = 0
         self.nanoShielded = false
-        
+        self.nanoShieldWeak = false
+
     end
-    
+
+end
+
+local function GetNanoShieldDuration(self)
+
+    if self.nanoShieldWeak then
+        return kExoNanoShieldFieldDuration
+    elseif self:isa("Player") then
+        return kNanoShieldPlayerDuration
+    end
+
+    return kNanoShieldStructureDuration
+
 end
 
 local function ClearNanoShield(self, destroySound)
 
     self.nanoShielded = false
-    self.timeNanoShieldInit = 0    
+    self.timeNanoShieldInit = 0
+    self.nanoShieldWeak = false
     
     if Client then
         self:_RemoveEffect()
@@ -95,16 +111,21 @@ function NanoShieldMixin:OnTakeDamage(damage, attacker, doer, point)
     
 end
 
-function NanoShieldMixin:ActivateNanoShield()
+function NanoShieldMixin:ActivateNanoShield(weak)
 
-    if self:GetCanBeNanoShielded() then
-    
+    if self:GetCanBeNanoShielded(weak) then
+
         self.timeNanoShieldInit = Shared.GetTime()
         self.nanoShielded = true
-        
+        self.nanoShieldWeak = weak == true
+
         if Server then
-        
-            assert(self.shieldLoopSound == nil)
+
+            if self.shieldLoopSound then
+                DestroyEntity(self.shieldLoopSound)
+                self.shieldLoopSound = nil
+            end
+
             self.shieldLoopSound = Server.CreateEntity(SoundEffect.kMapName)
             self.shieldLoopSound:SetAsset(kNanoLoopSound)
             self.shieldLoopSound:SetParent(self)
@@ -126,21 +147,17 @@ function NanoShieldMixin:GetNanoShieldTimeRemaining()
     local percentLeft = 0
 
     if self.nanoShielded then
-        local duration
-        if self:isa("Player") then
-            duration = kNanoShieldPlayerDuration
-        else
-            duration = kNanoShieldStructureDuration
-        end
+        local duration = GetNanoShieldDuration(self)
         percentLeft = Clamp( math.abs( (self.timeNanoShieldInit + duration) - Shared.GetTime() ) / duration, 0.0, 1.0 )
     end
 
     return percentLeft
 end
 
-function NanoShieldMixin:GetCanBeNanoShielded()
+function NanoShieldMixin:GetCanBeNanoShielded(weak)
 
-    local resultTable = { shieldedAllowed = not self.nanoShielded }
+    -- A strong shield overwrites an exosuit's weak field; nothing else stacks.
+    local resultTable = { shieldedAllowed = not self.nanoShielded or (weak ~= true and self.nanoShieldWeak == true) }
     
     if self.GetCanBeNanoShieldedOverride then
         self:GetCanBeNanoShieldedOverride(resultTable)
@@ -171,16 +188,7 @@ local function SharedUpdate(self)
         end
         
         -- See if nano shield time is over
-        local duration
-        assert(kNanoShieldStructureDuration)
-        assert(kNanoShieldPlayerDuration)
-
-        if self:isa("Player") then
-            duration = kNanoShieldPlayerDuration
-        else
-            duration = kNanoShieldStructureDuration
-        end
-        if self.timeNanoShieldInit + duration < Shared.GetTime() then
+        if self.timeNanoShieldInit + GetNanoShieldDuration(self) < Shared.GetTime() then
             ClearNanoShield(self, true)
         end
        
@@ -195,6 +203,8 @@ function NanoShieldMixin:ComputeDamageOverrideMixin(attacker, damage, damageType
     if self.nanoShielded == true then
         if self.NanoShieldDamageReductionOverride then
             return damage * self:NanoShieldDamageReductionOverride(), damageType
+        elseif self.nanoShieldWeak then
+            return damage * kExoNanoShieldFieldDamageScalar, damageType
         end
         return damage * kNanoShieldDamageReductionDamage, damageType
     end

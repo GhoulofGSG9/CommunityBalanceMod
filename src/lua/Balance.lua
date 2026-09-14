@@ -1016,6 +1016,8 @@ kExoSupportRadius = 8 -- Meters
 kExoSupportAbilityCooldown = 120 -- Seconds
 kExoRegenFieldHealPerSecond = 8
 kExoRegenFieldDuration = 5 -- Seconds
+kExoNanoShieldFieldDuration = 1.5 -- Seconds
+kExoNanoShieldFieldDamageScalar = 0.8 -- damage taken while under the field's shield
 
 -- Exo Tech Research
 kExoShieldTech = kTechId.ExosuitTech -- (depreciated)

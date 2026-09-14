@@ -2107,8 +2107,8 @@ function Exo:UpdateSupportAbility(input)
 
         for _, target in ipairs(targets) do
 
-            if HasMixin(target, "NanoShieldAble") and target:GetCanBeNanoShielded() then
-                target:ActivateNanoShield()
+            if HasMixin(target, "NanoShieldAble") and target:GetCanBeNanoShielded(true) then
+                target:ActivateNanoShield(true)
                 affected = affected + 1
             end
 
