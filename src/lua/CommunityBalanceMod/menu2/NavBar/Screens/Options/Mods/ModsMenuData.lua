@@ -87,22 +87,6 @@ local menu =
 				},
 			},
 			{
-				name = "dualrailfiringlock",
-				class = OP_TT_Checkbox,
-				params =
-				{
-					optionPath = "ExoA_duallock_rail_enabled",
-					optionType = "bool",
-					default = false,
-					tooltip = "Enable to cause firing of the left arm to fire the right arm (updates upon entering an exosuit)",
-				},
-			
-				properties =
-				{
-					{"Label", "Dual Railgun Firing Sync"},
-				},
-			},
-			{
 				name = "dualminifiringlock",
 				class = OP_TT_Checkbox,
 				params =

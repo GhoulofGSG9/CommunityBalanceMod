@@ -20,7 +20,6 @@ local networkVars =
     rightWeaponId = "entityid",
 	weaponMapNameLeft = "string (15)",
 	weaponMapNameRight = "string (15)",
-	dualrailfiring = "boolean",
 	dualminifiring = "boolean",
 	dualBTfiring = "boolean",
 	dualPLfiring = "boolean",
@@ -51,17 +50,12 @@ function ExoWeaponHolder:OnCreate()
     self.rightWeaponId = Entity.invalidId
 	self.weaponMapNameLeft = "minigun"
 	self.weaponMapNameRight = "minigun"
-	self.dualrailfiring = false
 	self.dualminifiring = false
 	self.dualBTfiring = false
 	self.dualPLfiring = false
 
     self.closeStart = Shared.GetTime()
     
-end
-
-function ExoWeaponHolder:SetDualRailLock(dualfiring)
-	self.dualrailfiring = dualfiring
 end
 
 function ExoWeaponHolder:SetDualMiniLock(dualfiring)
@@ -79,9 +73,6 @@ end
 if Client then
     function ExoWeaponHolder:OnInitialized()
         Weapon.OnInitialized(self)
-        self:SetDualRailLock(Client.GetOptionBoolean("ExoA_duallock_rail_enabled", true))
-        Client.SendNetworkMessage("SetDualRailLock", { dualrailfiring = self.dualrailfiring })
-		
 		self:SetDualMiniLock(Client.GetOptionBoolean("ExoA_duallock_mini_enabled", true))
         Client.SendNetworkMessage("SetDualMiniLock", { dualminifiring = self.dualminifiring })
 		
@@ -164,10 +155,9 @@ end
 
 function ExoWeaponHolder:CheckDualFiring()
 	
+	-- No railgun entry: one railgun charges at a time, so a pair never fires together.
 	if self.weaponMapNameLeft == self.weaponMapNameRight then
-		if self.dualrailfiring and self.weaponMapNameLeft == "railgun" then
-			return true
-		elseif self.dualminifiring and self.weaponMapNameLeft == "minigun" then
+		if self.dualminifiring and self.weaponMapNameLeft == "minigun" then
 			return true
 		elseif self.dualBTfiring and self.weaponMapNameLeft == "exoflamer" then
 			return true

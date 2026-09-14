@@ -1487,12 +1487,6 @@ if Server then
     end
 end
 
-local kSetDualRailLockMessage =
-{
-    dualrailfiring = "boolean"
-}
-Shared.RegisterNetworkMessage("SetDualRailLock", kSetDualRailLockMessage)
-
 local kSetDualMiniLockMessage =
 {
     dualminifiring = "boolean"
