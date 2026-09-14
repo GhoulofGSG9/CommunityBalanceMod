@@ -107,7 +107,7 @@ kTechIdToMaterialOffset[kTechId.ThirdVeil] = 147
 kTechIdToMaterialOffset[kTechId.FullVeil] = 152
 
 kTechIdToMaterialOffset[kTechId.Marine] = 24
-kTechIdToMaterialOffset[kTechId.ExosuitTech] = 25
+kTechIdToMaterialOffset[kTechId.ExosuitTech] = 201
 kTechIdToMaterialOffset[kTechId.Exo] = 25
 kTechIdToMaterialOffset[kTechId.DropExosuit] = 25
 kTechIdToMaterialOffset[kTechId.JetpackMarine] = 26    
