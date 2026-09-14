@@ -1040,8 +1040,7 @@ kPlasmaT3LifeTime = kGrenadeLifetime -- same fuse as the grenade launcher
 kPlasmaBombSpeed = 15
 kPlasmaBombDamage = 35
 kPlasmaBombDamageRadius = 4 -- 4 is the pulse damage radius (matches pulse cinematic)
-kPlasmaBombEnergyCost = 0.50
-kPlasmaBombEnergyDamage = 20 -- energy drained at the centre, falls off over kPlasmaBombDamageRadius
+kPlasmaBombEnergyCost = 0.60
 
 kPlasmaBombDOTDamage = 5 -- DOT applied after direct damage
 kPlasmaDOTDuration = 5.5
@@ -1049,7 +1048,7 @@ kPlasmaDOTInterval = 0.5
 
 kPlasmaHitBoxRadiusT3 = 0.495 -- Hitbox radius from center of projectile...
 
-kPlasmaLauncherEnergyUpRate = 0.40
+kPlasmaLauncherEnergyUpRate = 0.30
 kPlasmaDamageType = kDamageType.Normal 
 
 kPlasmaLauncherWeight = 0.08

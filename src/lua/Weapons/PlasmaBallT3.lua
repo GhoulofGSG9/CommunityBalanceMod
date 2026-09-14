@@ -100,34 +100,18 @@ if Server then
         dotMarker:SetDotMarkerType(DotMarker.kType.Static)
         dotMarker:SetDeathIconIndex(kDeathMessageIcon.EMPBlast)
         dotMarker:SetOwner(owner)
-        dotMarker:SetDebuff('pulse')
         dotMarker:SetFallOffFunc(NoFalloff)
         dotMarker:SetLoSCheck(true)
 
         for _, entity in ipairs(hitEntities) do
-
             self:DoDamage(shotDamage, entity, position, GetNormalizedVector(entity:GetOrigin() - position), "none")
+        end
 
-            -- Same crowd control the pulse grenade applies: drain energy by distance and
-            -- electrify, which cuts alien attack speed and stops regeneration. Only the
-            -- shooter's enemies get it; the damage query above is left alone because the
-            -- damage rules already decide friendly fire.
-            if GetAreEnemies(self, entity) then
-
-                if entity.GetEnergy and entity.SetEnergy then
-
-                    local targetPoint = HasMixin(entity, "Target") and entity:GetEngagementPoint() or entity:GetOrigin()
-                    local energyToDrain = kPlasmaBombEnergyDamage * (1 - Clamp((targetPoint - position):GetLength() / kPlasmaBombDamageRadius, 0, 1))
-                    entity:SetEnergy(entity:GetEnergy() - energyToDrain)
-
-                end
-
-                if entity.SetElectrified then
-                    entity:SetElectrified(kPulseElectrifiedDuration)
-                end
-
-            end
-
+        -- The electrify goes to the one alien the bomb physically landed on, not to the
+        -- blast. The blast fires every two seconds, so a blast-wide debuff was a permanent
+        -- one for anything near the impact; on the direct hit it is a reward for aim.
+        if targetHit and targetHit.SetElectrified and GetAreEnemies(self, targetHit) then
+            targetHit:SetElectrified(kPulseElectrifiedDuration)
         end
 
         local params = { surface = surface }
