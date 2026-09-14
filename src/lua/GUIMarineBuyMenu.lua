@@ -1955,14 +1955,22 @@ local kEnabledColor = Color(1, 1, 1, 1)
 -- CBM ships its own prototypelab_background.dds (1700x1000) while vanilla's is 1383x811;
 -- with fixed numbers the page sat in the top left of the larger frame.
 local kConfigAreaOffsetX = -40      -- background x 540, where the vanilla item list ended
-local kConfigAreaRightMargin = 23   -- frame edge to the right of the last arm column
+local kConfigAreaRightMargin = 70   -- frame edge to the right of the last arm column, about
+                                    -- the same as the frame's divider left of the first
 local kConfigAreaBottomMargin = 3   -- frame edge below the buy row
+-- The area the sizes below were drawn for. Everything inside the area (buttons, spacing,
+-- fonts) is scaled by how much larger the measured area is, so a bigger background fills
+-- with bigger buttons instead of the same buttons pushed apart.
+local kVanillaBackgroundWidth = 1383
+local kVanillaBackgroundHeight = 811
+local kVanillaConfigAreaWidth = kVanillaBackgroundWidth - (kPrototypeLabRightSidePos.x + kConfigAreaOffsetX) - kConfigAreaRightMargin
+local kVanillaConfigAreaHeight = kVanillaBackgroundHeight - kPrototypeLabRightSidePos.y - kConfigAreaBottomMargin
 
 -- Slot panels. Every panel is a labelled group: a title sitting above a framed box of
 -- buttons, the way the vanilla WEAPONS / UTILITY groups read.
 local kSlotPanelPadding = 8         -- inside a slot panel, around its buttons
-local kSlotTitleOffsetY = -36       -- slot label, above its panel
-local kSlotTitleFontSize = 36
+local kSlotTitleOffsetY = -38       -- slot label, above its panel
+local kSlotTitleFontSize = 38
 
 local kArmColumnYp = 0.0494         -- 76, top of both vertical arm columns (the slot titles
                                     -- sit 36 above that, clear of the frame's top edge)
@@ -1984,8 +1992,8 @@ local kBuyButtonSize = Vector(720, 84, 0)
 -- row, so a long label can never land on an icon.
 local kModuleButtonPaddingX = 12
 local kModuleButtonPaddingY = 4
-local kModuleLabelFontSize = 26
-local kModuleStatFontSize = 26
+local kModuleLabelFontSize = 30
+local kModuleStatFontSize = 28
 local kModuleStatIconSize = 22
 local kModuleStatTextGap = 4
 local kModuleTeamCountOffsetX = 84  -- team icon, right of the cost icon and its number
@@ -1999,16 +2007,21 @@ local kExoModelPreviewMargin = 10
 -- Module details own the left column, in the space the vanilla item list takes on the list
 -- page. The whole column is free while the configuration page is up, so a description gets a
 -- readable measure instead of three cramped lines. Background coordinates.
-local kExoDetailsPos = Vector(60, 200, 0)
-local kExoDetailsBoxWidth = 470             -- 60 .. 530, clear of the config area at 540
+-- The details column sits inside the background's left panel frame. On the CBM
+-- prototypelab_background that frame's inner edges are at about x 40 and x 460, so the
+-- text keeps a margin on both sides of it; the vanilla background has no frame there.
+local kExoDetailsPos = Vector(80, 200, 0)
+local kExoDetailsBoxWidth = 370             -- 80 .. 450
 local kExoDetailsTitleY = 0
-local kExoDetailsCostY = 50
-local kExoDetailsStatsY = 88
-local kExoDetailsDescY = 130
-local kExoDetailsDescMaxLines = 7
-local kExoDetailsTitleFontSize = 40
-local kExoDetailsTextFontSize = 28
-local kExoDetailsDescFontSize = 26   -- a notch under the stat line, so a description reads as body text
+local kExoDetailsCostY = 54
+local kExoDetailsStatsY = 92
+local kExoDetailsTagsY = 130         -- role tags: range, damage type, what it does
+local kExoDetailsDescY = 166
+local kExoDetailsDescMaxLines = 11
+local kExoDetailsTitleFontSize = 48
+local kExoDetailsTextFontSize = 32
+local kExoDetailsTagsFontSize = 24
+local kExoDetailsDescFontSize = 28   -- a notch under the stat line, so a description reads as body text
 
 -- Vanilla values of the details items, restored when the modular panel is hidden again.
 local kVanillaDetailTitleFontSize = 55
@@ -2155,6 +2168,9 @@ end
 function GUIMarineBuyMenu:_InitializeExoModularButtons()
 
     local kConfigAreaWidth, kConfigAreaHeight = GetConfigAreaSize(self)
+    local layoutScale = math.min(kConfigAreaWidth / kVanillaConfigAreaWidth,
+                                 kConfigAreaHeight / kVanillaConfigAreaHeight)
+    self.exoLayoutScale = layoutScale
 
     self.activeExoConfig = nil
     local player = Client.GetLocalPlayer()
@@ -2191,14 +2207,16 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
     
     local kFontSize = 40
     -------UPGRADE/BUY Button ---
-    local kButtonWidth = 220
+    local buyButtonSize = kBuyButtonSize * layoutScale
+    local buyFontSize = kFontSize * layoutScale
+    local buyIconSize = kResourceIconWidth * 1.5 * layoutScale
     local bPadding = 0
     self.modularExoBuyButtonBackground = self:CreateAnimatedGraphicItem()
     table.insert(self.modularExoGraphicItemsToDestroyList, self.modularExoBuyButtonBackground)
     self.modularExoBuyButtonBackground:SetIsScaling(false)
-    
-    self.modularExoBuyButtonBackground:SetSize(Vector(kBuyButtonSize.x + bPadding * 2, kBuyButtonSize.y + bPadding * 2, 0))
-    self.modularExoBuyButtonBackground:SetPosition(Vector(kConfigAreaOffsetX + kConfigAreaWidth/2.0 - kBuyButtonSize.x/2.0, kBuyButtonYp * kConfigAreaHeight, 0))
+
+    self.modularExoBuyButtonBackground:SetSize(Vector(buyButtonSize.x + bPadding * 2, buyButtonSize.y + bPadding * 2, 0))
+    self.modularExoBuyButtonBackground:SetPosition(Vector(kConfigAreaOffsetX + kConfigAreaWidth/2.0 - buyButtonSize.x/2.0, kBuyButtonYp * kConfigAreaHeight, 0))
     self.modularExoBuyButtonBackground:SetTexture(kButtonTexture)
     self.modularExoBuyButtonBackground:SetColor(kSlotPanelBackgroundColor)
     self.modularExoBuyButtonBackground:SetOptionFlag(GUIItem.CorrectScaling)
@@ -2207,7 +2225,7 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
     self.modularExoBuyButton = self:CreateAnimatedGraphicItem()
     self.modularExoBuyButton:SetIsScaling(false)
     self.modularExoBuyButton:SetAnchor(GUIItem.Left, GUIItem.Top)
-    self.modularExoBuyButton:SetSize(kBuyButtonSize)
+    self.modularExoBuyButton:SetSize(buyButtonSize)
     self.modularExoBuyButton:SetPosition(Vector(bPadding, bPadding, 0))
     self.modularExoBuyButton:SetTexture(kMenuSelectionTexture)
     self.modularExoBuyButton:SetLayer(kGUILayerMarineBuyMenu)
@@ -2225,13 +2243,13 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
     self.modularExoBuyButtonText:SetFontIsBold(true)
     self.modularExoBuyButtonText:SetColor(kCloseButtonColor)
     self.modularExoBuyButtonText:SetOptionFlag(GUIItem.CorrectScaling)
-    GUIMakeFontScale(self.modularExoBuyButtonText, "kAgencyFB", kFontSize + 12)
+    GUIMakeFontScale(self.modularExoBuyButtonText, "kAgencyFB", buyFontSize + 12 * layoutScale)
     self.modularExoBuyButton:AddChild(self.modularExoBuyButtonText)
-    
+
 	self.modularExoCostText = self:CreateAnimatedTextItem()
     self.modularExoCostText:SetIsScaling(false)
     self.modularExoCostText:SetAnchor(GUIItem.Left, GUIItem.Center)
-    self.modularExoCostText:SetPosition(Vector(kResourceIconWidth*1.5 + 25, 0, 0))
+    self.modularExoCostText:SetPosition(Vector(buyIconSize + 25 * layoutScale, 0, 0))
     self.modularExoCostText:SetFontName(kFont)
     self.modularExoCostText:SetTextAlignmentX(GUIItem.Align_Min)
     self.modularExoCostText:SetTextAlignmentY(GUIItem.Align_Center)
@@ -2239,31 +2257,47 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
     self.modularExoCostText:SetFontIsBold(true)
     self.modularExoCostText:SetColor(kTextColor)
     self.modularExoCostText:SetOptionFlag(GUIItem.CorrectScaling)
-    GUIMakeFontScale(self.modularExoCostText, "kAgencyFB", kFontSize + 6)
+    GUIMakeFontScale(self.modularExoCostText, "kAgencyFB", buyFontSize + 6 * layoutScale)
     self.modularExoBuyButton:AddChild(self.modularExoCostText)
-    
+
     self.modularExoCostIcon = self:CreateAnimatedGraphicItem()
     self.modularExoCostIcon:SetIsScaling(false)
-    self.modularExoCostIcon:SetSize(Vector(kResourceIconWidth*1.5, kResourceIconHeight*1.5, 0))
+    self.modularExoCostIcon:SetSize(Vector(buyIconSize, kResourceIconHeight * 1.5 * layoutScale, 0))
     self.modularExoCostIcon:SetAnchor(GUIItem.Left, GUIItem.Center)
-    self.modularExoCostIcon:SetPosition(Vector(20, -kResourceIconWidth * 0.75, 0))
+    self.modularExoCostIcon:SetPosition(Vector(20 * layoutScale, -buyIconSize * 0.5, 0))
     self.modularExoCostIcon:SetTexture(kResourceIconTexture)
     self.modularExoCostIcon:SetColor(kTextColor)
     self.modularExoCostIcon:SetOptionFlag(GUIItem.CorrectScaling)
     self.modularExoBuyButton:AddChild(self.modularExoCostIcon)
 
+    -- Armour and speed sit right of the centred BUY label as two short lines: one long
+    -- line at the label's font ran under it.
+    local readoutFontSize = buyFontSize * 0.85
     self.modularExoArmorText = self:CreateAnimatedTextItem()
     self.modularExoArmorText:SetIsScaling(false)
     self.modularExoArmorText:SetAnchor(GUIItem.Right, GUIItem.Center)
-    self.modularExoArmorText:SetPosition(Vector(-20, 0, 0))
+    self.modularExoArmorText:SetPosition(Vector(-20 * layoutScale, -readoutFontSize * 0.32, 0))
     self.modularExoArmorText:SetFontName(kFont)
     self.modularExoArmorText:SetTextAlignmentX(GUIItem.Align_Max)
     self.modularExoArmorText:SetTextAlignmentY(GUIItem.Align_Center)
     self.modularExoArmorText:SetText("")
     self.modularExoArmorText:SetColor(kTextColor)
     self.modularExoArmorText:SetOptionFlag(GUIItem.CorrectScaling)
-    GUIMakeFontScale(self.modularExoArmorText, "kAgencyFB", kFontSize)
+    GUIMakeFontScale(self.modularExoArmorText, "kAgencyFB", readoutFontSize)
     self.modularExoBuyButton:AddChild(self.modularExoArmorText)
+
+    self.modularExoSpeedNoteText = self:CreateAnimatedTextItem()
+    self.modularExoSpeedNoteText:SetIsScaling(false)
+    self.modularExoSpeedNoteText:SetAnchor(GUIItem.Right, GUIItem.Center)
+    self.modularExoSpeedNoteText:SetPosition(Vector(-20 * layoutScale, readoutFontSize * 0.42, 0))
+    self.modularExoSpeedNoteText:SetFontName(kFont)
+    self.modularExoSpeedNoteText:SetTextAlignmentX(GUIItem.Align_Max)
+    self.modularExoSpeedNoteText:SetTextAlignmentY(GUIItem.Align_Center)
+    self.modularExoSpeedNoteText:SetText(Locale.ResolveString("EXO_BUY_SPEED_BASELINE"))
+    self.modularExoSpeedNoteText:SetColor(kTextColor)
+    self.modularExoSpeedNoteText:SetOptionFlag(GUIItem.CorrectScaling)
+    GUIMakeFontScale(self.modularExoSpeedNoteText, "kAgencyFB", readoutFontSize * 0.6)
+    self.modularExoBuyButton:AddChild(self.modularExoSpeedNoteText)
 
     -- Details section. Name, cost and description reuse the vanilla itemTitle / costText /
     -- itemDescription items; only the armour/weight line has no vanilla counterpart, so it
@@ -2283,6 +2317,22 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
     self.modularExoDetailStats:SetOptionFlag(GUIItem.CorrectScaling)
     GUIMakeFontScale(self.modularExoDetailStats, "kAgencyFB", kExoDetailsTextFontSize)
     self.rightSideRoot:AddChild(self.modularExoDetailStats)
+
+    -- Role tags under the stat line: range class, damage type and what the module does,
+    -- so a build can be read off without the paragraph.
+    self.modularExoDetailTags = self:CreateAnimatedTextItem()
+    table.insert(self.modularExoGraphicItemsToDestroyList, self.modularExoDetailTags)
+    self.modularExoDetailTags:SetIsScaling(false)
+    self.modularExoDetailTags:SetAnchor(GUIItem.Left, GUIItem.Top)
+    self.modularExoDetailTags:SetPosition(Vector(0, 0, 0))
+    self.modularExoDetailTags:SetFontName(kFont)
+    self.modularExoDetailTags:SetTextAlignmentX(GUIItem.Align_Min)
+    self.modularExoDetailTags:SetTextAlignmentY(GUIItem.Align_Min)
+    self.modularExoDetailTags:SetText("")
+    self.modularExoDetailTags:SetColor(kTextColor)
+    self.modularExoDetailTags:SetOptionFlag(GUIItem.CorrectScaling)
+    GUIMakeFontScale(self.modularExoDetailTags, "kAgencyFB", kExoDetailsTagsFontSize)
+    self.rightSideRoot:AddChild(self.modularExoDetailTags)
 
     --BUY/UPGRADE BUTTON ENDS HERE
 
@@ -2351,16 +2401,16 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
         panelTitle:SetIsScaling(false)
         panelTitle:SetFontName(kFont)
         panelTitle:SetFontIsBold(true)
-        panelTitle:SetPosition(Vector(0, kSlotTitleOffsetY, 0))
+        panelTitle:SetPosition(Vector(0, kSlotTitleOffsetY * layoutScale, 0))
 		panelTitle:SetAnchor(GUIItem.Center, GUIItem.Top)
-		panelTitle:SetTextAlignmentX(GUIItem.Align_Center)			
+		panelTitle:SetTextAlignmentX(GUIItem.Align_Center)
         panelTitle:SetTextAlignmentY(GUIItem.Align_Min)
         panelTitle:SetColor(kTextColor)
         panelTitle:SetOptionFlag(GUIItem.CorrectScaling)
         panelTitle:SetText(Locale.ResolveString(slotGUIDetails.label))
-        GUIMakeFontScale(panelTitle, "kAgencyFB", kSlotTitleFontSize)
+        GUIMakeFontScale(panelTitle, "kAgencyFB", kSlotTitleFontSize * layoutScale)
         panelBackground:AddChild(panelTitle)
-        local padding = kSlotPanelPadding
+        local padding = kSlotPanelPadding * layoutScale
         local startOffsetX = padding
         local startOffsetY = padding
         local offsetX, offsetY = startOffsetX, startOffsetY
@@ -2390,15 +2440,15 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
         end
         -- The button layout leaves a trailing gap behind the last button; trim it so the
         -- panel hugs its contents, and give an empty slot a one-button sized box.
-        local slotButtonSize = slotGUIDetails.isRow and kRowButtonSize or kModuleButtonSize
+        local slotButtonSize = (slotGUIDetails.isRow and kRowButtonSize or kModuleButtonSize) * layoutScale
         if offsetX > startOffsetX then
-            offsetX = offsetX - kRowButtonSpacingX
+            offsetX = offsetX - kRowButtonSpacingX * layoutScale
         else
             offsetX = offsetX + slotButtonSize.x
         end
 
         if offsetY > startOffsetY then
-            offsetY = offsetY - kModuleButtonSpacingY
+            offsetY = offsetY - kModuleButtonSpacingY * layoutScale
         else
             offsetY = offsetY + slotButtonSize.y
         end
@@ -2425,8 +2475,9 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
     local rightPanel = panelRects[kExoModuleSlots.RightArm]
     if leftPanel and rightPanel and self.bigPictureDefaultSize then
 
-        local gapX = leftPanel.x + leftPanel.size.x + kExoModelPreviewMargin
-        local gapWidth = (rightPanel.x - kExoModelPreviewMargin) - gapX
+        local previewMargin = kExoModelPreviewMargin * layoutScale
+        local gapX = leftPanel.x + leftPanel.size.x + previewMargin
+        local gapWidth = (rightPanel.x - previewMargin) - gapX
         local gapHeight = math.max(leftPanel.size.y, rightPanel.size.y)
         local aspect = self.bigPictureDefaultSize.y / self.bigPictureDefaultSize.x
 
@@ -2451,6 +2502,7 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
     self.exoDetailsTitlePos = self.exoDetailsBoxPos + Vector(0, kExoDetailsTitleY, 0)
     self.exoDetailsCostPos  = self.exoDetailsBoxPos + Vector(0, kExoDetailsCostY, 0)
     self.exoDetailsStatsPos = self.exoDetailsBoxPos + Vector(0, kExoDetailsStatsY, 0)
+    self.exoDetailsTagsPos  = self.exoDetailsBoxPos + Vector(0, kExoDetailsTagsY, 0)
     self.exoDetailsDescPos  = self.exoDetailsBoxPos + Vector(0, kExoDetailsDescY, 0)
 
 end
@@ -2462,10 +2514,13 @@ end
 function GUIMarineBuyMenu:MakeModuleButton(moduleType, moduleTypeData, offsetX, offsetY, slotType, isRow)
 
     local moduleTypeGUIDetails = GUIMarineBuyMenu.kExoModuleData[moduleType]
-    local buttonSize = isRow and kRowButtonSize or kModuleButtonSize
-    local imageSize = isRow and kUtilityImageSize or kWeaponImageSize
-    local padX = kModuleButtonPaddingX
-    local padY = kModuleButtonPaddingY
+    local layoutScale = self.exoLayoutScale or 1
+    local buttonSize = (isRow and kRowButtonSize or kModuleButtonSize) * layoutScale
+    local imageSize = (isRow and kUtilityImageSize or kWeaponImageSize) * layoutScale
+    local padX = kModuleButtonPaddingX * layoutScale
+    local padY = kModuleButtonPaddingY * layoutScale
+    local statIconSize = kModuleStatIconSize * layoutScale
+    local statTextGap = kModuleStatTextGap * layoutScale
 
     local buttonGraphic = self:CreateAnimatedGraphicItem()
     table.insert(self.modularExoGraphicItemsToDestroyList, buttonGraphic)
@@ -2486,7 +2541,7 @@ function GUIMarineBuyMenu:MakeModuleButton(moduleType, moduleTypeData, offsetX, 
     label:SetColor(kTextColor)
     label:SetText(Locale.ResolveString(moduleTypeGUIDetails.label))
     label:SetOptionFlag(GUIItem.CorrectScaling)
-    FitTextToWidth(label, "kAgencyFB", kModuleLabelFontSize, buttonSize.x - padX * 2)
+    FitTextToWidth(label, "kAgencyFB", kModuleLabelFontSize * layoutScale, buttonSize.x - padX * 2)
     buttonGraphic:AddChild(label)
 
     -- Module picture, bottom right: below the name, right of the numbers.
@@ -2509,8 +2564,8 @@ function GUIMarineBuyMenu:MakeModuleButton(moduleType, moduleTypeData, offsetX, 
         icon = self:CreateAnimatedGraphicItem()
         icon:SetIsScaling(false)
         icon:SetAnchor(GUIItem.Left, GUIItem.Bottom)
-        icon:SetSize(Vector(kModuleStatIconSize, kModuleStatIconSize, 0))
-        icon:SetPosition(Vector(padX, -kModuleStatIconSize - padY, 0))
+        icon:SetSize(Vector(statIconSize, statIconSize, 0))
+        icon:SetPosition(Vector(padX, -statIconSize - padY, 0))
         icon:SetTexture(kResourceIconTexture)
         icon:SetColor(kTextColor)
         icon:SetOptionFlag(GUIItem.CorrectScaling)
@@ -2522,11 +2577,11 @@ function GUIMarineBuyMenu:MakeModuleButton(moduleType, moduleTypeData, offsetX, 
         cost:SetAnchor(GUIItem.Left, GUIItem.Bottom)
         cost:SetTextAlignmentX(GUIItem.Align_Min)
         cost:SetTextAlignmentY(GUIItem.Align_Max)
-        cost:SetPosition(Vector(padX + kModuleStatIconSize + kModuleStatTextGap, -padY, 0))
+        cost:SetPosition(Vector(padX + statIconSize + statTextGap, -padY, 0))
         cost:SetColor(kTextColor)
         cost:SetText(tostring(resourceCost))
         cost:SetOptionFlag(GUIItem.CorrectScaling)
-        GUIMakeFontScale(cost, "kAgencyFB", kModuleStatFontSize)
+        GUIMakeFontScale(cost, "kAgencyFB", kModuleStatFontSize * layoutScale)
         buttonGraphic:AddChild(cost)
 
     end
@@ -2536,8 +2591,8 @@ function GUIMarineBuyMenu:MakeModuleButton(moduleType, moduleTypeData, offsetX, 
         teamIcon = self:CreateAnimatedGraphicItem()
         teamIcon:SetIsScaling(false)
         teamIcon:SetAnchor(GUIItem.Left, GUIItem.Bottom)
-        teamIcon:SetSize(Vector(kModuleStatIconSize, kModuleStatIconSize, 0))
-        teamIcon:SetPosition(Vector(kModuleTeamCountOffsetX, -kModuleStatIconSize - padY, 0))
+        teamIcon:SetSize(Vector(statIconSize, statIconSize, 0))
+        teamIcon:SetPosition(Vector(kModuleTeamCountOffsetX * layoutScale, -statIconSize - padY, 0))
         teamIcon:SetTexture(kBackgroundTeamMarine)
         teamIcon:SetColor(kTextColor)
         teamIcon:SetOptionFlag(GUIItem.CorrectScaling)
@@ -2549,19 +2604,19 @@ function GUIMarineBuyMenu:MakeModuleButton(moduleType, moduleTypeData, offsetX, 
         teamNumber:SetAnchor(GUIItem.Left, GUIItem.Bottom)
         teamNumber:SetTextAlignmentX(GUIItem.Align_Min)
         teamNumber:SetTextAlignmentY(GUIItem.Align_Max)
-        teamNumber:SetPosition(Vector(kModuleTeamCountOffsetX + kModuleStatIconSize + kModuleStatTextGap, -padY, 0))
+        teamNumber:SetPosition(Vector(kModuleTeamCountOffsetX * layoutScale + statIconSize + statTextGap, -padY, 0))
         teamNumber:SetColor(kTextColor)
         teamNumber:SetText("0")
         teamNumber:SetOptionFlag(GUIItem.CorrectScaling)
-        GUIMakeFontScale(teamNumber, "kAgencyFB", kModuleStatFontSize)
+        GUIMakeFontScale(teamNumber, "kAgencyFB", kModuleStatFontSize * layoutScale)
         buttonGraphic:AddChild(teamNumber)
 
     end
 
     if isRow then
-        offsetX = offsetX + buttonSize.x + kRowButtonSpacingX
+        offsetX = offsetX + buttonSize.x + kRowButtonSpacingX * layoutScale
     else
-        offsetY = offsetY + buttonSize.y + kModuleButtonSpacingY
+        offsetY = offsetY + buttonSize.y + kModuleButtonSpacingY * layoutScale
     end
 
     table.insert(self.modularExoModuleButtonList, {
@@ -2704,6 +2759,7 @@ function GUIMarineBuyMenu:_UpdateExoModularVisibility()
             self.itemTitle:SetPosition(self.exoDetailsTitlePos)
             self.costText:SetPosition(self.exoDetailsCostPos)
             self.modularExoDetailStats:SetPosition(self.exoDetailsStatsPos)
+            self.modularExoDetailTags:SetPosition(self.exoDetailsTagsPos)
             self.itemDescription:SetPosition(self.exoDetailsDescPos)
         end
 
@@ -2717,6 +2773,7 @@ function GUIMarineBuyMenu:_UpdateExoModularVisibility()
         self.costText:SetIsVisible(showModuleDetails)
         self.itemDescription:SetIsVisible(showModuleDetails)
         self.modularExoDetailStats:SetIsVisible(showModuleDetails)
+        self.modularExoDetailTags:SetIsVisible(showModuleDetails)
         self.bigPicture:SetIsVisible(true)
 
         -- The box is a pure function of the module it shows, so it only needs repainting
@@ -2761,17 +2818,16 @@ function GUIMarineBuyMenu:_SetDetailsSectionExoModule(moduleType, lockedTechId, 
     local resourceCost = moduleTypeData.resourceCost or 0
     self.costText:SetText(string.format("%s: %d", Locale.ResolveString("BUYMENU_COST"), resourceCost))
 
-    -- Weight is an internal number; what a player cares about is the speed it costs.
-    -- A module of weight w takes w of the exo's base speed away (see
-    -- Exo:GetInventorySpeedScalar), so print that directly and drop the parts that are zero.
+    -- Weight is an internal number; what a player cares about is the speed it costs,
+    -- shown against the claw + minigun suit as 100% (see Exo:GetInventorySpeedScalar).
     local armorValue = moduleTypeData.armorValue or 0
-    local speedPenalty = math.round((moduleTypeData.weight or 0) * 100)
+    local speedLoss = ModularExo_GetSpeedPercent(moduleTypeData.weight or 0)
     local statParts = {}
     if armorValue ~= 0 then
         table.insert(statParts, string.format(Locale.ResolveString("EXO_DETAILS_ARMOR_FORMAT"), armorValue))
     end
-    if speedPenalty ~= 0 then
-        table.insert(statParts, string.format(Locale.ResolveString("EXO_DETAILS_SPEED_FORMAT"), speedPenalty))
+    if speedLoss > 0 then
+        table.insert(statParts, string.format(Locale.ResolveString("EXO_DETAILS_SPEED_FORMAT"), speedLoss))
     end
     if incompatible then
         self.modularExoDetailStats:SetText(Locale.ResolveString("EXO_MODULE_INCOMPATIBLE"))
@@ -2785,6 +2841,11 @@ function GUIMarineBuyMenu:_SetDetailsSectionExoModule(moduleType, lockedTechId, 
         self.modularExoDetailStats:SetText(statText)
         self.modularExoDetailStats:SetColor(GUIMarineBuyMenu.kSpecialTextContentColor)
     end
+
+    -- An unknown key resolves to itself, which is how a module with no tag line stays blank.
+    local tagsKey = string.format("EXO_MODULE_%s_TAGS", string.upper(kExoModuleTypes[moduleType]))
+    local tags = Locale.ResolveString(tagsKey)
+    self.modularExoDetailTags:SetText(tags ~= tagsKey and tags or "")
 
     local descriptionKey = string.format("EXO_MODULE_%s_DESC", string.upper(kExoModuleTypes[moduleType]))
     local description = Locale.ResolveString(descriptionKey)
@@ -2970,10 +3031,9 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
 
     self.modularExoCostText:SetText(tostring(currentConfigPrice))
     if self.modularExoArmorText then
-        local speedPercent = math.round(ModularExo_GetConfigSpeedFraction(self.exoConfig) * 100)
         self.modularExoArmorText:SetText(string.format(Locale.ResolveString("EXO_BUY_ARMOR_SPEED_FORMAT"),
                                                        ModularExo_GetConfigArmor(self.exoConfig, armorLevels),
-                                                       speedPercent))
+                                                       ModularExo_GetSpeedPercent(ModularExo_GetConfigSpeedFraction(self.exoConfig))))
     end
 
     for buttonI, buttonData in ipairs(self.modularExoModuleButtonList) do

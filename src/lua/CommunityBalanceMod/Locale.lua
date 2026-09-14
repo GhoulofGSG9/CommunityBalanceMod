@@ -229,7 +229,19 @@ if Client then
 	Locale.substitutions["EXO_DETAILS_NO_STAT_CHANGE"] = "NO STAT CHANGE"
 	Locale.substitutions["EXO_MODULE_INCOMPATIBLE"] = "Cannot be mounted next to the other arm"
 	Locale.substitutions["EXO_BUY_ARMOR_SPEED_FORMAT"] = "%d armor   %d%% speed"
-	
+	Locale.substitutions["EXO_BUY_SPEED_BASELINE"] = "claw + minigun = 100% speed"
+	Locale.substitutions["EXO_MODULE_CLAW_TAGS"] = "MELEE | STRUCTURAL | 50 DMG"
+	Locale.substitutions["EXO_MODULE_MINIGUN_TAGS"] = "SHORT RANGE | HEAVY | 6 DMG A ROUND"
+	Locale.substitutions["EXO_MODULE_RAILGUN_TAGS"] = "LONG RANGE | STRUCTURAL | 20-120 | PIERCE"
+	Locale.substitutions["EXO_MODULE_PLASMALAUNCHER_TAGS"] = "MID RANGE | NORMAL | 35 + BURN | AOE | SHOCK"
+	Locale.substitutions["EXO_MODULE_FLAMETHROWER_TAGS"] = "SHORT RANGE | FLAME | 9 A TICK | CONE | BURN"
+	Locale.substitutions["EXO_MODULE_THRUSTERS_TAGS"] = "MOBILITY | DASH | FUEL"
+	Locale.substitutions["EXO_MODULE_EJECTIONSEAT_TAGS"] = "SURVIVAL | AUTO-EJECT | FAST EJECT"
+	Locale.substitutions["EXO_MODULE_ARMOR_TAGS"] = "DEFENSE | +80 ARMOR"
+	Locale.substitutions["EXO_MODULE_NANOSHIELD_TAGS"] = "SUPPORT | 8 M FIELD | SHIELD | 120 S"
+	Locale.substitutions["EXO_MODULE_CATPACK_TAGS"] = "SUPPORT | 8 M FIELD | SPEED | 120 S"
+	Locale.substitutions["EXO_MODULE_NANOREPAIR_TAGS"] = "SUPPORT | 8 M FIELD | HEAL | 120 S"
+
 	-- Exosuit hold-to-eject HUD
 	Locale.substitutions["EXO_EJECT_HOLD_HINT"] = "Hold to eject"
 	Locale.substitutions["EXO_EJECT_HOLD_PROGRESS"] = "Ejecting %d%%"
