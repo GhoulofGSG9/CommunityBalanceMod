@@ -988,11 +988,11 @@ kMinigunCost = 25
 kExoShieldCost = 15
 kClawCost = 15
 
-kThrustersCost = 5
+kThrustersCost = 15
 kExoArmorModuleCost = 25
-kEjectionSeatCost = 5
+kEjectionSeatCost = 10
 kExoSupportModuleCost = 10
-kExoRefitCost = 10
+kExoRefitCost = 5
 
 kMinigunMovementSlowdown = 1
 kRailgunMovementSlowdown = 1
@@ -1002,7 +1002,7 @@ kExosuitHorizontalThrusterAddSpeed = 2 -- 10
 kExosuitThrusterHorizontalAcceleration = 200
 kExosuitThrusterUpwardsAcceleration = 0
 kExosuitMinTimeBetweenThrusterActivations = 0.5
-kExosuitMaxSpeed = 6.25
+kExosuitMaxSpeed = 6.0
 kExosuitSpeedCap = 7.25
 kExosuitDeployDuration = 1.4
 kExoStructureUseSlack = 1.5 -- extra metres an exo may stand from an armory or lab and still use it; its capsule keeps the origin further out
@@ -1051,10 +1051,10 @@ kPlasmaHitBoxRadiusT3 = 0.495 -- Hitbox radius from center of projectile...
 kPlasmaLauncherEnergyUpRate = 0.30
 kPlasmaDamageType = kDamageType.Normal 
 
-kPlasmaLauncherWeight = 0.08
+kPlasmaLauncherWeight = 0.10
 
 -- Exo flamethrower arm
-kExoFlamerWeight = 0.06
+kExoFlamerWeight = 0.09
 kExoFlamerConeWidth = 1
 kExoFlamerCoolDownRate = 0.20
 kExoFlamerHeatUpRate = 0.10
@@ -1067,11 +1067,11 @@ kExoFlamerDamageType = kFlamethrowerDamageType
 
 -- Module weights
 kExoArmorModuleWeight = 0.10
-kThrustersWeight = 0.025
+kThrustersWeight = 0
 kNanoRepairWeight = 0.05 -- (depreciated)
 kCatPackWeight = 0.05 -- (depreciated)
 kNanoShieldWeight = 0.05 -- (depreciated)
-kEjectionSeatWeight = 0.025
+kEjectionSeatWeight = 0
 
 -- Armor values
 kBaseExoArmor = 140 -- exos arrive earlier than vanilla; armor research carries more of the total
@@ -1091,7 +1091,8 @@ kExoMaxTotalArmorCap = 520
 kExoLowHealthEjectThreshold = 0
 kEjectorExosuitUseThreshold = 50
 kEjectorExosuitMinArmor = 40 -- set minimum armor to ejector exo suit when auto ejecting
-kExoEjectHoldTime = 2.0 -- seconds the drop key must be held to leave an exo outside combat
+kExoEjectHoldTime = 1.0 -- seconds the drop key must be held to leave an exo outside combat
+kExoEjectionSeatHoldTime = 0.5 -- the same hold with the Ejection Seat core fitted
 kExoEjectDropGraceTime = 1.0 -- continuous seconds without the drop key before an ejected marine may drop again
 kExoEjectDropHardLimit = 5 -- seconds after an eject the drop latch is released no matter what
 

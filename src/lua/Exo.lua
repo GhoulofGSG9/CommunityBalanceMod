@@ -1358,10 +1358,11 @@ function Exo:UpdateEjectHold(input)
     local now = Shared.GetTime()
     self.timeEjectHoldStart = self.timeEjectHoldStart or now
 
+    local holdTime = self:GetHasEjectionSeat() and kExoEjectionSeatHoldTime or kExoEjectHoldTime
     local heldTime = now - self.timeEjectHoldStart
-    self.ejectHoldFraction = Clamp(heldTime / math.max(kExoEjectHoldTime, 0.01), 0, 1)
+    self.ejectHoldFraction = Clamp(heldTime / math.max(holdTime, 0.01), 0, 1)
 
-    if heldTime >= kExoEjectHoldTime then
+    if heldTime >= holdTime then
 
         self.timeEjectHoldStart = nil
         self.ejectHoldConsumed = true
@@ -1390,8 +1391,9 @@ function Exo:HandleButtons(input)
     self:UpdateThrusters(input)
     self:UpdateSupportAbility(input)
     
-    -- Manual eject: hold the drop key for kExoEjectHoldTime seconds outside combat.
-    -- In combat the only way out is the Ejection Seat core (auto-eject at 0 armor).
+    -- Manual eject: hold the drop key for kExoEjectHoldTime seconds outside combat
+    -- (kExoEjectionSeatHoldTime with the Ejection Seat core). In combat the only way
+    -- out is the Ejection Seat core (auto-eject at 0 armor).
     -- Server only: the client re-simulates moves during prediction, so a hold timer
     -- kept there would be restarted constantly. The client gets ejectHoldFraction.
     if Server then
