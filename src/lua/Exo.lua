@@ -2088,12 +2088,20 @@ function Exo:UpdateSupportAbility(input)
     end
 
     if not self:GetHasSupportAbility() or not self:GetIsAlive() then
+        self.supportAbilityPressed = false
         return
     end
 
+    -- Edge triggered: one attempt per press, the key has to come up before the next.
     if bit_band(input.commands, Move.Reload) == 0 then
+        self.supportAbilityPressed = false
         return
     end
+
+    if self.supportAbilityPressed then
+        return
+    end
+    self.supportAbilityPressed = true
 
     if Shared.GetTime() < (self.timeSupportAbilityReady or 0) then
         return

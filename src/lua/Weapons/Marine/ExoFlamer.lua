@@ -33,7 +33,9 @@ local networkVars = {
     range                 = "integer (0 to 11)",
     isShooting            = "boolean",
     loopingSoundEntId     = "entityid",
-    heatAmount            = "float (0 to 1 by 0.01)",
+    -- Finer than the minigun's 0.01: this arm heats at 0.10/s, under one 0.01 step per
+    -- tick, and a step the server only crosses every few ticks snaps the predicted bar back.
+    heatAmount            = "float (0 to 1 by 0.001)",
     overheated            = "private boolean",
     heatUISoundId         = "private entityid"
     

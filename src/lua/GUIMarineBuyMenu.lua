@@ -982,6 +982,9 @@ function GUIMarineBuyMenu:SetHostStructure(hostStructure)
         local localPlayer = Client.GetLocalPlayer()
         self.exoConfigPageActive = localPlayer ~= nil and localPlayer:isa("Exo")
             and self:_GetHostCanSellExoConfig()
+        if self.exoConfigPageActive then
+            MarineBuy_OnUpgradeSelected()
+        end
         self:_RefreshExoModularButtons()
     end	
 end

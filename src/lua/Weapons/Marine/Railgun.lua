@@ -371,6 +371,7 @@ function Railgun:OnUpdateRender()
             chargeDisplayUI = Client.CreateGUIView(246, 256)
             chargeDisplayUI:Load("lua/GUI" .. self:GetExoWeaponSlotName():gsub("^%l", string.upper) .. "RailgunDisplay.lua")
             chargeDisplayUI:SetTargetTexture(kRailgunTextureKey[self.exoWeaponSlot])
+            chargeDisplayUI:SetGlobal("refireTime", kRailgunChargeTime)
             self.chargeDisplayUI = chargeDisplayUI
             
         end
