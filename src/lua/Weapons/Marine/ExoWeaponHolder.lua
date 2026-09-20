@@ -73,13 +73,13 @@ end
 if Client then
     function ExoWeaponHolder:OnInitialized()
         Weapon.OnInitialized(self)
-		self:SetDualMiniLock(Client.GetOptionBoolean("ExoA_duallock_mini_enabled", true))
+		self:SetDualMiniLock(Client.GetOptionBoolean("ExoA_duallock_mini_enabled", false))
         Client.SendNetworkMessage("SetDualMiniLock", { dualminifiring = self.dualminifiring })
 		
-		self:SetDualBTLock(Client.GetOptionBoolean("ExoA_duallock_BT_enabled", true))
+		self:SetDualBTLock(Client.GetOptionBoolean("ExoA_duallock_BT_enabled", false))
         Client.SendNetworkMessage("SetDualBTLock", { dualBTfiring = self.dualBTfiring })
 		
-		self:SetDualPLLock(Client.GetOptionBoolean("ExoA_duallock_PL_enabled", true))
+		self:SetDualPLLock(Client.GetOptionBoolean("ExoA_duallock_PL_enabled", false))
         Client.SendNetworkMessage("SetDualPLLock", { dualPLfiring = self.dualPLfiring })
     end
 end
