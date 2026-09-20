@@ -72,8 +72,9 @@ local gCurrentNumHitEffects = 0
 
 function GetShouldSendHitEffect()
 
-    if gLastHitEffectCounterReset + 1 < Shared.GetTime() then
-        gLastHitEffectCounterReset = Shared.GetTime()
+    local time = Shared.GetTime()
+    if gLastHitEffectCounterReset + 1 < time then
+        gLastHitEffectCounterReset = time
         gCurrentNumHitEffects = 0
     end
     
@@ -177,26 +178,33 @@ function GetAlienCatalystTimeAmount(baseTime, entity)
     
 end
 
+local kEggExtents = nil
+local kEggOffsetY = 0
+local gEggCenterScratch = Vector(0, 0, 0)
+
+local function InitializeEggTechData()
+    kEggExtents = LookupTechData(kTechId.Egg, kTechDataMaxExtents)
+    ASSERT(kEggExtents and math.max(kEggExtents.x, kEggExtents.y) > 0, "invalid x extents for Egg")
+    kEggOffsetY = kEggExtents.y + 0.05
+end
+
 -- Assumes position is at the bottom center of the egg
 function GetCanEggFit(position)
 
-    local extents = LookupTechData(kTechId.Egg, kTechDataMaxExtents)
-    local maxExtentsDimension = math.max(extents.x, extents.y)
-    ASSERT(maxExtentsDimension > 0, "invalid x extents for")
-
-    local eggCenter = position + Vector(0, extents.y + .05, 0)
-
-    local filter
-    local physicsMask = PhysicsMask.AllButPCs
-    
-    if not Shared.CollideBox(extents, eggCenter, CollisionRep.Default, physicsMask, filter) and GetIsPointOnInfestation(position) then
-            
-        return true
-                    
+    if not kEggExtents then
+        InitializeEggTechData()
     end
-    
-    return false
-    
+
+    if not GetIsPointOnInfestation(position) then
+        return false
+    end
+
+    gEggCenterScratch.x = position.x
+    gEggCenterScratch.y = position.y + kEggOffsetY
+    gEggCenterScratch.z = position.z
+
+    return not Shared.CollideBox(kEggExtents, gEggCenterScratch, CollisionRep.Default, PhysicsMask.AllButPCs, nil)
+
 end
 
 -- Don't spawn eggs on railings or edges of steps, etc. Check each corner of the egg to make
@@ -402,24 +410,31 @@ function SocketPowerForLocation(locationName)
     end
 end
 
+local gTechIdToMapNameCache = {}
 local function UnlockAbility(forAlien, techId)
 
-    local mapName = LookupTechData(techId, kTechDataMapName)
-    if mapName and forAlien:GetIsAlive() then
-    
+    if not forAlien:GetIsAlive() then
+        return
+    end
+
+    local mapName = gTechIdToMapNameCache[techId]
+    if mapName == nil then
+        mapName = LookupTechData(techId, kTechDataMapName) or false
+        gTechIdToMapNameCache[techId] = mapName
+    end
+
+    if not mapName then
+        return
+    end
+
+    if not forAlien:GetWeapon(mapName) then
         local activeWeapon = forAlien:GetActiveWeapon()
 
-        local tierWeapon = forAlien:GetWeapon(mapName)
-        if not tierWeapon then
-        
-            forAlien:GiveItem(mapName)
-            
-            if activeWeapon then
-                forAlien:SetActiveWeapon(activeWeapon:GetMapName())
-            end
-            
+        forAlien:GiveItem(mapName)
+
+        if activeWeapon then
+            forAlien:SetActiveWeapon(activeWeapon:GetMapName())
         end
-    
     end
 
 end
@@ -470,61 +485,80 @@ end
 function UpdateAbilityAvailability(forAlien, tierOneTechId, tierTwoTechId, tierThreeTechId)
 
     local time = Shared.GetTime()
-    if forAlien.timeOfLastNumHivesUpdate == nil or (time > forAlien.timeOfLastNumHivesUpdate + 0.5) then
+    local lastUpdate = forAlien.timeOfLastNumHivesUpdate
 
-        local team = forAlien:GetTeam()
-        if team and team.GetTechTree then
-        
-            local hasOneHiveNow = GetGamerules():GetAllTech() or (tierOneTechId ~= nil and tierOneTechId ~= kTechId.None and GetIsTechUnlocked(forAlien, tierOneTechId))
-            local oneHive = forAlien.oneHive
-            -- Don't lose abilities unless you die.
-            forAlien.oneHive = forAlien.oneHive or hasOneHiveNow
+    if lastUpdate and time <= lastUpdate + 0.5 then
+        return
+    end
+    forAlien.timeOfLastNumHivesUpdate = time
 
-            if forAlien.oneHive then
-                UnlockAbility(forAlien, tierOneTechId)
-            else
-                LockAbility(forAlien, tierOneTechId)
-            end
-            
-            local hasTwoHivesNow = GetGamerules():GetAllTech() or (tierTwoTechId ~= nil and tierTwoTechId ~= kTechId.None and GetIsTechUnlocked(forAlien, tierTwoTechId))
-            local hadTwoHives = forAlien.twoHives
-            -- Don't lose abilities unless you die.
-            forAlien.twoHives = forAlien.twoHives or hasTwoHivesNow
+    local team = forAlien:GetTeam()
+    if not (team and team.GetTechTree) then
+        return
+    end
 
-            if forAlien.twoHives then
-                UnlockAbility(forAlien, tierTwoTechId)
-            else
-                LockAbility(forAlien, tierTwoTechId)
-            end
-            
-            local hasThreeHivesNow = GetGamerules():GetAllTech() or (tierThreeTechId ~= nil and tierThreeTechId ~= kTechId.None and GetIsTechUnlocked(forAlien, tierThreeTechId))
-            local hadThreeHives = forAlien.threeHives
-            -- Don't lose abilities unless you die.
-            forAlien.threeHives = forAlien.threeHives or hasThreeHivesNow
+    local gamerules = GetGamerules()
+    local allTech = gamerules and gamerules:GetAllTech()
 
-            if forAlien.threeHives then
-                UnlockAbility(forAlien, tierThreeTechId)
-            else
-                LockAbility(forAlien, tierThreeTechId)
-            end
-            
-            if forAlien.GetTierFourTechId then
-                local tierFourTechId = forAlien:GetTierFourTechId()
-                local hasFourHivesNow = GetGamerules():GetAllTech() or (tierFourTechId ~= nil and tierFourTechId ~= kTechId.None and GetIsTechUnlocked(forAlien, tierFourTechId))
-                local hadFourHives = forAlien.fourHives
-                -- Don't lose abilities unless you die.
-                forAlien.fourHives = forAlien.fourHives or hasFourHivesNow
-
-                if forAlien.fourHives then
-                    UnlockAbility(forAlien, tierFourTechId)
-                else
-                    LockAbility(forAlien, tierFourTechId)
-                end
-            end
+    -- Don't lose abilities unless you die.
+    if tierOneTechId and tierOneTechId ~= kTechId.None then
+        if not forAlien.oneHive then
+            forAlien.oneHive = allTech or GetIsTechUnlocked(forAlien, tierOneTechId)
         end
-        
-        forAlien.timeOfLastNumHivesUpdate = time
-        
+
+        if forAlien.oneHive then
+            UnlockAbility(forAlien, tierOneTechId)
+        else
+            LockAbility(forAlien, tierOneTechId)
+        end
+    else
+        forAlien.oneHive = forAlien.oneHive or allTech
+    end
+
+    if tierTwoTechId and tierTwoTechId ~= kTechId.None then
+        if not forAlien.twoHives then
+            forAlien.twoHives = allTech or GetIsTechUnlocked(forAlien, tierTwoTechId)
+        end
+
+        if forAlien.twoHives then
+            UnlockAbility(forAlien, tierTwoTechId)
+        else
+            LockAbility(forAlien, tierTwoTechId)
+        end
+    else
+        forAlien.twoHives = forAlien.twoHives or allTech
+    end
+
+    if tierThreeTechId and tierThreeTechId ~= kTechId.None then
+        if not forAlien.threeHives then
+            forAlien.threeHives = allTech or GetIsTechUnlocked(forAlien, tierThreeTechId)
+        end
+
+        if forAlien.threeHives then
+            UnlockAbility(forAlien, tierThreeTechId)
+        else
+            LockAbility(forAlien, tierThreeTechId)
+        end
+    else
+        forAlien.threeHives = forAlien.threeHives or allTech
+    end
+
+    if forAlien.GetTierFourTechId then
+
+        local tierFourTechId = forAlien:GetTierFourTechId()
+        if tierFourTechId and tierFourTechId ~= kTechId.None then
+            if not forAlien.fourHives then
+                forAlien.fourHives = allTech or GetIsTechUnlocked(forAlien, tierFourTechId)
+            end
+
+            if forAlien.fourHives then
+                UnlockAbility(forAlien, tierFourTechId)
+            else
+                LockAbility(forAlien, tierFourTechId)
+            end
+        else
+            forAlien.fourHives = forAlien.fourHives or allTech
+        end
     end
 
 end
