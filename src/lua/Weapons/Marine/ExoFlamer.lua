@@ -30,7 +30,6 @@ local kOverheatedSoundName = PrecacheAsset("sound/NS2.fev/marine/heavy/overheate
 local networkVars = {
     createParticleEffects = "boolean",
     animationDoneTime     = "float",
-    range                 = "integer (0 to 11)",
     isShooting            = "boolean",
     loopingSoundEntId     = "entityid",
     -- Finer than the minigun's 0.01: this arm heats at 0.10/s, under one 0.01 step per
