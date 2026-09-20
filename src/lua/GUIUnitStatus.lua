@@ -27,10 +27,12 @@ local kMaxUnitStatusDistanceSq = GUIUnitStatus.kMaxUnitStatusDistance * GUIUnitS
 GUIUnitStatus.kUseColoredWrench = GetAdvancedOption("wrenchicon") == 1
 GUIUnitStatus.kUseSmallNameplates = GetAdvancedOption("smallnps")
 
-GUIUnitStatus.kBlackTexture = "ui/black_dot.dds"
+GUIUnitStatus.kBlackTexture = PrecacheAsset("ui/black_dot.dds")
 
-local kStatusBgTexture = { [kMarineTeamType] = "ui/unitstatus_marine.dds", [kAlienTeamType] = "ui/unitstatus_alien.dds", [kNeutralTeamType] = "ui/unitstatus_neutral.dds" }
+local kStatusBgTexture = { [kMarineTeamType] = PrecacheAsset("ui/unitstatus_marine.dds"), [kAlienTeamType] = PrecacheAsset("ui/unitstatus_alien.dds"), [kNeutralTeamType] = PrecacheAsset("ui/unitstatus_neutral.dds") }
 local kStatusFontColor = { [kMarineTeamType] = Color(kMarineTeamColorFloat), [kAlienTeamType] = Color(kAlienTeamColorFloat), [kNeutralTeamType] = Color(1,1,1,1) }
+
+local kNeutralTexture = kStatusBgTexture[kNeutralTeamType]
 
 local kStatusBgSizeUnscaled = Vector(168, 80, 0)
 
@@ -65,6 +67,8 @@ local kAmmoBarColors =
 }
 
 local kAbilityBarColor = Color(0.65, 0.65, 0.65, 1)
+
+local kGameStarted = false
 
 local function GetUnitStatusTextureCoordinates(unitStatus)
 
@@ -219,7 +223,6 @@ local function CreateBlipItem(self)
 
     local newBlip = {}
     local teamType = PlayerUI_GetTeamType()
-    local neutralTexture = "ui/unitstatus_neutral.dds"
 
     newBlip.teamType = teamType
     
@@ -275,14 +278,14 @@ local function CreateBlipItem(self)
     newBlip.HealthBarBg:SetAnchor(GUIItem.Middle, GUIItem.Bottom)
     newBlip.HealthBarBg:SetSize(Vector(kHealthBarWidth, kHealthBarHeight, 0))
     newBlip.HealthBarBg:SetPosition(Vector(-kHealthBarWidth / 2, -kHealthBarHeight - kArmorBarHeight - GUIScale(10), 0))
-    newBlip.HealthBarBg:SetTexture(neutralTexture)
+    newBlip.HealthBarBg:SetTexture(kNeutralTexture)
     newBlip.HealthBarBg:SetTexturePixelCoordinates(GUIUnpackCoords(GUIUnitStatus.kUnitStatusBarTexCoords))
     newBlip.HealthBarBg:SetColor(Color(0,0,0,0))
     
     newBlip.RegenBar = GetGUIManager():CreateGraphicItem()
     newBlip.RegenBar:SetColor(kRegenBarFriendlyColor)
     newBlip.RegenBar:SetSize(Vector(0, kHealthBarHeight, 0))
-    newBlip.RegenBar:SetTexture(neutralTexture)
+    newBlip.RegenBar:SetTexture(kNeutralTexture)
     newBlip.RegenBar:SetTexturePixelCoordinates(GUIUnpackCoords(GUIUnitStatus.kUnitStatusBarTexCoords))
     newBlip.RegenBar:SetBlendTechnique(GUIItem.Add)
     newBlip.HealthBarBg:AddChild(newBlip.RegenBar)
@@ -290,7 +293,7 @@ local function CreateBlipItem(self)
     newBlip.HealthBar = GetGUIManager():CreateGraphicItem()
     newBlip.HealthBar:SetColor(kHealthBarColors[teamType])
     newBlip.HealthBar:SetSize(Vector(kHealthBarWidth, kHealthBarHeight, 0))
-    newBlip.HealthBar:SetTexture(neutralTexture)
+    newBlip.HealthBar:SetTexture(kNeutralTexture)
     newBlip.HealthBar:SetTexturePixelCoordinates(GUIUnpackCoords(GUIUnitStatus.kUnitStatusBarTexCoords))
     newBlip.HealthBar:SetBlendTechnique(GUIItem.Add)
     newBlip.HealthBarBg:AddChild(newBlip.HealthBar)
@@ -299,14 +302,14 @@ local function CreateBlipItem(self)
     newBlip.ArmorBarBg:SetAnchor(GUIItem.Middle, GUIItem.Bottom)
     newBlip.ArmorBarBg:SetSize(Vector(kArmorBarWidth, kArmorBarHeight, 0))
     newBlip.ArmorBarBg:SetPosition(Vector(-kArmorBarWidth / 2, -kArmorBarHeight - GUIScale(10), 0))
-    newBlip.ArmorBarBg:SetTexture(neutralTexture)
+    newBlip.ArmorBarBg:SetTexture(kNeutralTexture)
     newBlip.ArmorBarBg:SetColor(Color(0,0,0,0))
     newBlip.ArmorBarBg:SetTexturePixelCoordinates(GUIUnpackCoords(GUIUnitStatus.kUnitStatusBarTexCoords))
     
     newBlip.ArmorBar = GUIManager:CreateGraphicItem()
     newBlip.ArmorBar:SetColor(kArmorBarColors[teamType])
     newBlip.ArmorBar:SetSize(Vector(kArmorBarWidth, kArmorBarHeight, 0))
-    newBlip.ArmorBar:SetTexture(neutralTexture)
+    newBlip.ArmorBar:SetTexture(kNeutralTexture)
     newBlip.ArmorBar:SetTexturePixelCoordinates(GUIUnpackCoords(GUIUnitStatus.kUnitStatusBarTexCoords))
     newBlip.ArmorBar:SetBlendTechnique(GUIItem.Add)
     newBlip.ArmorBarBg:AddChild(newBlip.ArmorBar)
@@ -427,14 +430,14 @@ local function AddAbilityBar(blipItem)
     blipItem.AbilityBarBg:SetAnchor(GUIItem.Middle, GUIItem.Bottom)
     blipItem.AbilityBarBg:SetSize(Vector(kArmorBarWidth, kArmorBarHeight * 2, 0))
     blipItem.AbilityBarBg:SetPosition(Vector(-kArmorBarWidth / 2, -kArmorBarHeight * 2, 0))
-    blipItem.AbilityBarBg:SetTexture("ui/unitstatus_neutral.dds")
+    blipItem.AbilityBarBg:SetTexture(kNeutralTexture)
     blipItem.AbilityBarBg:SetColor(Color(0,0,0,1))
     blipItem.AbilityBarBg:SetTexturePixelCoordinates(GUIUnpackCoords(GUIUnitStatus.kUnitStatusBarTexCoords))
 
     blipItem.AbilityBar = GUIManager:CreateGraphicItem()
     blipItem.AbilityBar:SetColor(kAbilityBarColor)
     blipItem.AbilityBar:SetSize(Vector(kArmorBarWidth, kArmorBarHeight *2, 0))
-    blipItem.AbilityBar:SetTexture("ui/unitstatus_neutral.dds")
+    blipItem.AbilityBar:SetTexture(kNeutralTexture)
     blipItem.AbilityBar:SetTexturePixelCoordinates(GUIUnpackCoords(GUIUnitStatus.kUnitStatusBarTexCoords))
     blipItem.AbilityBar:SetBlendTechnique(GUIItem.Add)
     blipItem.AbilityBarBg:AddChild(blipItem.AbilityBar)
@@ -505,9 +508,9 @@ function GUIUnitStatus:UpdateUnitStatusBlip(blipIndex, localPlayerIsCommander, b
 
             if displayPercentages then
                 blipNameText = string.format("%s (%d%%)", blipData.SpawnerName, blipData.SpawnFraction*100)
+            else
+                blipNameText = blipData.SpawnerName
             end
-
-            blipNameText = blipData.SpawnerName
             showHints = false
         end
         abilityFraction = math.max(0.01, blipData.SpawnFraction ) -- always show at least 1% so there is a black bar
@@ -620,8 +623,18 @@ function GUIUnitStatus:UpdateUnitStatusBlip(blipIndex, localPlayerIsCommander, b
         else
             updateBlip.HealthBarBg:SetColor( kHealthBarBgColors[teamType] )
             updateBlip.HealthBar:SetColor( kHealthBarColors[teamType] )
-            updateBlip.HealthBar:SetColor( kHealthBarColors[teamType] )
             updateBlip.RegenBar:SetColor( kRegenBarFriendlyColor )
+
+            if blipData.HealthFraction and blipData.HealthFraction < 0.8 then
+                local blipHealthBarColor = kHealthBarColors[teamType]
+                local missingHealthFraction = 1 - blipData.HealthFraction
+                local gradientColor = Color(blipHealthBarColor.r + missingHealthFraction * (1 - blipHealthBarColor.r),
+                    blipHealthBarColor.g - missingHealthFraction * blipHealthBarColor.g,
+                    blipHealthBarColor.b - missingHealthFraction * blipHealthBarColor.b,
+                    1)
+
+                updateBlip.HealthBar:SetColor(gradientColor)
+            end
         end
 
         if healthFraction < regenFraction then
@@ -741,7 +754,7 @@ function GUIUnitStatus:UpdateUnitStatusBlip(blipIndex, localPlayerIsCommander, b
     end
 
     -- Badges
-    if alpha > 0 and not GetGameInfoEntity():GetGameStarted() then
+    if alpha > 0 and not kGameStarted then
         assert( #updateBlip.Badges >= #blipData.BadgeTextures )
         for i = 1, #updateBlip.Badges do
 
@@ -776,7 +789,7 @@ function GUIUnitStatus:UpdateUnitStatusBlip(blipIndex, localPlayerIsCommander, b
         GUI_SetIsVisible(updateBlip.MaturityText, false)
     end
 
-    if GetAdvancedOption("nameplates") == 2 and blipData.IsPlayer == false then
+    if nameplates == 2 and blipData.IsPlayer == false then
         GUI_SetIsVisible(updateBlip.NameText, false)
         GUI_SetIsVisible(updateBlip.HintText, false)
         GUI_SetIsVisible(updateBlip.MaturityText, false)
@@ -960,6 +973,8 @@ function GUIUnitStatus:Update(deltaTime)
         for _, unit in ipairs(statusUnits) do
             table.insert(self.activeStatusInfo, PlayerUI_GetStatusInfoForUnit(player, unit))
         end
+        
+        kGameStarted = GetGameInfoEntity():GetGameStarted()
         
         self:UpdateUnitStatusList(deltaTime)
 
