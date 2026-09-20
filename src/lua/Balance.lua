@@ -990,7 +990,7 @@ kClawCost = 15
 
 kThrustersCost = 15
 kExoArmorModuleCost = 25
-kEjectionSeatCost = 10
+kEjectionSeatCost = 15
 kExoSupportModuleCost = 10
 kExoRefitCost = 5
 
@@ -1081,7 +1081,7 @@ kClawArmor = 90
 kMinigunArmor = 90
 kRailgunArmor = 60
 kPlasmaLauncherArmor = 60
-kExoFlamerArmor = 40
+kExoFlamerArmor = 60
 kThrustersArmor = 0
 kExoArmorModuleArmor = 80
 kCatPackArmor = 0
