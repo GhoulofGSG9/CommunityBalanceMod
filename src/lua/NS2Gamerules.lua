@@ -782,79 +782,129 @@ if Server then
 
     end
 
+    -- Health and armor are fractional, but kHealthMessage sends integers.
     local function HealthTablesEqual(t1, t2)
         return t1.clientIndex == t2.clientIndex
-            and t1.health == t2.health
-            and t1.maxHealth == t2.maxHealth
-            and t1.armor == t2.armor
-            and t1.maxArmor == t2.maxArmor
+            and math.floor(t1.health) == math.floor(t2.health)
+            and math.floor(t1.maxHealth) == math.floor(t2.maxHealth)
+            and math.floor(t1.armor) == math.floor(t2.armor)
+            and math.floor(t1.maxArmor) == math.floor(t2.maxArmor)
+    end
+
+    local function TechPointTablesEqual(t1, t2)
+        return t1.entityIndex == t2.entityIndex
+            and t1.teamNumber == t2.teamNumber
+            and t1.techId == t2.techId
+            and t1.location == t2.location
+            and math.floor((t1.healthFraction or 0) * 100 + 0.5) == math.floor((t2.healthFraction or 0) * 100 + 0.5)
+            and math.floor((t1.powerNodeFraction or 0) * 100 + 0.5) == math.floor((t2.powerNodeFraction or 0) * 100 + 0.5)
+            and math.floor((t1.builtFraction or 0) * 100 + 0.5) == math.floor((t2.builtFraction or 0) * 100 + 0.5)
+            and t1.eggCount == t2.eggCount
+    end
+
+    local kHealthResendInterval = 5
+    local kTechPointResendInterval = 2
+    local insightMessageVersion = 0
+
+    local function UpdateInsightMessageCache(cache, key, message, tablesEqual, now, resendInterval)
+        local entry = cache[key]
+        if not entry or now > entry.time + resendInterval or not tablesEqual(entry.message, message) then
+            insightMessageVersion = insightMessageVersion + 1
+            entry = { message = message, version = insightMessageVersion, time = now }
+            cache[key] = entry
+        end
+        return entry
+    end
+
+    local function GetInsightSpectators()
+        local result = {}
+        for _, spectator in ientitylist(Shared.GetEntitiesWithClassname("Spectator")) do
+            if spectator:GetIsFirstPerson() then
+                spectator.healthNetMessageVersions = nil
+                spectator.techPointNetMessageVersions = nil
+            elseif not spectator:GetIsRespawning() then
+                result[#result + 1] = spectator
+            end
+        end
+        return result
+    end
+
+    local function SendInsightMessage(spectators, versionsField, key, entry, messageName)
+        for i = 1, #spectators do
+            local spectator = spectators[i]
+            local versions = spectator[versionsField]
+            if not versions then
+                versions = {}
+                spectator[versionsField] = versions
+            end
+            if versions[key] ~= entry.version then
+                Server.SendNetworkMessage(spectator, messageName, entry.message, false)
+                versions[key] = entry.version
+            end
+        end
     end
 
     -- Sends player health to all spectators
     function NS2Gamerules:UpdateHealth()
-    
-        if self.timeToSendHealth == nil or Shared.GetTime() > self.timeToSendHealth then
-        
-            local spectators = Shared.GetEntitiesWithClassname("Spectator")
-            if spectators:GetSize() > 0 then
-            
-                -- Send spectator all health
-                for _, player in ientitylist(Shared.GetEntitiesWithClassname("Player")) do
-                
-                    local message = BuildHealthMessage(player)
-                    for _, spectator in ientitylist(spectators) do
-                    
-                        if not spectator:GetIsFirstPerson() and not spectator:GetIsRespawning() then
-                            spectator.healthNetMessageCache = spectator.healthNetMessageCache or {}
-                            local info = spectator.healthNetMessageCache[player:GetClientIndex()]
-                            
-                            if not info or not HealthTablesEqual(info, message) then
-                                Server.SendNetworkMessage(spectator, "Health", message, false)
-                                spectator.healthNetMessageCache[player:GetClientIndex()] = message
-                            end
-                        end
-                        
-                    end
-                    
+
+        PROFILE("NS2Gamerules:UpdateHealth")
+
+        local now = Shared.GetTime()
+        if self.timeToSendHealth == nil or now > self.timeToSendHealth then
+
+            local spectators = GetInsightSpectators()
+            if #spectators > 0 then
+
+                local cache = self.healthMessageCache or {}
+                self.healthMessageCache = cache
+
+                local function SendPlayerHealth(player)
+                    local clientIndex = player:GetClientIndex()
+                    local entry = UpdateInsightMessageCache(cache, clientIndex, BuildHealthMessage(player), HealthTablesEqual, now, kHealthResendInterval)
+                    SendInsightMessage(spectators, "healthNetMessageVersions", clientIndex, entry, "Health")
                 end
-            
+
+                self.team1:ForEachPlayer(SendPlayerHealth)
+                self.team2:ForEachPlayer(SendPlayerHealth)
+
             end
-            self.timeToSendHealth = Shared.GetTime() + 0.25
-            
+            self.timeToSendHealth = now + 0.25
+
         end
-        
+
     end
-    
+
     -- Send Tech Point info to all spectators
     function NS2Gamerules:UpdateTechPoints()
-    
-        if self.timeToSendTechPoints == nil or Shared.GetTime() > self.timeToSendTechPoints then
-        
-            local spectators = Shared.GetEntitiesWithClassname("Spectator")
-            if spectators:GetSize() > 0 then
-                
+
+        PROFILE("NS2Gamerules:UpdateTechPoints")
+
+        local now = Shared.GetTime()
+        if self.timeToSendTechPoints == nil or now > self.timeToSendTechPoints then
+
+            local spectators = GetInsightSpectators()
+            if #spectators > 0 then
+
+                local cache = self.techPointMessageCache or {}
+                self.techPointMessageCache = cache
+
                 local powerNodes = Shared.GetEntitiesWithClassname("PowerPoint")
                 local eggs = Shared.GetEntitiesWithClassname("Egg")
-                
+
                 for _, techpoint in ientitylist(Shared.GetEntitiesWithClassname("TechPoint")) do
-                
-                    local message = BuildTechPointsMessage(techpoint, powerNodes, eggs)
-                    for _, spectator in ientitylist(spectators) do
-                    
-                        if not spectator:GetIsFirstPerson() and not spectator:GetIsRespawning()  then
-                            Server.SendNetworkMessage(spectator, "TechPoints", message, false)
-                        end
-                        
-                    end
-                    
+
+                    local techPointId = techpoint:GetId()
+                    local entry = UpdateInsightMessageCache(cache, techPointId, BuildTechPointsMessage(techpoint, powerNodes, eggs), TechPointTablesEqual, now, kTechPointResendInterval)
+                    SendInsightMessage(spectators, "techPointNetMessageVersions", techPointId, entry, "TechPoints")
+
                 end
-            
+
             end
-            
-            self.timeToSendTechPoints = Shared.GetTime() + 1
-            
+
+            self.timeToSendTechPoints = now + 1
+
         end
-        
+
     end
         
     function NS2Gamerules:VotingConcedeVoteAllowed()
