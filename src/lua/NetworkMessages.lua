@@ -1461,7 +1461,8 @@ if Server then
         local exoVariables = message
         
         -- Replace destroys self.
-        local carriedArmor = self:GetArmor()
+        local oldMaxArmor = self:GetMaxArmor()
+        local armorFraction = oldMaxArmor > 0 and (self:GetArmor() / oldMaxArmor) or 1
         local exo = self:Replace(Exo.kMapName, self:GetTeamNumber(), false, spawnPoint, exoVariables)
         
         if not exo then
@@ -1470,9 +1471,9 @@ if Server then
         end
         if self:isa("Exo") then
             -- Refit: the new exo already derived its max armor from the new module
-            -- config. Carry the armor points, not the fraction: a fraction turned a
-            -- damaged light suit into a heavier one with more armor than it walked in with.
-            exo:SetArmor(math.min(carriedArmor, exo:GetMaxArmor()))
+            -- config. Carry the damage as a fraction, the way carapace does: a full suit
+            -- stays full, so bought plating does not arrive empty.
+            exo:SetArmor(exo:GetMaxArmor() * armorFraction)
         else
             exo.prevPlayerMapName = self:GetMapName()
             exo.prevPlayerHealth = self:GetHealth()
