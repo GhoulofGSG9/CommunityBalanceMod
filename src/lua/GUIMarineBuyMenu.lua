@@ -606,42 +606,42 @@ GUIMarineBuyMenu.kExoModuleData = {
     
     -- Weapon modules
     [kExoModuleTypes.Claw]         = {
-        label          = "EXO_MODULE_CLAW", tooltip = "EXO_WEAPON_CLAW_TOOLTIP",
+        label          = "EXO_MODULE_CLAW",
         image          = kInventoryIconsTexture,
         imageTexCoords = { GetSmallIconPixelCoordinates(kTechId.Claw) },
     },
     --[kExoModuleTypes.Welder]       = {
-    --    label          = "Welder", tooltip = "EXO_WEAPON_WELDER_TOOLTIP",
+    --    label          = "Welder",
     --    image          = kInventoryIconsTexture,
     --    imageTexCoords = { GetSmallIconPixelCoordinates(kTechId.Welder) },
     --},
     --[kExoModuleTypes.Shield]       = {
-    --    label          = "Shield", tooltip = "EXO_WEAPON_SHIELD_TOOLTIP",
+    --    label          = "Shield",
     --    image          = kInventoryIconsTexture,
     --    imageTexCoords = { GetSmallIconPixelCoordinates(kTechId.PulseGrenade) },
     --},
     --[kExoModuleTypes.MarineStructureAbility] = {
-    --    label = "Builder", tooltip = "EXO_WEAPON_SHIELD_TOOLTIP",
+    --    label = "Builder",
     --    image = kInventoryIconsTexture,
     --    imageTexCoords = {GetSmallIconPixelCoordinates(kTechId.Welder)},
     --},
     [kExoModuleTypes.Railgun]      = {
-        label          = "RAILGUN", tooltip = "EXO_WEAPON_RAILGUN_TOOLTIP",
+        label          = "RAILGUN",
         image          = kInventoryIconsTexture,
         imageTexCoords = { GetSmallIconPixelCoordinates(kTechId.ClawRailgunExosuit) },
     },
 	[kExoModuleTypes.PlasmaLauncher]      = {
-        label          = "EXO_MODULE_PLASMALAUNCHER", tooltip = "EXO_WEAPON_RAILGUN_TOOLTIP",
+        label          = "EXO_MODULE_PLASMALAUNCHER",
         image          = kInventoryIconsTexture,
         imageTexCoords = { GetSmallIconPixelCoordinates(kTechId.PulseGrenade) },
     },
     [kExoModuleTypes.Minigun]      = {
-        label          = "MINIGUN", tooltip = "EXO_WEAPON_MMINIGUN_TOOLTIP",
+        label          = "MINIGUN",
         image          = kInventoryIconsTexture,
         imageTexCoords = { GetSmallIconPixelCoordinates(kTechId.Exosuit) },
     },
     [kExoModuleTypes.Flamethrower] = {
-        label          = "FLAMETHROWER", tooltip = "EXO_WEAPON_FLAMETHROWER_TOOLTIP",
+        label          = "FLAMETHROWER",
         image          = kInventoryIconsTexture,
         imageTexCoords = { GetSmallIconPixelCoordinates(kTechId.Flamethrower) },
     },
@@ -649,25 +649,25 @@ GUIMarineBuyMenu.kExoModuleData = {
     -- Utility modules
     
     [kExoModuleTypes.Armor]        = {
-        label          = "EXO_MODULE_ARMOR", tooltip = "EXO_MODULE_ARMOR_TOOLTIP",
+        label          = "EXO_MODULE_ARMOR",
         image          = "ui/buildmenu.dds",
         imageTexCoords = { GetBuildIconPixelCoords(kTechId.Armor1) },
     },
     
     [kExoModuleTypes.Thrusters]    = {
-        label          = "EXO_MODULE_THRUSTERS", tooltip = "EXO_UTILITY_SCANNER_TOOLTIP",
+        label          = "EXO_MODULE_THRUSTERS",
         image          = "ui/buildmenu.dds",
         imageTexCoords = { GetBuildIconPixelCoords(kTechId.Jetpack) },
     },
 	
     --[kExoModuleTypes.PhaseModule]  = {
-    --    label          = "Phase", tooltip = "EXO_UTILITY_SCANNER_TOOLTIP",
+    --    label          = "Phase",
     --    image          = "ui/buildmenu.dds",
     --    imageTexCoords = { GetBuildIconPixelCoords(kTechId.PhaseGate) },
     --},
 	
     [kExoModuleTypes.EjectionSeat]      = {
-        label          = "EXO_MODULE_EJECTIONSEAT", tooltip = "EXO_UTILITY_SCANNER_TOOLTIP",
+        label          = "EXO_MODULE_EJECTIONSEAT",
         image          = "ui/buildmenu.dds",
         imageTexCoords = { GetBuildIconPixelCoords(kTechId.JetpackMarine) },
     },
@@ -675,25 +675,25 @@ GUIMarineBuyMenu.kExoModuleData = {
     -- Ability modules
 
     [kExoModuleTypes.NanoShield]   = {
-        label          = "EXO_ABILITY_NANOSHIELD_FIELD", tooltip = "EXO_ABILITY_NANOSHIELD_FIELD_TOOLTIP",
+        label          = "EXO_ABILITY_NANOSHIELD_FIELD",
         image          = "ui/buildmenu.dds",
         imageTexCoords = { GetBuildIconPixelCoords(kTechId.NanoShield) },
     },
 
     [kExoModuleTypes.CatPack]      = {
-        label          = "EXO_ABILITY_ADRENALINE_FIELD", tooltip = "EXO_ABILITY_ADRENALINE_FIELD_TOOLTIP",
+        label          = "EXO_ABILITY_ADRENALINE_FIELD",
         image          = "ui/buildmenu.dds",
         imageTexCoords = { GetBuildIconPixelCoords(kTechId.CatPack) },
     },
 
     [kExoModuleTypes.NanoRepair]   = {
-        label          = "EXO_ABILITY_REGEN_FIELD", tooltip = "EXO_ABILITY_REGEN_FIELD_TOOLTIP",
+        label          = "EXO_ABILITY_REGEN_FIELD",
         image          = "ui/buildmenu.dds",
         imageTexCoords = { GetBuildIconPixelCoords(kTechId.MedPack) },
     },
 
     [kExoModuleTypes.None]         = {
-        label          = "EXO_MODULE_NONE", tooltip = "EXO_MODULE_NONE_TOOLTIP",
+        label          = "EXO_MODULE_NONE",
         image          = "ui/buildmenu.dds",
         imageTexCoords = { GetBuildIconPixelCoords(kTechId.Stop) },
     },
