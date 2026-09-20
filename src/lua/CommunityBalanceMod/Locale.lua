@@ -201,7 +201,7 @@ if Client then
 	Locale.substitutions["EXO_MODULE_RAILGUN_DESC"] = "Long range shot: charge for a second to take it from 20 to 120 structural damage, and the slug pierces every target in its line out to 30 meters. Thin plating, so it wants to fight from the back."
 	Locale.substitutions["EXO_MODULE_PLASMALAUNCHER"] = "Plasma Launcher"
 	Locale.substitutions["EXO_MODULE_PLASMALAUNCHER_DESC"] = "Lobbed plasma charge: 35 damage in a 4 meter blast plus a lingering burn. A direct hit electrifies the alien it lands on for 3.5 seconds, stripping mucous and enzyme and slowing its attacks. Swarm control, not a siege weapon. One bomb from a full cell, then one every 2 seconds."
-	Locale.substitutions["EXO_MODULE_FLAMETHROWER_DESC"] = "Fits any arm that takes a railgun, but not next to a minigun: a wider cone than the marine flamethrower's, 9 damage a tick out to 9 meters, setting aliens and structures on fire and burning away spores and umbra; bile bombs fly through it. It cannot weld, carries the thinnest plating of any arm, and overheats after ten seconds."
+	Locale.substitutions["EXO_MODULE_FLAMETHROWER_DESC"] = "Fits any arm that takes a railgun, but not next to a minigun: a wider cone than the marine flamethrower's, 9 damage a tick out to 9 meters, setting aliens and structures on fire and burning away spores and umbra; bile bombs fly through it. It cannot weld and overheats after ten seconds."
 	Locale.substitutions["EXO_MODULE_THRUSTERS"] = "Thrusters"
 	Locale.substitutions["EXO_MODULE_THRUSTERS_DESC"] = "Core module: a ground dash worth 2.5 extra speed on demand, burning 4 energy a second out of the fuel cell. Good for closing on a target or breaking a chase; it gives no lift."
 	Locale.substitutions["EXO_MODULE_EJECTIONSEAT"] = "Ejection Seat"

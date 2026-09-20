@@ -1007,6 +1007,10 @@ if Server then
                 abilityModuleType  = self.abilityModuleType,
             })
             exosuit:SetCoords(self:GetCoords())
+            -- The Ejection Seat also fires in mid-air, and the empty suit does not fall.
+            if not self:GetIsOnGround() then
+                exosuit:SetOrigin(GetGroundAt(self, self:GetOrigin(), PhysicsMask.Movement))
+            end
             exosuit:SetMaxArmor(self:GetMaxArmor())
 
             -- add armor to ejected exosuit up to a minimum amount
@@ -1948,8 +1952,10 @@ elseif Client then
 
         input = Player.OverrideInput(self, input)
 
-        if Input_GetIsBindingDown("Drop") and not self.ejecting and not self:isa("ReadyRoomExo")
-        and not MainMenu_GetIsOpened() and not ChatUI_EnteringChatMessage() then
+        if MainMenu_GetIsOpened() then
+            Input_ReleaseBinding("Drop")
+        elseif Input_GetIsBindingDown("Drop") and not self.ejecting and not self.buyMenu
+        and not self:isa("ReadyRoomExo") then
             input.commands = bit.bor(input.commands, Move.Drop)
         end
 
