@@ -1346,7 +1346,13 @@ function GUIAlienBuyMenu:_UpdateAlienButtons()
             local offset = Vector((((alienButton.TypeData.XPos - 1) / numAlienTypes) * (GUIAlienBuyMenu.kAlienButtonSize * numAlienTypes)) - (totalAlienButtonsWidth / 2), 0, 0)
             alienButton.SelectedBackground:SetPosition(Vector(-GUIAlienBuyMenu.kAlienButtonSize / 2, -GUIAlienBuyMenu.kAlienSelectedButtonSize / 2 - alienButton.ARAdjustedHeight / 2, 0) + offset)
 
-            alienButton.PlayersText:SetText("x" .. ToString(ScoreboardUI_GetNumberOfAliensByType(alienButton.TypeData.Name)))
+            local alienCount = ScoreboardUI_GetNumberOfAliensByType(alienButton.TypeData.Name)
+            local eggCount = ScoreboardUI_GetNumberOfAliensByType(alienButton.TypeData.Name .. "Egg")
+            if eggCount > 0 then
+                alienButton.PlayersText:SetText(string.format("x%d (%d)", alienCount, eggCount))
+            else
+                alienButton.PlayersText:SetText("x" .. ToString(alienCount))
+            end
 
             alienButton.ResearchText:SetIsVisible(researching)
             if researching then
