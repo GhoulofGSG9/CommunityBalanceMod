@@ -497,6 +497,11 @@ if Server then
         
         StatsUI_ResetStats()
 
+        -- Entity ids and client indices come back after a reset, so a cached
+        -- message could match a recycled key and never be resent.
+        self.healthMessageCache = nil
+        self.techPointMessageCache = nil
+
         self:SetGameState(kGameState.NotStarted)
 
         TournamentModeOnReset()
@@ -782,13 +787,13 @@ if Server then
 
     end
 
-    -- Health and armor are fractional, but kHealthMessage sends integers.
+    -- Health and armor are fractional, but kHealthMessage rounds them to integers.
     local function HealthTablesEqual(t1, t2)
         return t1.clientIndex == t2.clientIndex
-            and math.floor(t1.health) == math.floor(t2.health)
-            and math.floor(t1.maxHealth) == math.floor(t2.maxHealth)
-            and math.floor(t1.armor) == math.floor(t2.armor)
-            and math.floor(t1.maxArmor) == math.floor(t2.maxArmor)
+            and math.round(t1.health) == math.round(t2.health)
+            and math.round(t1.maxHealth) == math.round(t2.maxHealth)
+            and math.round(t1.armor) == math.round(t2.armor)
+            and math.round(t1.maxArmor) == math.round(t2.maxArmor)
     end
 
     local function TechPointTablesEqual(t1, t2)
