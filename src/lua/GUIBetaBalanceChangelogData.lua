@@ -161,6 +161,7 @@ if kCBMaddon then
 	  - Display status icons even with minimal hud elements.
 
 	### QoL / General Improvements
+	  - Dual Minigun, Flamethrower and Plasma Launcher Firing Sync now default to off, matching the mods menu checkboxes.
 	  - Player and structure highlight shader made more pronounced to improve visual acuity.
 	  - Changed point rewards for building structures from 4 points to be tied to the build time.
 	  - Removed point reward for building hydras, but added score for applying babblers.
@@ -781,6 +782,7 @@ else
 	  - Display status icons even with minimal hud elements.
 
 	### QoL / General Improvements
+	  - Dual Minigun, Flamethrower and Plasma Launcher Firing Sync now default to off, matching the mods menu checkboxes.
 	  - Player and structure highlight shader made more pronounced to improve visual acuity.
 	  - Changed point rewards for building structures from 4 points to be tied to the build time.
 	  - Removed point reward for building hydras, but added score for applying babblers.
