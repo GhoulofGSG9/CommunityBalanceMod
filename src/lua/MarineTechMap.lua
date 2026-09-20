@@ -90,8 +90,6 @@ if kCBMaddon then
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.ExoPrototypeLab, kTechId.ExosuitTech),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.ExoPrototypeLab, kTechId.CoresExosuitTech),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.ExoPrototypeLab, kTechId.DualMinigunTech),
-		-- CoresExosuitTech is DualMinigunTech's second prerequisite:
-		{9, 10.5, 10, 10.5, 0}, -- 5th Number Color
 
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.Observatory, kTechId.PhaseTech),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.PhaseTech, kTechId.PhaseGate),
