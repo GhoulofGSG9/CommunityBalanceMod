@@ -993,7 +993,8 @@ end
 -- builds one for anybody; a built armory only refits the suit an exo is already wearing.
 -- Mirrors the host test ModularExo_HandleExoModularBuy runs on the server.
 function GUIMarineBuyMenu:_GetHostCanSellExoConfig()
-    return self.exoRefitHost == true or self.hostStructure:GetTechId() == kTechId.ExoPrototypeLab
+    return self.exoRefitHost == true
+        or (self.hostStructure:GetTechId() == kTechId.ExoPrototypeLab and self.hostStructure:GetIsBuilt())
 end
 
 function GUIMarineBuyMenu:CreatePrototypeLabUI()
@@ -2984,6 +2985,7 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
     -- as well, so finishing a research while the menu is open repaints the grid.
     local hasCoresTech    = ModularExo_GetIsTechResearched(kTechId.CoresExosuitTech)
     local hasDualArmsTech = ModularExo_GetIsTechResearched(kTechId.DualMinigunTech)
+    local hasExosuitTech  = ModularExo_GetIsTechResearched(kTechId.ExosuitTech)
 
     -- Repainting the grid costs one ModularExo_GetIsConfigValid call per button plus a
     -- string per label, and this is called on every frame the page is up. None of it can
@@ -3005,7 +3007,8 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
     and self.exoButtonsPaintedUtility == utility
     and self.exoButtonsPaintedAbility == ability
     and self.exoButtonsPaintedCoresTech == hasCoresTech
-    and self.exoButtonsPaintedDualArmsTech == hasDualArmsTech then
+    and self.exoButtonsPaintedDualArmsTech == hasDualArmsTech
+    and self.exoButtonsPaintedExosuitTech == hasExosuitTech then
         return
     end
 
@@ -3018,6 +3021,7 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
     self.exoButtonsPaintedAbility = ability
     self.exoButtonsPaintedCoresTech = hasCoresTech
     self.exoButtonsPaintedDualArmsTech = hasDualArmsTech
+    self.exoButtonsPaintedExosuitTech = hasExosuitTech
 
     -- What the configuration on screen is still waiting on, if anything. The BUY button and
     -- the click handler gate on this, and it is the same call the server makes.

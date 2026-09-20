@@ -1423,8 +1423,9 @@ if Server then
         -- built armory only refits the suit a player is already wearing, so a marine on foot
         -- standing at one is refused here.
         local playerPos = self:GetOrigin()
+        local slack = self:isa("Exo") and kExoStructureUseSlack or 0
         local nearestHost
-        for _, lab in ipairs(GetEntitiesForTeamWithinRange("PrototypeLab", self:GetTeamNumber(), playerPos, PrototypeLab.kResupplyUseRange + kExoStructureUseSlack)) do
+        for _, lab in ipairs(GetEntitiesForTeamWithinRange("PrototypeLab", self:GetTeamNumber(), playerPos, PrototypeLab.kResupplyUseRange + slack)) do
             if lab:GetTechId() == kTechId.ExoPrototypeLab and lab:GetIsBuilt() then
                 nearestHost = lab
                 break
@@ -1467,12 +1468,9 @@ if Server then
         end
         if self:isa("Exo") then
             -- Refit: the new exo already derived its max armor from the new module
-            -- config, so keep that and carry over the damage taken as a fraction.
-            -- Copying the old max armor here would let a heavy config be refitted
-            -- into a light one while keeping the heavy suit's armor pool.
-            local oldMaxArmor = self:GetMaxArmor()
-            local armorFraction = oldMaxArmor > 0 and (self:GetArmor() / oldMaxArmor) or 1
-            exo:SetArmor(exo:GetMaxArmor() * armorFraction)
+            -- config. Carry the armor points, not the fraction: a fraction turned a
+            -- damaged light suit into a heavier one with more armor than it walked in with.
+            exo:SetArmor(math.min(self:GetArmor(), exo:GetMaxArmor()))
         else
             exo.prevPlayerMapName = self:GetMapName()
             exo.prevPlayerHealth = self:GetHealth()
