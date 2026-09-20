@@ -771,6 +771,10 @@ if Server then
         
         self:SetInternalPowerState(PowerPoint.kPowerState.destroyed)
         
+        -- These may not be 0 yet possibly causing babblers to keep attacking
+        self.buildTime = 0
+        self.buildFraction = 0
+
         self:SetLightMode(kLightMode.NoPower)
         
         -- Remove effects such as parasite when destroyed.
