@@ -974,7 +974,8 @@ function GUIUnitStatus:Update(deltaTime)
             table.insert(self.activeStatusInfo, PlayerUI_GetStatusInfoForUnit(player, unit))
         end
         
-        kGameStarted = GetGameInfoEntity():GetGameStarted()
+        local gameInfo = GetGameInfoEntity()
+        kGameStarted = gameInfo ~= nil and gameInfo:GetGameStarted()
         
         self:UpdateUnitStatusList(deltaTime)
 
