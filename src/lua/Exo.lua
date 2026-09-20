@@ -375,12 +375,12 @@ function Exo:OnInitialized()
     InitMixin(self, CatPackMixin)
     
     Player.OnInitialized(self)
-    
-    self.timeSupportAbilityReady = 0
-    self.timeSupportAbilityMissed = 0
-    
+
     if Server then
-        
+
+        self.timeSupportAbilityReady = 0
+        self.timeSupportAbilityMissed = 0
+
         -- This Mixin must be inited inside this OnInitialized() function.
         if not HasMixin(self, "MapBlip") then
             InitMixin(self, MapBlipMixin)
@@ -907,8 +907,10 @@ function Exo:GetFlashlightOn()
     return self.flashlightOn
 end
 
-function Exo:GetCanEject()
-    return self:GetIsPlaying() and not self.ejecting and self:GetIsOnGround() and not self:GetIsOnEntity()
+-- The Ejection Seat fires wherever the armor runs out, so it skips the ground checks.
+function Exo:GetCanEject(isAutoEject)
+    return self:GetIsPlaying() and not self.ejecting
+            and (isAutoEject or (self:GetIsOnGround() and not self:GetIsOnEntity()))
             and self.creationTime + kExosuitDeployDuration < Shared.GetTime()
             and #GetEntitiesForTeamWithinRange("CommandStation", self:GetTeamNumber(), self:GetOrigin(), 2.5) == 0
 end
@@ -950,9 +952,9 @@ function Exo:GetIsEjecting()
     return self.ejecting
 end
 
-function Exo:EjectExo()
-    
-    if self:GetCanEject() then
+function Exo:EjectExo(isAutoEject)
+
+    if self:GetCanEject(isAutoEject) then
         
         self.ejecting = true
         self.ejectHoldFraction = 0
@@ -971,7 +973,7 @@ function Exo:ModifyDamageTakenPostRules(damageTable, attacker, doer, damageType,
     local ArmorDamage = damageTable.damage * 0.5
     
     if not self.ejecting and self:GetArmor() - ArmorDamage <= kExoLowHealthEjectThreshold and self:GetHasEjectionSeat() then
-        self:EjectExo()
+        self:EjectExo(true)
         --Print("Eject")
     end
 
@@ -1936,27 +1938,18 @@ elseif Client then
     -- InputHandler only sets Move.Drop on the move in which the key goes down
     -- (_keyPressed is emptied after every generated move and the OS key repeat is
     -- filtered out), so holding the key never produced more than one move with the
-    -- bit set and the hold timer could never complete. Track the key here and keep
+    -- bit set and the hold timer could never complete. Read the key state and keep
     -- the bit set for as long as it is actually down, but stop the moment the eject
     -- itself starts: every further move with the bit set would only reach the marine
     -- the server replaces us with, and be read there as "throw your weapon away".
-    function Exo:SendKeyEvent(key, down)
-
-        if GetIsBinding(key, "Drop") then
-            self.clientEjectKeyDown = down
-        end
-
-        return Player.SendKeyEvent(self, key, down)
-
-    end
-
+    -- Not tracked through SendKeyEvent: a GUI that consumes the key release keeps it
+    -- from the player, and the suit would eject with no key held.
     function Exo:OverrideInput(input)
 
         input = Player.OverrideInput(self, input)
 
-        if MainMenu_GetIsOpened() or ChatUI_EnteringChatMessage() then
-            self.clientEjectKeyDown = false
-        elseif self.clientEjectKeyDown and not self.ejecting and not self:isa("ReadyRoomExo") then
+        if Input_GetIsBindingDown("Drop") and not self.ejecting and not self:isa("ReadyRoomExo")
+        and not MainMenu_GetIsOpened() and not ChatUI_EnteringChatMessage() then
             input.commands = bit.bor(input.commands, Move.Drop)
         end
 
@@ -2136,7 +2129,7 @@ function Exo:UpdateSupportAbility(input)
 
     elseif moduleType == kExoModuleTypes.NanoRepair then
 
-        if self.regenFieldTicksLeft == nil then
+        if self.regenFieldTicksLeft == nil and #targets > 0 then
             self.regenFieldTicksLeft = kExoRegenFieldDuration
             self:AddTimedCallback(RegenFieldTick, 1)
             affected = 1

@@ -166,6 +166,11 @@ function SetKeyEventBlocker(setKeyEventBlocker)
     keyEventBlocker = setKeyEventBlocker
 end
 
+-- Key releases always reach _keyState, even when a GUI consumed the event.
+function Input_GetIsBindingDown(bindingName)
+    return _keyState[_keyBinding[bindingName]] == true
+end
+
 function SetMoveInputBlocked(blocked)
     moveInputBlocked = blocked
 end
