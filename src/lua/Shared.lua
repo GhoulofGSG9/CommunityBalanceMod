@@ -667,12 +667,10 @@ function ModularExo_GetConfigSpeedFraction(config)
     return 1 - ModularExo_GetConfigWeight(config)
 end
 
--- Speed readouts use the claw + minigun suit as 100%; a suit fraction or a module
+-- Speed readouts use the marine walk speed as 100%; a suit fraction or a module
 -- weight (fraction of the base speed) both go through this.
 function ModularExo_GetSpeedPercent(fractionOfBase)
-    local reference = 1 - kExoModuleTypesData[kExoModuleTypes.Claw].weight
-                        - kExoModuleTypesData[kExoModuleTypes.Minigun].weight
-    return math.floor(fractionOfBase / reference * 100 + 0.5)
+    return math.floor(fractionOfBase * kExosuitMaxSpeed / Marine.kWalkMaxSpeed * 100 + 0.5)
 end
 
 -- Armor the modules alone contribute, without the base exo armor or armor upgrades.

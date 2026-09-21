@@ -2820,7 +2820,7 @@ function GUIMarineBuyMenu:_SetDetailsSectionExoModule(moduleType, lockedTechId, 
     self.costText:SetText(string.format("%s: %d", Locale.ResolveString("BUYMENU_COST"), resourceCost))
 
     -- Weight is an internal number; what a player cares about is the speed it costs,
-    -- shown against the claw + minigun suit as 100% (see Exo:GetInventorySpeedScalar).
+    -- shown against the marine walk speed as 100% (see Exo:GetInventorySpeedScalar).
     local armorValue = moduleTypeData.armorValue or 0
     local speedLoss = ModularExo_GetSpeedPercent(moduleTypeData.weight or 0)
     local statParts = {}
