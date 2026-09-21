@@ -33,6 +33,7 @@ Script.Load("lua/PlayerStatusMixin.lua")
 
 -- %%% New CBM Files %%% --
 Script.Load("lua/Mixins/JumpMoveMixin.lua")
+Script.Load("lua/ExoLoadoutCues.lua")
 Script.Load("lua/Weapons/PierceProjectile.lua")
 Script.Load("lua/Weapons/PredictedProjectile.lua")
 Script.Load("lua/BlightMixin.lua")
@@ -624,6 +625,10 @@ function Exo:OnDestroy()
         Client.DestroyCinematic(self.flares)
         self.flares = nil
     
+    end
+    
+    if Client then
+        ExoLoadoutCues_Destroy(self)
     end
     
     if self.armorDisplay then
@@ -1242,6 +1247,8 @@ if Client then
         -- Synchronize the state of the light representing the flash light.
         self.flashlight:SetIsVisible(flashLightVisible)
         self.flares:SetIsVisible(flaresVisible)
+
+        ExoLoadoutCues_Update(self)
         
         if self.flashlightOn then
             
