@@ -200,7 +200,7 @@ if Client then
 	Locale.substitutions["EXO_MODULE_MINIGUN_DESC"] = "Mid range bullet hose with no ammo to reload: 6 heavy damage a round, the pick against big armored lifeforms. It overheats after three and a half seconds of held fire and is by far the heaviest arm: two of them make the suit a slow tank."
 	Locale.substitutions["EXO_MODULE_RAILGUN_DESC"] = "Long range shot: charge for a second to take it from 20 to 120 structural damage, and the slug pierces every target in its line out to 30 meters. Thin plating, so it wants to fight from the back."
 	Locale.substitutions["EXO_MODULE_PLASMALAUNCHER"] = "Plasma Launcher"
-	Locale.substitutions["EXO_MODULE_PLASMALAUNCHER_DESC"] = "Lobbed plasma charge: 35 damage in a 4 meter blast plus a lingering burn. A direct hit electrifies the alien it lands on for 3.5 seconds, stripping mucous and enzyme and slowing its attacks. Swarm control, not a siege weapon. One bomb from a full cell, then one every 2 seconds."
+	Locale.substitutions["EXO_MODULE_PLASMALAUNCHER_DESC"] = "Lobbed plasma charge: 35 damage in a 4 meter blast plus a lingering DoT. A direct hit electrifies the alien it lands on for 3.5 seconds, stripping mucous and enzyme and slowing its attacks. Swarm control, not a siege weapon. One bomb from a full cell, then one every 2 seconds."
 	Locale.substitutions["EXO_MODULE_FLAMETHROWER_DESC"] = "Fits any arm that takes a railgun, but not next to a minigun: a wider cone than the marine flamethrower's, 9 damage a tick out to 9 meters, setting aliens and structures on fire and burning away spores and umbra; bile bombs fly through it. It cannot weld and overheats after 10 seconds."
 	Locale.substitutions["EXO_MODULE_THRUSTERS"] = "Thrusters"
 	Locale.substitutions["EXO_MODULE_THRUSTERS_DESC"] = "Core module: a ground dash worth 2.5 extra speed on demand, burning 4 energy a second out of the fuel cell. Good for closing on a target or breaking a chase; it gives no lift."
@@ -245,7 +245,7 @@ if Client then
 	-- Exosuit hold-to-eject HUD
 	Locale.substitutions["EXO_EJECT_HOLD_HINT"] = "Hold to eject"
 	Locale.substitutions["EXO_EJECT_HOLD_PROGRESS"] = "Ejecting %d%%"
-	Locale.substitutions["EXO_EJECT_BLOCKED_FORMAT"] = "Hold to eject - %s"
+	Locale.substitutions["EXO_EJECT_BLOCKED_FORMAT"] = "Cannot eject - %s"
 	Locale.substitutions["EXO_EJECT_REASON_COMBAT"] = "combat"
 	Locale.substitutions["EXO_EJECT_REASON_AIRBORNE"] = "airborne"
 	Locale.substitutions["EXO_EJECT_REASON_DEPLOYING"] = "deploying"
