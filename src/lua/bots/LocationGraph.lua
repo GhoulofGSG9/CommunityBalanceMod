@@ -78,17 +78,6 @@ local function TryNudgeFindPoint(point, dist, scans, step)
     end
 
     if #samples > 0 then
-        --sort by shortest distance to original Point
-        table.sort(samples, function(a, b)
-            if a and b then
-                local aV = Vector(a - point)
-                local bV = Vector(b - point)
-                return bV:GetLength() > aV:GetLength()
-            else
-                return a ~= nil
-            end
-        end)
-
         --Print("\n Nudge Samples for [%s]\n%s\n", ToString(point), ToString(samples))
         --[[
         Print("Distance Table:\n")
@@ -97,7 +86,20 @@ local function TryNudgeFindPoint(point, dist, scans, step)
         end
         --]]
 
-        return samples[1]   --nearest
+        -- Nearest sample to the original point. Only the closest one is ever
+        -- used, so scan for it instead of sorting the whole table; the sort
+        -- this replaces used a comparator that was not a valid ordering.
+        local nearest = samples[1]
+        local nearestDistance = (nearest - point):GetLengthSquared()
+        for v = 2, #samples do
+            local distance = (samples[v] - point):GetLengthSquared()
+            if distance < nearestDistance then
+                nearest = samples[v]
+                nearestDistance = distance
+            end
+        end
+
+        return nearest
     end
 
     return point    --fail-over

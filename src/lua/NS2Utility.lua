@@ -754,28 +754,52 @@ end
 ]]
 function ValidateSpawnPoint(spawnPoint, capsuleHeight, capsuleRadius, filter, origin)
 
-    local center = Vector(0, capsuleHeight * 0.5 + capsuleRadius, 0)
-    local spawnPointCenter = spawnPoint + center
+    local halfHeight = capsuleHeight * 0.5
+    local offsetY = halfHeight + capsuleRadius
+
+    local spawnPointCenter = Vector(spawnPoint.x, spawnPoint.y + offsetY, spawnPoint.z)
 
     -- Make sure capsule isn't interpenetrating something.
-    local spawnPointBlocked = Shared.CollideCapsule(spawnPointCenter, capsuleRadius, capsuleHeight, CollisionRep.Default, PhysicsMask.AllButPCs, nil)
-    if not spawnPointBlocked then
+    local spawnPointBlocked = Shared.CollideCapsule(
+        spawnPointCenter,
+        capsuleRadius,
+        capsuleHeight,
+        CollisionRep.Default,
+        PhysicsMask.AllButPCs,
+        nil
+    )
 
-        -- Trace capsule to ground, making sure we're not on something like a player or structure
-        local trace = Shared.TraceCapsule(spawnPointCenter, spawnPoint - Vector(0, 10, 0), capsuleRadius, capsuleHeight, CollisionRep.Move, PhysicsMask.AllButPCs)
-        if trace.fraction < 1 and (trace.entity == nil or not trace.entity:isa("ScriptActor")) then
+    if spawnPointBlocked then
+        return nil
+    end
 
-            VectorCopy(trace.endPoint, spawnPoint)
+    -- Trace capsule to ground, making sure we're not on something like a player or structure
+    local targetPoint = Vector(spawnPoint.x, spawnPoint.y - 10, spawnPoint.z)
+    local capsuleTrace = Shared.TraceCapsule(
+        spawnPointCenter,
+        targetPoint,
+        capsuleRadius,
+        capsuleHeight,
+        CollisionRep.Move,
+        PhysicsMask.AllButPCs
+    )
 
-            local endPoint = trace.endPoint + Vector(0, capsuleHeight / 2, 0)
-            -- Trace in both directions to make sure no walls are being ignored.
-            trace = Shared.TraceRay(endPoint, origin, CollisionRep.Move, PhysicsMask.AllButPCs, filter)
-            local traceOriginToEnd = Shared.TraceRay(origin, endPoint, CollisionRep.Move, PhysicsMask.AllButPCs, filter)
+    if capsuleTrace.fraction < 1 and (capsuleTrace.entity == nil or not capsuleTrace.entity:isa("ScriptActor")) then
 
-            if trace.fraction == 1 and traceOriginToEnd.fraction == 1 then
-                return spawnPoint - Vector(0, capsuleHeight / 2, 0)
+        local groundPoint = capsuleTrace.endPoint
+        VectorCopy(groundPoint, spawnPoint)
+
+        local rayEndPoint = Vector(groundPoint.x, groundPoint.y + halfHeight, groundPoint.z)
+
+        -- Trace in both directions to make sure no walls are being ignored.
+        local rayTrace1 = Shared.TraceRay(rayEndPoint, origin, CollisionRep.Move, PhysicsMask.AllButPCs, filter)
+
+        if rayTrace1.fraction == 1 then
+            local rayTrace2 = Shared.TraceRay(origin, rayEndPoint, CollisionRep.Move, PhysicsMask.AllButPCs, filter)
+
+            if rayTrace2.fraction == 1 then
+                return Vector(groundPoint.x, groundPoint.y - halfHeight, groundPoint.z)
             end
-
         end
 
     end
@@ -802,28 +826,22 @@ function GetRandomSpawnForCapsule(capsuleHeight, capsuleRadius, origin, minRange
     capsuleRadius = capsuleRadius + 0.5    --padding for spacing
 
     maxHeight = maxHeight or 10
+    local offset = Vector(0, 0.5, 0)
 
     for i = 0, 10 do
 
-        local spawnPoint
         local points = GetRandomPointsWithinRadius(origin, minRange, maxRange, maxHeight, 1, 1, nil, validationFunc)
         if #points == 1 then
-            spawnPoint = points[1]
-        elseif Server then
-            --DebugPrint("GetRandomPointsWithinRadius() failed inside of GetRandomSpawnForCapsule()")
-        end
-
-        if spawnPoint then
-
-
-            -- The spawn point returned by GetRandomPointsWithinRadius() may be too close to the ground.
-            -- Move it up a bit so there is some "wiggle" room. ValidateSpawnPoint() traces down anyway.
-            spawnPoint = spawnPoint + Vector(0, 0.5, 0)
-            local validSpawnPoint = ValidateSpawnPoint(spawnPoint, capsuleHeight, capsuleRadius, filter, origin)
-            if validSpawnPoint then
-                return validSpawnPoint
+            local spawnPoint = points[1]
+            if spawnPoint then
+                -- The spawn point returned by GetRandomPointsWithinRadius() may be too close to the ground.
+                -- Move it up a bit so there is some "wiggle" room. ValidateSpawnPoint() traces down anyway.
+                spawnPoint = spawnPoint + offset
+                local validSpawnPoint = ValidateSpawnPoint(spawnPoint, capsuleHeight, capsuleRadius, filter, origin)
+                if validSpawnPoint then
+                    return validSpawnPoint
+                end
             end
-
         end
 
     end
@@ -1414,7 +1432,7 @@ function GetCanAttackEntity(seeingEntity, targetEntity)
 end
 
 -- Computes line of sight to entity, set considerObstacles to true to check if any other entity is blocking LOS
-local toEntity = Vector()
+local kDefaultDoorFilter = EntityFilterAllButIsa("Door")
 function GetCanSeeEntity(seeingEntity, targetEntity, considerObstacles, obstaclesFilter, skipTrace)
 
     PROFILE("NS2Utility:GetCanSeeEntity")
@@ -1434,34 +1452,30 @@ function GetCanSeeEntity(seeingEntity, targetEntity, considerObstacles, obstacle
         -- Anything that has the GetFov method supports FOV checking.
         if seeingEntity.GetFov ~= nil then
 
-            -- Reuse vector
-            toEntity.x = targetOrigin.x - eyePos.x
-            toEntity.y = targetOrigin.y - eyePos.y
-            toEntity.z = targetOrigin.z - eyePos.z
-
-            -- Normalize vector
-            local toEntityLength = math.sqrt(toEntity.x * toEntity.x + toEntity.y * toEntity.y + toEntity.z * toEntity.z)
-            if toEntityLength > kEpsilon then
-
-                toEntity.x = toEntity.x / toEntityLength
-                toEntity.y = toEntity.y / toEntityLength
-                toEntity.z = toEntity.z / toEntityLength
-
-            end
+            local dx = targetOrigin.x - eyePos.x
+            local dy = targetOrigin.y - eyePos.y
+            local dz = targetOrigin.z - eyePos.z
 
             local seeingEntityAngles = GetEntityViewAngles(seeingEntity)
             local normViewVec = seeingEntityAngles:GetCoords().zAxis
-            local dotProduct = Math.DotProduct(toEntity, normViewVec)
-            local fov = seeingEntity:GetFov()
+            local dotProduct = dx * normViewVec.x + dy * normViewVec.y + dz * normViewVec.z
 
+            local toEntityLength = math.sqrt(dx * dx + dy * dy + dz * dz)
+            if toEntityLength > kEpsilon then
+                dotProduct = dotProduct / toEntityLength
+            end
+
+            local fov
             -- players have separate fov for marking enemies as sighted
             if seeingEntity.GetMinimapFov then
                 fov = seeingEntity:GetMinimapFov(targetEntity)
+            else
+                fov = seeingEntity:GetFov()
             end
 
             local halfFov = math.rad(fov / 2)
-            local s = math.acos(dotProduct)
-            withinFOV = s < halfFov
+            withinFOV = dotProduct >= -1 and dotProduct <= 1 and halfFov > 0
+                    and (halfFov > math.pi or dotProduct > math.cos(halfFov))
 
         end
 
@@ -1471,7 +1485,7 @@ function GetCanSeeEntity(seeingEntity, targetEntity, considerObstacles, obstacle
                 seen = true
             else
 
-                local filter = EntityFilterAllButIsa("Door")-- EntityFilterAll()
+                local filter = kDefaultDoorFilter
                 if considerObstacles then
                     -- Weapons don't block FOV
                     filter = obstaclesFilter or EntityFilterTwoAndIsa(seeingEntity, targetEntity, "Weapon")

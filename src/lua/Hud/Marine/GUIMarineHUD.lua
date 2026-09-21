@@ -310,8 +310,8 @@ function GUIMarineHUD:Initialize()
     end
 
     -- Fix bug where weapon/armor upgrade icons would display with the wrong coords on res change
-    self:ShowNewWeaponLevel(PlayerUI_GetWeaponLevel())
-    self:ShowNewArmorLevel(PlayerUI_GetArmorLevel())
+    self:ShowNewWeaponLevel(PlayerUI_GetWeaponLevel(true))
+    self:ShowNewArmorLevel(PlayerUI_GetArmorLevel(true))
 
 end
 
@@ -851,8 +851,8 @@ function GUIMarineHUD:Update(deltaTime)
     local armorLevel = 0
     local weaponLevel = 0
 
-    armorLevel = PlayerUI_GetArmorLevel()
-    weaponLevel = PlayerUI_GetWeaponLevel()
+    armorLevel = PlayerUI_GetArmorLevel(true)
+    weaponLevel = PlayerUI_GetWeaponLevel(true)
 
     GUI_SetIsVisible(self.armorLevel, armorLevel ~= 0)
     GUI_SetIsVisible(self.weaponLevel, weaponLevel ~= 0)

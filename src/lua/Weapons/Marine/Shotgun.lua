@@ -23,7 +23,6 @@ Shotgun.kMapName = "shotgun"
 local networkVars =
 {
     emptyPoseParam = "private float (0 to 1 by 0.01)",
-    timeAttackStarted = "time",
 }
 
 AddMixinNetworkVars(LiveMixin, networkVars)

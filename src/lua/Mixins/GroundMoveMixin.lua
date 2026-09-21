@@ -75,7 +75,8 @@ function GroundMoveMixin:__initmixin()
     self.performedDownTraceLastMove = false
     self.lastGroundCheck = {
         distance = 0, -- How far from the ground we checked we were
-        origin = false, -- Position of the test
+        origin = Vector(0, 0, 0), -- Position of the test, written in place
+        originValid = false, -- origin has not been written yet, do not match it
         normal = false, -- Normal from position to ground
         surfaceMaterial = "" -- material hit
     }
@@ -95,15 +96,18 @@ local function _SetGroundCheckCache(self, distance, hitEntities, normal, surface
 
     -- Only cache a successfull ground check if no entity hit (because they can move/die/etc)
     -- The ground is our friend, it's always there for us
+    -- Vector() is a cdata allocation; this runs on every ground check of every
+    -- moving entity, so copy into the cached vector instead of making a new one.
     if (hitEntities == nil) then
         self.lastGroundCheck.distance = distance
-        self.lastGroundCheck.origin = Vector(self:GetOrigin())
+        VectorCopy(self:GetOrigin(), self.lastGroundCheck.origin)
+        self.lastGroundCheck.originValid = true
         self.lastGroundCheck.normal = normal
         self.lastGroundCheck.surfaceMaterial = surfaceMaterial
     else
         --if Server then Log("Set error: %s/%s/%s", hitEntities, distance, origDistance) end
         self.lastGroundCheck.distance = -1
-        self.lastGroundCheck.origin = Vector(-1,-1,-1)
+        self.lastGroundCheck.originValid = false
     end
 end
 
@@ -115,8 +119,9 @@ end
 
 local function _GetIsStillOnSameGroundPosition(self, distance)
     -- Any test with a higher or equal threshold distance and same position is on ground too
-    local distValid = self.lastGroundCheck.distance <= distance
-    local sameOrigin = self:GetOrigin() == self.lastGroundCheck.origin
+    local lastGroundCheck = self.lastGroundCheck
+    local distValid = lastGroundCheck.distance <= distance
+    local sameOrigin = lastGroundCheck.originValid and self:GetOrigin() == lastGroundCheck.origin
     local isCacheHit = (distValid and sameOrigin)
     return isCacheHit
 end
