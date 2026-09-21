@@ -32,7 +32,8 @@ if Client then
 
     -- An arm that fired a moment ago has already told everyone what it is.
     local kArmCueQuietTime = 8
-    local kArmCueInterval = 3
+    local kArmCueIntervalMin = 2.5
+    local kArmCueIntervalMax = 4.5
 
     local kBeaconBlinkPeriod = 1.2
     local kBeaconBlinkOnTime = 0.3
@@ -116,20 +117,24 @@ if Client then
 
     end
 
+    local function GetNextArmCueTime(now)
+        return now + kArmCueIntervalMin + math.random() * (kArmCueIntervalMax - kArmCueIntervalMin)
+    end
+
     -- One muzzle puff every few seconds from an arm that has been quiet.
     local function UpdateArmCue(exo, weapon, side, now)
 
         local fields = kArmAttachPoints[side]
 
         if not weapon or GetArmFiredRecently(exo, weapon, fields.flameTime, now) then
-            exo[fields.nextCue] = now + kArmCueInterval
+            exo[fields.nextCue] = GetNextArmCueTime(now)
             return
         end
 
         if now < (exo[fields.nextCue] or 0) then
             return
         end
-        exo[fields.nextCue] = now + kArmCueInterval
+        exo[fields.nextCue] = GetNextArmCueTime(now)
 
         local viewName, worldName
         if weapon:isa("ExoFlamer") then
