@@ -207,6 +207,10 @@ function TechTree:GetEnablesText(techId)
 
     local text = ""
 
+    if techId == nil or techId == kTechId.None then
+        return text
+    end
+
     for _, nodeTechId in ipairs(self.techIdList) do
 
         local techNode = self:GetTechNode(nodeTechId)
