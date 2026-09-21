@@ -55,7 +55,7 @@ Shell.kRegenHealRate = 0.01
 
 local networkVars =
 { 
-	electrified = "boolean"
+    electrified = "boolean"
 }
 
 AddMixinNetworkVars(BaseModelMixin, networkVars)
@@ -105,7 +105,7 @@ function Shell:OnCreate()
     InitMixin(self, CatalystMixin)
     InitMixin(self, TeleportMixin)
     InitMixin(self, UmbraMixin)
-	InitMixin(self, DouseMixin)
+    InitMixin(self, DouseMixin)
     InitMixin(self, DissolveMixin)
     InitMixin(self, MaturityMixin)
     InitMixin(self, CombatMixin)
@@ -114,17 +114,18 @@ function Shell:OnCreate()
     
     if Server then
         InitMixin(self, InfestationTrackerMixin)
-		self.electrified = false
-		self.timeElectrifyEnds = 0
+        self.electrified = false
+        self.timeElectrifyEnds = 0
     elseif Client then
         InitMixin(self, CommanderGlowMixin)
-		InitMixin(self, RailgunTargetMixin)
-		InitMixin(self, BlowtorchTargetMixin)		
+        InitMixin(self, RailgunTargetMixin)
+        InitMixin(self, BlowtorchTargetMixin)       
     end
     
     self:SetLagCompensated(false)
     self:SetPhysicsType(PhysicsType.Kinematic)
     self:SetPhysicsGroup(PhysicsGroup.MediumStructuresGroup)
+    self:SetUpdates(true, kUpdateIntervalMinimal)
     
 end
 
@@ -238,20 +239,19 @@ Shared.LinkClassToMap("Shell", Shell.kMapName, networkVars)
 function Shell:OnUpdate(deltaTime)
 
     if Server then
-		
-		self.electrified = self.timeElectrifyEnds > Shared.GetTime()
-		
+        local now = Shared.GetTime()
+
+        self.electrified = self.timeElectrifyEnds > now
+        local canUpdate = ( not self.timeLastAlienAutoHeal or self.timeLastAlienAutoHeal + kAlienRegenerationTime <= now )
+        if not canUpdate then
+            return
+        end
+        self.timeLastAlienAutoHeal = Shared.GetTime()
         self.hasRegeneration = not self:GetIsInCombat() and self:GetIsBuilt() and not self.electrified
-
         if self.hasRegeneration then
-
-            if self:GetIsHealable() and ( not self.timeLastAlienAutoHeal or self.timeLastAlienAutoHeal + kAlienRegenerationTime <= Shared.GetTime() ) then
-
+            if self:GetIsHealable() then
                 self:AddHealth(self.kRegenHealRate * self:GetMaxHealth())
-                self.timeLastAlienAutoHeal = Shared.GetTime()
-
             end
-
         end
     end
 
@@ -259,29 +259,29 @@ end
 
 if Client then
     
-	function Shell:GetShowElectrifyEffect()
-		return self.electrified
-	end
-	
+    function Shell:GetShowElectrifyEffect()
+        return self.electrified
+    end
+    
     function Shell:OnUpdateRender()
 
-		local model = self:GetRenderModel()
-		local electrified = self:GetShowElectrifyEffect()
+        local model = self:GetRenderModel()
+        local electrified = self:GetShowElectrifyEffect()
 
-		if model then
-			if self.electrifiedClient ~= electrified then
-			
-				if electrified then
-					self.electrifiedMaterial = AddMaterial(model, Alien.kElectrifiedThirdpersonMaterialName)
-					self.electrifiedMaterial:SetParameter("elecAmount",  1.5)
-				else
-					if RemoveMaterial(model, self.electrifiedMaterial) then
-						self.electrifiedMaterial = nil
-					end
-				end
-				self.electrifiedClient = electrified
-			end
-		end
+        if model then
+            if self.electrifiedClient ~= electrified then
+            
+                if electrified then
+                    self.electrifiedMaterial = AddMaterial(model, Alien.kElectrifiedThirdpersonMaterialName)
+                    self.electrifiedMaterial:SetParameter("elecAmount",  1.5)
+                else
+                    if RemoveMaterial(model, self.electrifiedMaterial) then
+                        self.electrifiedMaterial = nil
+                    end
+                end
+                self.electrifiedClient = electrified
+            end
+        end
     end
 end
 
