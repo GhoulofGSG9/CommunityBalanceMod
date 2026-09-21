@@ -30,10 +30,11 @@ local kOverheatedSoundName = PrecacheAsset("sound/NS2.fev/marine/heavy/overheate
 local networkVars = {
     createParticleEffects = "boolean",
     animationDoneTime     = "float",
-    range                 = "integer (0 to 11)",
     isShooting            = "boolean",
     loopingSoundEntId     = "entityid",
-    heatAmount            = "float (0 to 1 by 0.01)",
+    -- Finer than the minigun's 0.01: this arm heats at 0.10/s, under one 0.01 step per
+    -- tick, and a step the server only crosses every few ticks snaps the predicted bar back.
+    heatAmount            = "float (0 to 1 by 0.001)",
     overheated            = "private boolean",
     heatUISoundId         = "private entityid"
     
@@ -59,10 +60,7 @@ function ExoFlamer:OnCreate()
     InitMixin(self, PointGiverMixin)
     InitMixin(self, EffectsMixin)
     
-    self.timeWeldStarted = 0
-    self.timeLastWeld = 0
     self.loopingSoundEntId = Entity.invalidId
-    self.range = 10
     self.heatAmount = 0
     self.overheated = false
     
@@ -72,7 +70,7 @@ function ExoFlamer:OnCreate()
         self.createParticleEffects = false
         self.loopingFireSound = Server.CreateEntity(SoundEffect.kMapName)
         self.loopingFireSound:SetAsset(kFireLoopingSound)
-        -- SoundEffect will automatically be destroyed when the parent is destroyed (the Welder).
+        -- SoundEffect will automatically be destroyed when the parent is destroyed (the ExoFlamer).
         self.loopingFireSound:SetParent(self)
         self.loopingSoundEntId = self.loopingFireSound:GetId()
         
@@ -121,12 +119,6 @@ function ExoFlamer:OnUpdateAnimationInput(modelMixin)
     -- modelMixin:SetAnimationInput("activity_" .. self:GetExoWeaponSlotName(), activity)
 end
 
-function ExoFlamer:ModifyMaxSpeed(maxSpeedTable)
-    if self.isShooting then
-        maxSpeedTable.maxSpeed = maxSpeedTable.maxSpeed * kMinigunMovementSlowdown
-    end
-end
-
 function ExoFlamer:GetIsAffectedByWeaponUpgrades()
     return true
 end
@@ -140,53 +132,124 @@ function ExoFlamer:GetRange()
     return kExoFlamerRange
 end
 
+local kBurnStepLength = 2
+local kBurnMaxSteps = 5
+local kSporeCloudTag = "class:SporeCloud"
+
+-- Cloud classes, in the order the merged list used to be built in. Only the
+-- tags are constant; the radii are class fields a mod can change, so they are
+-- re-read on every call into the reusable scratch table below.
+local kBurnCloudTags =
+{
+    "class:CragUmbra",
+    "class:StormCloud",
+    "class:MucousMembrane",
+    "class:EnzymeCloud",
+}
+local kBurnCloudCount = #kBurnCloudTags
+
+local gBurnCloudRadii = {}
+local gBurnCloudPresent = {}
+local gBurnCloudSweep = {}
+
+local function UpdateBurnCloudRadii()
+
+    gBurnCloudRadii[1] = CragUmbra.kRadius
+    gBurnCloudRadii[2] = StormCloud.kRadius
+    gBurnCloudRadii[3] = MucousMembrane.kRadius
+    gBurnCloudRadii[4] = EnzymeCloud.kRadius
+
+end
+
 function ExoFlamer:BurnSporesAndUmbra(startPoint, endPoint)
+    
+    PROFILE("ExoFlamer:BurnSporesAndUmbra")
     
     local toTarget = endPoint - startPoint
     local distanceToTarget = toTarget:GetLength()
     toTarget:Normalize()
     
-    local stepLength = 2
+    local stepLength = kBurnStepLength
     
-    for i = 1, 5 do
+    -- Same sample points as before: up to five steps of 2 m, stopping short
+    -- of the end point.
+    local numSteps = math.floor(distanceToTarget / stepLength)
+    if numSteps > kBurnMaxSteps then
+        numSteps = kBurnMaxSteps
+    end
+    
+    if numSteps < 1 then
+        return
+    end
+    
+    -- One sweep per cloud class over a sphere that contains every sample
+    -- point plus that class' radius. It is a strict superset of the per-point
+    -- queries, so a class that misses here cannot hit any sample point and its
+    -- five per-point queries can be skipped. Nothing burns on the vast
+    -- majority of flame ticks, which used to cost 25 range queries and three
+    -- table.copy each.
+    local sweepCenter = startPoint + toTarget * ((numSteps + 1) * 0.5 * stepLength)
+    local sweepSpan = (numSteps - 1) * 0.5 * stepLength
+    
+    local sporeSweep = Shared.GetEntitiesWithTagInRange(kSporeCloudTag, sweepCenter, sweepSpan + kSporesDustCloudRadius)
+    local sporesPossible = #sporeSweep > 0
+    local anyPossible = sporesPossible
+    
+    -- Radii are read here, not cached at first use, so a mod that changes a
+    -- cloud radius at runtime still gets the right query.
+    UpdateBurnCloudRadii()
+    
+    for q = 1, kBurnCloudCount do
         
-        -- stop when target has reached, any spores would be behind
-        if distanceToTarget < i * stepLength then
-            break
-        end
+        local sweep = Shared.GetEntitiesWithTagInRange(kBurnCloudTags[q], sweepCenter, sweepSpan + gBurnCloudRadii[q])
+        gBurnCloudSweep[q] = sweep
+        gBurnCloudPresent[q] = #sweep > 0
+        anyPossible = anyPossible or gBurnCloudPresent[q]
         
-        local checkAtPoint = startPoint + toTarget * i * stepLength
-        local spores = GetEntitiesWithinRange("SporeCloud", checkAtPoint, kSporesDustCloudRadius)
+    end
+    
+    if not anyPossible then
+        return
+    end
+    
+    -- With a single sample point the sweep sphere is that point with that
+    -- class' own radius, so the sweep result is the per-point result and the
+    -- query does not have to be repeated.
+    local sweepIsSamplePoint = numSteps == 1
+    
+    for i = 1, numSteps do
         
-        local clouds = GetEntitiesWithinRange("CragUmbra", checkAtPoint, CragUmbra.kRadius)
-        table.copy(GetEntitiesWithinRange("StormCloud", checkAtPoint, StormCloud.kRadius), clouds, true)
-        table.copy(GetEntitiesWithinRange("MucousMembrane", checkAtPoint, MucousMembrane.kRadius), clouds, true)
-        table.copy(GetEntitiesWithinRange("EnzymeCloud", checkAtPoint, EnzymeCloud.kRadius), clouds, true)
-        
-        local bombs = GetEntitiesWithinRange("Bomb", checkAtPoint, 1.6)
-        table.copy(GetEntitiesWithinRange("WhipBomb", checkAtPoint, 1.6), bombs, true)
-        
+        local checkAtPoint = startPoint + toTarget * (i * stepLength)
         local burnSpent = false
         
-        for i = 1, #bombs do
-            local bomb = bombs[i]
-            bomb:TriggerEffects("burn_bomb", { effecthostcoords = Coords.GetTranslation(bomb:GetOrigin()) })
-            DestroyEntity(bomb)
-            burnSpent = true
+        if sporesPossible then
+            
+            local spores = sweepIsSamplePoint and sporeSweep
+                or Shared.GetEntitiesWithTagInRange(kSporeCloudTag, checkAtPoint, kSporesDustCloudRadius)
+            for s = 1, #spores do
+                local spore = spores[s]
+                self:TriggerEffects("burn_spore", { effecthostcoords = Coords.GetTranslation(spore:GetOrigin()) })
+                DestroyEntity(spore)
+                burnSpent = true
+            end
+            
         end
         
-        for i = 1, #spores do
-            local spore = spores[i]
-            self:TriggerEffects("burn_spore", { effecthostcoords = Coords.GetTranslation(spore:GetOrigin()) })
-            DestroyEntity(spore)
-            burnSpent = true
-        end
-        
-        for i = 1, #clouds do
-            local cloud = clouds[i]
-            self:TriggerEffects("burn_umbra", { effecthostcoords = Coords.GetTranslation(cloud:GetOrigin()) })
-            DestroyEntity(cloud)
-            burnSpent = true
+        for q = 1, kBurnCloudCount do
+            
+            if gBurnCloudPresent[q] then
+                
+                local clouds = sweepIsSamplePoint and gBurnCloudSweep[q]
+                    or Shared.GetEntitiesWithTagInRange(kBurnCloudTags[q], checkAtPoint, gBurnCloudRadii[q])
+                for c = 1, #clouds do
+                    local cloud = clouds[c]
+                    self:TriggerEffects("burn_umbra", { effecthostcoords = Coords.GetTranslation(cloud:GetOrigin()) })
+                    DestroyEntity(cloud)
+                    burnSpent = true
+                end
+                
+            end
+            
         end
         
         if burnSpent then
@@ -197,33 +260,6 @@ function ExoFlamer:BurnSporesAndUmbra(startPoint, endPoint)
 
 end
 
-function ExoFlamer:CreateFlame(player, position, normal, direction)
-    
-    -- create flame entity, but prevent spamming:
-    local nearbyFlames = GetEntitiesForTeamWithinRange("Flame", player:GetTeamNumber(), position, 1.5)
-    
-    if #nearbyFlames == 0 then
-        
-        local flame = CreateEntity(Flame.kMapName, position, player:GetTeamNumber())
-        flame:SetOwner(player)
-        
-        local coords = Coords.GetTranslation(position)
-        coords.yAxis = normal
-        coords.zAxis = direction
-        
-        coords.xAxis = coords.yAxis:CrossProduct(coords.zAxis)
-        coords.xAxis:Normalize()
-        
-        coords.zAxis = coords.xAxis:CrossProduct(coords.yAxis)
-        coords.zAxis:Normalize()
-        
-        flame:SetCoords(coords)
-    
-    end
-
-
-end
-
 function ExoFlamer:GetMeleeOffset()
     
     return 0
@@ -231,142 +267,73 @@ function ExoFlamer:GetMeleeOffset()
 end
 
 function ExoFlamer:ApplyConeDamage(player)
-    
+
     local eyePos = player:GetEyePos()
     local DamageEnts = {}
-	local WeldingEnts = {}
-	local count = 0
-	local kTraceOrder = { 4, 1, 3, 5, 7, 0, 2, 6, 8 }
-    
-	local coords = player:GetViewAngles():GetCoords()
-	local fireDirection = player:GetViewCoords().zAxis
+    local kTraceOrder = { 4, 1, 3, 5, 7, 0, 2, 6, 8 }
+
+    local coords = player:GetViewAngles():GetCoords()
+    local fireDirection = player:GetViewCoords().zAxis
     local extents = Vector(kExoFlamerConeWidth/6, kExoFlamerConeWidth/6, kExoFlamerConeWidth/6)
     local range = self:GetRange()
-	local damageHeight = self.kDamageRadius / 2
-    
+
     local startPoint = Vector(eyePos)
     local filterEnts = { self, player }
-    
-    --[[if Server then
-        self:BurnSporesAndUmbra(startPoint, endPoint)
-    end]]
-    
-	for _, pointIndex in ipairs(kTraceOrder) do
+
+    -- The first entry of kTraceOrder is the centre of the cone. That trace stands in for the
+    -- marine flamethrower's single trace when burning clouds and when dropping a ground flame,
+    -- so the cone does that work once per tick instead of once per trace point.
+    local burnEndPoint = eyePos + fireDirection * range
+
+    for _, pointIndex in ipairs(kTraceOrder) do
 
         local dx = pointIndex % 3 - 1
         local dy = math.floor(pointIndex / 3) - 1
         local point = eyePos + coords.xAxis * (dx * kExoFlamerConeWidth / 3) + coords.yAxis * (dy * kExoFlamerConeWidth / 3)
         local trace = TraceMeleeBox(self, point, fireDirection, extents, range, PhysicsMask.Flame, EntityFilterList(filterEnts))
-	
-	    local endPoint = trace.endPoint
-		local normal = trace.normal
-	
-		if trace.fraction ~= 1 then
-			
-			local traceEnt = trace.entity
-			if traceEnt and HasMixin(traceEnt, "Live") and traceEnt:GetCanTakeDamage() and traceEnt:GetTeamNumber() ~= self:GetTeamNumber() then
-				if not table.find(DamageEnts, traceEnt) then
-					table.insert(DamageEnts, traceEnt)
-					count = count + 1
-				end
-			end
-			
-			if traceEnt and HasMixin(traceEnt, "Live") and HasMixin(traceEnt, "Weldable") and traceEnt:GetTeamNumber() == self:GetTeamNumber() then
-				if not table.find(WeldingEnts, traceEnt) and traceEnt:GetHealthScalar() < 1 then
-					table.insert(WeldingEnts, traceEnt)
-					count = count + 1
-				end
-			end
-		
-        --Create Flame
-        --[[if Server then
-            --Create flame below target
-            if trace.entity then
-                local groundTrace = Shared.TraceRay(endPoint, endPoint + Vector(0, -2.6, 0), CollisionRep.Default, PhysicsMask.CystBuild, EntityFilterAllButIsa("TechPoint"))
-                if groundTrace.fraction ~= 1 then
-                    fireDirection = fireDirection * 0.55 + normal
-                    fireDirection:Normalize()
-                    
-                    self:CreateFlame(player, groundTrace.endPoint, groundTrace.normal, fireDirection)
+
+        local endPoint = trace.endPoint
+        local isCenterTrace = pointIndex == 4
+
+        if isCenterTrace then
+            burnEndPoint = endPoint
+        end
+
+        if trace.fraction ~= 1 then
+
+            local traceEnt = trace.entity
+            if traceEnt and HasMixin(traceEnt, "Live") and traceEnt:GetCanTakeDamage() and traceEnt:GetTeamNumber() ~= self:GetTeamNumber() then
+                if not table.find(DamageEnts, traceEnt) then
+                    table.insert(DamageEnts, traceEnt)
                 end
-            else
-                fireDirection = fireDirection * 0.55 + normal
-                fireDirection:Normalize()
-                
-                self:CreateFlame(player, endPoint, normal, fireDirection)
             end
-        
-        end]]
-		end
-    end
-	
-    for i = 1, #DamageEnts do
-        
-        local ent = DamageEnts[i]
-        local enemyOrigin = ent:GetModelOrigin()
-        
-        if ent ~= player and enemyOrigin then
-            
-            local toEnemy = GetNormalizedVector(enemyOrigin - eyePos)
-            
-            local health = ent:GetHealth()
-            self:DoDamage(kExoFlamerExoFlamerDamage/count, ent, enemyOrigin, toEnemy)
-            
-            -- Only light on fire if we successfully damaged them
-            --[[if ent:GetHealth() ~= health and HasMixin(ent, "Fire") then
-                ent:SetOnFire(player, self)
-            end]]
+
         end
     end
 
-    for i = 1, #WeldingEnts do
-        
-        local target = WeldingEnts[i]
-
-		if target:GetHealthScalar() < 1 then
-			
-			local prevHealthScalar = target:GetHealthScalar()
-			local prevHealth = target:GetHealth()
-			local prevArmor = target:GetArmor()
-			if target:GetCanBeWelded(player) then
-				if target.OnWeldOverride then
-					target:OnWeldOverride(player, kExoFlamerFireRate)
-				else
-					target:AddHealth(self:GetRepairRate(target) * kExoFlamerFireRate/count)
-				end
-				if player and player.OnWeldTarget then
-					player:OnWeldTarget(target)
-				end
-			end
-			
-			success = prevHealthScalar ~= target:GetHealthScalar()
-			
-			if success then
-				
-				local addAmount = (target:GetHealth() - prevHealth) + (target:GetArmor() - prevArmor)
-				player:AddContinuousScore("WeldHealth", addAmount, kExoFlamerWelderAmountHealedForPoints, kExoFlamerWelderHealScoreAdded)
-				
-				-- weld owner as well
-				-- player:SetArmor(player:GetArmor() + kExoFlamerFireRate * kExoFlamerWelderSelfWeldAmount)
-			
-			end
-		end
-		
-		if HasMixin(target, "Construct") then
-			target:Construct(kExoFlamerFireRate, player)
-		end    
+    -- Check for spores in the way.
+    if Server then
+        self:BurnSporesAndUmbra(startPoint, burnEndPoint)
     end
-end
 
-function ExoFlamer:GetRepairRate(repairedEntity)
-    
-    local repairRate = kExoFlamerWelderPlayerWeldRate
-    if repairedEntity.GetReceivesStructuralDamage and repairedEntity:GetReceivesStructuralDamage() then
-        repairRate = kExoFlamerWelderStructureWeldRate
+    for i = 1, #DamageEnts do
+
+        local ent = DamageEnts[i]
+        local enemyOrigin = ent:GetModelOrigin()
+
+        if ent ~= player and enemyOrigin then
+
+            local toEnemy = GetNormalizedVector(enemyOrigin - eyePos)
+
+            local health = ent:GetHealth()
+            self:DoDamage(kExoFlamerExoFlamerDamage, ent, enemyOrigin, toEnemy)
+
+            -- Only light on fire if we successfully damaged them
+            if ent:GetHealth() ~= health and HasMixin(ent, "Fire") then
+                ent:SetOnFire(player, self)
+            end
+        end
     end
-    
-    return repairRate
-
 end
 
 function ExoFlamer:GetBarrelPoint()
@@ -567,15 +534,6 @@ function ExoFlamer:ModifyDamageTaken(damageTable, attacker, doer, damageType)
     if damageType ~= kDamageType.Corrode then
         damageTable.damage = 0
     end
-end
-
-function ExoFlamer:UpdateViewModelPoseParameters(viewModel)
-    viewModel:SetPoseParam("welder", 1)
-end
-
-function ExoFlamer:OnUpdatePoseParameters(viewModel)
-    PROFILE("ExoFlamer:OnUpdatePoseParameters")
-    self:SetPoseParam("welder", 1)
 end
 
 Shared.LinkClassToMap("ExoFlamer", ExoFlamer.kMapName, networkVars)

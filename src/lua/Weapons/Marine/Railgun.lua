@@ -22,7 +22,7 @@ Railgun.kMapName = "railgun"
 local kChargeTime = 1 -- Changed from vanilla value 2
 -- The Railgun will automatically shoot if it is charged for too long.
 local kChargeForceShootTime = 2.5 --  vanilla value 2.5
-local kRailgunRange = 30 -- Vanilla 400
+-- kRailgunRange lives in Balance.lua next to kRelevancyRangeCap.
 local kRailgunSpread = Math.Radians(0)
 local kBulletSize = 0.3
 
@@ -122,12 +122,14 @@ function Railgun:PostDoDamage(target, damage)
 
 end
 
--- Allows railguns to fire simulataneously...
+-- Only one railgun charges at a time. Two charging together put a near instant burst
+-- downrange that no aim commitment paid for; build 320 banned it and the ban held.
 function Railgun:OnPrimaryAttack(player)
     
     local exoWeaponHolder = player:GetActiveWeapon()
     local otherSlotWeapon = self:GetExoWeaponSlot() == ExoWeaponHolder.kSlotNames.Left and exoWeaponHolder:GetRightSlotWeapon() or exoWeaponHolder:GetLeftSlotWeapon()
-    if self.timeOfLastShot + kRailgunChargeTime <= Shared.GetTime() then
+    local otherIsCharging = otherSlotWeapon ~= nil and otherSlotWeapon ~= self and otherSlotWeapon:isa("Railgun") and otherSlotWeapon.railgunAttacking
+    if not otherIsCharging and self.timeOfLastShot + kRailgunChargeTime <= Shared.GetTime() then
         
         if not self.railgunAttacking then
             self.timeChargeStarted = Shared.GetTime()
@@ -339,6 +341,11 @@ function Railgun:ProcessMoveOnWeapon(player, input)
     
 end
 
+local kActivityInput = ExoWeaponSlotMixin.kActivityInput
+local kChargeAmountKey = ExoWeaponSlotMixin.GetSlotKeyTable("chargeAmount")
+local kTimeSinceLastShotKey = ExoWeaponSlotMixin.GetSlotKeyTable("timeSinceLastShot")
+local kRailgunTextureKey = ExoWeaponSlotMixin.GetSlotKeyTable("*exo_railgun_")
+
 function Railgun:OnUpdateRender()
 
     PROFILE("Railgun:OnUpdateRender")
@@ -352,8 +359,9 @@ function Railgun:OnUpdateRender()
         
             viewModel:InstanceMaterials()
             local renderModel = viewModel:GetRenderModel()
-            renderModel:SetMaterialParameter("chargeAmount" .. self:GetExoWeaponSlotName(), chargeAmount)
-            renderModel:SetMaterialParameter("timeSinceLastShot" .. self:GetExoWeaponSlotName(), Shared.GetTime() - self.timeOfLastShot)
+            local slot = self.exoWeaponSlot
+            renderModel:SetMaterialParameter(kChargeAmountKey[slot], chargeAmount)
+            renderModel:SetMaterialParameter(kTimeSinceLastShotKey[slot], Shared.GetTime() - self.timeOfLastShot)
             
         end
         
@@ -362,13 +370,15 @@ function Railgun:OnUpdateRender()
         
             chargeDisplayUI = Client.CreateGUIView(246, 256)
             chargeDisplayUI:Load("lua/GUI" .. self:GetExoWeaponSlotName():gsub("^%l", string.upper) .. "RailgunDisplay.lua")
-            chargeDisplayUI:SetTargetTexture("*exo_railgun_" .. self:GetExoWeaponSlotName())
+            chargeDisplayUI:SetTargetTexture(kRailgunTextureKey[self.exoWeaponSlot])
+            chargeDisplayUI:SetGlobal("refireTime", kRailgunChargeTime)
             self.chargeDisplayUI = chargeDisplayUI
             
         end
         
-        chargeDisplayUI:SetGlobal("chargeAmount" .. self:GetExoWeaponSlotName(), chargeAmount)
-        chargeDisplayUI:SetGlobal("timeSinceLastShot" .. self:GetExoWeaponSlotName(), Shared.GetTime() - self.timeOfLastShot)
+        local slot = self.exoWeaponSlot
+        chargeDisplayUI:SetGlobal(kChargeAmountKey[slot], chargeAmount)
+        chargeDisplayUI:SetGlobal(kTimeSinceLastShotKey[slot], Shared.GetTime() - self.timeOfLastShot)
         
     else
     
@@ -427,7 +437,7 @@ function Railgun:OnUpdateAnimationInput(modelMixin)
     if self.railgunAttacking then
         activity = "primary"
     end
-    modelMixin:SetAnimationInput("activity_" .. self:GetExoWeaponSlotName(), activity)
+    modelMixin:SetAnimationInput(kActivityInput[self.exoWeaponSlot], activity)
     
 end
 

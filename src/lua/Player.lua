@@ -863,7 +863,7 @@ function Player:PerformUseTrace()
     if trace.fraction < 1 and trace.entity ~= nil then
 
         local distToEnt = trace.endPoint:GetDistanceTo(startPoint)
-        local maxDistToUse = trace.entity.GetUseMaxRange and trace.entity:GetUseMaxRange() or useRange
+        local maxDistToUse = trace.entity.GetUseMaxRange and trace.entity:GetUseMaxRange(self) or useRange
         -- Only return this entity if it can be used and it does not have a usable point (which should have been
         -- caught in the above cases).
         if distToEnt <= maxDistToUse and GetCanEntityBeUsedWithNoUsablePoint(self, trace.entity) then

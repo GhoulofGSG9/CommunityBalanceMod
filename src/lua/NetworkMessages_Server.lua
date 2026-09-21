@@ -500,17 +500,6 @@ local function OnSetPlayerCallingCard(client, message)
 
 end
 
-local function OnSetDualRailLockMessage(client, message)
-    if client then
-        local player = client:GetControllingPlayer()
-		if player and player:GetActiveWeapon() and player:GetActiveWeapon():isa("ExoWeaponHolder") then
-			player:GetActiveWeapon():SetDualRailLock(message.dualrailfiring)
-        end
-    else
-        Log("Error: No client for locking dual exosuit!")
-    end
-end
-
 local function OnSetDualMiniLockMessage(client, message)
     if client then
         local player = client:GetControllingPlayer()
@@ -559,7 +548,6 @@ Server.HookNetworkMessage("CommanderPing", OnCommandCommPing)
 Server.HookNetworkMessage("SetCommunicationStatus", OnCommandSetCommStatus)
 Server.HookNetworkMessage("Buy", OnMessageBuy)
 Server.HookNetworkMessage("VoiceMessage", OnVoiceMessage)
-Server.HookNetworkMessage("SetDualRailLock", OnSetDualRailLockMessage)
 Server.HookNetworkMessage("SetDualMiniLock", OnSetDualMiniLockMessage)
 Server.HookNetworkMessage("SetDualBTLock", OnSetDualBTLockMessage)
 Server.HookNetworkMessage("SetDualPLLock", OnSetDualPLLockMessage)

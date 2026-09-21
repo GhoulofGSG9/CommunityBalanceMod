@@ -713,7 +713,7 @@ function MarineTeam:InitTechTree()
     self.techTree:AddMenu(kTechId.WeaponsMenu)
 
     -- Marine tier 3
-    self.techTree:AddBuildNode(kTechId.PrototypeLab,          kTechId.AdvancedArmory,              kTechId.None)
+    self.techTree:AddBuildNode(kTechId.PrototypeLab,          kTechId.ArmsLab,                     kTechId.None)
 
     --Exosuit with advanced Proto
     self.techTree:AddUpgradeNode(kTechId.UpgradeToExoPrototypeLab,  kTechId.PrototypeLab)
@@ -721,7 +721,7 @@ function MarineTeam:InitTechTree()
     self.techTree:AddResearchNode(kTechId.ExosuitTech,              kTechId.ExoPrototypeLab, kTechId.None)
     self.techTree:AddBuyNode(kTechId.DualMinigunExosuit,            kTechId.ExoPrototypeLab)
     self.techTree:AddResearchNode(kTechId.CoresExosuitTech,         kTechId.ExoPrototypeLab, kTechId.None)
-    self.techTree:AddResearchNode(kTechId.DualMinigunTech,          kTechId.ExoPrototypeLab, kTechId.CoresExosuitTech)
+    self.techTree:AddResearchNode(kTechId.DualMinigunTech,          kTechId.ExoPrototypeLab, kTechId.None)
     
     -- Jetpack
     self.techTree:AddUpgradeNode(kTechId.UpgradeToInfantryPrototypeLab,  kTechId.PrototypeLab,    kTechId.AdvancedArmory)

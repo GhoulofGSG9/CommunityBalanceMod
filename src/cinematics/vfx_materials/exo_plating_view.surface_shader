@@ -1,0 +1,44 @@
+<shader>
+
+	<inputs>
+		<input name="intensity" type="float">0.04</input>
+	</inputs>
+
+	<params>
+		<param name="osPosition">true</param>
+		<param name="wsNormal">true</param>
+		<param name="vsNormal">true</param>
+		<param name="twoSided">false</param>
+	</params>
+
+	<code>
+	<![CDATA[
+		void MaterialShader(in Material_Input input, inout Material material)
+		{
+
+			// Must stay readable next to an active nano shield without relying on hue: the
+			// nano shield lights the faces turned to the camera with a scrolling circuit, so
+			// this lights only the silhouette edge, with static horizontal plate seams.
+			const float3 tint = float3(2.4, 6, 6);
+
+			float rim = pow(1 - max(-input.vsNormal.z, 0), 6);
+			float seams = saturate(sin(input.osPosition.y * 30) * 3);
+
+			// Same mask as the nano shield view overlay: keep it off the cockpit frame
+			// right in front of the camera.
+			float cockpit = 0;
+
+			if (input.osPosition.z > 0.6)
+			{
+				cockpit = 1;
+			} else {
+				cockpit = clamp( abs(input.osPosition.y) - 0.05 / 0.5, 0, 1);
+			}
+
+			material.emissive = tint * rim * (0.25 + 0.75 * seams) * intensity * cockpit;
+
+		}
+	]]>
+	</code>
+
+</shader>

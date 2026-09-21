@@ -148,8 +148,10 @@ function AttackMeleeCapsuleAll(weapon, player, damage, range, optionalCoords, al
 
 end
 
+local kActivityInput = ExoWeaponSlotMixin.kActivityInput
+
 function Claw:OnUpdateAnimationInput(modelMixin)
-    modelMixin:SetAnimationInput("activity_" .. self:GetExoWeaponSlotName(), self.clawAttacking)
+    modelMixin:SetAnimationInput(kActivityInput[self.exoWeaponSlot], self.clawAttacking)
 end
 
 Shared.LinkClassToMap("Claw", Claw.kMapName, networkVars)

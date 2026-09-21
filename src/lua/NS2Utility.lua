@@ -562,8 +562,11 @@ end
 
 function GetIsCloseToMenuStructure(player)
 
-    local ptlabs = GetEntitiesForTeamWithinRange("PrototypeLab", player:GetTeamNumber(), player:GetOrigin(), PrototypeLab.kResupplyUseRange)
-    local armories = GetEntitiesForTeamWithinRange("Armory", player:GetTeamNumber(), player:GetOrigin(), Armory.kResupplyUseRange)
+    -- An exo's origin sits further from the structure than a marine's at the same use
+    -- distance (see kExoStructureUseSlack), so its menu would close the moment it opened.
+    local slack = player:isa("Exo") and kExoStructureUseSlack or 0
+    local ptlabs = GetEntitiesForTeamWithinRange("PrototypeLab", player:GetTeamNumber(), player:GetOrigin(), PrototypeLab.kResupplyUseRange + slack)
+    local armories = GetEntitiesForTeamWithinRange("Armory", player:GetTeamNumber(), player:GetOrigin(), Armory.kResupplyUseRange + slack)
 
     return (ptlabs and #ptlabs > 0) or (armories and #armories > 0)
 

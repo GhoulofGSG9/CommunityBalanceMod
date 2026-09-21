@@ -4503,17 +4503,20 @@ function Player:GetShowAtmosphericLight()
     return true
 end
 
-function PlayerUI_GetExoRepairAvailable()
+-- Returns the equipped Support Ability module type, the seconds left on its
+-- cooldown (0 when it is ready to fire) and the seconds since the last press that
+-- found no marine in range (huge when there was none).
+function PlayerUI_GetExoSupportAbility()
     
     local player = Client.GetLocalPlayer()
     
-    if player and player:GetIsPlaying() and player:isa("Exo") and player.GetRepairAllowed then
-        
-        return player:GetRepairAllowed(), player:GetFuel() >= kExoRepairMinFuel, player.repairActive
-    
+    if player and player:GetIsPlaying() and player:isa("Exo") and player.GetHasSupportAbility and player:GetHasSupportAbility() then
+        local missed = player.timeSupportAbilityMissed or 0
+        local sinceMissed = missed > 0 and (Shared.GetTime() - missed) or math.huge
+        return player.abilityModuleType, player:GetSupportAbilityTimeRemaining(), sinceMissed
     end
     
-    return false, false, false
+    return kExoModuleTypes.None, 0, math.huge
 
 end
 
@@ -4524,34 +4527,6 @@ function PlayerUI_GetExoThrustersAvailable()
     if player and player:GetIsPlaying() and player:isa("Exo") and player.GetIsThrusterAllowed then
         
         return player:GetIsThrusterAllowed(), player:GetFuel() >= kExoThrusterMinFuel, player.thrustersActive
-    
-    end
-    
-    return false, false, false
-
-end
-
-function PlayerUI_GetExoNanoShieldAvailable()
-
-    local player = Client.GetLocalPlayer()
-
-    if player and player:GetIsPlaying() and player:isa("Exo") and player.GetNanoShieldAllowed then
-
-        return player:GetNanoShieldAllowed(), player:GetFuel() >= kExoNanoShieldMinFuel, player.nanoshieldActive
-
-    end
-
-    return false, false, false
-
-end
-
-function PlayerUI_GetExoCatPackAvailable()
-    
-    local player = Client.GetLocalPlayer()
-    
-    if player and player:GetIsPlaying() and player:isa("Exo") and player.GetCatPackAllowed then
-        
-        return player:GetCatPackAllowed(), player:GetFuel() >= kExoCatPackMinFuel, player.catpackActive
     
     end
     
@@ -4595,6 +4570,41 @@ function PlayerUI_GetHasCatPack()
         return player:GetHasCatPack()
     end
     return false
+end
+
+-- Fraction (0-1) of the manual eject hold the local Exo has completed. Server
+-- authoritative (see Exo:UpdateEjectHold), so it survives client prediction.
+function PlayerUI_GetExoEjectHoldFraction()
+    local player = Client.GetLocalPlayer()
+    if player and player:GetIsPlaying() and player:isa("Exo") then
+        return player.ejectHoldFraction or 0
+    end
+    return 0
+end
+
+-- Locale key naming why the local Exo may not eject right now, or nil when it may.
+-- Same predicate the server holds the eject on, see Exo:GetEjectBlockedReason.
+-- That predicate runs a GetEntitiesForTeamWithinRange scan, so the answer is cached
+-- for a quarter second instead of being recomputed on every HUD frame. false stands
+-- in for "not blocked" in the cache so a nil answer is still a cache hit.
+local kExoEjectReasonCacheTime = 0.25
+function PlayerUI_GetExoEjectBlockedReason()
+
+    local player = Client.GetLocalPlayer()
+    if not (player and player:GetIsPlaying() and player:isa("Exo") and player.GetEjectBlockedReason) then
+        return nil
+    end
+
+    local now = Shared.GetTime()
+    if not player.timeNextEjectReasonCheck or now >= player.timeNextEjectReasonCheck then
+
+        player.cachedEjectBlockedReason = player:GetEjectBlockedReason() or false
+        player.timeNextEjectReasonCheck = now + kExoEjectReasonCacheTime
+
+    end
+
+    return player.cachedEjectBlockedReason or nil
+
 end
 
 function PlayerUI_GetHasPlasmaLauncher()

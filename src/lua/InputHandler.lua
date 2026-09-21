@@ -166,6 +166,16 @@ function SetKeyEventBlocker(setKeyEventBlocker)
     keyEventBlocker = setKeyEventBlocker
 end
 
+-- Key releases always reach _keyState, even when a GUI consumed the event.
+function Input_GetIsBindingDown(bindingName)
+    return _keyState[_keyBinding[bindingName]] == true
+end
+
+-- A release lost to an alt-tab or an overlay never arrives, so let callers drop the key.
+function Input_ReleaseBinding(bindingName)
+    _keyState[_keyBinding[bindingName]] = false
+end
+
 function SetMoveInputBlocked(blocked)
     moveInputBlocked = blocked
 end
