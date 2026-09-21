@@ -197,7 +197,7 @@ if Client then
 	Locale.substitutions["EXO_MODULE_NONE_DESC"] = "Leave this slot empty. It costs nothing and adds no weight, but the exosuit gives up whatever the slot could have carried."
 	Locale.substitutions["EXO_MODULE_CLAW"] = "Claw"
 	Locale.substitutions["EXO_MODULE_CLAW_DESC"] = "Left arm only: a 50 structural damage swing at melee range that never runs dry, and the most armor for the least weight of any arm. It cannot shoot, so the right arm has to do the killing."
-	Locale.substitutions["EXO_MODULE_MINIGUN_DESC"] = "Close range bullet hose with no ammo to reload: 6 heavy damage a round, the pick against big armored lifeforms. It overheats after three and a half seconds of held fire and is by far the heaviest arm: two of them make the suit a slow tank."
+	Locale.substitutions["EXO_MODULE_MINIGUN_DESC"] = "Mid range bullet hose with no ammo to reload: 6 heavy damage a round, the pick against big armored lifeforms. It overheats after three and a half seconds of held fire and is by far the heaviest arm: two of them make the suit a slow tank."
 	Locale.substitutions["EXO_MODULE_RAILGUN_DESC"] = "Long range shot: charge for a second to take it from 20 to 120 structural damage, and the slug pierces every target in its line out to 30 meters. Thin plating, so it wants to fight from the back."
 	Locale.substitutions["EXO_MODULE_PLASMALAUNCHER"] = "Plasma Launcher"
 	Locale.substitutions["EXO_MODULE_PLASMALAUNCHER_DESC"] = "Lobbed plasma charge: 35 damage in a 4 meter blast plus a lingering burn. A direct hit electrifies the alien it lands on for 3.5 seconds, stripping mucous and enzyme and slowing its attacks. Swarm control, not a siege weapon. One bomb from a full cell, then one every 2 seconds."
