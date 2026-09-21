@@ -85,7 +85,7 @@ if Server then
                 babbler:AddTimedCallback(babbler.MoveRandom, kUpdateMoveInterval)
 
                 local targetPos = (targetHit and targetHit.GetEngagementPoint and targetHit:GetEngagementPoint()) or (targetHit and targetHit:GetOrigin()) or spawnPoint
-                if targetHit and targetHit:GetIsAlive() then
+                if targetHit and HasMixin(targetHit, "Live") and targetHit:GetIsAlive() then
                     babbler:SetMoveType(kBabblerMoveType.Attack, targetHit, targetPos)
                 else
                     babbler:SetMoveType(kBabblerMoveType.Move, nil, spawnPoint)

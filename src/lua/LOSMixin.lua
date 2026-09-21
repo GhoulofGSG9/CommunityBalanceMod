@@ -96,7 +96,7 @@ function LOSMixin:__initmixin()
 
         self:SetIsSighted(false)
         UpdateLOS(self)
-        self.oldSighted = true
+        self.oldSighted = self.sighted
         self.lastViewerId = Entity.invalidId
 
         -- To skip LOS traces for combat
@@ -267,7 +267,7 @@ if Server then
         
         -- Check if this entity is beyond our vision radius.
         local maxDist = (HasMixin(entity, "Cloakable") and entity:GetIsCloaked())
-                and entity:GetInvisibleRange() or viewer.cachedVisionRadius or viewer:GetVisionRadius()
+                and entity:GetInvisibleRange() or viewer:GetVisionRadius()
 
         -- allocation-free squared distance, this is the hottest path in the mixin
         local eo, vo = entity:GetOrigin(), viewer:GetOrigin()
@@ -280,6 +280,7 @@ if Server then
             return false
         end
 
+        -- If close enough to a non player entity, we see it no matter what.
         if not entity:isa("Player") and dist < (kUnitMinLOSDistance * kUnitMinLOSDistance) then
             return true
         end
@@ -289,14 +290,6 @@ if Server then
         local skipDuration = isEntityPlayer and kLOSPvPTimeout or kLOSPvETimeout
         local skipTrace = entity.timeLastSightedWithTrace and entity.timeLastSightedWithTrace + skipDuration > now
         local rval = GetCanSeeEntity(viewer, entity, nil, nil, skipTrace)
-
-        if not rval and not skipTrace then
-            local eyeViewer = GetEntityEyePos(viewer)
-            local eyeTarget = GetEntityEyePos(entity)
-            local filter = EntityFilterTwo(viewer, entity)
-            local trace = Shared.TraceRay(eyeViewer, eyeTarget, CollisionRep.LOS, PhysicsMask.All, filter)
-            rval = trace.endPoint:GetDistanceTo(eyeTarget) < 0.5
-        end
 
         if rval and not skipTrace then
             entity.timeLastSightedWithTrace = now
@@ -316,7 +309,7 @@ if Server then
         end
         
         local now = Shared.GetTime()
-        local radius = self.cachedVisionRadius or self:GetVisionRadius()
+        local radius = self:GetVisionRadius()
 
         -- clear both sides: the engine writes 1..count and leaves stale
         -- tail entries in a reused table untouched
@@ -376,22 +369,31 @@ if Server then
         
     end
     
-    local kDirtyScratch = table.array(16)
+    -- Own buffer: LookForEnemies may be part way through kLosScratch when a
+    -- sighting change marks its neighbours dirty.
+    local kLosDirtyScratch = table.array(32)
+
     local function MarkNearbyDirty(self)
     
         self.updateLOS = true
-        self.cachedVisionRadius = self:GetVisionRadius()
 
-        table.clear(kDirtyScratch)
-        GetEntitiesWithMixinForTeamWithinRange("LOS", GetEnemyTeamNumber(self:GetTeamNumber()),
-                self:GetOrigin(), kUnitLOSDirtyDistance, kDirtyScratch)
+        -- GetEntitiesWithMixinForTeamWithinRange returns a new filtered table and
+        -- leaves the buffer holding the raw query, so filter by team here instead.
+        table.clear(kLosDirtyScratch)
+        Shared.GetEntitiesWithTagInRange("LOS", self:GetOrigin(), kUnitLOSDirtyDistance, nil, kLosDirtyScratch)
 
-        for i = 1, #kDirtyScratch do
-            kDirtyScratch[i].updateLOS = true
+        local enemyTeamNumber = GetEnemyTeamNumber(self:GetTeamNumber())
+        for i = 1, #kLosDirtyScratch do
+            local entity = kLosDirtyScratch[i]
+            if HasMixin(entity, "Team") and entity:GetTeamNumber() == enemyTeamNumber then
+                entity.updateLOS = true
+            end
         end
+        table.clear(kLosDirtyScratch)
 
     end
     
+
     local function SharedUpdate(self)
     
         PROFILE("LOSMixin:SharedUpdate")
@@ -457,32 +459,45 @@ if Server then
     
     -- this causes an issue: when the distance is too big (going to ready room, moving through phase gate) MarkNearbyDirty(self) will miss previous revealed entities.
     function LOSMixin:SetOrigin(origin)
-    
+
         -- matso: optimization; SetOrigin is called A LOT, so we just add us to an update-los queue when we move enough
         -- we'll get flushed now and then
-        if not self.dirtyLOS and (self.prevLOSorigin - origin):GetLengthSquared() > 0.3 then
-        
+
+        -- entities that can never see do not need to announce movement: their
+        -- dirty state only amplifies LOS work on real viewers nearby
+        if self.kStaticNoVision or self.dirtyLOS then
+            return
+        end
+
+        if (self.prevLOSorigin - origin):GetLengthSquared() > 0.3 then
+
             self.dirtyLOS = true
             VectorCopy(origin, self.prevLOSorigin)
-            
+
         end
-        
+
     end
-    
-    function LOSMixin:SetCoords(coords)
-    
-        if not self.dirtyLOS and self.prevLOSCoords ~= coords then
         
+    function LOSMixin:SetCoords(coords)
+
+        if self.kStaticNoVision or self.dirtyLOS then
+            return
+        end
+
+        -- cheap identity check first; Coords(coords) allocates, so keep it
+        -- behind the guard instead of paying it per call
+        if self.prevLOSCoords ~= coords then
             self.dirtyLOS = true
             self.prevLOSCoords = Coords(coords)
-            
         end
-        
+
     end
-    
+        
     function LOSMixin:SetAngles(angles)
-    
-        --PROFILE("LOSMixin:SetAngles")
+
+        if self.kStaticNoVision then
+            return
+        end
 
         if self.prevLOSYaw ~= angles.yaw and not self.dirtyLOS then
             local yaw = math_floor(angles.yaw * 100) / 100
@@ -494,7 +509,7 @@ if Server then
                 self.prevFlooredLOSYaw = yaw
             end
         end
-        
+
     end
     
     function LOSMixin:SetViewAngles(angles)

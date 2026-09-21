@@ -21,6 +21,8 @@ class 'SporeCloud' (Entity)
 -- Spores didn't stack in NS1 so consider that
 SporeCloud.kMapName = "sporecloud"
 
+SporeCloud.OverrideCheckVision = function() return false end
+
 --SporeCloud.kLoopingEffect = PrecacheAsset("cinematics/alien/lerk/spore_trail.cinematic")
 SporeCloud.kLoopingEffectAlien = PrecacheAsset("cinematics/alien/lerk/spore_trail_alien.cinematic")
 SporeCloud.kStartEffect = PrecacheAsset("cinematics/alien/lerk/spore_projection.cinematic")

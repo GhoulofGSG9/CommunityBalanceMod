@@ -350,7 +350,6 @@ function ControllerMixin:PerformMovement(o, maxTraces, velocity, isMove, slowDow
                 -- Redirect velocity if specified
                 if velocity ~= nil and slowDownFraction ~= nil then
                 
-                    assert(deltaTime ~= nil) -- We are now timed based (not tick based), make sure we have the deltaTime !
                     -- Scale it according to how much velocity we lost
                     local newVelocity = velocity - velocity:GetProjection(trace.normal) * slowDownFraction -- + trace.normal*0.001
                     

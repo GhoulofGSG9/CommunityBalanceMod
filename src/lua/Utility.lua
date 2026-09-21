@@ -29,6 +29,9 @@ local ipairs = ipairs
 local select = select
 local StringExplode = string.Explode
 local StringFormat = string.format
+local StringFind = string.find
+local StringSub = string.sub
+local StringGsub = string.gsub
 local TableConcat = table.concat
 local type = type
 
@@ -227,21 +230,16 @@ function EnumToString(enumTable, enumNumber)
 end
 
 function StringToEnum(enumTable, enumString)
-    
-    PROFILE("StringToEnum")
-    
-    local function f(key, value)
-        if EnumToString(enumTable, value) == enumString then
-            return value
-        end
-    end
-
-    if enumTable == nil or enumString == nil then
+    if not enumTable or not enumString then
         return nil
     end
 
-    return table.foreach(enumTable, f)
+    local directVal = rawget(enumTable, enumString)
+    if directVal ~= nil then
+        return directVal
+    end
 
+    return nil
 end
 
 function StringSplit(str, delim, maxNb)
@@ -1210,25 +1208,67 @@ end
 local ctint64, ctuint64 = 1ll, 1llu
 
 function ToString(t)
-    
-    if t == nil then
-        return "nil"
-    elseif type(t) == "string" then
+
+    local type_t = type(t)
+
+    if type_t == "number" then
+        local s = tostring(t)
+        local decimalIndex = StringFind(s, ".", 1, true)
+        local suffix = ""
+        local index
+
+        if decimalIndex then
+            index = decimalIndex - 4
+            suffix = StringSub(s, decimalIndex)
+            s = StringSub(s, 1, decimalIndex - 1)
+        else
+            index = #s - 3
+        end
+
+        while index >= 1 do
+            s = StringSub(s, 1, index) .. "," .. StringSub(s, index + 1)
+            index = index - 3
+        end
+
+        return s .. suffix
+
+    elseif type_t == "string" then
         return t
-    elseif type(t) == "table" then
-        if t.classname then
+
+    elseif type_t == "boolean" then
+        return tostring(t)
+
+    elseif type_t == "table" then
+        local classname = t.classname
+        if classname then
             if type(t.__tostring) == "function" then
                 return t:__tostring()
             else
-                return string.format("class %s", t.classname)
+                return StringFormat("class %s", classname)
             end
         else
             return TableToString(t)
         end
-    elseif type(t) == "function" then
-        return DebugFunctionToString(t)
 
-    elseif type(t) == "cdata" then
+    elseif type_t == "userdata" then
+        if t.__tostring then
+            return t:__tostring()
+        elseif type(getmetatable(t)) ~= "table" then
+            return tostring(t)
+        elseif t.isa and t:isa("Entity") then
+            return t:GetClassName() .. "-" .. t:GetId()
+        elseif t.GetClassName then
+            return t:GetClassName()
+        elseif t.GetTagName then
+            return StringFormat("tag: %s CSS class: %s", t:GetTagName(), SafeCSSClassName(t))
+        else
+            return tostring(t)
+        end
+
+    elseif type_t == "cdata" then
+        if t == nil then
+            return "nil"
+        end
 
         if ffi.istype(ctint64, t) or ffi.istype(ctuint64, t) then
             return tostring(t)
@@ -1251,51 +1291,14 @@ function ToString(t)
         --defer to __tostring
         return tostring(t)
 
-    elseif type(t) == "userdata" then
-        if t.__tostring then
-            return t:__tostring()
-        elseif type(getmetatable(t)) ~= "table" then
-            return tostring(t)
-        elseif t.isa and t:isa("Entity") then
-            return t:GetClassName() .. "-" .. t:GetId()
-        elseif t.GetClassName then
-            return t:GetClassName()
-        elseif t.GetTagName then
-            return StringFormat("tag: %s CSS class: %s", t:GetTagName(), SafeCSSClassName(t))
-        else
-            return tostring(t)
-        end
-    elseif type(t) == "boolean" then
-        return tostring(t)
-    elseif type(t) == "number" then
+    elseif type_t == "function" then
+        return DebugFunctionToString(t)
 
-        --Insert commas in proper places
-        local s = tostring(t)
-        local suffix = ""
-
-        local index = string.len(s) - 3
-
-        --Take into account decimal place, if any
-        local decimalIndex = string.find(s, "(%.)")
-        if decimalIndex ~= nil then
-            index = decimalIndex - 4
-            suffix = string.sub(s, decimalIndex)
-            s = string.sub(s, 1, decimalIndex - 1)
-        end
-
-        while index >= 1 do
-
-            local prefix = string.sub(s, 1, index)
-            local postfix = string.sub(s, index + 1)
-            s = StringFormat("%s,%s", prefix, postfix)
-            index = index - 3
-
-        end
-
-        return s .. suffix
+    elseif t == nil then
+        return "nil"
     end
 
-    Print("ToString() on type \"%s\" failed.", type(t))
+    Print("ToString() on type \"%s\" failed.", type_t)
 end
 
 function CopyCData(cdata)
@@ -2286,47 +2289,34 @@ end
 
 function ReplaceAllCharsInStringWith(str, char, repWith)
 
-    local outString = str
-    local idx = 1
-    while idx <= #outString do
-        local findIdx = string.find(outString, char, idx)
-        if findIdx == nil then
-            break
-        end
-
-        outString = string.format("%s%s%s", string.sub(outString, idx, findIdx - 1), repWith, string.sub(outString, findIdx+1, #outString))
+    if not StringFind(str, char, 1, true) then
+        return str
     end
 
-    return outString
+    local pattern = StringGsub(char, "(%W)", "%%%1")
+    local replacement = StringGsub(repWith, "%%", "%%%%")
+    return (StringGsub(str, pattern, replacement))
 
 end
 
-local kInsaneChars =
-{
-    { "+",      "_plus",    },
-    { "<",      "_lt",      },
-    { ">",      "_gt",      },
-    { "|",      "_pipe",    },
-    { "\\",     "_bckslsh", },
-    -- TODO far from a complete list...
+-- TODO far from a complete list...
+local kInsaneCharMap = {
+    ["+"] = "_plus",
+    ["<"] = "_lt",
+    [">"] = "_gt",
+    ["|"] = "_pipe",
+    ["\\"] = "_bckslsh",
 }
+local kInsanePattern = "[%+%<%>%|%\\]"
 
 function SanitizePathStringForOptionName(str)
 
     -- Add something to end if the last element is blank.
-    local lastChar = string.sub(str, #str, #str)
-    if lastChar == "" or lastChar == "/" then
+    if str == "" or string.byte(str, #str) == 47 then
         str = str .. "__blank"
     end
 
-    -- Replace disallowed characters.
-    for i=1, #kInsaneChars do
-        local char = kInsaneChars[i][1]
-        local repWith = kInsaneChars[i][2]
-        str = ReplaceAllCharsInStringWith(str, char, repWith)
-    end
-
-    return str
+    return (StringGsub(str, kInsanePattern, kInsaneCharMap))
 
 end
 
@@ -2439,10 +2429,12 @@ function ApplyAtmosphericDensity()
     if Client and Client.lightList and gAtmosphericsEnabled then
         
         local atmoModifier = Client.GetOptionFloat("graphics/atmospheric-density", kDefaultLightsAtmoDensity)
+        local lightList = Client.lightList
         
         if gAtmosphericsEnabled then
-            for index, light in ipairs(Client.lightList) do
+            for i = 1, #lightList do
                 
+                local light = lightList[i]
                 if light.originalAtmosphericDensity then
                     light:SetAtmosphericDensity(light.originalAtmosphericDensity * atmoModifier)
                 end
