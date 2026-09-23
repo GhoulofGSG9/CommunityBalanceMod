@@ -45,6 +45,9 @@ if kCBMaddon then
 	  - Buy menu: selecting the Exosuit tile at a prototype lab opens a full-width configuration page with a Back button, a description for every module, live armor and speed readouts and per-module affordability colouring. Speed reads as a percentage of the marine walk speed, and every module carries a tag line for range, damage type and specials. Exosuit pilots land on the page directly. Buying requires an Exosuit Prototype Lab.
 	  - Prototype lab: exosuits can use it from 2.4 m instead of hugging it, its screens deploy for exosuits too, and Research Exosuits takes 110 s (from 90). Jetpack and Exosuit research cost 25 pres and take 110 s again (vanilla values; CBM had 20 pres / 90 s). The tech map no longer shows a second Exosuit node or the stray Armory to Observatory line, and now carries rows for Research Exosuits, Exosuit Modules and Advanced Exosuit Arms under the Exosuit Prototype Lab.
 	  - Thrusters and the Ejection Seat cost 15 pres each, so a core module is a choice rather than an automatic pick. The Ejection Seat's automatic eject also fires in mid-air. Refitting an exosuit costs a flat 5 pres on top of the price difference, so swapping between two configurations of equal price is never free. A refit carries the suit's damage over as a fraction of its armor, so a full suit stays full.
+	  - The Ejection Seat saves the pilot, not the suit: its automatic eject destroys the exosuit. A manually ejected suit keeps its real armor, minus any damage taken during the eject, and is destroyed when that leaves it empty; it can be re-entered at any armor.
+	  - The support ability cooldown carries over through a refit and through ejecting and re-entering the suit.
+	  - Bots buy exosuits through the modular configuration at modular prices and research, and fall back to a claw arm when a suit with two weapon arms is out of reach.
 	  - An exosuit's loadout can be read on the suit. Flamethrower and plasma arms puff their muzzle effect at irregular intervals while they have not fired, the Ejection Seat blinks an orange light above the torso, and Armor Plating shows as a static edge glow with plate seams. Plating stays apart from a Nano Shield by shape and motion, not by color.
 	  - The configuration page says why an arm cannot be mounted next to the other one instead of only greying the button.
 	  - The exosuit flame arm is blocked by an onos bone shield, like the marine flamethrower, and its cone is narrower.
@@ -98,6 +101,10 @@ if kCBMaddon then
 	  - Further fixes to collisions and movement.
 	  - Fixed marine bots not being able to target specific structures due to minimap blips.
 	  - Fixed hit sound not working when spectating a player first person.
+	  - Fixed a pilot who died during the eject window never reaching the spectator state.
+	  - Fixed damage popups and round stats on nano-shielded targets showing inflated numbers.
+	  - Fixed a crafted buy request handing out a dual-minigun exosuit for 25 pres without the required research.
+	  - Fixed the prototype lab exo hologram staying in the air after the lab was destroyed.
 	  - Improved performance of line of sight functions.
 	  - Improved performance of weapon holder functions.
 	  - Improved performance of cloaking functions.
@@ -271,8 +278,8 @@ if kCBMaddon then
 	  - Cores (optional upgrade):
 		- Ejection Seat: Auto-ejects marine on exosuit reaching 0 armor (+0.025 Weight / Costs 5 pres).
 		  - Requires valid ejection spot.
-		  - Empty exosuit will spawn with 50 armor upon automatic ejection (minus overflow damage).
-		  - Empty exosuit must have >50 armor to enter exosuit after automatic ejection.	  
+		  - Automatic ejection throws the marine clear and destroys the exosuit.
+		  - Manual ejection takes half the time, and an ejected exosuit can be re-entered at any armor.
 		- Thruster: Increases movement speed and allows for flight at the cost of energy (+0.05 Weight / Costs 5 pres). 
 		  - Min 25% activation energy required and initial 12.5% fuel cost when activated.
 		  - Vertical boost automatically activates upon holding space bar and stacks with base jump.
@@ -677,6 +684,9 @@ else
 	  - Buy menu: selecting the Exosuit tile at a prototype lab opens a full-width configuration page with a Back button, a description for every module, live armor and speed readouts and per-module affordability colouring. Speed reads as a percentage of the marine walk speed, and every module carries a tag line for range, damage type and specials. Exosuit pilots land on the page directly. Buying requires an Exosuit Prototype Lab.
 	  - Prototype lab: exosuits can use it from 2.4 m instead of hugging it, its screens deploy for exosuits too, and Research Exosuits takes 110 s (from 90). Jetpack and Exosuit research cost 25 pres and take 110 s again (vanilla values; CBM had 20 pres / 90 s). The tech map no longer shows a second Exosuit node or the stray Armory to Observatory line, and now carries rows for Research Exosuits, Exosuit Modules and Advanced Exosuit Arms under the Exosuit Prototype Lab.
 	  - Thrusters and the Ejection Seat cost 15 pres each, so a core module is a choice rather than an automatic pick. The Ejection Seat's automatic eject also fires in mid-air. Refitting an exosuit costs a flat 5 pres on top of the price difference, so swapping between two configurations of equal price is never free. A refit carries the suit's damage over as a fraction of its armor, so a full suit stays full.
+	  - The Ejection Seat saves the pilot, not the suit: its automatic eject destroys the exosuit. A manually ejected suit keeps its real armor, minus any damage taken during the eject, and is destroyed when that leaves it empty; it can be re-entered at any armor.
+	  - The support ability cooldown carries over through a refit and through ejecting and re-entering the suit.
+	  - Bots buy exosuits through the modular configuration at modular prices and research, and fall back to a claw arm when a suit with two weapon arms is out of reach.
 	  - An exosuit's loadout can be read on the suit. Flamethrower and plasma arms puff their muzzle effect at irregular intervals while they have not fired, the Ejection Seat blinks an orange light above the torso, and Armor Plating shows as a static edge glow with plate seams. Plating stays apart from a Nano Shield by shape and motion, not by color.
 	  - The configuration page says why an arm cannot be mounted next to the other one instead of only greying the button.
 	  - The exosuit flame arm is blocked by an onos bone shield, like the marine flamethrower, and its cone is narrower.
@@ -730,6 +740,10 @@ else
 	  - Further fixes to collisions and movement.
 	  - Fixed marine bots not being able to target specific structures due to minimap blips.
 	  - Fixed hit sound not working when spectating a player first person.
+	  - Fixed a pilot who died during the eject window never reaching the spectator state.
+	  - Fixed damage popups and round stats on nano-shielded targets showing inflated numbers.
+	  - Fixed a crafted buy request handing out a dual-minigun exosuit for 25 pres without the required research.
+	  - Fixed the prototype lab exo hologram staying in the air after the lab was destroyed.
 	  - Improved performance of line of sight functions.
 	  - Improved performance of weapon holder functions.
 	  - Improved performance of cloaking functions.
@@ -895,8 +909,8 @@ else
 	  - Cores (optional upgrade):
 		- Ejection Seat: Auto-ejects marine on exosuit reaching 0 armor (+0.025 Weight / Costs 5 pres).
 		  - Requires valid ejection spot.
-		  - Empty exosuit will spawn with 50 armor upon automatic ejection (minus overflow damage).
-		  - Empty exosuit must have >50 armor to enter exosuit after automatic ejection.	  
+		  - Automatic ejection throws the marine clear and destroys the exosuit.
+		  - Manual ejection takes half the time, and an ejected exosuit can be re-entered at any armor.
 		- Thruster: Increases movement speed and allows for flight at the cost of energy (+0.05 Weight / Costs 5 pres). 
 		  - Min 25% activation energy required and initial 12.5% fuel cost when activated.
 		  - Vertical boost automatically activates upon holding space bar and stacks with base jump.
