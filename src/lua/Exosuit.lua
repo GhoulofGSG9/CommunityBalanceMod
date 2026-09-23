@@ -265,17 +265,14 @@ if Server then
                 weapons[i]:SetParent(nil)
             end
 			
-            local exoPlayer = player:Replace(Exo.kMapName, player:GetTeamNumber(), false, spawnPoint, {
+            local exoPlayer = player:Replace(Exo.kMapName, player:GetTeamNumber(), false, nil, {
                 rightArmModuleType = self.rightArmModuleType,
                 leftArmModuleType  = self.leftArmModuleType,
                 utilityModuleType  = self.utilityModuleType,
                 abilityModuleType  = self.abilityModuleType,
             })
-            exoPlayer.prevPlayerMapName = player:GetMapName()
-            exoPlayer.prevPlayerHealth = player:GetHealth()
-            exoPlayer.prevPlayerMaxArmor = player:GetMaxArmor()
-            exoPlayer.prevPlayerArmor = player:GetArmor()
             if exoPlayer then
+                exoPlayer.timeSupportAbilityReady = self.timeSupportAbilityReady or 0
                 for i = 1, #weapons do
                     exoPlayer:StoreWeapon(weapons[i])
                 end

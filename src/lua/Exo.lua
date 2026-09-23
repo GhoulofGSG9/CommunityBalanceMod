@@ -1036,6 +1036,7 @@ if Server then
             end
 
             exosuit:SetHasEjectionSeat(self:GetHasEjectionSeat())
+            exosuit.timeSupportAbilityReady = self.timeSupportAbilityReady
             exosuit:SetExoVariant(self:GetExoVariant())
             exosuit:SetFlashlightOn(self:GetFlashlightOn())
             exosuit:TransferParasite(self)
@@ -1868,7 +1869,8 @@ if Server then
             self.prevPlayerArmor = player.prevPlayerArmor
             self.prevParasited = player.prevParasited
             self.prevParasitedTime = player.prevParasitedTime
-            
+            self.timeSupportAbilityReady = player.timeSupportAbilityReady
+
             if player.storedWeaponsIds then
                 self.storedWeaponsIds = player.storedWeaponsIds
             end
