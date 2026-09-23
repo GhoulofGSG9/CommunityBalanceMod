@@ -347,3 +347,23 @@ if Client then
     end
 end
 
+function PrototypeLab:OnDestroy()
+
+    ScriptActor.OnDestroy(self)
+
+    if Client then
+
+        if self.haloCinematicResearch then
+            Client.DestroyCinematic(self.haloCinematicResearch)
+            self.haloCinematicResearch = nil
+        end
+
+        if self.haloCinematicFinished then
+            Client.DestroyCinematic(self.haloCinematicFinished)
+            self.haloCinematicFinished = nil
+        end
+
+    end
+
+end
+
