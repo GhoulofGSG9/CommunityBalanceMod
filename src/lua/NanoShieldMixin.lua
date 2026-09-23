@@ -198,18 +198,18 @@ local function SharedUpdate(self)
     
 end
 
-function NanoShieldMixin:ComputeDamageOverrideMixin(attacker, damage, damageType, time)
-    
+function NanoShieldMixin:ComputeDamageOverrideMixin(attacker, damage, damageType, hitPoint, overshieldDamage)
+
     if self.nanoShielded == true then
         if self.NanoShieldDamageReductionOverride then
-            return damage * self:NanoShieldDamageReductionOverride(), damageType
+            return damage * self:NanoShieldDamageReductionOverride(), overshieldDamage
         elseif self.nanoShieldWeak then
-            return damage * kExoNanoShieldFieldDamageScalar, damageType
+            return damage * kExoNanoShieldFieldDamageScalar, overshieldDamage
         end
-        return damage * kNanoShieldDamageReductionDamage, damageType
+        return damage * kNanoShieldDamageReductionDamage, overshieldDamage
     end
-    
-    return damage
+
+    return damage, overshieldDamage
 
 end
 
