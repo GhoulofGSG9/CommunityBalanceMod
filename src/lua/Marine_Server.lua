@@ -262,76 +262,24 @@ function Marine:OnOverrideOrder(order)
 
 end
 
-local function BuyExo(self, techId)
-
-    local maxAttempts = 100
-    for index = 1, maxAttempts do
-    
-        -- Find open area nearby to place the big guy.
-        -- local capsuleHeight, capsuleRadius = self:GetTraceCapsule()
-        local extents = Vector(Exo.kXZExtents, Exo.kYExtents, Exo.kXZExtents)
-
-        local spawnPoint        
-        local checkPoint = self:GetOrigin() + Vector(0, 0.02, 0)
-        
-        if GetHasRoomForCapsule(extents, checkPoint + Vector(0, extents.y, 0), CollisionRep.Move, PhysicsMask.Evolve, self) then
-            spawnPoint = checkPoint
-        else
-            spawnPoint = GetRandomSpawnForCapsule(extents.y, extents.x, checkPoint, 0.5, 5, EntityFilterOne(self))
-        end    
-            
-        local weapons 
-
-        if spawnPoint then
-        
-            self:AddResources(-GetCostForTech(techId))
-            local weapons = self:GetWeapons()
-            for i = 1, #weapons do            
-                weapons[i]:SetParent(nil)            
-            end
-            
-            local exo
-
-            if techId == kTechId.Exosuit then
-                exo = self:GiveExo(spawnPoint)
-            elseif techId == kTechId.DualMinigunExosuit then
-                exo = self:GiveDualExo(spawnPoint)
-            elseif techId == kTechId.ClawRailgunExosuit then
-                exo = self:GiveClawRailgunExo(spawnPoint)
-            elseif techId == kTechId.DualRailgunExosuit then
-                exo = self:GiveDualRailgunExo(spawnPoint)
-            end
-            
-            if exo then                
-                for i = 1, #weapons do
-                    exo:StoreWeapon(weapons[i])
-                end            
-            end
-            
-            exo:TriggerEffects("spawn_exo")
-            
-            return
-            
-        end
-        
-    end
-    
-    Print("Error: Could not find a spawn point to place the Exo")
-    
-end
-
-kIsExoTechId = 
+kIsExoTechId =
 {
     [kTechId.Exosuit] = true,
     [kTechId.DualMinigunExosuit] = true,
-    [kTechId.ClawRailgunExosuit] = false,
+    [kTechId.ClawRailgunExosuit] = true,
     [kTechId.DualRailgunExosuit] = true
 }
 
 function Marine:AttemptToBuy(techIds)
 
     local techId = techIds[1]
-    
+
+    -- DualMinigunExosuit stays a buy node for the buy menu's exosuit tile. The suit itself is
+    -- sold only by ModularExo_HandleExoModularBuy, which prices the modules and gates their research.
+    if kIsExoTechId[techId] then
+        return false
+    end
+
     local hostStructure = GetHostStructureFor(self, techId)
 
     if hostStructure then
@@ -351,9 +299,7 @@ function Marine:AttemptToBuy(techIds)
                 -- Need to apply this here since we change the class.
                 self:AddResources(-GetCostForTech(techId))
                 self:GiveJetpack()
-                
-            elseif kIsExoTechId[techId] then
-                BuyExo(self, techId)    
+
             else
             
                 -- Make sure we're ready to deploy new weapon so we switch to it properly.
@@ -533,35 +479,6 @@ function Marine:GiveJetpack()
     
     jetpackMarine:SetActiveWeapon(activeWeaponMapName)
     jetpackMarine:SetHealth(health)
-    
-end
 
-
-function Marine:GiveExo(spawnPoint, isPickup)
-
-    local exo = self:Replace(Exo.kMapName, self:GetTeamNumber(), false, spawnPoint, { layout = "MinigunMinigun" }, isPickup)
-    return exo
-    
-end
-
-function Marine:GiveDualExo(spawnPoint, isPickup)
-
-    local exo = self:Replace(Exo.kMapName, self:GetTeamNumber(), false, spawnPoint, { layout = "MinigunMinigun" }, isPickup)
-    return exo
-    
-end
-
-function Marine:GiveClawRailgunExo(spawnPoint, isPickup)
-
-    local exo = self:Replace(Exo.kMapName, self:GetTeamNumber(), false, spawnPoint, { layout = "ClawRailgun" }, isPickup)
-    return exo
-    
-end
-
-function Marine:GiveDualRailgunExo(spawnPoint, isPickup)
-
-    local exo = self:Replace(Exo.kMapName, self:GetTeamNumber(), false, spawnPoint, { layout = "RailgunRailgun" }, isPickup)
-    return exo
-    
 end
 
