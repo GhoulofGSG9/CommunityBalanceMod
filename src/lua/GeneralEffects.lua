@@ -438,7 +438,7 @@ kGeneralEffectData =
         deathSoundEffects = 
         {
             {sound = "sound/NS2.fev/marine/structures/generic_death", classname = "Exo", done = true},
-            {sound = "sound/NS2.fev/marine/structures/generic_death", classname = "Exosuit", done = true},
+            {sound = "sound/NS2.fev/marine/structures/generic_death", classname = "Exosuit", world_space = true, done = true},
 
             {sound = "sound/NS2.fev/alien/skulk/bite_kill", doer = "BiteLeap"},
             

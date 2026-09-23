@@ -205,7 +205,7 @@ if Client then
 	Locale.substitutions["EXO_MODULE_THRUSTERS"] = "Thrusters"
 	Locale.substitutions["EXO_MODULE_THRUSTERS_DESC"] = "Core module: a ground dash worth 2.5 extra speed on demand, burning 4 energy a second out of the fuel cell. Good for closing on a target or breaking a chase; it gives no lift."
 	Locale.substitutions["EXO_MODULE_EJECTIONSEAT"] = "Ejection Seat"
-	Locale.substitutions["EXO_MODULE_EJECTIONSEAT_DESC"] = "Core module: when the suit's armor runs out you are thrown clear instead of dying in it, and the exosuit is left standing with 40 armor for someone to weld back up. A manual eject takes half a second instead of one. It saves the marine and the shell, not the fight."
+	Locale.substitutions["EXO_MODULE_EJECTIONSEAT_DESC"] = "Core module: when the suit's armor runs out you are thrown clear instead of dying in it, but the exosuit is destroyed. A manual eject takes half a second instead of one. It saves the marine, not the suit."
 	Locale.substitutions["EXO_MODULE_ARMOR"] = "Armor Plating"
 	Locale.substitutions["EXO_MODULE_ARMOR_TOOLTIP"] = "Bolt-on plating: 80 extra armor at the cost of speed."
 	Locale.substitutions["EXO_MODULE_ARMOR_DESC"] = "Core module: 80 extra armor bolted on, paid for with speed. It costs as much as a weapon arm: the last stretch of armor is meant to be paid for."
