@@ -1096,8 +1096,7 @@ if Server then
             
             return false
         end
-        
-        DestroyEntity(self)
+
         return false
     end
     	
