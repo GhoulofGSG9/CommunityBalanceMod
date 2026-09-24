@@ -62,6 +62,7 @@ kExoArmTypes = enum {
     "Minigun",
     "Railgun",
 	"PlasmaLauncher",
+	"Flamethrower",
 }
 
 kExoArmNames = {
@@ -73,221 +74,122 @@ kExoArmNames = {
 }
 
 -- Module type data
-if kCBMaddon then
-	kExoModuleTypesData = {
-		
-		-- Weapon modules
-		[kExoModuleTypes.Claw]       = {
-			category     = kExoModuleCategories.Weapon,
-			powerCost    = 0,
-			resourceCost = kClawCost,
-			mapName      = Claw.kMapName,
-			armType      = kExoArmTypes.Claw,
-			weight       = kClawWeight,
-			armorValue   = kClawArmor,
-			leftArmOnly  = true,
-			singleRightArmOnly = false,
-		},
-		[kExoModuleTypes.Minigun]    = {
-			category       = kExoModuleCategories.Weapon,
-			powerCost      = 0,
-			resourceCost   = kMinigunCost,
-			mapName        = Minigun.kMapName,
-			armType        = kExoArmTypes.Minigun,
-			weight         = kMinigunWeight,
-			armorValue     = kMinigunArmor,
-			requiredTechId = kMinigunTech,
-			leftArmOnly    = false,
-			singleRightArmOnly = true,
-		},
-		[kExoModuleTypes.Railgun]    = {
-			category       = kExoModuleCategories.Weapon,
-			powerCost      = 0,
-			resourceCost   = kRailgunCost,
-			mapName        = Railgun.kMapName,
-			armType        = kExoArmTypes.Railgun,
-			weight         = kRailgunWeight,
-			armorValue     = kRailgunArmor,
-			requiredTechId = kRailgunTech,
-			leftArmOnly    = false,
-			singleRightArmOnly = true,
-		},
-		[kExoModuleTypes.PlasmaLauncher]    = {
-			category       = kExoModuleCategories.Weapon,
-			powerCost      = 0,
-			resourceCost   = kPlasmaLauncherCost,
-			mapName        = PlasmaLauncher.kMapName,
-			armType        = kExoArmTypes.PlasmaLauncher,
-			weight         = kPlasmaLauncherWeight,
-			armorValue     = kPlasmaLauncherArmor,
-			requiredTechId = kPlasmaLauncherTech,
-			leftArmOnly    = false,
-			singleRightArmOnly = true,
-		},
-		--[[[kExoModuleTypes.Flamethrower] = {
-			category 	   = kExoModuleCategories.Weapon,
-			powerCost 	   = 0,
-			resourceCost   = kExoFlamerCost,
-			mapName 	   = ExoFlamer.kMapName,
-			armType 	   = kExoArmTypes.Railgun,
-			weight 		   = kExoFlamerWeight,
-			armorValue     = kExoFlamerWelderArmor,
-			requiredTechId = kExoFlamerTech,
-			leftArmOnly    = false,
-			singleRightArmOnly = true,
-		--]]
-		--},
-		--[kExoModuleTypes.Shield] = {
-		--    category = kExoModuleCategories.Weapon,
-		--    powerCost = 0,
-		--	resourceCost = kExoShieldCost,
-		--    mapName = ExoShield.kMapName,
-		--    armType = kExoArmTypes.Claw,
-		--    weight = kExoShieldWeight,
-		--    armorValue     = kThrustersArmor,
-		--	requiredTechId = kExoShieldTech,
-		--    leftArmOnly  = true
-		--},		
-		
-		-- Utility modules
-		[kExoModuleTypes.Thrusters]  = {
-			category       = kExoModuleCategories.Utility,
-			powerCost      = 0,
-			resourceCost   = kThrustersCost,
-			weight         = kThrustersWeight,
-			armorValue     = kThrustersArmor,
-			requiredTechId = kExoThrusterModuleTech
-			
-		},
-		--	[kExoModuleTypes.PhaseModule] = {
-		--    category = kExoModuleCategories.Utility,
-		--    powerCost = 0,
-		--	resourceCost = kPhaseModuleCost,
-		--    weight = kPhaseModuleWeight,
-		--	requiredTechId = kPhaseModuleTech
-		--
-		--},
-		
-		--[kExoModuleTypes.Armor]      = {
-		--    category       = kExoModuleCategories.Utility,
-		--    powerCost      = 0,
-		--    resourceCost   = kArmorModuleCost,
-		--    armorValue     = kArmorModuleArmor,
-		--    weight         = kArmorModuleWeight,
-		--    requiredTechId = kArmorModuleTech
-		--},
-		
-		--[kExoModuleTypes.NanoRepair] = {
-		--    category     = kExoModuleCategories.Utility,
-		--    powerCost    = 0,
-		--    resourceCost = kNanoModuleCost,
-		--    weight       = kNanoRepairWeight,
-		--    armorValue   = kNanoRepairArmor,
-		--    
-		--},
-		
-		--[kExoModuleTypes.NanoShield] = {
-		--    category     = kExoModuleCategories.Ability,
-		--    powerCost    = 0,
-		--    resourceCost = kExoNanoShieldCost,
-		--    weight       = kNanoShieldWeight,
-		--    
-		--},
-		--[kExoModuleTypes.CatPack]    = {
-		--    category     = kExoModuleCategories.Ability,
-		--    powerCost    = 0,
-		--    resourceCost = kExoCatPackCost,
-		--    weight       = kCatPackWeight,
-		--    armorValue   = kCatPackArmor,
-		--    
-		--},
-		
-		[kExoModuleTypes.EjectionSeat]  = {
+kExoModuleTypesData = {
+	
+	-- Weapon modules
+	[kExoModuleTypes.Claw]       = {
+		category     = kExoModuleCategories.Weapon,
+		powerCost    = 0,
+		resourceCost = kClawCost,
+		mapName      = Claw.kMapName,
+		armType      = kExoArmTypes.Claw,
+		weight       = kClawWeight,
+		armorValue   = kClawArmor,
+		leftArmOnly  = true,
+	},
+	[kExoModuleTypes.Minigun]    = {
+		category       = kExoModuleCategories.Weapon,
+		powerCost      = 0,
+		resourceCost   = kMinigunCost,
+		mapName        = Minigun.kMapName,
+		armType        = kExoArmTypes.Minigun,
+		weight         = kMinigunWeight,
+		armorValue     = kMinigunArmor,
+		requiredTechId = kMinigunTech,
+		leftArmOnly    = false,
+	},
+	[kExoModuleTypes.Railgun]    = {
+		category       = kExoModuleCategories.Weapon,
+		powerCost      = 0,
+		resourceCost   = kRailgunCost,
+		mapName        = Railgun.kMapName,
+		armType        = kExoArmTypes.Railgun,
+		weight         = kRailgunWeight,
+		armorValue     = kRailgunArmor,
+		requiredTechId = kRailgunTech,
+		leftArmOnly    = false,
+	},
+	[kExoModuleTypes.PlasmaLauncher]    = {
+		category       = kExoModuleCategories.Weapon,
+		powerCost      = 0,
+		resourceCost   = kPlasmaLauncherCost,
+		mapName        = PlasmaLauncher.kMapName,
+		armType        = kExoArmTypes.PlasmaLauncher,
+		weight         = kPlasmaLauncherWeight,
+		armorValue     = kPlasmaLauncherArmor,
+		requiredTechId = kPlasmaLauncherTech,
+		leftArmOnly    = false,
+	},
+	[kExoModuleTypes.Flamethrower]    = {
+		category       = kExoModuleCategories.Weapon,
+		powerCost      = 0,
+		resourceCost   = kExoFlamerCost,
+		mapName        = ExoFlamer.kMapName,
+		armType        = kExoArmTypes.Flamethrower,
+		weight         = kExoFlamerWeight,
+		armorValue     = kExoFlamerArmor,
+		requiredTechId = kExoFlamerTech,
+		leftArmOnly    = false,
+	},
+	-- Utility modules
+	[kExoModuleTypes.Thrusters]  = {
 		category       = kExoModuleCategories.Utility,
 		powerCost      = 0,
-		resourceCost   = kEjectionSeatCost,
-		weight         = kEjectionSeatWeight,
-		armorValue     = kEjectionSeatArmor,
-		requiredTechId = kEjectionSeatModuleTech
-		},
+		resourceCost   = kThrustersCost,
+		weight         = kThrustersWeight,
+		armorValue     = kThrustersArmor,
+		requiredTechId = kExoThrusterModuleTech
 		
-		[kExoModuleTypes.None]       = { },
-	}
-else
-	kExoModuleTypesData = {
-		
-		-- Weapon modules
-		[kExoModuleTypes.Claw]       = {
-			category     = kExoModuleCategories.Weapon,
-			powerCost    = 0,
-			resourceCost = kClawCost,
-			mapName      = Claw.kMapName,
-			armType      = kExoArmTypes.Claw,
-			weight       = kClawWeight,
-			armorValue   = kClawArmor,
-			leftArmOnly  = true,
-			singleRightArmOnly = false,
-		},
-		[kExoModuleTypes.Minigun]    = {
-			category       = kExoModuleCategories.Weapon,
-			powerCost      = 0,
-			resourceCost   = kMinigunCost,
-			mapName        = Minigun.kMapName,
-			armType        = kExoArmTypes.Minigun,
-			weight         = kMinigunWeight,
-			armorValue     = kMinigunArmor,
-			requiredTechId = kMinigunTech,
-			leftArmOnly    = false,
-			singleRightArmOnly = true,
-		},
-		[kExoModuleTypes.Railgun]    = {
-			category       = kExoModuleCategories.Weapon,
-			powerCost      = 0,
-			resourceCost   = kRailgunCost,
-			mapName        = Railgun.kMapName,
-			armType        = kExoArmTypes.Railgun,
-			weight         = kRailgunWeight,
-			armorValue     = kRailgunArmor,
-			requiredTechId = kRailgunTech,
-			leftArmOnly    = false,
-			singleRightArmOnly = true,
-		},
-		[kExoModuleTypes.PlasmaLauncher]    = {
-			category       = kExoModuleCategories.Weapon,
-			powerCost      = 0,
-			resourceCost   = kPlasmaLauncherCost,
-			mapName        = PlasmaLauncher.kMapName,
-			armType        = kExoArmTypes.PlasmaLauncher,
-			weight         = kPlasmaLauncherWeight,
-			armorValue     = kPlasmaLauncherArmor,
-			requiredTechId = kPlasmaLauncherTech,
-			leftArmOnly    = false,
-			singleRightArmOnly = true,
-		},
-		-- Utility modules
-		[kExoModuleTypes.Thrusters]  = {
-			category       = kExoModuleCategories.Utility,
-			powerCost      = 0,
-			resourceCost   = kThrustersCost,
-			weight         = kThrustersWeight,
-			armorValue     = kThrustersArmor,
-			requiredTechId = kExoThrusterModuleTech
-			
-		},		
-		[kExoModuleTypes.EjectionSeat]  = {
-		category       = kExoModuleCategories.Utility,
+	},		
+	[kExoModuleTypes.EjectionSeat]  = {
+	category       = kExoModuleCategories.Utility,
+	powerCost      = 0,
+	resourceCost   = kEjectionSeatCost,
+	weight         = kEjectionSeatWeight,
+	armorValue     = kEjectionSeatArmor,
+	requiredTechId = kEjectionSeatModuleTech
+	},
+	[kExoModuleTypes.Armor]  = {
+	category       = kExoModuleCategories.Utility,
+	powerCost      = 0,
+	resourceCost   = kExoArmorModuleCost,
+	weight         = kExoArmorModuleWeight,
+	armorValue     = kExoArmorModuleArmor,
+	requiredTechId = kExoArmorModuleTech
+	},
+	
+	-- Ability modules (Support Ability slot)
+	[kExoModuleTypes.NanoShield]  = {
+		category       = kExoModuleCategories.Ability,
 		powerCost      = 0,
-		resourceCost   = kEjectionSeatCost,
-		weight         = kEjectionSeatWeight,
-		armorValue     = kEjectionSeatArmor,
-		requiredTechId = kEjectionSeatModuleTech
-		},
-		
-		[kExoModuleTypes.None]       = { },
-	}
-end
+		resourceCost   = kExoSupportModuleCost,
+		weight         = 0,
+		armorValue     = 0,
+		requiredTechId = kExoSupportModuleTech
+	},
+	[kExoModuleTypes.CatPack]     = {
+		category       = kExoModuleCategories.Ability,
+		powerCost      = 0,
+		resourceCost   = kExoSupportModuleCost,
+		weight         = 0,
+		armorValue     = 0,
+		requiredTechId = kExoSupportModuleTech
+	},
+	[kExoModuleTypes.NanoRepair]  = {
+		category       = kExoModuleCategories.Ability,
+		powerCost      = 0,
+		resourceCost   = kExoSupportModuleCost,
+		weight         = 0,
+		armorValue     = 0,
+		requiredTechId = kExoSupportModuleTech
+	},
+	
+	[kExoModuleTypes.None]       = { },
+}
 
 -- Model data for weapon combos (data[rightArmType][leftArmType])
+-- Flamethrower combos borrow the railgun art (exosuit_rr / exosuit_rp / exosuit_pr) until dedicated
+-- flamer models exist; only claw+flamer (exosuit_cf) has its own model.
 kExoWeaponRightLeftComboModels = {
     [kExoArmTypes.Minigun] = {
         isValid                = true,
@@ -310,6 +212,9 @@ kExoWeaponRightLeftComboModels = {
             worldAnimGraph = "models/claw/exosuit_cm.animation_graph",
             viewModel      = "models/claw/exosuit_cm_view.model",
             viewAnimGraph  = "models/claw/exosuit_cm_view.animation_graph",
+        },
+		[kExoArmTypes.Flamethrower] = {
+            isValid = false,
         },
     },
     [kExoArmTypes.Railgun] = {
@@ -338,6 +243,13 @@ kExoWeaponRightLeftComboModels = {
             viewModel      = "models/claw/exosuit_cr_view.model",
             viewAnimGraph  = "models/claw/exosuit_cr_view.animation_graph",
         },
+		[kExoArmTypes.Flamethrower] = {
+            isValid        = true,
+            worldModel     = "models/marine/exosuit/exosuit_rr.model",
+            worldAnimGraph = "models/marine/exosuit/exosuit_rr.animation_graph",
+            viewModel      = "models/marine/exosuit/exosuit_rr_view.model",
+            viewAnimGraph  = "models/marine/exosuit/exosuit_rr_view.animation_graph",
+        },
     },
     [kExoArmTypes.Claw]    = {
         isValid                = true,
@@ -358,6 +270,9 @@ kExoWeaponRightLeftComboModels = {
             viewModel      = "models/claw/exosuit_cm_view.model",
             viewAnimGraph  = "models/claw/exosuit_cm_view.animation_graph",
         }, -- NOT A VALID MODEL!
+		[kExoArmTypes.Flamethrower] = {
+            isValid = true,
+        },
     },
 	[kExoArmTypes.PlasmaLauncher] = {
         isValid                = true,
@@ -384,6 +299,47 @@ kExoWeaponRightLeftComboModels = {
             worldAnimGraph = "models/claw/exosuit_cp.animation_graph",
             viewModel      = "models/claw/exosuit_cp_view.model",
             viewAnimGraph  = "models/claw/exosuit_cp_view.animation_graph",
+        },
+		[kExoArmTypes.Flamethrower] = {
+            isValid        = true,
+            worldModel     = "models/railgun/exosuit_rp.model",
+            worldAnimGraph = "models/railgun/exosuit_rp.animation_graph",
+            viewModel      = "models/railgun/exosuit_rp_view.model",
+            viewAnimGraph  = "models/railgun/exosuit_rp_view.animation_graph",
+        },
+    },
+	[kExoArmTypes.Flamethrower] = {
+        isValid                = true,
+        [kExoArmTypes.Minigun] = {
+            isValid = false,
+        },
+        [kExoArmTypes.Railgun] = {
+            isValid        = true,
+            worldModel     = "models/marine/exosuit/exosuit_rr.model",
+            worldAnimGraph = "models/marine/exosuit/exosuit_rr.animation_graph",
+            viewModel      = "models/marine/exosuit/exosuit_rr_view.model",
+            viewAnimGraph  = "models/marine/exosuit/exosuit_rr_view.animation_graph",
+        },
+		[kExoArmTypes.PlasmaLauncher] = {
+            isValid        = true,
+            worldModel     = "models/railgun/exosuit_pr.model",
+            worldAnimGraph = "models/railgun/exosuit_pr.animation_graph",
+            viewModel      = "models/railgun/exosuit_pr_view.model",
+            viewAnimGraph  = "models/railgun/exosuit_pr_view.animation_graph",
+        },
+		[kExoArmTypes.Flamethrower] = {
+            isValid        = true,
+            worldModel     = "models/marine/exosuit/exosuit_rr.model",
+            worldAnimGraph = "models/marine/exosuit/exosuit_rr.animation_graph",
+            viewModel      = "models/marine/exosuit/exosuit_rr_view.model",
+            viewAnimGraph  = "models/marine/exosuit/exosuit_rr_view.animation_graph",
+        },
+        [kExoArmTypes.Claw]    = {
+            isValid        = true,
+            worldModel     = "models/claw/exosuit_cf.model",
+            worldAnimGraph = "models/claw/exosuit_cf.animation_graph",
+            viewModel      = "models/claw/exosuit_cf_view.model",
+            viewAnimGraph  = "models/claw/exosuit_cf_view.animation_graph",
         },
     },
 }

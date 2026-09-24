@@ -90,7 +90,9 @@ end
 
 -- What entities have become dirty.
 -- Flushed in the UpdateServer hook by MapBlipMixin.OnUpdateServer
-local mapBlipMixinDirtyTable = unique_set()
+local mapBlipMixinDirtySets = { unique_set(), unique_set() }
+local mapBlipMixinDirtyIndex = 1
+local mapBlipMixinDirtyTable = mapBlipMixinDirtySets[1]
 
 
 --
@@ -102,7 +104,9 @@ local function MapBlipMixinOnUpdateServer()
     -- Swap out the dirty set so marks added during the flush
     -- (via UpdateBlip -> MarkBlipDirty) survive to the next tick.
     local flushed = mapBlipMixinDirtyTable
-    mapBlipMixinDirtyTable = unique_set()
+    mapBlipMixinDirtyIndex = 3 - mapBlipMixinDirtyIndex
+    mapBlipMixinDirtyTable = mapBlipMixinDirtySets[mapBlipMixinDirtyIndex]
+    mapBlipMixinDirtyTable:Clear()
 
     for entityId in flushed:Iterate() do
         local entity = Shared.GetEntity(entityId)
@@ -173,7 +177,11 @@ end
 --
 function MapBlipMixin:SetOrigin(orig)
     if self.lastBlipOrigin ~= orig then
-        self.lastBlipOrigin = Vector(orig)
+        if self.lastBlipOrigin then
+            VectorCopy(orig, self.lastBlipOrigin)
+        else
+            self.lastBlipOrigin = Vector(orig)
+        end
 
         local isInitTick = not self.mapBlipSyncTick or Shared.GetTime() - self.mapBlipSyncTick <= 0.1
         if isInitTick then

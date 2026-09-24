@@ -127,6 +127,7 @@ Marine.kAirStrafeWeight = 2
 Marine.kMarineBuyAutopickupDelayTime = 5 -- Time for a marine player to delay before autopickuping a weapon after buying something. (Buying a GL when having a SG, for example)
 
 local kMaskSpecialKeys = bit.bor(Move.ToggleFlashlight, Move.Drop, Move.Use)
+local kMaskClearDrop = bit.bnot(Move.Drop)
 
 local precached3 = PrecacheAsset("models/marine/rifle/rifle_shell_01.dds")
 local precached4 = PrecacheAsset("models/marine/rifle/rifle_shell_01_normal.dds")
@@ -610,6 +611,43 @@ function Marine:HandleButtons(input)
 
         end
         
+        -- A manual exo eject is triggered by holding the drop key. The moves the client
+        -- already sent while it was still an Exo carry the re-asserted Move.Drop bit and
+        -- only arrive after the Replace(), so the fresh marine would immediately throw
+        -- its weapon away. A single Drop-free move is not proof that the key was let go:
+        -- the server reads Move.Drop by level and not by edge (see below), and the exo
+        -- override that sets it can drop out for a frame during the entity handover and
+        -- then come back. So swallow every Drop and only re-arm dropping once the bit
+        -- has stayed clear for a whole kExoEjectDropGraceTime; anything in between
+        -- restarts that window. A Drop bit that never clears would latch the block on
+        -- forever, so kExoEjectDropHardLimit releases it unconditionally either way.
+        if self.timeEjected then
+
+            if Shared.GetTime() - self.timeEjected > kExoEjectDropHardLimit then
+
+                self.timeEjected = nil
+                self.timeEjectDropReleased = nil
+
+            elseif bit_band(input.commands, Move.Drop) ~= 0 then
+
+                input.commands = bit_band(input.commands, kMaskClearDrop)
+                self.timeEjectDropReleased = nil
+
+            else
+
+                self.timeEjectDropReleased = self.timeEjectDropReleased or Shared.GetTime()
+
+                if Shared.GetTime() - self.timeEjectDropReleased >= kExoEjectDropGraceTime then
+
+                    self.timeEjected = nil
+                    self.timeEjectDropReleased = nil
+
+                end
+
+            end
+
+        end
+
         -- If nothing special, then stop right here
         if bit_band(input.commands, kMaskSpecialKeys) == 0 then
             self.flashlightLastFrame = false

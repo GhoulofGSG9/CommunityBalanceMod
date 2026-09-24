@@ -484,6 +484,7 @@ end
 class 'PredictedProjectile' (Entity)
 
 PredictedProjectile.kMapName = "predictedprojectile"
+PredictedProjectile.kStaticNoVision = true -- No vision trashing for others around
 
 local networkVars =
 {

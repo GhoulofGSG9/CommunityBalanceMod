@@ -513,14 +513,16 @@ classNameToTechId["Shockwave"] = kTechId.Stomp
 
 function StatsUI_GetAttackerWeapon(attacker, doer)
 
-	local attackerTeam = attacker and attacker:isa("Player") and attacker:GetTeamNumber() or nil
-	local attackerSteamId = attacker and attacker:isa("Player") and attacker:GetSteamId() or nil
+	local attackerIsPlayer = attacker and attacker:isa("Player")
+	local attackerTeam = attackerIsPlayer and attacker:GetTeamNumber() or nil
+	local attackerSteamId = attackerIsPlayer and attacker:GetSteamId() or nil
 	local attackerWeapon = doer and doer:isa("Weapon") and doer:GetTechId() or kTechId.None
 
 	if attacker and doer then
-		if doer.GetClassName and classNameToTechId[doer:GetClassName()] then
+		local classTechId = doer.GetClassName and classNameToTechId[doer:GetClassName()]
+		if classTechId then
 
-			attackerWeapon = classNameToTechId[doer:GetClassName()]
+			attackerWeapon = classTechId
 
 		elseif doer:GetParent() and doer:GetParent():isa("Player") then
 
@@ -1147,12 +1149,9 @@ function StatsUI_HandlePreOnKill(self, killer, doer, point, direction)
 			StatsUI_ResetLastLifeStats(steamId)
 		end
 		
-		local targetTeam = self.GetTeamNumber and self:GetTeamNumber() or 0
-		
-		-- Now save the attacker weapon
-		local killerSteamId, killerWeapon, killerTeam = StatsUI_GetAttackerWeapon(killer, doer)
-		
 		if not self.isHallucination then
+			local targetTeam = self.GetTeamNumber and self:GetTeamNumber() or 0
+			local killerSteamId, killerWeapon, killerTeam = StatsUI_GetAttackerWeapon(killer, doer)
 			if killerSteamId and killerTeam ~= targetTeam then
 				StatsUI_AddWeaponKill(killerSteamId, killerWeapon, killerTeam)
 			end

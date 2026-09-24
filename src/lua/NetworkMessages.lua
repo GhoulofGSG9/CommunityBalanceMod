@@ -454,7 +454,7 @@ function SendMarkEnemyMessage( attacker, target, amount, weapon )
 
     if attacker and target and target:isa("Player") and amount > 0 and IsAllowedWeaponToMarkEnemy(weapon) then
 
-        local msg = BuildMarkEnemyMessage(target, weapon)
+        local msg = BuildMarkEnemyMessage(target:GetId(), weapon)
 
         -- mark enemy must always be reliable when not spectating
         Server.SendNetworkMessage(attacker, "MarkEnemy", msg, true)
@@ -1313,7 +1313,7 @@ Shared.RegisterNetworkMessage("AutoConcedeWarning", kAutoConcedeWarning)
 
 local kScoreUpdate =
 {
-    points = "integer (0 to " .. kMaxScore .. ")",
+    points = "float (0 to " .. kMaxScore .. " by 0.5)",
     res = "integer (0 to " .. kMaxPersonalResources .. ")",
     wasKill = "boolean"
 }
@@ -1397,20 +1397,56 @@ if Server then
     function ModularExo_HandleExoModularBuy(self, message)
         local exoConfig = ModularExo_ConvertNetMessageToConfig(message)
 
+        -- Refund for the suit already worn. Priced without a team number on purpose: this is a
+        -- valuation of something the player already owns, not a request to be gated.
         local discount = 0
         if self:isa("Exo") then
-            local isValid, badReason, resCost = ModularExo_GetIsConfigValid(ModularExo_ConvertNetMessageToConfig(self))
-            discount = resCost
+            local _, _, wornResCost = ModularExo_GetIsConfigValid(ModularExo_ConvertNetMessageToConfig(self))
+            discount = wornResCost or 0
         end
-        
-        local isValid, badReason, resCost = ModularExo_GetIsConfigValid(exoConfig)
-        resCost = math.max(0,resCost - discount)
 
+        -- The team number is what turns the research gates on: a client that asks for a module
+        -- its commander has not researched is refused here rather than trusted.
+        local isValid, badReason, resCost = ModularExo_GetIsConfigValid(exoConfig, self:GetTeamNumber())
+        if not isValid then
+            -- An invalid config carries no cost, so bail out before the arithmetic below.
+            Print("Invalid exo config: %s", badReason or "unknown")
+            return
+        end
+
+        -- The flat fee is what keeps module choice a commitment: refunding the worn suit
+        -- at full value lets two configurations of equal price swap for nothing.
+        resCost = math.max(0, (resCost or 0) - discount)
+        if discount > 0 then
+            resCost = resCost + kExoRefitCost
+        end
+
+        -- The host has to be within resupply range, the same rule the buy menu uses to stay
+        -- open (GetIsCloseToMenuStructure). GetNearest alone accepted a crafted message
+        -- from anywhere on the map. An Exosuit Prototype Lab builds a suit for anyone; a
+        -- built armory only refits the suit a player is already wearing, so a marine on foot
+        -- standing at one is refused here.
         local playerPos = self:GetOrigin()
-        local nearestProto = GetNearest(playerPos, "PrototypeLab", kMarineTeamType)
+        local slack = self:isa("Exo") and kExoStructureUseSlack or 0
+        local nearestHost
+        for _, lab in ipairs(GetEntitiesForTeamWithinRange("PrototypeLab", self:GetTeamNumber(), playerPos, PrototypeLab.kResupplyUseRange + slack)) do
+            if lab:GetTechId() == kTechId.ExoPrototypeLab and lab:GetIsBuilt() then
+                nearestHost = lab
+                break
+            end
+        end
 
-        if not isValid or resCost > self:GetResources() or nearestProto:GetTechId() ~= kTechId.ExoPrototypeLab then
-            Print("Invalid exo config: %s", badReason)
+        if not nearestHost and self:isa("Exo") then
+            for _, armory in ipairs(GetEntitiesForTeamWithinRange("Armory", self:GetTeamNumber(), playerPos, Armory.kResupplyUseRange + kExoStructureUseSlack)) do
+                if armory:GetIsBuilt() then
+                    nearestHost = armory
+                    break
+                end
+            end
+        end
+
+        if resCost > self:GetResources() or not nearestHost then
+            Print("Invalid exo config: %s", "no lab or not enough resources")
             return
         end
 
@@ -1428,6 +1464,9 @@ if Server then
         end
         local exoVariables = message
         
+        -- Replace destroys self.
+        local oldMaxArmor = self:GetMaxArmor()
+        local armorFraction = oldMaxArmor > 0 and (self:GetArmor() / oldMaxArmor) or 1
         local exo = self:Replace(Exo.kMapName, self:GetTeamNumber(), false, spawnPoint, exoVariables)
         
         if not exo then
@@ -1435,8 +1474,10 @@ if Server then
             return
         end
         if self:isa("Exo") then
-            exo:SetMaxArmor(self:GetMaxArmor())
-            exo:SetArmor(self:GetArmor())
+            -- Refit: the new exo already derived its max armor from the new module
+            -- config. Carry the damage as a fraction, the way carapace does: a full suit
+            -- stays full, so bought plating does not arrive empty.
+            exo:SetArmor(exo:GetMaxArmor() * armorFraction)
         else
             exo.prevPlayerMapName = self:GetMapName()
             exo.prevPlayerHealth = self:GetHealth()
@@ -1450,12 +1491,6 @@ if Server then
         exo:TriggerEffects("spawn_exo")
     end
 end
-
-local kSetDualRailLockMessage =
-{
-    dualrailfiring = "boolean"
-}
-Shared.RegisterNetworkMessage("SetDualRailLock", kSetDualRailLockMessage)
 
 local kSetDualMiniLockMessage =
 {

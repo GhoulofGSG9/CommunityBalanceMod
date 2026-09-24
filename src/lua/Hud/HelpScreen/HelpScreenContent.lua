@@ -521,15 +521,97 @@ function HelpScreen_InitializeContent()
         theme = "marine",
         useLocale = true,
         })
-        
+
     -- Exosuit Thrusters
     HelpScreen_AddContent({
         name = "ExoThrusters",
         title = "HELP_SCREEN_EXO_THRUSTERS",
+        -- Only show the card for the module this Exo actually has equipped.
+        requirementFunction = function()
+            return PlayerUI_GetHasThrusters() == true, "HELP_SCREEN_EXO_THRUSTERS"
+        end,
+        hideIfLocked = true,
         description = "HELP_SCREEN_EXO_THRUSTERS_DESCRIPTION",
         imagePath = helpScreenImages.exoThrusters,
         actions = {
             { "MovementModifier", "Jump" },
+        },
+        classNames = {"Exo"},
+        theme = "marine",
+        useLocale = true,
+        })
+    
+    -- Exosuit Armor Plating
+    HelpScreen_AddContent({
+        name = "ExoArmorPlating",
+        title = "EXO_MODULE_ARMOR",
+        -- Only show the card for the module this Exo actually has equipped.
+        requirementFunction = function()
+            local player = Client.GetLocalPlayer()
+            local hasArmorModule = player ~= nil and player:GetIsPlaying() and player:isa("Exo") and
+                                   player.utilityModuleType == kExoModuleTypes.Armor
+            return hasArmorModule == true, "EXO_MODULE_ARMOR"
+        end,
+        hideIfLocked = true,
+        description = "EXO_MODULE_ARMOR_TOOLTIP",
+        imagePath = helpScreenImages.exoThrusters,
+        actions = {},
+        classNames = {"Exo"},
+        theme = "marine",
+        useLocale = true,
+        })
+    
+    -- Exosuit Support Ability: Nano Shield Field
+    HelpScreen_AddContent({
+        name = "ExoNanoShieldField",
+        title = "EXO_ABILITY_NANOSHIELD_FIELD",
+        -- Only show the card for the module this Exo actually has equipped.
+        requirementFunction = function()
+            return PlayerUI_GetHasNanoShield() == true, "EXO_ABILITY_NANOSHIELD_FIELD"
+        end,
+        hideIfLocked = true,
+        description = "EXO_ABILITY_NANOSHIELD_FIELD_TOOLTIP",
+        imagePath = helpScreenImages.exoThrusters,
+        actions = {
+            { "Reload" },
+        },
+        classNames = {"Exo"},
+        theme = "marine",
+        useLocale = true,
+        })
+    
+    -- Exosuit Support Ability: Adrenaline Field
+    HelpScreen_AddContent({
+        name = "ExoAdrenalineField",
+        title = "EXO_ABILITY_ADRENALINE_FIELD",
+        -- Only show the card for the module this Exo actually has equipped.
+        requirementFunction = function()
+            return PlayerUI_GetHasCatPack() == true, "EXO_ABILITY_ADRENALINE_FIELD"
+        end,
+        hideIfLocked = true,
+        description = "EXO_ABILITY_ADRENALINE_FIELD_TOOLTIP",
+        imagePath = helpScreenImages.exoThrusters,
+        actions = {
+            { "Reload" },
+        },
+        classNames = {"Exo"},
+        theme = "marine",
+        useLocale = true,
+        })
+    
+    -- Exosuit Support Ability: Regen Field
+    HelpScreen_AddContent({
+        name = "ExoRegenField",
+        title = "EXO_ABILITY_REGEN_FIELD",
+        -- Only show the card for the module this Exo actually has equipped.
+        requirementFunction = function()
+            return PlayerUI_GetHasNanoRepair() == true, "EXO_ABILITY_REGEN_FIELD"
+        end,
+        hideIfLocked = true,
+        description = "EXO_ABILITY_REGEN_FIELD_TOOLTIP",
+        imagePath = helpScreenImages.exoThrusters,
+        actions = {
+            { "Reload" },
         },
         classNames = {"Exo"},
         theme = "marine",

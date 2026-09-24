@@ -33,6 +33,7 @@ Script.Load("lua/PlayerStatusMixin.lua")
 
 -- %%% New CBM Files %%% --
 Script.Load("lua/Mixins/JumpMoveMixin.lua")
+Script.Load("lua/ExoLoadoutCues.lua")
 Script.Load("lua/Weapons/PierceProjectile.lua")
 Script.Load("lua/Weapons/PredictedProjectile.lua")
 Script.Load("lua/BlightMixin.lua")
@@ -62,6 +63,7 @@ local networkVars = {
     hasDualGuns          = "private boolean",
     creationTime         = "private time",
     ejecting             = "compensated boolean",
+    ejectHoldFraction    = "private float (0 to 1 by 0.05)",
     timeFuelChanged      = "private time",
     fuelAtChange         = "private float (0 to 1 by 0.01)",
     --powerModuleType      = "enum kExoModuleTypes",
@@ -69,9 +71,8 @@ local networkVars = {
     leftArmModuleType    = "enum kExoModuleTypes",
     utilityModuleType    = "enum kExoModuleTypes",
     abilityModuleType    = "enum kExoModuleTypes",
-    repairActive         = "boolean",
-    nanoshieldActive     = "boolean",
-    catpackActive        = "boolean",
+    timeSupportAbilityReady = "private time",
+    timeSupportAbilityMissed = "private time",
     hasThrusters         = "boolean",
     --hasPhaseModule       = "boolean",
     hasNanoRepair        = "boolean",
@@ -111,8 +112,8 @@ if Client then
     local precached2 = PrecacheAsset("cinematics/vfx_materials/heal_exo_view.surface_shader")
 end
 
-local PreCacheAssetFolder = { "models/claw/", "models/claw/", "models/claw/", "models/plasma/", "models/railgun/", "models/railgun/" }
-local PreCacheAssetList = { "cm", "cr", "cp", "pp", "rp", "pr" }
+local PreCacheAssetFolder = { "models/claw/", "models/claw/", "models/claw/", "models/claw/", "models/plasma/", "models/railgun/", "models/railgun/" }
+local PreCacheAssetList = { "cm", "cr", "cp", "cf", "pp", "rp", "pr" }
 
 local precached3 = {}
 
@@ -133,8 +134,6 @@ local kHealthWarningTrigger = 0.55
 local kHealthCritical = PrecacheAsset("sound/NS2.fev/marine/heavy/critical")
 local kHealthCriticalTrigger = 0.35
 
-local kWalkMaxSpeed = 3.7
-local kMaxSpeed = 5.75
 local kViewOffsetHeight = 2.3
 local kAcceleration = 20
 local kVerticalThrusterMaxSpeed = 0.8
@@ -166,7 +165,6 @@ local kThrusterAirAcceleration = 9
 local kHorizontalThrusterAddSpeed = 2.5
 
 local kExoEjectDuration = 0
-local kExoDeployDuration = 1.4
 
 local gHurtCinematic
 
@@ -280,6 +278,7 @@ function Exo:OnCreate()
     self.inventoryWeight = 0
     self.thrusterMode = kExoThrusterMode.Vertical
     self.ejecting = false
+    self.ejectHoldFraction = 0
     
     self.creationTime = Shared.GetTime()
     
@@ -360,11 +359,11 @@ function Exo:OnInitialized()
     --   self.armorBonus = armorModuleData and armorModuleData.armorBonus or 0
     -- self.hasPhaseModule = (self.utilityModuleType == kExoModuleTypes.PhaseModule)
     self.hasThrusters = (self.utilityModuleType == kExoModuleTypes.Thrusters)
-    self.hasNanoRepair = (self.utilityModuleType == kExoModuleTypes.NanoRepair)
+    self.hasNanoRepair = (self.abilityModuleType == kExoModuleTypes.NanoRepair)
     self.hasNanoShield = (self.abilityModuleType == kExoModuleTypes.NanoShield)
     self.hasCatPack = (self.abilityModuleType == kExoModuleTypes.CatPack)
 	self.hasEjectionSeat = (self.utilityModuleType == kExoModuleTypes.EjectionSeat)
-    self.hasPlasmaLauncher = (self.leftArmModuleType == 6 or self.rightArmModuleType == 6) -- "PlasmaLauncher" is enumerated to 6
+    self.hasPlasmaLauncher = (self.leftArmModuleType == kExoModuleTypes.PlasmaLauncher or self.rightArmModuleType == kExoModuleTypes.PlasmaLauncher)
     
     -- Only set the model on the Server, the Client
     -- will already have the correct model at this point.
@@ -377,17 +376,12 @@ function Exo:OnInitialized()
     InitMixin(self, CatPackMixin)
     
     Player.OnInitialized(self)
-    
-    self.nanoshieldActive = false
-    self.repairActive = false
-    self.catpackActive = false
-    self.timeAutoRepairHealed = 0
-    self.lastActivatedRepair = 0
-    self.lastActivatedNanoShield = 0
-    self.lastActivatedCatPack = 0
-    
+
     if Server then
-        
+
+        self.timeSupportAbilityReady = 0
+        self.timeSupportAbilityMissed = 0
+
         -- This Mixin must be inited inside this OnInitialized() function.
         if not HasMixin(self, "MapBlip") then
             InitMixin(self, MapBlipMixin)
@@ -481,14 +475,26 @@ function Exo:OnInitLocalClient()
 
 end
 
+-- The pair is read from the arm modules, not from the hasDualGuns netvar: nothing ever
+-- assigns that, and assigning it would lock a dual-armed exo out of the prototype lab
+-- through PrototypeLab:GetCanBeUsed. A mixed pair takes the lever of whichever arm the
+-- chain below matches first.
 function Exo:ComputeDamageAttackerOverride(_, damage, _, _, _, overshieldDamage)
     
-    if self.hasDualGuns then
+    local hasTwoGunArms = self.leftArmModuleType ~= kExoModuleTypes.Claw
+                      and self.leftArmModuleType ~= kExoModuleTypes.None
+                      and self.rightArmModuleType ~= kExoModuleTypes.None
+    
+    if hasTwoGunArms then
         
         if self:GetHasMinigun() then
             damage = damage * kExoDualMinigunModifier
         elseif self:GetHasRailgun() then
             damage = damage * kExoDualRailgunModifier
+        elseif self:GetHasPlasmaLauncher() then
+            damage = damage * kExoDualPlasmaModifier
+        elseif self:GetHasExoFlamer() then
+            damage = damage * kExoDualFlamerModifier
         end
     
     end
@@ -516,7 +522,7 @@ function Exo:GetCanCrouch()
 end
 
 function Exo:GetHasThrusters()
-    return self.hasThrusters and Exo.GetHasThrusters
+    return self.hasThrusters == true
 end
 
 function Exo:GetHasNanoShield()
@@ -593,7 +599,9 @@ function Exo:GetMaxBackwardSpeedScalar()
 end
 
 function Exo:OnDestroy()
-    	
+
+    Player.OnDestroy(self)
+
     if self.flashlight ~= nil then
         Client.DestroyRenderLight(self.flashlight)
     end
@@ -617,6 +625,10 @@ function Exo:OnDestroy()
         Client.DestroyCinematic(self.flares)
         self.flares = nil
     
+    end
+    
+    if Client then
+        ExoLoadoutCues_Destroy(self)
     end
     
     if self.armorDisplay then
@@ -691,6 +703,13 @@ function Exo:GetHasMinigun()
 
 end
 
+function Exo:GetHasExoFlamer()
+    
+    return self.leftArmModuleType == kExoModuleTypes.Flamethrower
+        or self.rightArmModuleType == kExoModuleTypes.Flamethrower
+
+end
+
 function Exo:GetHeadAttachpointName()
     return "Exosuit_HoodHinge"
 end
@@ -711,7 +730,7 @@ function Exo:GetArmorAmount(armorLevels)
     
     end
     
-    return kBaseExoArmor + self.armorBonus + armorLevels * kExosuitArmorPerUpgradeLevel
+    return math.min(kExoMaxTotalArmorCap, kBaseExoArmor + self.armorBonus + armorLevels * kExosuitArmorPerUpgradeLevel)
 end
 
 function Exo:GetFirstPersonHitEffectName()
@@ -893,21 +912,57 @@ function Exo:GetFlashlightOn()
     return self.flashlightOn
 end
 
-function Exo:GetCanEject()
-    return self:GetIsPlaying() and not self.ejecting and self:GetIsOnGround() and not self:GetIsOnEntity()
-            and self.creationTime + kExoDeployDuration < Shared.GetTime()
+-- The Ejection Seat fires wherever the armor runs out, so it skips the ground checks.
+function Exo:GetCanEject(isAutoEject)
+    return self:GetIsPlaying() and not self.ejecting
+            and (isAutoEject or (self:GetIsOnGround() and not self:GetIsOnEntity()))
+            and self.creationTime + kExosuitDeployDuration < Shared.GetTime()
             and #GetEntitiesForTeamWithinRange("CommandStation", self:GetTeamNumber(), self:GetOrigin(), 2.5) == 0
+end
+
+-- Why the manual eject (hold the drop key) is unavailable right now, as a locale key,
+-- or nil when it is available. Shared, so the HUD can grey the eject badge with exactly
+-- the reason the server refuses the hold for (Exo:UpdateEjectHold is the only other
+-- caller). Deliberately not folded into GetCanEject: the Ejection Seat auto-eject fires
+-- in combat by definition and must never be blocked by the combat check.
+function Exo:GetEjectBlockedReason()
+
+    -- Already on the way out. Reuses the deploying key rather than adding a locale
+    -- string: from the pilot's side both mean "the suit is mid-transition, wait".
+    if self.ejecting then
+        return "EXO_EJECT_REASON_DEPLOYING"
+    end
+
+    if self:GetIsInCombat() then
+        return "EXO_EJECT_REASON_COMBAT"
+    end
+
+    if not self:GetIsOnGround() or self:GetIsOnEntity() then
+        return "EXO_EJECT_REASON_AIRBORNE"
+    end
+
+    if self.creationTime + kExosuitDeployDuration >= Shared.GetTime() then
+        return "EXO_EJECT_REASON_DEPLOYING"
+    end
+
+    if #GetEntitiesForTeamWithinRange("CommandStation", self:GetTeamNumber(), self:GetOrigin(), 2.5) > 0 then
+        return "EXO_EJECT_REASON_BASE"
+    end
+
+    return nil
+
 end
 
 function Exo:GetIsEjecting()
     return self.ejecting
 end
 
-function Exo:EjectExo()
-    
-    if self:GetCanEject() then
+function Exo:EjectExo(isAutoEject)
+
+    if self:GetCanEject(isAutoEject) then
         
         self.ejecting = true
+        self.ejectHoldFraction = 0
         self:TriggerEffects("eject_exo_begin")
         
         if Server then
@@ -923,7 +978,7 @@ function Exo:ModifyDamageTakenPostRules(damageTable, attacker, doer, damageType,
     local ArmorDamage = damageTable.damage * 0.5
     
     if not self.ejecting and self:GetArmor() - ArmorDamage <= kExoLowHealthEjectThreshold and self:GetHasEjectionSeat() then
-        self:EjectExo()
+        self:EjectExo(true)
         --Print("Eject")
     end
 
@@ -957,6 +1012,10 @@ if Server then
                 abilityModuleType  = self.abilityModuleType,
             })
             exosuit:SetCoords(self:GetCoords())
+            -- The Ejection Seat also fires in mid-air, and the empty suit does not fall.
+            if not self:GetIsOnGround() then
+                exosuit:SetOrigin(GetGroundAt(self, self:GetOrigin(), PhysicsMask.Movement))
+            end
             exosuit:SetMaxArmor(self:GetMaxArmor())
 
             -- add armor to ejected exosuit up to a minimum amount
@@ -998,6 +1057,12 @@ if Server then
             local reuseWeapons = self.storedWeaponsIds ~= nil
             
             local marine = self:Replace(self.prevPlayerMapName or Marine.kMapName, self:GetTeamNumber(), false, self:GetOrigin() + Vector(0, 0.2, 0), { preventWeapons = reuseWeapons })
+
+            -- The client is still driving an Exo for another round trip, so the moves it
+            -- already sent keep the re-asserted Move.Drop bit set and arrive after this
+            -- Replace(). Mark the marine so it swallows that stale hold instead of
+            -- throwing its weapon away (see Marine:HandleButtons).
+            marine.timeEjected = Shared.GetTime()
             marine:SetHealth(self.prevPlayerHealth or kMarineHealth)
             marine:SetMaxArmor(self.prevPlayerMaxArmor or kMarineArmor)
             marine:SetArmor(self.prevPlayerArmor or kMarineArmor)
@@ -1182,6 +1247,8 @@ if Client then
         -- Synchronize the state of the light representing the flash light.
         self.flashlight:SetIsVisible(flashLightVisible)
         self.flares:SetIsVisible(flaresVisible)
+
+        ExoLoadoutCues_Update(self)
         
         if self.flashlightOn then
             
@@ -1272,6 +1339,53 @@ function Exo:OnTag(tagName)
 
 end
 
+-- Times the manual eject hold and publishes the progress to the owning client.
+-- Only ever called on the server.
+function Exo:UpdateEjectHold(input)
+
+    local dropHeld = bit_band(input.commands, Move.Drop) ~= 0
+
+    if not dropHeld then
+
+        self.timeEjectHoldStart = nil
+        self.ejectHoldConsumed = false
+        self.ejectHoldFraction = 0
+        return
+
+    end
+
+    -- Do not re-arm while the key is still held down from the eject we just did.
+    if self.ejectHoldConsumed or self.ejecting then
+        self.ejectHoldFraction = 0
+        return
+    end
+
+    if not self:GetIsPlaying() or self:GetEjectBlockedReason() then
+
+        self.timeEjectHoldStart = nil
+        self.ejectHoldFraction = 0
+        return
+
+    end
+
+    local now = Shared.GetTime()
+    self.timeEjectHoldStart = self.timeEjectHoldStart or now
+
+    local holdTime = self:GetHasEjectionSeat() and kExoEjectionSeatHoldTime or kExoEjectHoldTime
+    local heldTime = now - self.timeEjectHoldStart
+    self.ejectHoldFraction = Clamp(heldTime / math.max(holdTime, 0.01), 0, 1)
+
+    if heldTime >= holdTime then
+
+        self.timeEjectHoldStart = nil
+        self.ejectHoldConsumed = true
+        self.ejectHoldFraction = 0
+        self:EjectExo()
+
+    end
+
+end
+
 function Exo:HandleButtons(input)
     
     PROFILE("Exo:HandleButtons")
@@ -1288,12 +1402,15 @@ function Exo:HandleButtons(input)
     Player.HandleButtons(self, input)
     
     self:UpdateThrusters(input)
-    self:UpdateRepairs(input)
-    self:UpdateNanoShields(input)
-    self:UpdateCatPack(input)
+    self:UpdateSupportAbility(input)
     
-    if bit_band(input.commands, Move.Drop) ~= 0 then
-        self:EjectExo()
+    -- Manual eject: hold the drop key for kExoEjectHoldTime seconds outside combat
+    -- (kExoEjectionSeatHoldTime with the Ejection Seat core). In combat the only way
+    -- out is the Ejection Seat core (auto-eject at 0 armor).
+    -- Server only: the client re-simulates moves during prediction, so a hold timer
+    -- kept there would be restarted constantly. The client gets ejectHoldFraction.
+    if Server then
+        self:UpdateEjectHold(input)
     end
 
 end
@@ -1346,7 +1463,7 @@ function Exo:GetIsThrusterAllowed()
     
     end
     
-    return (not self.nanoshieldActive or not self.repairActive or not self.catpackActive) and (self.hasThrusters and allowed)
+    return self.hasThrusters and allowed
 end
 
 function Exo:UpdateThrusters(input)
@@ -1666,7 +1783,7 @@ end
 
 -- for jetpack fuel display
 function Exo:ConsumingFuel()
-    return self.thrustersActive or self.nanoshieldActive or self.repairActive or self.catpackActive
+    return self.thrustersActive
 end
 
 function Exo:GetFuel()
@@ -1682,19 +1799,12 @@ function Exo:GetFuelRechargeRate()
 end
 
 function Exo:GetFuelUsageRate()
-    --local usageScalar = self:GetHasMinigun() and kMinigunFuelUsageScalar or kRailgunFuelUsageScalar
     if self.thrustersActive then
 		if self.thrusterMode == kExoThrusterMode.Vertical then
-			return kExoThrusterFuelUsageRate * 0.33 -- This is triple fuel consumption
+			return kExoThrusterFuelUsageRate * 0.33 -- Vertical thrust burns a third of the rate
 		else 
-			return kExoThrusterFuelUsageRate --* usageScalar
+			return kExoThrusterFuelUsageRate
 		end
-    elseif self.repairActive then
-        return kExoRepairFuelUsageRate --* usageScalar
-    elseif self.nanoshieldActive then
-        return kExoNanoShieldFuelUsageRate --* usageScalarelse
-    elseif self.catpackActive then
-        return kExoCatPackFuelUsageRate --* usageScalar
     else
         return 1
     end
@@ -1705,7 +1815,7 @@ function Exo:CalculateWeight()
 end
 
 function Exo:CalculateArmor()
-    return ModularExo_GetConfigArmor(ModularExo_ConvertNetMessageToConfig(self))
+    return ModularExo_GetConfigArmorBonus(ModularExo_ConvertNetMessageToConfig(self))
 end
 
 function Exo:OnUpdateAnimationInput(modelMixin)
@@ -1835,6 +1945,31 @@ elseif Client then
             end
         end
     end
+
+    -- InputHandler only sets Move.Drop on the move in which the key goes down
+    -- (_keyPressed is emptied after every generated move and the OS key repeat is
+    -- filtered out), so holding the key never produced more than one move with the
+    -- bit set and the hold timer could never complete. Read the key state and keep
+    -- the bit set for as long as it is actually down, but stop the moment the eject
+    -- itself starts: every further move with the bit set would only reach the marine
+    -- the server replaces us with, and be read there as "throw your weapon away".
+    -- Not tracked through SendKeyEvent: a GUI that consumes the key release keeps it
+    -- from the player, and the suit would eject with no key held.
+    function Exo:OverrideInput(input)
+
+        input = Player.OverrideInput(self, input)
+
+        if MainMenu_GetIsOpened() then
+            Input_ReleaseBinding("Drop")
+        elseif Input_GetIsBindingDown("Drop") and not self.ejecting and not self.buyMenu
+        and not self:isa("ReadyRoomExo") then
+            input.commands = bit.bor(input.commands, Move.Drop)
+        end
+
+        return input
+
+    end
+
 end
 
 function Exo:GetWebSlowdownScalar()
@@ -1852,11 +1987,11 @@ function Exo:PlayerCameraCoordsAdjustment(cameraCoords)
             self.clientExoEjecting = self.ejecting
         end
         
-        if Shared.GetTime() - self.creationTime < kExoDeployDuration then
+        if Shared.GetTime() - self.creationTime < kExosuitDeployDuration then
             
             self.animStartTime = self.creationTime
             self.animDirection = 1
-            self.animDuration = kExoDeployDuration
+            self.animDuration = kExosuitDeployDuration
         
         end
         
@@ -1894,122 +2029,137 @@ if Server then
 
 end
 
-function Exo:GetCatPackAllowed()
-    return self.hasCatPack and not (self.thrustersActive or self.repairActive or self.nanoshieldActive)
+-- ============================================================================
+-- Support Ability slot: area-of-effect buffs for nearby marines.
+-- Server authoritative, triggered with Move.Reload, shared cooldown.
+-- ============================================================================
+
+function Exo:GetHasSupportAbility()
+    return self.abilityModuleType ~= nil and self.abilityModuleType ~= kExoModuleTypes.None
 end
 
-function Exo:GetNanoShieldAllowed()
-    return self.hasNanoShield and not (self.thrustersActive or self.repairActive or self.catpackActive)
+function Exo:GetSupportAbilityTimeRemaining()
+    return math.max(0, (self.timeSupportAbilityReady or 0) - Shared.GetTime())
 end
 
-function Exo:GetRepairAllowed()
-    return self.hasNanoRepair and not (self.thrustersActive or self.nanoshieldActive or self.catpackActive)
+function Exo:GetSupportAbilityReady()
+    return self:GetHasSupportAbility() and self:GetSupportAbilityTimeRemaining() == 0
 end
 
-function Exo:TriggerNanoShield()
-    
-    local entities = GetEntitiesWithMixinForTeamWithinRange("NanoShieldAble", self:GetTeamNumber(), self:GetOrigin(), 6)
-    Shared.PlayPrivateSound(self, MarineCommander.kTriggerNanoShieldSound, nil, 1.0, self:GetOrigin())
-    for _, entity in ipairs(entities) do
-        
-        if not entity:isa("Exo") then
-            entity:ActivateNanoShield()
+-- Marines and JetpackMarines only. Never exos (including ourselves), MACs, ARCs or structures.
+local function GetSupportAbilityTargets(self)
+
+    local targets = {}
+
+    for _, target in ipairs(GetEntitiesForTeamWithinRange("Marine", self:GetTeamNumber(), self:GetOrigin(), kExoSupportRadius)) do
+
+        if target ~= self and not target:isa("Exo") and HasMixin(target, "Live") and target:GetIsAlive() then
+            table.insert(targets, target)
         end
+
     end
+
+    return targets
 
 end
 
-function Exo:StopNanoShield()
-    
-    local entities = GetEntitiesWithMixinForTeamWithinRange("NanoShieldAble", self:GetTeamNumber(), self:GetOrigin(), 6)
-    Shared.PlayPrivateSound(self, MarineCommander.kTriggerNanoShieldSound, nil, 1.0, self:GetOrigin())
-    for _, entity in ipairs(entities) do
-        
-        if entity:GetIsNanoShielded() then
-            entity:DeactivateNanoShield()
-        end
+local function RegenFieldTick(self)
+
+    local ticksLeft = self.regenFieldTicksLeft or 0
+
+    if ticksLeft <= 0 or not self:GetIsAlive() then
+        self.regenFieldTicksLeft = nil
+        return false
     end
+
+    self.regenFieldTicksLeft = ticksLeft - 1
+
+    for _, target in ipairs(GetSupportAbilityTargets(self)) do
+        target:AddHealth(kExoRegenFieldHealPerSecond, false, false, false, self)
+    end
+
+    if self.regenFieldTicksLeft <= 0 then
+        self.regenFieldTicksLeft = nil
+        return false
+    end
+
+    return true
 
 end
 
-function Exo:TriggerCatPack()
-    
-    local entities = GetEntitiesWithMixinForTeamWithinRange("CatPack", self:GetTeamNumber(), self:GetOrigin(), 6)
-    for _, entity in ipairs(entities) do
-        
-        if HasMixin(entity, "CatPack") then
-            entity:ApplyCatPack()
-            entity:TriggerEffects("catpack_pickup", { effecthostcoords = entity:GetCoords() })
-        
+function Exo:UpdateSupportAbility(input)
+
+    if not Server then
+        return
+    end
+
+    if not self:GetHasSupportAbility() or not self:GetIsAlive() then
+        self.supportAbilityPressed = false
+        return
+    end
+
+    -- Edge triggered: one attempt per press, the key has to come up before the next.
+    if bit_band(input.commands, Move.Reload) == 0 then
+        self.supportAbilityPressed = false
+        return
+    end
+
+    if self.supportAbilityPressed then
+        return
+    end
+    self.supportAbilityPressed = true
+
+    if Shared.GetTime() < (self.timeSupportAbilityReady or 0) then
+        return
+    end
+
+    local moduleType = self.abilityModuleType
+    local targets = GetSupportAbilityTargets(self)
+    local affected = 0
+
+    if moduleType == kExoModuleTypes.NanoShield then
+
+        for _, target in ipairs(targets) do
+
+            if HasMixin(target, "NanoShieldAble") and target:GetCanBeNanoShielded(true) then
+                target:ActivateNanoShield(true)
+                affected = affected + 1
+            end
+
         end
-    end
 
-end
+    elseif moduleType == kExoModuleTypes.CatPack then
 
-function Exo:UpdateNanoShields(input)
-    
-    if self:GetNanoShieldAllowed() and bit_band(input.commands, Move.Reload) ~= 0 then
-        -- todo shield
-        if self:GetFuel() >= kExoNanoShieldMinFuel and not self.nanoshieldActive and self.lastActivatedNanoShield + 1 < Shared.GetTime() then
-            self:SetFuel(self:GetFuel())
-            self.nanoshieldActive = true
-            self.lastActivatedNanoShield = Shared.GetTime()
-            self:TriggerNanoShield()
-        
+        for _, target in ipairs(targets) do
+
+            if HasMixin(target, "CatPack") then
+                target:ApplyCatPack()
+                target:TriggerEffects("catpack_pickup", { effecthostcoords = target:GetCoords() })
+                affected = affected + 1
+            end
+
         end
-    end
-    
-    if self.nanoshieldActive and (self:GetFuel() == 0 or not buttonPressed) then
-        self:SetFuel(self:GetFuel())
-        self:StopNanoShield()
-        self.nanoshieldActive = false
-    end
 
-end
+    elseif moduleType == kExoModuleTypes.NanoRepair then
 
-function Exo:UpdateCatPack(input)
-    
-    if self:GetCatPackAllowed() and bit_band(input.commands, Move.Reload) ~= 0 then
-        
-        if self:GetFuel() >= kExoCatPackMinFuel and not self.catpackActive and self.lastActivatedCatPack + 1 < Shared.GetTime() then
-            self:SetFuel(self:GetFuel())
-            self.catpackActive = true
-            self.lastActivatedCatPack = Shared.GetTime()
-            self:TriggerCatPack()
-        
+        if self.regenFieldTicksLeft == nil and #targets > 0 then
+            self.regenFieldTicksLeft = kExoRegenFieldDuration
+            self:AddTimedCallback(RegenFieldTick, 1)
+            affected = 1
         end
-    end
-    
-    if self.catpackActive and (self:GetFuel() == 0 or not buttonPressed) then
-        self:SetFuel(self:GetFuel())
-        self.catpackActive = false
-        self.catpackboost = false
-        self:ClearCatPackMixin()
+
     end
 
-end
+    -- Nobody in range: keep the charge instead of burning the cooldown on empty air.
+    -- The client shows "no marines in range" on the badge and hears the invalid sound.
+    if affected == 0 then
+        self.timeSupportAbilityMissed = Shared.GetTime()
+        self:TriggerEffects("exo_support_field_empty")
+        return
+    end
 
-function Exo:UpdateRepairs(input)
-    
-    local repairDesired = self:GetArmor() < self:GetMaxArmor()
-    if self:GetRepairAllowed() and repairDesired and bit_band(input.commands, Move.MovementModifier) ~= 0 then
-        
-        if self:GetFuel() >= kExoRepairMinFuel and not self.repairActive and self.lastActivatedRepair + 1 < Shared.GetTime() then
-            self:SetFuel(self:GetFuel())
-            self.lastActivatedRepair = Shared.GetTime()
-            self.repairActive = true
-        end
-    end
-    
-    if self.repairActive and (self:GetFuel() == 0 or bit_band(input.commands, Move.MovementModifier) == 0 or not repairDesired) then
-        self:SetFuel(self:GetFuel())
-        self.repairActive = false
-    end
-    
-    if self.repairActive and self.timeAutoRepairHealed + kExoRepairInterval < Shared.GetTime() then
-        self:SetArmor(self:GetArmor() + kExoRepairInterval * kExoRepairPerSecond, false)
-        self.timeAutoRepairHealed = Shared.GetTime()
-    end
+    self.timeSupportAbilityReady = Shared.GetTime() + kExoSupportAbilityCooldown
+    self:TriggerEffects("exo_support_field")
 
 end
 

@@ -866,10 +866,9 @@ set {
     "Mine",
     "Claw",
     "Flamethrower",
+    "ExoFlamer",
     "Grenade", -- Grenade Launcher
     "Mine",
-    "PlasmaT1",
-    "PlasmaT2",
     "PlasmaT3",
     "Submachinegun",
 }

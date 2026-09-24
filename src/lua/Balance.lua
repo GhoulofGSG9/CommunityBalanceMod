@@ -12,6 +12,9 @@ Script.Load("lua/BalanceMisc.lua")
 kCBMaddon = true -- Enables AMAC, SPARC, SMG, Adv Obs, Adv Gate, Bio 5, and Advanced Structures.
 
 kRelevancyRangeCap = 41 -- Relevancy range is 40 m, so 1 m buffer
+-- Railgun stays well under relevancy: a longer slug hits aliens whose client has not even
+-- received the exo entity, so lerks died to shooters they could not see (vanilla 400).
+kRailgunRange = kMaxRelevancyDistance - 10
 
 kTransformResourcesTime = 15
 kTransformResourcesCost = 15
@@ -126,11 +129,11 @@ kNerveGasCloudRadius = 7
 
 kJetpackCost = 15
 kJetpackDropCost = 15
-kJetpackTechResearchCost = 20
+kJetpackTechResearchCost = 25
 kJetpackFuelTechResearchCost = 15
 kJetpackArmorTechResearchCost = 15
 
-kExosuitTechResearchCost = 20
+kExosuitTechResearchCost = 25
 kExosuitLockdownTechResearchCost = 20
 
 kExosuitCost = 40
@@ -323,9 +326,13 @@ kFlamethrowerBurnDuration = 2.1
 kFlamethrowerMaxBurnDuration = 6
 
 
--- affects dual minigun and dual railgun damage output
+-- Output levers for an exo carrying two gun arms, applied in Exo:ComputeDamageAttackerOverride.
+-- All four are 1: the hooks exist so a pair can be tuned without a code change, not because
+-- any pair is currently modified. A mixed pair takes the first lever its arms match.
 kExoDualMinigunModifier = 1
 kExoDualRailgunModifier = 1
+kExoDualPlasmaModifier = 1
+kExoDualFlamerModifier = 1
 
 kMinigunDamage = 6
 kMinigunDamageType = kDamageType.Heavy
@@ -333,8 +340,8 @@ kMinigunDamageType = kDamageType.Heavy
 kClawDamage = 50
 kClawDamageType = kDamageType.Structural
 
-kRailgunDamage = 35
-kRailgunChargeDamage = 35
+kRailgunDamage = 20
+kRailgunChargeDamage = 100
 kRailgunDamageType = kDamageType.Structural
 
 kMACAttackDamage = 5
@@ -601,16 +608,16 @@ kMineResearchTime  = 20
 kTechEMPResearchTime = 60
 kTechMACSpeedResearchTime = 15
 
-kJetpackTechResearchTime = 90
+kJetpackTechResearchTime = 110
 kJetpackFuelTechResearchTime = 60
 kJetpackArmorTechResearchTime = 60
-kExosuitTechResearchTime = 90
+kExosuitTechResearchTime = 110
 kExosuitLockdownTechResearchTime = 60
 kExosuitUpgradeTechResearchTime = 60
 
 kFlamethrowerTechResearchTime = 60
 
-kDualMinigunTechResearchTime = 90
+kDualMinigunTechResearchTime = 60
 kClawRailgunTechResearchTime = 60
 kDualRailgunTechResearchTime = 60
 kCatPackTechResearchTime = 45
@@ -962,8 +969,8 @@ kBabblerBombResearchTime = kBileBombResearchTime
 kBabblerBombResearchCost = 15
 
 -- ExoProtolab
-kExoPrototypeLabResearchTime = 90
-kExoPrototypeLabUpgradeCost = kExosuitTechResearchCost -- 20
+kExoPrototypeLabResearchTime = kExosuitTechResearchTime -- 110
+kExoPrototypeLabUpgradeCost = kExosuitTechResearchCost -- 25
 kExoPrototypeLabHealth = kPrototypeLabHealth  -- 3000
 kExoPrototypeLabArmor = kPrototypeLabArmor -- 500   
 kExoPrototypeLabPointValue = kPrototypeLabPointValue -- 20
@@ -978,132 +985,121 @@ kInfantryPrototypeLabPointValue = kPrototypeLabPointValue -- 20
 -- Modular Exos:
 -- Module Pricing
 kRailgunCost = 25
-kPlasmaLauncherCost = 20
-kExoFlamerCost = 15
+kPlasmaLauncherCost = 25
+kExoFlamerCost = 25
 kMinigunCost = 25
 kExoShieldCost = 15
 kClawCost = 15
 
-kThrustersCost = 5
-kArmorModuleCost = 5
-kNanoModuleCost = 5
-kExoNanoShieldCost = 5
-kExoCatPackCost = 5
-kEjectionSeatCost = 5
+kThrustersCost = 15
+kExoArmorModuleCost = 25
+kEjectionSeatCost = 15
+kExoSupportModuleCost = 10
+kExoRefitCost = 5
 
 kMinigunMovementSlowdown = 1
 kRailgunMovementSlowdown = 1
-kMinigunFuelUsageScalar = 1 -- Usage commented out in Exo.lua
-kRailgunFuelUsageScalar = 1 -- Usage commented out in Exo.lua
 
 -- Exo Movement
 kExosuitHorizontalThrusterAddSpeed = 2 -- 10
 kExosuitThrusterHorizontalAcceleration = 200
 kExosuitThrusterUpwardsAcceleration = 0
 kExosuitMinTimeBetweenThrusterActivations = 0.5
-kExosuitMaxSpeed = 7
+kExosuitMaxSpeed = 5.95
 kExosuitSpeedCap = 7.25
 kExosuitDeployDuration = 1.4
+kExoStructureUseSlack = 1.5 -- extra metres an exo may stand from an armory or lab and still use it; its capsule keeps the origin further out
 kExoFuelRechargeRate = 5
 kExoThrusterMinFuel = 0.25 -- Energy Min
 kExoThrusterFuelUsageRate = 4 --Energy Cost/s
 kExoThrusterStartFuelUsage = 0.125
 
--- Exo-Nanoshield (depreciated)
-kExoNanoShieldMinFuel = 0.99 -- Energy Min
-kExoNanoShieldFuelUsageRate = 4 -- Energy Cost/s
-
--- Exo-Nanorepair (depreciated)
-kExoRepairMinFuel = 0.50 -- Energy Min
-kExoRepairPerSecond = 15
-kExoRepairFuelUsageRate = 5 --Energy Cost/s
-kExoRepairInterval = 0.5
-
--- Exo-Catpack (depreciated)
-kExoCatPackMinFuel = 0.99 -- Energy Min
-kExoCatPackFuelUsageRate = 4 --Energy Cost/s
+-- Exo Support Ability (Ability slot modules)
+kExoSupportRadius = 8 -- Meters
+kExoSupportAbilityCooldown = 120 -- Seconds
+kExoRegenFieldHealPerSecond = 8
+kExoRegenFieldDuration = 5 -- Seconds
+kExoNanoShieldFieldDuration = 1.5 -- Seconds
+kExoNanoShieldFieldDamageScalar = 0.8 -- damage taken while under the field's shield
 
 -- Exo Tech Research
 kExoShieldTech = kTechId.ExosuitTech -- (depreciated)
-kExoFlamerTech = kTechId.ExosuitTech -- (depreciated)
+kExoFlamerTech = kTechId.DualMinigunTech
 kRailgunTech = kTechId.ExosuitTech
-kPlasmaLauncherTech = kTechId.ExosuitTech
+kPlasmaLauncherTech = kTechId.DualMinigunTech
 kMinigunTech = kTechId.ExosuitTech
-kArmorModuleTech = kTechId.ExosuitTech
-kExoThrusterModuleTech = kTechId.ExosuitTech
-kEjectionSeatModuleTech = kTechId.ExosuitTech
-kCoreExosuitTechResearchCost = 25 -- (depreciated)
-kCoreExosuitTechResearchTime = 60 -- (depreciated)
+-- Core (utility) and support (ability) modules sit behind the Exosuit Cores research at the
+-- exo prototype lab. kTechId.DualMinigunTech covers everything past the starting pair of arms:
+-- a weapon in both arms, which ModularExo_GetIsConfigValid decides, and the flame and plasma
+-- arms, which out-damage the minigun against everything it is not built for.
+kExoArmorModuleTech = kTechId.CoresExosuitTech
+kExoThrusterModuleTech = kTechId.CoresExosuitTech
+kEjectionSeatModuleTech = kTechId.CoresExosuitTech
+kExoSupportModuleTech = kTechId.CoresExosuitTech
+kCoreExosuitTechResearchCost = 15
+kCoreExosuitTechResearchTime = 45
 
 -- Plasmalauncher arm
-kPlasmaT1LifeTime = 10
-kPlasmaT2LifeTime = 10
-kPlasmaT3LifeTime = 10
-
-kPlasmaMultiSpeed = 45 -- (depreciated)
-kPlasmaMultiDamage = 15
-kPlasmaMultiDamageRadius = 2
-kPlasmaMultiEnergyCost = 0.30
+kPlasmaT3LifeTime = kGrenadeLifetime -- same fuse as the grenade launcher
 
 kPlasmaBombSpeed = 15
 kPlasmaBombDamage = 35
 kPlasmaBombDamageRadius = 4 -- 4 is the pulse damage radius (matches pulse cinematic)
-kPlasmaBombEnergyCost = 0.80
+kPlasmaBombEnergyCost = 0.60
 
 kPlasmaBombDOTDamage = 5 -- DOT applied after direct damage
 kPlasmaDOTDuration = 5.5
 kPlasmaDOTInterval = 0.5
 
 kPlasmaHitBoxRadiusT3 = 0.495 -- Hitbox radius from center of projectile...
-kPlasmaHitBoxRadiusT2 = 0.33
-kPlasmaHitBoxRadiusT1 = 0.10
 
-kPlasmaLauncherEnergyUpRate = 0.25
+kPlasmaLauncherEnergyUpRate = 0.30
 kPlasmaDamageType = kDamageType.Normal 
 
-kPlasmaLauncherWeight = 0.16
+kPlasmaLauncherWeight = 0.10
 
--- Blowtorch (depreciated)
-kExoFlamerWeight = 0.05
-kExoFlamerConeWidth = 2
+-- Exo flamethrower arm
+kExoFlamerWeight = 0.09
+kExoFlamerConeWidth = 1
 kExoFlamerCoolDownRate = 0.20
 kExoFlamerHeatUpRate = 0.10
 kExoFlamerFireRate = 1 / 3
-kExoFlamerTrailLength = 5.0
-kExoFlamerExoFlamerDamage = 8
-kExoFlamerRange = 7
+kExoFlamerExoFlamerDamage = kFlamethrowerDamage
+kExoFlamerRange = kFlamethrowerRange
+kExoFlamerTrailLength = kExoFlamerRange + 0.5
 
-kExoFlamerWelderSelfWeldAmount = 1 -- disabled
-kExoFlamerWelderAmountHealedForPoints = 600
-kExoFlamerWelderHealScoreAdded = 2
-kExoFlamerWelderPlayerWeldRate = 20 -- 20 for welder
-kExoFlamerWelderStructureWeldRate = 90 -- 90 for welder
-
-kExoFlamerDamageType = kDamageType.Flame
+kExoFlamerDamageType = kFlamethrowerDamageType
 
 -- Module weights
-kArmorModuleWeight = 0.075 -- (depreciated)
-kThrustersWeight = 0.025
+kExoArmorModuleWeight = 0.10
+kThrustersWeight = 0
 kNanoRepairWeight = 0.05 -- (depreciated)
 kCatPackWeight = 0.05 -- (depreciated)
 kNanoShieldWeight = 0.05 -- (depreciated)
-kEjectionSeatWeight = 0.025
+kEjectionSeatWeight = 0
 
 -- Armor values
-kBaseExoArmor = 170
-kClawArmor = 115
-kMinigunArmor = 75
-kRailgunArmor = 25
-kPlasmaLauncherArmor = 50
-kExoFlamerWelderArmor = 0
+kBaseExoArmor = 140 -- exos arrive earlier than vanilla; armor research carries more of the total
+kClawArmor = 90
+kMinigunArmor = 90
+kRailgunArmor = 60
+kPlasmaLauncherArmor = 60
+kExoFlamerArmor = 60
 kThrustersArmor = 0
-kArmorModuleArmor = 100
+kExoArmorModuleArmor = 80
 kCatPackArmor = 0
 kNanoRepairArmor = 0
 kEjectionSeatArmor = 0
+-- The ceiling the heaviest build reaches today. It is here so a new module cannot raise
+-- the total past what the alien counters were tuned against without someone deciding to.
+kExoMaxTotalArmorCap = 520
 kExoLowHealthEjectThreshold = 0
 kEjectorExosuitUseThreshold = 50
 kEjectorExosuitMinArmor = 40 -- set minimum armor to ejector exo suit when auto ejecting
+kExoEjectHoldTime = 1.0 -- seconds the drop key must be held to leave an exo outside combat
+kExoEjectionSeatHoldTime = 0.5 -- the same hold with the Ejection Seat core fitted
+kExoEjectDropGraceTime = 1.0 -- continuous seconds without the drop key before an ejected marine may drop again
+kExoEjectDropHardLimit = 5 -- seconds after an eject the drop latch is released no matter what
 
 -- Advanced Observatory
 kUpgradeAdvancedObservatoryCost = 10

@@ -479,7 +479,86 @@ function ModularExo_ConvertConfigToNetMessage(config)
     }
 end
 
-function ModularExo_GetIsConfigValid(config)
+-- Max armor a config will have at the given armor upgrade level (0-3); mirrors Exo:GetArmorAmount.
+function ModularExo_GetConfigArmor(config, armorLevels)
+    local armor = kBaseExoArmor + (armorLevels or 0) * kExosuitArmorPerUpgradeLevel
+    for _, moduleType in pairs(config) do
+        local moduleTypeData = kExoModuleTypesData[moduleType]
+        if moduleTypeData and moduleTypeData.armorValue then
+            armor = armor + moduleTypeData.armorValue
+        end
+    end
+    return math.min(kExoMaxTotalArmorCap, armor)
+end
+
+-- Has the given team finished a research node? GetTechTree takes a team number on the server
+-- and ignores its argument on the client, where it always answers for the local player's
+-- team, so the one call covers both VMs. TechNode:GetResearched already reports true while
+-- warm up is running, so warm up needs no special case here.
+function ModularExo_GetIsTechResearched(techId, teamNumber)
+
+    if techId == nil or techId == kTechId.None then
+        return true
+    end
+
+    local techTree = GetTechTree(teamNumber)
+    if techTree == nil then
+        return false
+    end
+
+    local techNode = techTree:GetTechNode(techId)
+    if techNode == nil then
+        return false
+    end
+
+    return techNode:GetResearched()
+
+end
+
+-- True when the config puts a real weapon in both arms. A claw on one side is what an
+-- unresearched exo gets. This is only half of what the research covers: the flame and
+-- plasma arms carry it as their own requiredTechId.
+function ModularExo_GetConfigNeedsDualArmsTech(config)
+
+    local leftData  = kExoModuleTypesData[config[kExoModuleSlots.LeftArm] or kExoModuleTypes.None]
+    local rightData = kExoModuleTypesData[config[kExoModuleSlots.RightArm] or kExoModuleTypes.None]
+    local leftArmType  = leftData and leftData.armType
+    local rightArmType = rightData and rightData.armType
+
+    return leftArmType ~= nil and rightArmType ~= nil
+       and leftArmType ~= kExoArmTypes.Claw and rightArmType ~= kExoArmTypes.Claw
+
+end
+
+-- The first research this config is still waiting on, or nil when everything it carries is
+-- unlocked. One place for the rule, so the buy menu paints exactly what the server enforces.
+-- Pass no team number on the client; GetTechTree answers for the local team there.
+function ModularExo_GetConfigLockedTechId(config, teamNumber)
+
+    for slotType, _ in pairs(kExoModuleSlotsData) do
+        local moduleType = config[slotType]
+        if moduleType ~= nil and moduleType ~= kExoModuleTypes.None then
+            local moduleTypeData = kExoModuleTypesData[moduleType]
+            local requiredTechId = moduleTypeData and moduleTypeData.requiredTechId
+            if requiredTechId and not ModularExo_GetIsTechResearched(requiredTechId, teamNumber) then
+                return requiredTechId
+            end
+        end
+    end
+
+    if ModularExo_GetConfigNeedsDualArmsTech(config)
+    and not ModularExo_GetIsTechResearched(kTechId.DualMinigunTech, teamNumber) then
+        return kTechId.DualMinigunTech
+    end
+
+    return nil
+
+end
+
+-- teamNumber is optional. Pass it on the server to have the research gates enforced; the buy
+-- menu leaves it out because it prices candidate configurations that are deliberately allowed
+-- to be locked, and paints those locks itself.
+function ModularExo_GetIsConfigValid(config, teamNumber)
     local resourceCost = 0
     --   local powerCost = 0
     --  local powerSupply = nil -- We don't know yet
@@ -502,10 +581,14 @@ function ModularExo_GetIsConfigValid(config)
                 -- For example, an armor module in a weapon slot
                 return false, "wrong slot type" -- not a valid config
             end
-            
-            --if kMarineTeamType and moduleTypeData.requiredTechId and not GetIsTechResearched(kMarineTeamType, moduleTypeData.requiredTechId) then
-            --     return false, "tech not researched"
-            --end
+
+            -- Arm-side rules used to live only in the buy menu; enforce them here too
+            if moduleTypeData.leftArmOnly and slotType == kExoModuleSlots.RightArm then
+                return false, "left arm only"
+            end
+            if moduleTypeData.rightArmOnly and slotType == kExoModuleSlots.LeftArm then
+                return false, "right arm only"
+            end
             
             if moduleTypeData.resourceCost then
                 resourceCost = resourceCost + moduleTypeData.resourceCost
@@ -519,7 +602,18 @@ function ModularExo_GetIsConfigValid(config)
         end
     end
     -- Ok, we've iterated over certain module types and it seems OK
-    
+
+    -- Research gates. Only enforced when the caller named a team, i.e. server side: every
+    -- module has to have its own research done, and two shooting arms need Dual Arms on top.
+    if teamNumber then
+        local lockedTechId = ModularExo_GetConfigLockedTechId(config, teamNumber)
+        if lockedTechId == kTechId.DualMinigunTech and ModularExo_GetConfigNeedsDualArmsTech(config) then
+            return false, "dual arms not researched"
+        elseif lockedTechId then
+            return false, "tech not researched"
+        end
+    end
+
     local exoTexturePath = nil
     local modelDataForRightArmType = kExoWeaponRightLeftComboModels[rightArmType]
 	local modelDataForLeftArmType = kExoWeaponRightLeftComboModels[leftArmType]
@@ -567,7 +661,21 @@ function ModularExo_GetConfigWeight(config)
     return weight
 end
 
-function ModularExo_GetConfigArmor(config)
+-- Fraction of the exo's base movement speed a config is left with; mirrors
+-- Exo:GetInventorySpeedScalar, which is 1 - the summed module weight.
+function ModularExo_GetConfigSpeedFraction(config)
+    return 1 - ModularExo_GetConfigWeight(config)
+end
+
+-- Speed readouts use the marine walk speed as 100%; a suit fraction or a module
+-- weight (fraction of the base speed) both go through this.
+function ModularExo_GetSpeedPercent(fractionOfBase)
+    return math.floor(fractionOfBase * kExosuitMaxSpeed / Marine.kWalkMaxSpeed * 100 + 0.5)
+end
+
+-- Armor the modules alone contribute, without the base exo armor or armor upgrades.
+-- Exo:GetArmorAmount adds those on top, so this is what Exo:CalculateArmor wants.
+function ModularExo_GetConfigArmorBonus(config)
     local armorBonus = 0
     for slotType, slotTypeData in pairs(kExoModuleSlotsData) do
         local moduleType = config[slotType]

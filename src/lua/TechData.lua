@@ -1595,10 +1595,10 @@ function BuildTechData()
             [kTechDataId] = kTechId.DualMinigunTech,
             [kTechDataCostKey] = kDualMinigunTechResearchCost,
             [kTechDataResearchTimeKey] = kDualMinigunTechResearchTime,
-            [kTechDataDisplayName] = "RESEARCH_DUAL_EXOS",
-			[kTechDataResearchName] = "RESEARCH_DUAL_EXOS_TITLE",
+            [kTechDataDisplayName] = "DUAL_ARMS_TECH",
+			[kTechDataResearchName] = "DUAL_ARMS_TECH",
             [kTechDataHotkey] = Move.D,
-            [kTechDataTooltipInfo] = "DUAL_MINIGUN_TECH_TOOLTIP",
+            [kTechDataTooltipInfo] = "DUAL_ARMS_TECH_TOOLTIP",
         },
 
         {
@@ -1827,11 +1827,11 @@ function BuildTechData()
         {
             [kTechDataId] = kTechId.DualMinigunExosuit,
             [kTechIDShowEnables] = false,
-            [kTechDataDisplayName] = "DUALMINIGUN_EXOSUIT",
+            [kTechDataDisplayName] = "EXOSUIT",
             [kTechDataMapName] = "exo",
             [kTechDataCostKey] = kDualExosuitCost,
             [kTechDataHotkey] = Move.E,
-            [kTechDataTooltipInfo] = "DUALMINIGUN_EXOSUIT_TECH_TOOLTIP",
+            [kTechDataTooltipInfo] = "EXOSUIT_MODULAR_TOOLTIP",
             [kTechDataSpawnHeightOffset] = kCommanderEquipmentDropSpawnHeight,
         },
 
@@ -4930,7 +4930,7 @@ function BuildTechData()
 		{ 
 			[kTechDataId] = kTechId.UpgradeToExoPrototypeLab,
 			[kTechDataCostKey] = kExoPrototypeLabUpgradeCost,
-			[kTechIDShowEnables] = false,
+			[kTechIDShowEnables] = true,
 			[kTechDataResearchTimeKey] = kExoPrototypeLabResearchTime,
 			[kTechDataDisplayName] = "RESEARCH_EXOSUITS", -- "Research Exosuits"            text for commander UI
 			[kTechDataTooltipInfo] = "EXOSUIT_TECH_TOOLTIP", -- "Allows Exosuits to be purchased"   text for description
