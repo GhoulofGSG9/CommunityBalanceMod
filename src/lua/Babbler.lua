@@ -1364,11 +1364,12 @@ if Server then
 
         local d = 0.7
         local isAlienCom = target and target:isa("AlienCommander")
+        local isOnos = target and target:isa("Onos")
 
         -- More tolerant if the babbler is overshooting its jump and goes above the web
         -- We want visually the babbler to "land" on the web on its own rather than direct assist it too much
         local yDiff = (attachPointOrigin.y - orig.y)
-        local babblerDirectApproachRange = target:isa("Web") and 1.5 or (isAlienCom and 7 or 3.5)
+        local babblerDirectApproachRange = target:isa("Web") and 1.5 or (isAlienCom and 7 or (isOnos and 3.5 or 2.5))
         if distance <= d
             or (target:isa("Web") and target:GetClosestPointOnWeb(orig):GetDistanceTo(orig) < d)
             then
