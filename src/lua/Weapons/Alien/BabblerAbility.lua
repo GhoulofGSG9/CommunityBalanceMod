@@ -35,10 +35,10 @@ function BabblerAbility:OnCreate()
     
     InitMixin(self, HealSprayMixin)
     
+    self.timeLastThrown = 0
+
     if Client then
         self.babblerMoveType = kBabblerMoveType.Move
-    elseif Server then
-        self.timeLastThrown = 0
     end
     
 end
@@ -124,20 +124,21 @@ local function CreateBabblerPheromone(self, player)
         end
     end
 
+    local eyePos = player:GetEyePos()
     local viewAngles = player:GetViewAngles()
     local viewCoords = viewAngles:GetCoords()
-    local startPoint = player:GetEyePos() + viewCoords.zAxis * 1
+    local startPoint = eyePos + viewCoords.zAxis * 1
     
-    local startPointTrace = Shared.TraceRay(player:GetEyePos(), startPoint, CollisionRep.Damage, PhysicsMask.Bullets, EntityFilterOne(player))
+    local startPointTrace = Shared.TraceRay(eyePos, startPoint, CollisionRep.Damage, PhysicsMask.Bullets, EntityFilterOne(player))
     startPoint = startPointTrace.endPoint
     
     local babblerPheromone = CreateEntity(BabblerPheromone.kMapName, startPoint, player:GetTeamNumber())
     babblerPheromone:SetOwner(player)
     
     local target, endPoint = FindTarget(self, player)
-    if target and (not HasMixin(target, "Live") or target:GetIsAlive())
-        and ( GetAreEnemies(self, target) or
-              (GetAreFriends(self, target) and (HasMixin(target, "BabblerCling") or target:isa("Web"))) )
+    if target and endPoint and (not HasMixin(target, "Live") or target:GetIsAlive())
+        and ( GetAreEnemies(player, target) or
+              (GetAreFriends(player, target) and (HasMixin(target, "BabblerCling") or target:isa("Web"))) )
     then
     
         babblerPheromone:SetOrigin(endPoint)
@@ -149,6 +150,7 @@ local function CreateBabblerPheromone(self, player)
     
         local startVelocity = viewCoords.zAxis * 32
 
+        babblerPheromone:InitialDispatch()
         babblerPheromone:Setup(player, startVelocity, true, nil, player)
     
     end
@@ -163,7 +165,7 @@ function BabblerAbility:OnTag(tagName)
     
         local player = self:GetParent()
         
-        if player then
+        if player and (not HasMixin(player, "Live") or player:GetIsAlive()) then
         
             player:TriggerEffects("babblerability_attack")
 
@@ -181,7 +183,7 @@ function BabblerAbility:OnTag(tagName)
 end
 
 function BabblerAbility:GetRecentlyThrown()
-    return self.timeLastThrown + 3 > Shared.GetTime()
+    return (self.timeLastThrown or 0) + 3 > Shared.GetTime()
 end
 
 if Client then
@@ -212,7 +214,7 @@ if Client then
         local player = self:GetParent()
         if player then
         
-            local target, endPoint = FindTarget(self, player)
+            local target = FindTarget(self, player)
             self.babblerMoveType = GetBabblerBallOrder(player, target)
         
         end
