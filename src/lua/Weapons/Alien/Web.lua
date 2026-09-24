@@ -64,14 +64,26 @@ function Web:GetWebAxis()
     end
 
     local origin = self:GetOrigin()
+
+    local cachedOrigin = self.webAxisCacheOrigin
+    if cachedOrigin and cachedOrigin.x == origin.x and cachedOrigin.y == origin.y and cachedOrigin.z == origin.z then
+        return origin, self.webAxisCacheDir, self.webAxisCacheLength
+    end
+
     local axis = self.endPoint - origin
     local length = axis:GetLength()
 
     if length < kEpsilon then
+        self.webAxisCacheOrigin = nil
         return nil
     end
 
     axis:Scale(1 / length)
+
+    self.webAxisCacheOrigin = origin
+    self.webAxisCacheDir = axis
+    self.webAxisCacheLength = length
+
     return origin, axis, length
 
 end
@@ -180,8 +192,17 @@ if Server then
 
         for _ = 1, math.min(kWebNumBabblers, kWebMaxBabblers) do
             local babbler = CreateEntity(Babbler.kMapName, self:GetOrigin(), self:GetTeamNumber())
-            if babbler and babbler.AttachToWeb then
-                babbler:AttachToWeb(self, self:GetOrigin())
+            if babbler then
+                -- These belong to the web, not to a player: they have no owner, so
+                -- the usual "kill babblers whose owner went away" path never fires.
+                -- Babbler:DetachFromWeb uses this flag to clean them up.
+                babbler.webSpawned = true
+
+                if not babbler.AttachToWeb or not babbler:AttachToWeb(self, self:GetOrigin()) then
+                    -- Web full / no axis yet: don't leave an ownerless babbler
+                    -- loose in the map forever.
+                    DestroyEntity(babbler)
+                end
             end
         end
 
@@ -192,21 +213,21 @@ if Server then
     function Web:SetEndPoint(endPoint)
     
         self.endPoint = Vector(endPoint)
-        -- Reduces a bit more to account for the ends sticking out beyond geometry.
-        -- The hardcoded value seems the perfect value for both ends to be right on attached surfaces
-        local effectiveLength = Clamp((self:GetOrigin() - self.endPoint):GetLength(), kMinWebLength, kMaxWebLength)
-        
-        self.length = effectiveLength
+        local origin = self:GetOrigin()
+        local toEnd = origin - self.endPoint
+        local rawLength = toEnd:GetLength()
+
+        self.length = Clamp(rawLength, kMinWebLength, kMaxWebLength)
 
         local coords = Coords.GetIdentity()
-        coords.origin = self:GetOrigin()
-        coords.zAxis = GetNormalizedVector(self:GetOrigin() - self.endPoint)
+        coords.origin = origin
+        coords.zAxis = GetNormalizedVector(toEnd)
         coords.xAxis = coords.zAxis:GetPerpendicular()
         coords.yAxis = coords.zAxis:CrossProduct(coords.xAxis)
         
         self:SetCoords(coords)
         
-        self.checkRadius = (self:GetOrigin() - self.endPoint):GetLength() * .5 + 1
+        self.checkRadius = rawLength * .5 + 1
         
     end
 
@@ -216,7 +237,12 @@ end
 if Server then
 
     function Web:AddWebbedBabbler(babbler)
-        if self.numWebbedBabblers >= kWebMaxBabblers then
+        if not babbler or self.numWebbedBabblers >= kWebMaxBabblers then
+            return
+        end
+
+        local babblerId = babbler:GetId()
+        if self.webbedBabblers[babblerId] then
             return
         end
 
@@ -224,16 +250,25 @@ if Server then
         if owner and not babbler.babblerBombSpawned and HasMixin(owner, "BabblerCling") then
             owner:WebBabblerAdded()
         end
-        self.webbedBabblers[babbler:GetId()] = true
+        self.webbedBabblers[babblerId] = true
         self.numWebbedBabblers = self.numWebbedBabblers + 1
     end
 
     function Web:RemoveWebbedBabbler(babbler)
+        if not babbler then
+            return
+        end
+
+        local babblerId = babbler:GetId()
+        if not self.webbedBabblers[babblerId] then
+            return
+        end
+
         local owner = babbler:GetOwner()
         if owner and not babbler.babblerBombSpawned and HasMixin(owner, "BabblerCling") then
             owner:WebBabblerRemoved()
         end
-        self.webbedBabblers[babbler:GetId()] = nil
+        self.webbedBabblers[babblerId] = nil
         self.numWebbedBabblers = math.max(0, self.numWebbedBabblers - 1)
     end
 
@@ -255,17 +290,18 @@ if Server then
     -- used to pin a babbler roughly where the owner pressed use.
     function Web:GetClosestPointOnWeb(position)
 
-        local webVector = self.endPoint - self:GetOrigin()
+        local origin = self:GetOrigin()
+        local webVector = self.endPoint - origin
         local webLength = webVector:GetLength()
 
         if webLength < kEpsilon then
-            return Vector(self:GetOrigin())
+            return Vector(origin)
         end
 
         webVector:Scale(1 / webLength)
-        local t = Clamp(webVector:DotProduct(position - self:GetOrigin()), 0, webLength)
+        local t = Clamp(webVector:DotProduct(position - origin), 0, webLength)
 
-        return self:GetOrigin() + webVector * t
+        return origin + webVector * t
 
     end
 
@@ -307,9 +343,9 @@ end
 
 local function TriggerWebDestroyEffects(self)
 
-    local startPoint = self:GetOrigin()
-    local zAxis = -self:GetCoords().zAxis
     local coords = self:GetCoords()
+    local startPoint = coords.origin
+    local zAxis = -coords.zAxis
     
     for i = 1, 20 do
 
@@ -370,11 +406,14 @@ if Client then
 
             local isFriendly = GetAreFriends(self, player)
 
+            local selfOrigin = self:GetOrigin()
+            local playerOrigin = player:GetOrigin()
+
             -- Try distances from both endpoints and the middle, and use the shortest one.
             -- We compare the midpoint and the origin distance first, since the midpoint is the most common case in-game (from close range)
-            local midPoint = (self:GetOrigin() + self.endPoint) * 0.5
-            local midDistance = (midPoint - player:GetOrigin()):GetLengthSquared()
-            local originDistance = (self:GetOrigin() - player:GetOrigin()):GetLengthSquared()
+            local midPoint = (selfOrigin + self.endPoint) * 0.5
+            local midDistance = (midPoint - playerOrigin):GetLengthSquared()
+            local originDistance = (selfOrigin - playerOrigin):GetLengthSquared()
 
             local distance = midDistance
 
@@ -383,7 +422,7 @@ if Client then
                 distance = originDistance
             else
                 -- Either the endpoint or midpoint is closest
-                local endDistance = (self.endPoint - player:GetOrigin()):GetLengthSquared()
+                local endDistance = (self.endPoint - playerOrigin):GetLengthSquared()
                 if endDistance < midDistance then
                     distance = endDistance
                 end
@@ -433,9 +472,9 @@ function Web:GetIsCamouflaged()
     return true
 end
 
-local function GetDistance(self, fromPlayer)
+local function GetDistance(coords, fromPlayer)
 
-    local tranformCoords = self:GetCoords():GetInverse()
+    local tranformCoords = coords:GetInverse()
     local relativePoint = tranformCoords:TransformPoint(fromPlayer:GetOrigin())
 
     return math.abs(relativePoint.x), relativePoint.y
@@ -488,16 +527,16 @@ local function RemoveWebCharge(self, fromPlayer)
 
 end
 
-local kEntityCache = {}
 local function CheckForIntersection(self, fromPlayer)
 
     if fromPlayer then
 
         -- need to manually check for intersection here since the local players physics are invisible and normal traces would fail
+        local coords = self:GetCoords()
         local playerOrigin = fromPlayer:GetOrigin()
         local extents = fromPlayer:GetExtents()
-        local fromWebVec = playerOrigin - self:GetOrigin()
-        local webDirection = -self:GetCoords().zAxis
+        local fromWebVec = playerOrigin - coords.origin
+        local webDirection = -coords.zAxis
         local dotProduct = webDirection:DotProduct(fromWebVec)
 
         local minDistance = - extents.z
@@ -505,7 +544,7 @@ local function CheckForIntersection(self, fromPlayer)
 
         if dotProduct >= minDistance and dotProduct < maxDistance then
 
-            local horizontalDistance, verticalDistance = GetDistance(self, fromPlayer)
+            local horizontalDistance, verticalDistance = GetDistance(coords, fromPlayer)
 
             local horizontalOk = horizontalDistance <= extents.z
             local verticalOk = verticalDistance >= 0 and verticalDistance <= extents.y * 2
@@ -523,7 +562,7 @@ local function CheckForIntersection(self, fromPlayer)
                 if Server and shouldPlayEffects then
 
                     if not RemoveWebCharge(self, fromPlayer) then
-                        self:Kill(nil, nil, self:GetOrigin())
+                        self:Kill(nil, nil, coords.origin)
                     end
 
                 end
@@ -536,12 +575,16 @@ local function CheckForIntersection(self, fromPlayer)
 
     elseif Server then
 
-        local trace = Shared.TraceRay(self:GetOrigin(), self.endPoint, CollisionRep.Damage, PhysicsMask.Bullets, EntityFilterNonWebables())
-        if trace.entity and not trace.entity:isa("Player") then
+        self.webbedEntityCache = self.webbedEntityCache or {}
 
+        local origin = self:GetOrigin()
+        local trace = Shared.TraceRay(origin, self.endPoint, CollisionRep.Damage, PhysicsMask.Bullets, EntityFilterNonWebables())
+        if trace.entity and not trace.entity:isa("Player") and trace.entity.SetWebbed then
+
+            local entityId = trace.entity:GetId()
             local shouldPlayEffects = false
-            if not kEntityCache[trace.entity] or kEntityCache[trace.entity] == false then
-                kEntityCache[trace.entity] = true
+            if not self.webbedEntityCache[entityId] then
+                self.webbedEntityCache[entityId] = true
                 shouldPlayEffects = true
             end
 
@@ -550,28 +593,38 @@ local function CheckForIntersection(self, fromPlayer)
             if shouldPlayEffects then
 
                 if not RemoveWebCharge(self) then
-                    self:Kill(nil, nil, self:GetOrigin())
+                    self:Kill(nil, nil, origin)
                 end
 
             end
 
         else
-            kEntityCache = {}
+            self.webbedEntityCache = {}
         end
 
     end
 
 end
 
-function Web:GetFreeBabblerAttachPointOrigin()
+local kWebAttachMargin = 0.2
+function Web:GetFreeBabblerAttachPointOrigin(babbler)
     local startPoint, axis, length = self:GetWebAxis()
 
-    if axis then
-        -- The free point oscillates left and right
-        local p = math.cos(Shared.GetTime() * 2) * 0.8 -- Do not go to the edges of the web
-        return startPoint + axis * (length / 2) + (axis * p * length / 2)
+    if not axis then
+        return nil
     end
-    return nil
+
+    -- Do not go to the edges of the web (they can be buried in geometry)
+    local margin = math.min(kWebAttachMargin, length * 0.25)
+    local usable = math.max(length - margin * 2, 0)
+
+    local fraction = 0.5
+    if babbler and babbler.GetId then
+        -- Golden-ratio scatter: consecutive entity ids land far apart
+        fraction = (babbler:GetId() * 0.618033988749895) % 1
+    end
+
+    return startPoint + axis * (margin + usable * fraction)
 end
 
 -- TODO: somehow the pose params dont work here when using clientmodelmixin. should figure out why this is broken and switch to clientmodelmixin
@@ -589,8 +642,9 @@ if Server then
 
     function Web:TriggerWebSpawnEffects()
 
-        local startPoint = self:GetOrigin()
-        local zAxis = -self:GetCoords().zAxis
+        local coords = self:GetCoords()
+        local startPoint = coords.origin
+        local zAxis = -coords.zAxis
         
         for i = 1, 20 do
 
