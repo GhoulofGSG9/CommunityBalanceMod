@@ -29,6 +29,7 @@ local kBabblerAttachPoints =
     "babbler_attach5",
     "babbler_attach6",
 }
+local kMaxClingedBabblers = #kBabblerAttachPoints
 
 BabblerClingMixin.kAmountDonatedForPoints = 6
 BabblerClingMixin.kDonationScoreAdded = 0.5
@@ -37,7 +38,6 @@ local kMaxShield = kBabblerShieldMaxAmount
 BabblerClingMixin.networkVars =
 {
     numBabblers = "integer (0 to 6)",
-    webbedBabblerCount = "integer (0 to 6)",
     babblerShieldRemaining = string.format("float (0 to %f by 0.0625)", kMaxShield)
 }
 
@@ -49,31 +49,20 @@ function BabblerClingMixin:__initmixin()
     self.freeAttachPoints = {}
     table.copy(kBabblerAttachPoints, self.freeAttachPoints)
 
+    self.numBabblers = 0
     self.babblerShieldRemaining = 0
-    self.webbedBabblerCount = 0
 
     local babblerShieldPercent = self.GetBabblerShieldPercentage and self:GetBabblerShieldPercentage() or kBabblerShieldPercent
     self.babblerShieldMaxAmount = math.min(math.round(self:GetBaseHealth() * babblerShieldPercent), kMaxShield)
-    self.babblerShieldPerBabbler = self.babblerShieldMaxAmount / #kBabblerAttachPoints
+    self.babblerShieldPerBabbler = math.max(self.babblerShieldMaxAmount / kMaxClingedBabblers, kEpsilon)
 end
 
 function BabblerClingMixin:GetNumClingedBabblers()
     return self.numBabblers
 end
 
-function BabblerClingMixin:WebBabblerAdded()
-    self.webbedBabblerCount = math.min(6, self.webbedBabblerCount + 1)
-end
-function BabblerClingMixin:WebBabblerRemoved()
-    self.webbedBabblerCount = math.max(0, self.webbedBabblerCount - 1)
-end
-
-function BabblerClingMixin:GetNumWebbedBabblers()
-    return self.webbedBabblerCount or 0
-end
-
 function BabblerClingMixin:GetMaxClingedBabblers()
-    return #kBabblerAttachPoints
+    return kMaxClingedBabblers
 end
 
 function BabblerClingMixin:GetCanAttachBabbler()
@@ -89,8 +78,11 @@ function BabblerClingMixin:ModifyDamageTaken(damageTable, attacker, doer, damage
         local amount = math.min(damage, self.babblerShieldRemaining)
 
         if Server then
-            self.babblerShieldRemaining = self.babblerShieldRemaining - amount
-            self:DestroyNumClingedBabbler(math.floor((self.numBabblers * self.babblerShieldPerBabbler - self.babblerShieldRemaining) / self.babblerShieldPerBabbler ))
+            self.babblerShieldRemaining = math.max(0, self.babblerShieldRemaining - amount)
+
+            local perBabbler = self.babblerShieldPerBabbler
+            local toDestroy = math.floor((self.numBabblers * perBabbler - self.babblerShieldRemaining) / perBabbler)
+            self:DestroyNumClingedBabbler(Clamp(toDestroy, 0, self.numBabblers))
 
             if HitSound_IsEnabledForWeapon( weapon ) then
                 -- Damage message will be sent at the end of OnProcessMove by the HitSound system
@@ -143,7 +135,7 @@ function BabblerClingMixin:GetCanBeUsed(entity, useSuccessTable)
         success = false
     end
 
-    if success and entity:GetNumClingedBabblers() == 0 then
+    if success and (not entity.GetNumClingedBabblers or entity:GetNumClingedBabblers() == 0) then
         success = false
     end
 
@@ -159,11 +151,22 @@ function BabblerClingMixin:OnUse(player, elapsedTime, useSuccessTable)
             if not self:GetCanAttachBabbler() or (isTargetOwner and self:GetBabblerCount() >= self:GetMaxBabblers()) then
                 break
             end
-            player:DetachBabbler(babbler)
-            -- Only give points if you are the original birth-giver of these babblers
-            -- Do not give point for giving them back to him
-            local disablePointsAward = not isPlayerOwner or isTargetOwner
-            self:AttachBabbler(babbler, disablePointsAward)
+
+            if babbler:GetIsAlive() then
+
+                player:DetachBabbler(babbler)
+                -- Only give points if you are the original birth-giver of these babblers
+                -- Do not give point for giving them back to him
+                local disablePointsAward = not isPlayerOwner or isTargetOwner
+
+                if not self:AttachBabbler(babbler, disablePointsAward) then
+                    if not player:AttachBabbler(babbler, true) then
+                        babbler:OrderIdle()
+                    end
+                    break
+                end
+
+            end
         end
     end
     self:TriggerEffects("babbler_jump") 
@@ -173,18 +176,24 @@ if Server then
 
     function BabblerClingMixin:AttachBabbler(babbler, disablePoints)
 
+        if not babbler or not babbler:GetIsAlive() then return false end
         if not self:GetIsAlive() or not self:GetCanAttachBabbler() then return false end
+
+        local babblerId = babbler:GetId()
+
+        if self.attachedBabblers[babblerId] then return false end
 
         local freeAttachPoint = #self.freeAttachPoints > 0 and table.remove(self.freeAttachPoints)
         if freeAttachPoint then
 
-            self.attachedBabblers[babbler:GetId()] = freeAttachPoint
+            self.attachedBabblers[babblerId] = freeAttachPoint
             self.numBabblers = self.numBabblers + 1
             self.babblerShieldRemaining = self.babblerShieldRemaining + self.babblerShieldPerBabbler
 
             -- Do not count babblers you attach on yourself
             local previousOwner = babbler:GetOwner()
-            if previousOwner and previousOwner ~= self and not disablePoints then
+            if previousOwner and previousOwner ~= self and not disablePoints
+                    and previousOwner.AddContinuousScore then
                 local amountGiven = 1
                 previousOwner:AddContinuousScore("BabblerDonation", amountGiven, BabblerClingMixin.kAmountDonatedForPoints, BabblerClingMixin.kDonationScoreAdded)
                 --Log("%s detaching from %s and attaching to %s", babbler, babbler:GetOwner(), self)
@@ -195,7 +204,10 @@ if Server then
             babbler:SetParent(self)
             babbler:SetOwner(self)
             babbler:SetAttachPoint(freeAttachPoint)
+
+            babbler.clinged = true
             babbler:DestroyHitbox()
+            babbler:UpdateJumpPhysicsBody()
 
             return true
 
@@ -214,6 +226,8 @@ if Server then
 
     function BabblerClingMixin:DetachBabbler(babbler)
 
+        if not babbler then return end
+
         local babblerId = babbler:GetId()
         local usedAttachPoint = self.attachedBabblers[babblerId]
 
@@ -227,9 +241,13 @@ if Server then
                 babbler:SetOrigin(origin)
             end
 
-            self.numBabblers = self.numBabblers - 1
+            self.numBabblers = math.max(0, self.numBabblers - 1)
             self.babblerShieldRemaining = math.min(self.babblerShieldRemaining, self.numBabblers * self.babblerShieldPerBabbler)
         end
+
+        babbler.clinged = false
+        babbler:CreateHitBox(Coords.GetTranslation(babbler:GetOrigin()))
+        babbler:UpdateJumpPhysicsBody()
 
     end
 
@@ -238,7 +256,7 @@ if Server then
     end
 
     function BabblerClingMixin:DestroyNumClingedBabbler(num)
-        if num == 0 then return end
+        if not num or num <= 0 then return end
 
         local babblers = GetChildEntities(self, "Babbler")
         num = math.min(#babblers, num)
@@ -263,13 +281,15 @@ if Server then
         local babblers = GetChildEntities(self, "Babbler")
         for i = 1, #babblers do
             local babbler = babblers[i]
-
-            babbler:Detach()
+            babbler:Detach(true)
         end
 
         self.attachedBabblers = {}
         self.numBabblers = 0
         self.babblerShieldRemaining = 0
+
+        self.freeAttachPoints = {}
+        table.copy(kBabblerAttachPoints, self.freeAttachPoints)
 
     end
 
