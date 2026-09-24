@@ -77,12 +77,27 @@ local kMaxJumpForce = 15
 local kMinJumpForce = 5
 local kTurnSpeed = math.pi
 
+-- Natural ground-movement wander: instead of beelining every path segment,
+-- drift a heading offset via a clamped random walk and nudge each tick's
+-- move sideways by it. Pathing re-aims from wherever we land next tick, so
+-- this never fights its way back to the target - it just keeps the trip
+-- there from looking like it's riding a rail.
+local kWanderMaxAngle = math.rad(35)
+local kWanderTurnAccel = 6 -- rad/s of random-walk drift on the wander angle
+
+-- Subtle forward-speed pulse layered on top, so the run cadence doesn't
+-- read as a constant conveyor-belt speed.
+local kGaitPulseAmount = 0.12 -- +/- fraction of kBabblerRunSpeed
+
 local Math_Wrap = Math.Wrap
 local Math_Degrees = Math.Degrees
 
 local math_atan2 = math.atan2
 
 function GetEngagementOrOrigin(entity)
+    if entity:isa("Player") then
+        return entity:GetEyePos() -- Like bees, aim for the eyes
+    end
     return HasMixin(entity, "Target") and entity:GetEngagementPoint() or entity:GetOrigin()
 end
 
@@ -135,12 +150,7 @@ function GetBabblerBallOrder(owner, target)
     local teamNumber = owner:GetTeamNumber()
     if HasMixin(target, "Team") and GetEnemyTeamNumber(teamNumber) == target:GetTeamNumber() then
 
-        local canDamage
-        if target:isa("PowerPoint") and target:GetBuiltFraction() >= 0.009 then
-            canDamage = true -- built frac comes back in microscopic levels
-        else
-            canDamage = HasMixin(target, "Live") and target:GetIsAlive() and target:GetCanTakeDamage()
-        end
+        local canDamage = HasMixin(target, "Live") and target:GetIsAlive() and target:GetCanTakeDamage()
 
         return canDamage and kBabblerMoveType.Attack or kBabblerMoveType.Move
     end
@@ -148,7 +158,7 @@ function GetBabblerBallOrder(owner, target)
     local isTargetAlive = HasMixin(target, "Live") and target:GetIsAlive()
     if isTargetAlive and target:isa("Player") and HasMixin(target, "BabblerCling") and target:GetCanAttachBabbler() then
         return kBabblerMoveType.Cling
-    elseif target:isa("Web") and owner and HasMixin(owner, "BabblerOwner") and HasMixin(owner, "BabblerCling")
+    elseif target:isa("Web") and owner and HasMixin(owner, "BabblerOwner")
         and target:GetNumWebbedBabblers() < kWebMaxBabblers -- Check for web free slots
         and owner:GetBabblerCount() - owner:GetNumWebbedBabblers() > 0
         then
@@ -170,7 +180,7 @@ function Babbler:CreateHitBox(coords)
         end
 
         coords = coords or self:GetCoords()
-        self.hitBox = Shared.CreatePhysicsSphereBody(false, Babbler.kRadius * 1.5, Babbler.kMass, coords)
+        self.hitBox = Shared.CreatePhysicsSphereBody(false, Babbler.kRadius * 2, Babbler.kMass, coords)
         self.hitBox:SetGroup(PhysicsGroup.BabblerGroup)
         self.hitBox:SetCoords(coords)
         self.hitBox:SetEntity(self)
@@ -240,6 +250,9 @@ function Babbler:OnCreate()
         self.timeLastStopImpulse = 0
 
         self.silenced = false
+        -- Set true by Web:AttachInitialBabblers; everywhere else a babbler is
+        -- created with a real owner.
+        self.webSpawned = false
 
         InitMixin(self, PathingMixin)
 
@@ -263,6 +276,8 @@ function Babbler:OnCreate()
         self.delayedSkinUpdate = false
 
     end
+
+    self.lastOrigin = Vector(0,0,0)
 
     self:SetUpdateRate(kRealTimeUpdateRate)
 
@@ -299,6 +314,13 @@ function Babbler:OnInitialized()
         -- Per-babbler personality: some scurry, some dawdle, some are restless
         self.webSpeedMult = 0.85 + math.random() * 0.35
         self.webIdleMult  = 0.75 + math.random() * 0.6
+
+        -- Per-babbler ground-move personality, so a swarm doesn't weave or
+        -- pulse in lockstep (see kWanderMaxAngle / kGaitPulseAmount usage in Move)
+        self.wanderAngle = 0
+        self.wanderTurnAccel = kWanderTurnAccel * (0.6 + math.random() * 0.8)
+        self.gaitPhase = math.random() * math.pi * 2
+        self.gaitFreq = 4 + math.random() * 4
 
     end
 
@@ -337,7 +359,7 @@ function Babbler:OnDestroy()
             end
         end
 
-        self:Detach(true)
+        self:Detach()
     end
 
     if self.physicsBody then
@@ -389,32 +411,62 @@ end
 
 function Babbler:GetTarget()
 
-    local target = self.targetId ~= nil and Shared.GetEntity(self.targetId)
-    return target
+    if self.targetId == nil or self.targetId == Entity.invalidId then
+        return nil
+    end
+
+    return Shared.GetEntity(self.targetId)
 
 end
 
 function Babbler:GetIsOnGround(performGroundTrace)
     local vel = self:GetVelocity()
     local velLength = vel:GetLength()
-    local isGlidingOnFloor = velLength < 3.5 and math.abs(vel.y) < 0.30
+    local absVelY = math.abs(vel.y)
+    local absLastVelY = self.lastVelocity and math.abs(self.lastVelocity.y) or 0
 
-    if performGroundTrace then
-        if self.babblerOffMap then return false end
-        local orig = self:GetOrigin()
-        local trace = Shared.TraceRay(orig, orig - Vector(0, 0.5, 0),
-                CollisionRep.Move, PhysicsMask.AIMovement, EntityFilterOneAndIsa(self, "Babbler"))
-        -- real surface within a half step below, and not rising
-        return trace.fraction < 1 and self:GetVelocity().y <= 0.3
+    local minSpeed = 0.5
+    local minGlidingSpeed = 3.5
+
+    local isGlidingOnFloor = velLength < minGlidingSpeed and absVelY < 0.3
+    local isOnGround = velLength < minSpeed or isGlidingOnFloor or self.babblerOffMap
+
+    -- Extra condition to avoid snapping down when we are on physics body / gravity / jump
+    -- Worst case figure, the babbler will look like it is falling in-place on the ground,
+    -- but it won't produce a visual breaking teleport-down (because re-attaching to pathing mesh)
+    if isOnGround and self.physicsBody and not self.babblerOffMap then
+
+        local now = Shared.GetTime()
+        local atApex = false
+        if self.timeLastJump and self.lastVelocity then
+            local tDiff = now - self.timeLastJump
+            if 0.2 < tDiff and tDiff < 2.0 then  -- Within jump arc timeframe
+                local nearApex = false
+                local slowingDown = velLength < self.lastVelocity:GetLength() * 0.95
+                local turningDown = vel.y < self.lastVelocity.y
+                nearApex = absVelY < 0.3
+                atApex = slowingDown and turningDown and nearApex
+            end
+        end
+
+        -- Spawn protection
+        if now - self:GetCreationTime() < 0.3 then
+            isOnGround = false
+        end
+
+        -- Test if we are at the topmost jump position
+        if atApex then
+            isOnGround = false
+        end
+
+        -- Really make sure we stabilized (no longer going down)
+        local minYSpeed = 0.15
+        if not (absVelY < minYSpeed and absLastVelY < minYSpeed) then
+            isOnGround = false
+        end
     end
 
-    -- rising or plummeting: airborne
-    local maxLandVelocity = 1
-    if vel.y > 0.3 or vel.y < -maxLandVelocity then
-        return false
-    end
-
-    return velLength < 0.5 or isGlidingOnFloor or self.babblerOffMap
+    return isOnGround
 end
 
 function Babbler:GetVelocity()
@@ -422,9 +474,11 @@ function Babbler:GetVelocity()
     if self.physicsBody then
         return self.physicsBody:GetLinearVelocity()
     end
-    if self.lastOrigin then
-        local now = Shared.GetTime()
-        return (self:GetOrigin() - self.lastOrigin) / (now - self.lastUpdate)
+    if self.lastOrigin and self.lastUpdate then
+        local dt = Shared.GetTime() - self.lastUpdate
+        if dt > kEpsilon then
+            return (self:GetOrigin() - self.lastOrigin) / dt
+        end
     end
     return Vector(0,0,0)
 
@@ -465,9 +519,11 @@ function Babbler:UpdateRelevancy()
 
 end
 
+
 local function NoObstacleInWay(self, targetPos, ignoreEntity)
+    local filter = ignoreEntity and EntityFilterTwoAndIsa(self, ignoreEntity, "Babbler") or EntityFilterOneAndIsa(self, "Babbler")
     local trace = Shared.TraceRay(self:GetEyePos(), targetPos,
-            CollisionRep.LOS, PhysicsMask.All, EntityFilterTwo(self, ignoreEntity))
+            CollisionRep.LOS, PhysicsMask.All, filter)
     return trace.fraction >= 0.9
 end
 
@@ -484,14 +540,18 @@ local function CanReachTarget(self, target)
 
 end
 
+function Babbler:UpdateClientSkinState()
+
+    if Client and self.delayedSkinUpdate then
+        self.dirtySkinState = true
+        self.delayedSkinUpdate = false
+    end
+
+end
+
 function Babbler:UpdateBabbler(deltaTime)
 
-    if Client then  -- deal with skins
-        if self.delayedSkinUpdate then
-            self.dirtySkinState = true
-            self.delayedSkinUpdate = false
-        end
-    end
+    self:UpdateClientSkinState()
 
     if self:GetIsClinged() or not self:GetIsAlive() then
         return
@@ -507,24 +567,21 @@ function Babbler:UpdateBabbler(deltaTime)
 
         local success = true
         local targetReached = false
-        local isMove = (self.moveType == kBabblerMoveType.Move)
-        local isCling = (self.moveType == kBabblerMoveType.Cling)
 
         local target = self:UpdateTargetPos()
-        local isEnemy = target and target:GetTeamNumber() == GetEnemyTeamNumber(self:GetTeamNumber())
+        local isEnemy = target and HasMixin(target, "Team")
+                and target:GetTeamNumber() == GetEnemyTeamNumber(self:GetTeamNumber())
 
-        -- Move toward target
-        if (isMove or isCling) and self.timeLastJump + 0.5 < Shared.GetTime() and self:GetIsOnGround() then
+        if (self.moveType == kBabblerMoveType.Move or self.moveType == kBabblerMoveType.Cling) and self.timeLastJump + 0.5 < Shared.GetTime() and self:GetIsOnGround() then
             success, targetReached = self:UpdateMove(target, deltaTime) --> :Move()
         end
 
         -- If reached, try to cling to it
-        if success and isCling then
+        if success and self.moveType == kBabblerMoveType.Cling then
             success = self:UpdateCling(target, deltaTime) --> :Cling()
         end
 
         if not success then
-            --Log("%s is clearing move type to None", self)
             self:SetMoveType(kBabblerMoveType.None, nil, nil, true)
         end
 
@@ -535,22 +592,26 @@ function Babbler:UpdateBabbler(deltaTime)
         self.attacking = self.timeLastAttack + 0.2 > Shared.GetTime()
         self.wagging = self.moveType == kBabblerMoveType.Wag
 
-        if isEnemy and isMove and target and targetReached and CanReachTarget(self, target) then
+        if isEnemy and self.moveType == kBabblerMoveType.Move and target and targetReached and CanReachTarget(self, target) then
             local targetPos = HasMixin(target, "Target") and target:GetEngagementPoint() or target:GetOrigin()
-            self:SetMoveType(kBabblerMoveType.Attack, target, targetPos)
+            self:SetMoveType(kBabblerMoveType.Attack, target, targetPos, true)
         end
 
         if target and self.moveType == kBabblerMoveType.Attack then
-            self:UpdateAttack(target)
+            self:UpdateAttack(target, false)
         end
 
         -- A finished Move with no enemy on it is a dead order. Drop back to
         -- None so MoveRandom can roll the next idle flavour (or wag/follow).
-        if isMove and targetReached and not isEnemy and self.moveType == kBabblerMoveType.Move then
+        if self.moveType == kBabblerMoveType.Move and targetReached and not isEnemy then
             self:SetMoveType(kBabblerMoveType.None, nil, nil, true)
         end
 
         self:UpdateRelevancy()
+
+        if self:GetOrigin() == self.lastOrigin and not self:GetIsOnGround() then
+            self:SetGroundMoveType(false) -- Re-enables gravity (just in case)
+        end
 
     elseif Client then
 
@@ -565,15 +626,17 @@ function Babbler:UpdateBabbler(deltaTime)
     end
 
     self.lastVelocity = self:GetVelocity()
-    self.lastOrigin = self:GetOrigin()
     self.lastUpdate = Shared.GetTime()
+
+    VectorCopy(self:GetOrigin(), self.lastOrigin)
 
 end
 
 function Babbler:UpdatePhysics()
     self:CreateHitBox()
     if self.hitBox then
-        self.hitBox:SetCoords(self:GetCoords())
+        local coords = self:GetCoords()
+        self.hitBox:SetCoords(coords)
     end
 end
 
@@ -638,6 +701,7 @@ function Babbler:OnUpdate(deltaTime)
     ScriptActor.OnUpdate(self, deltaTime)
 
     if self:GetIsClinged() then
+        self:UpdateClientSkinState()
         return
     end
 
@@ -686,6 +750,7 @@ function Babbler:OnProcessMove(input)
     if Server then
 
         if self:GetIsClinged() then
+
             local parent = self:GetParent()
             if parent  then
                 -- Somehow this position is used when I detach in specific cases on direct babbler balls hit
@@ -890,7 +955,8 @@ if Server then
 
         self:RefreshFreeRoam()
         self:UpdateJumpPhysicsBody()
-        self:SetMoveType(kBabblerMoveType.None, nil, nil, true)
+        self:OrderIdle()
+
     end
 
     function Babbler:GetWeb()
@@ -930,7 +996,7 @@ if Server then
     end
 
     function Babbler:GetLeapVelocity(targetPos)
-        local babblerJumpGravity = 6.5
+        local babblerJumpGravity = 6.75
         local toTarget = targetPos - self:GetOrigin()
         local heightDiff = toTarget.y
 
@@ -940,7 +1006,7 @@ if Server then
             dirXZ:Scale(1 / horizontalDist)
         end
 
-        local arcHeight = math.max(heightDiff + 0.75, 1.25)
+        local arcHeight = math.max(heightDiff + 0.75, 1)
         local vY = math.sqrt(2 * babblerJumpGravity * arcHeight)
         local timeUp = vY / babblerJumpGravity
         local remainingHeight = arcHeight - heightDiff
@@ -970,8 +1036,10 @@ if Server then
 
     end
 
-    local function KillCallback(this)
-        this:Kill()
+    local function KillCallback(self)
+        if self:GetIsAlive() and not self:GetOwner() then
+            self:Kill()
+        end
         return -- removes callback
     end
 
@@ -983,9 +1051,10 @@ if Server then
 
         if newOwner and not self.ownerCountNotified then
             self:NotifyOwnerCreated(newOwner)
-        elseif not newOwner then
+        elseif not newOwner and not self.webSpawned then
             -- Destroy Babblers without Owner
             -- Callback avoids server crashes from mixins touching a dying unit
+            -- (web-spawned babblers are deliberately ownerless, see Web.lua)
             self:AddTimedCallback(KillCallback, 1)
         end
 
@@ -1019,8 +1088,9 @@ if Server then
             local pos
             local target = newId and Shared.GetEntity(newId)
             local targetIsAlive = target and HasMixin(target, "Live") and target:GetIsAlive()
-            self.targetId = Entity.invalidId
             local wasClinged = self:GetIsClinged()
+            local wasClingOrder = self.moveType == kBabblerMoveType.Cling
+            self.targetId = Entity.invalidId
 
             self:Detach()
             if wasClinged and targetIsAlive then
@@ -1033,6 +1103,9 @@ if Server then
                     self:SetMoveType(kBabblerMoveType.Cling, nil, pos, true)
                     self.targetId = newId
                 end
+            elseif wasClingOrder and targetIsAlive then
+                self:SetMoveType(kBabblerMoveType.Cling, nil, target:GetOrigin(), true)
+                self.targetId = newId
             end
         end
 
@@ -1049,14 +1122,18 @@ if Server then
     local kResetJumpVelocity = Vector(0, 0, 0)
     function Babbler:Jump(velocity)
         self:SetGroundMoveType(false)
-        if velocity and velocity:GetLengthSquared() > 0 then
+
+        local hasImpulse = velocity ~= nil and velocity:GetLengthSquared() > 0
+        if hasImpulse then
             self.timeLastJump = Shared.GetTime()
         end
-        if self.physicsBody then
-            self.physicsBody:SetCoords(self:GetCoords())
-            if velocity and velocity:GetLengthSquared() > 0 then
+
+        if self.physicsBody and not (self:GetIsClinged() or self:GetIsOnWeb()) then
+            if hasImpulse then
                 self:SetVelocity(kResetJumpVelocity)
-                self.physicsBody:AddImpulse(self:GetOrigin(), velocity)
+                local coords = self:GetCoords()
+                self.physicsBody:SetCoords(coords)
+                self.physicsBody:AddImpulse(coords.origin, velocity)
             end
         end
     end
@@ -1065,7 +1142,7 @@ if Server then
     function Babbler:JumpRandom()
 
         local velocity
-        for _ = 1, 4 do
+        for _ = 1, 5 do
             kJumpRandomVect.x = (math.random() * 3) - 1.5
             kJumpRandomVect.y = 3 + (math.random() * 2)
             kJumpRandomVect.z = (math.random() * 3) - 1.5
@@ -1112,6 +1189,9 @@ if Server then
         -- and throw babblers at the end.
         -- Tweak to your liking
 
+        if not (self.cursor.index + 2 <= #self.cursor.points) then
+            return
+        end
         local now = Shared.GetTime()
         local deviation = 0.1 + math.random() * 0.2 -- How far they deviate from path when moving (no straight line, more variations)
         local highJumpProb = 0.05
@@ -1140,8 +1220,6 @@ if Server then
 
     function Babbler:Move(distToTarget, targetPos, deltaTime)
 
-        self:SetGroundMoveType(true)
-
         local now = Shared.GetTime()
         local prevOrig = self:GetOrigin()
         local prevY = prevOrig.y
@@ -1150,14 +1228,22 @@ if Server then
         local moveDone = true
 
         if (prevOrig - targetPos):GetLengthXZ() > 0.25 then
-            --Log("%s is moving", self)
-            moveDone = self:MoveToTarget(PhysicsMask.AIMovement, targetPos, kBabblerRunSpeed, deltaTime)
+            self:SetGroundMoveType(true)
+
+            -- Gait pulse: subtle +/- speed wobble instead of a constant crawl
+            -- speed, so the cadence (and the run-blend anim it drives, since
+            -- that reads back actual velocity) doesn't look like a conveyor belt.
+            local gaitSpeed = kBabblerRunSpeed * (1 + kGaitPulseAmount * math.sin(self.gaitPhase))
+            self.gaitPhase = self.gaitPhase + deltaTime * self.gaitFreq
+
+            moveDone = self:MoveToTarget(PhysicsMask.AIMovement, targetPos, gaitSpeed, deltaTime)
 
             local newOrigin = self:GetOrigin()
             -- Only lift while we really travelled; a stalled babbler must not
             -- keep ratcheting Y tick after tick
             local travelled = prevOrig:GetDistanceTo(newOrigin)
             if travelled > kEpsilon then
+
                 local ground = GetGroundAt(self, newOrigin, PhysicsMask.AIMovement)
                 local desiredY = ground.y + Babbler.kRadius
                 -- a trace more than a step below means we found another level, not the
@@ -1165,6 +1251,24 @@ if Server then
                 if prevY - desiredY < 1 then
                     newOrigin.y = Slerp(prevY, desiredY, deltaTime * Clamp(travelled / deltaTime / 2, 0, 3))
                 end
+
+                -- Weave: drift the wander angle with a clamped random walk, then
+                -- rotate this tick's XZ displacement by it. Only the extra
+                -- sideways component is applied (forward progress isn't shortened),
+                -- and because pathing re-aims fresh from the new origin every
+                -- tick, the drift never has to be corrected back out - it just
+                -- makes the trip look less like it's on a rail.
+                self.wanderAngle = Clamp(self.wanderAngle + (math.random() - 0.5) * deltaTime * self.wanderTurnAccel,
+                        -kWanderMaxAngle, kWanderMaxAngle)
+
+                local moveDir = newOrigin - prevOrig
+                moveDir.y = 0
+                if moveDir:GetLengthXZ() > kEpsilon then
+                    local sinA, cosA = math.sin(self.wanderAngle), math.cos(self.wanderAngle)
+                    newOrigin.x = newOrigin.x + (moveDir.x * cosA - moveDir.z * sinA - moveDir.x)
+                    newOrigin.z = newOrigin.z + (moveDir.x * sinA + moveDir.z * cosA - moveDir.z)
+                end
+
                 self:SetOrigin(newOrigin)
             end
 
@@ -1181,8 +1285,13 @@ if Server then
         then
 
             -- Could eventually do double jumps (forward and sideway)
-            self:UpdateMove_forwardJumps(distToTarget, targetPos)
             self:UpdateMove_randomJumps()
+            self:UpdateMove_forwardJumps(distToTarget, targetPos)
+
+            -- The constant added delay has to be higher than the self.timeLastJump delay in the function
+            -- so we are sure that we are not jumping as soon as we reached the floor
+            local rand = 0.5 + math.random() * 0.7
+            self.timeNextMoveJump = now + 0.4 + rand * rand * rand
         end
 
         return moveDone
@@ -1216,7 +1325,6 @@ if Server then
 
             local moveDone = self:Move(distToTarget, targetPos, deltaTime)
             if moveDone or distToTargetXZ < 0.5 then
-                self:SyncPhysicsCoords()
                 targetReached = true
             end
             success = true
@@ -1230,17 +1338,20 @@ if Server then
         local moveDir = GetNormalizedVector(delta)
         local travelDistance = math.min(deltaTime * kBabblerRunSpeed, distance)
         self:SetGroundMoveType(true)
-        self:SetOrigin(self:GetOrigin() + moveDir * travelDistance)
-        self:SyncPhysicsCoords()
+        local prevOrig = self:GetOrigin()
+        local newOrigin = prevOrig + moveDir * travelDistance
+        self:SetOrigin(newOrigin)
     end
 
     function Babbler:Cling(target, deltaTime)
+
 
         local babblerMaxLeapDistance = 5
         if not target then return false end
         if not target:GetIsAlive() then return false end
 
         local attachPointOrigin, isWeb = self:GetClingAttachPoint(target)
+
         if not attachPointOrigin then
             return false
         end
@@ -1249,37 +1360,46 @@ if Server then
         local orig = self:GetOrigin()
         local delta = attachPointOrigin - orig
         local distance = delta:GetLength()
+        local distanceXZ = delta:GetLengthXZ()
 
         local d = 0.7
-        -- Cleaner visually to let babbler reach the with the jump, rather than the straight transition
-        local babblerDirectApproachRange = target:isa("Web") and 1 or 3.5
+        local isAlienCom = target and target:isa("AlienCommander")
+
+        -- More tolerant if the babbler is overshooting its jump and goes above the web
+        -- We want visually the babbler to "land" on the web on its own rather than direct assist it too much
+        local yDiff = (attachPointOrigin.y - orig.y)
+        local babblerDirectApproachRange = target:isa("Web") and 1.5 or (isAlienCom and 7 or 3.5)
         if distance <= d
             or (target:isa("Web") and target:GetClosestPointOnWeb(orig):GetDistanceTo(orig) < d)
             then
-            return self:FinalizeClingAttach(target, isWeb, attachPointOrigin)
+            local attachSuccess = self:FinalizeClingAttach(target, isWeb, attachPointOrigin)
+            if not attachSuccess then
+                self:Detach()
+                return false
+            end
+            return true
         end
 
         -- direct approach: no real height to climb. Walk
-        if (distance < babblerDirectApproachRange and NoObstacleInWay(self, attachPointOrigin, target))
+        local obstacleInWay = not NoObstacleInWay(self, attachPointOrigin, target)
+        if (distance < babblerDirectApproachRange and not obstacleInWay)
         then
             WalkTowardAttachPoint(self, delta, distance, deltaTime)
-        else -- Multi-leap upward toward targets
+        else -- Multi-leap upward (or level, or downward) toward targets
             local leapTarget = attachPointOrigin
 
-            if (self.nextLeapTime or 0) < now and delta.y > d then
+            if (self.nextLeapTime or 0) < now then
                 if distance > babblerMaxLeapDistance then
                     leapTarget = orig + GetNormalizedVector(delta) * babblerMaxLeapDistance
                 end
 
                 local moveVelocity, flightTime = self:GetLeapVelocity(leapTarget)
-                self:Jump(moveVelocity)
+                -- If target is above a 45/3 degree angle from us, need to jump
+                -- If we havn't jumped for a while (stuck ?) jump anyway
+                if not obstacleInWay and (yDiff > -0.5 or now - self.timeLastJump > 3) then
+                    self:Jump(moveVelocity)
+                end
                 self.nextLeapTime = now + flightTime/2 + math.random() * 0.3
-            elseif delta.y <= d and distance < babblerDirectApproachRange then
-                -- can't leap (cooldown or low target): walk/hug toward the attach
-                -- point anyway, the catch radius will finalize the attach
-                WalkTowardAttachPoint(self, delta, distance, deltaTime)
-            else
-                self:SetGroundMoveType(false)
             end
         end
         return true
@@ -1311,15 +1431,25 @@ if Server then
 
         local orig = self:GetOrigin()
         local ballsInRange = GetEntitiesForTeamWithinRange("BabblerPheromone", self:GetTeamNumber(), orig, 20)
+
+        local best, bestDist
         for _, ball in ipairs(ballsInRange) do
 
-            -- Ignore balls that are already close to us
+            -- Ignore balls that are already close to us, balls this order was
+            -- already cancelled on (a newer throw superseded them - chasing a
+            -- disabled ball made babblers walk toward stale throws), and balls
+            -- that belong to a different owner.
             local dist = (ball:GetOrigin() - orig):GetLength()
-            if dist > 4 and ball:GetOwnerId() == self:GetOwnerId() then
-                return ball
+            if dist > 4 and not ball.babblerOrderingDisabled and ball:GetOwnerId() == self:GetOwnerId() then
+                if not bestDist or dist < bestDist then
+                    best = ball
+                    bestDist = dist
+                end
             end
 
         end
+
+        return best
 
     end
 
@@ -1379,9 +1509,6 @@ if Server then
                 local isEnemy = target and HasMixin(target, "Team") and GetEnemyTeamNumber(self:GetTeamNumber()) == target:GetTeamNumber()
                 if target and isEnemy then
                     local stillUsable = HasMixin(target, "Live") and target:GetIsAlive() and target:GetCanTakeDamage()
-                    if target:isa("PowerPoint") then
-                        stillUsable = target:GetBuiltFraction() >= 0.009
-                    end
                     if stillUsable then
                         return target
                     end
@@ -1435,79 +1562,65 @@ if Server then
         self.timeOrdersAllowed = Shared.GetTime() + time
     end
 
-    -- Ballistic lead: estimate how long a jump toward the target actually
-    -- takes, then compensate for that much target motion. Error scales with
-    -- range so up-close shots stay crisp and long shots get sloppy.
-    local kPredictMaxLead   = 0.7   -- seconds of target motion we compensate at most
-    local kPredictMinMiss   = 0.10  -- meters of lateral miss even at point blank
-    local kPredictErrorGrowth = 0.35 -- meters of extra miss per kPredictMaxLead of flight
-    local function PredictAimDestination(self, target, destination)
+    local kAimLeadTime = kUpdateAttackInterval
+    local function GetLeadPosition(target)
 
-        if not target or not target.GetVelocity then
-            return Vector(0, 0, 0)
+        local aimPos = GetEngagementOrOrigin(target)
+
+        if target.GetVelocity then
+            local velocity = target:GetVelocity()
+            if velocity:GetLengthSquared() > kEpsilon then
+                aimPos = aimPos + velocity * kAimLeadTime
+            end
         end
 
-        -- copy, never Scale() whatever GetVelocity returns: some entities hand
-        -- out cached vectors and we do not want to corrupt them
-        local targetVelocity = Vector(target:GetVelocity())
+        return aimPos
+    end
 
-        local dist = (destination - self:GetOrigin()):GetLength()
-        if dist <= kEpsilon then
-            return Vector(0, 0, 0)
-        end
-
-        local flightTime = Clamp(dist / kBabblerJumpSpeed, 0, 1)
-
-        -- aim where the target will be, not where it is
-        local prediction = targetVelocity * (flightTime * kPredictMaxLead)
-        local missRadius = (kPredictMinMiss + kPredictErrorGrowth * flightTime)
-                * (0.5 + math.random() * 0.5)
-        local missAngle = math.random() * 2 * math.pi
-        prediction.x = prediction.x + math.cos(missAngle) * missRadius
-        prediction.z = prediction.z + math.sin(missAngle) * missRadius
-
-        return prediction
-
+    local kAimJitterXZ = 1 / 3
+    local kAimJitterY = 1 / 1.8
+    local function GetJumpAimPoint(target)
+        return GetLeadPosition(target) + Vector(
+            (math.random() - 0.5) * kAimJitterXZ,
+            math.random() * kAimJitterY,
+            (math.random() - 0.5) * kAimJitterXZ
+        )
     end
 
     -- mid-air homing: babblers curve gently toward their target between
     -- attack jumps instead of overshooting in a straight line
-    local kHomingNudgeSpeed  = 1.5 -- How fast we converge
-    local kHomingNudgeDelay  = 0.1 -- How frequently we adjust
-    local kHomingBurstSize   = 6 -- How much time we adjust
+    local kHomingNudgeSpeed = 3.5 -- How fast we converge
+    local kHomingNudgeDelay = 0.5 -- How frequently we adjust
+    local kHomingBurstSize  = 2   -- How many nudges per jump
+    local kHomingLerpFactor = 0.1
     local function HomingFlightTrajectory(self, isOnGround, target)
 
-        local now = Shared.GetTime()
-
-        -- gentle mid-flight steering: nudge toward the target a few times per
-        -- cycle so the homing pulses instead of running every tick
-        if not isOnGround and self.kStopImpulseDone < kHomingBurstSize and now > self.timeLastStopImpulse + kHomingNudgeDelay
-        then
-
-            local current = self:GetVelocity()
-            local desiredDir = (GetEngagementOrOrigin(target) - self:GetOrigin()):GetUnit()
-            local desiredVel = desiredDir * math.max(current:GetLength(), kHomingNudgeSpeed)
-            self:SetVelocity(current + (desiredVel - current) * 0.1)
-
-            self.kStopImpulseDone = self.kStopImpulseDone + 1
-            self.timeLastStopImpulse = now
+        if isOnGround or self.kStopImpulseDone >= kHomingBurstSize then
+            return
         end
+
+        local now = Shared.GetTime()
+        if now <= self.timeLastStopImpulse + kHomingNudgeDelay then
+            return
+        end
+
+        local current = self:GetVelocity()
+        local desiredDir = (GetLeadPosition(target) - self:GetOrigin()):GetUnit()
+        local desiredVel = desiredDir * math.max(current:GetLength(), kHomingNudgeSpeed)
+
+        self:SetVelocity(current + (desiredVel - current) * kHomingLerpFactor)
+
+        self.kStopImpulseDone = self.kStopImpulseDone + 1
+        self.timeLastStopImpulse = now
     end
 
-    -- try to jump into the enemy
     function Babbler:UpdateAttack(target, force)
 
         if self.babblerOffMap then
             return
         end
 
-        --Log("%s attack %s", self, target)
-
         local targetIsAlive = target and HasMixin(target, "Live") and target:GetIsAlive()
-        if target and target:isa("PowerPoint") then
-            --Special-case handler for PowerPoints because they have unique states (e.g. unbuilt but damagable)
-            targetIsAlive = target:GetBuiltFraction() >= 0.009  --built frac comes back in microscopic levels
-        end
         if not target or not targetIsAlive then
             self:SetMoveType(kBabblerMoveType.None)
             return
@@ -1516,32 +1629,31 @@ if Server then
         local now = Shared.GetTime()
         local isOnGround = self:GetIsOnGround()
 
+        if isOnGround then
+            self.kStopImpulseDone = 0
+        end
+
         HomingFlightTrajectory(self, isOnGround, target)
-        if force or (isOnGround and now > self.kNextUpdateAttack)
-        then
+
+        if force or (isOnGround and now > self.kNextUpdateAttack + 0.1) then
 
             local canReach = CanReachTarget(self, target)
             local babblerBall = not canReach and self:GetBabblerBall()
+            local babblerBallId = babblerBall and babblerBall:GetId()
 
             if canReach then
 
-                local destinationOrigin = target:GetOrigin()
-                local destination = Vector(GetEngagementOrOrigin(target))
-                if HasMixin(target, "Target") then
-                    if destination.y > destinationOrigin.y then -- Aim a bit lower not to jump above the target
-                        local yDiff = destination.y - destinationOrigin.y
-                        destination.y = destination.y - (yDiff * (0.15 + (math.random() / 4)))
-                    end
-                end
+                local aimPos = GetJumpAimPoint(target)
+                local moveVel = self:GetMoveVelocity(aimPos)
 
-                local targetVelocity = PredictAimDestination(self, target, destination)
-
-                -- Only adjust if we are on the ground (otherwise the babbler most of time go at the other end of the room)
-                local newMoveVelocity = destination + targetVelocity -- TODO: if needed, only to homing on jumps
-                if isOnGround and self.kStopImpulseDone == kHomingBurstSize and math.random() < 0.5 then
-                    self.kStopImpulseDone = 0
+                local distXZ = (aimPos - self:GetOrigin()):GetLengthXZ()
+                local desiredSpeedXZ = distXZ / kUpdateAttackInterval
+                local speedXZ = moveVel:GetLengthXZ()
+                if speedXZ > desiredSpeedXZ then
+                    local scale = math.max(desiredSpeedXZ, kEpsilon) / speedXZ
+                    moveVel.x = moveVel.x * scale
+                    moveVel.z = moveVel.z * scale
                 end
-                local moveVel = self:GetMoveVelocity(newMoveVelocity)
 
                 local jumpSpeed = (self:GetVelocity() + moveVel):GetLength()
                 if jumpSpeed > kBabblerJumpSpeed then
@@ -1552,14 +1664,14 @@ if Server then
                 self:TriggerUncloak()
                 self.kNextUpdateAttack = now + kUpdateAttackInterval
 
-            elseif babblerBall and babblerBall:GetId() ~= self.lastBabblerBallId then
+            elseif babblerBallId and babblerBallId ~= self.lastBabblerBallId then
 
-                self.lastBabblerBallId = babblerBall:GetId()
+                self.lastBabblerBallId = babblerBallId
                 self:SetMoveType(kBabblerMoveType.Move, nil, babblerBall:GetOrigin(), false, 1)
 
             else
 
-                self:SetMoveType(kBabblerMoveType.Move, target, target:GetOrigin())
+                self:SetMoveType(kBabblerMoveType.Move, target, target:GetOrigin(), true)
 
             end
 
@@ -1569,26 +1681,22 @@ if Server then
 
     function Babbler:SetGroundMoveType(isGround)
 
+        local t = isGround and CollisionObject.Kinematic or CollisionObject.Dynamic
+        if self.physicsBody and (self.collisionObjectType == nil or self.collisionObjectType ~= t) then
+            self.physicsBody:SetPhysicsType(t)
+            self.collisionObjectType = t
+            self:SyncPhysicsCoords()
+        end
+
         if isGround ~= self.doesGroundMove then
-
-            if isGround then
-                 -- prevents us from getting teleported back when switching to ground move again
-                self:ResetPathing()
-            end
-
-            if self.physicsBody then
-                local t = isGround and CollisionObject.Kinematic or CollisionObject.Dynamic
-                self.physicsBody:SetPhysicsType(t)
-            end
+            -- prevents us from getting teleported back when switching to ground move again
+            self:ResetPathing()
             self.doesGroundMove = isGround
+
         end
 
     end
 
-    -- Every cling target (web, player, embryo, alien commander) resolves to
-    -- an attach point plus whether it's a web -- the one thing that still
-    -- needs special handling downstream (web has its own finalize call and
-    -- a laxer mid-air catch radius; see FinalizeClingAttach and Attach).
     function Babbler:GetClingAttachPoint(target)
 
         local isWeb = target:isa("Web")
@@ -1597,7 +1705,7 @@ if Server then
         if isWeb or isEmbryo or isCommander or HasMixin(target, "BabblerCling") then
             local attachPointOrigin = self.targetPos
             if target.GetFreeBabblerAttachPointOrigin then
-                attachPointOrigin = target:GetFreeBabblerAttachPointOrigin()
+                attachPointOrigin = target:GetFreeBabblerAttachPointOrigin(self)
             end
             return attachPointOrigin, isWeb
         end
@@ -1619,9 +1727,10 @@ if Server then
             end
 
             self.clinged = true
+            self.attacking = false
+            self.jumping = false
             self:DestroyHitbox()
             self:SetOrigin(attachPointOrigin)
-            self:SyncPhysicsCoords()
             return true
 
         end
@@ -1641,32 +1750,24 @@ if Server then
         end
     end
 
-    function Babbler:Detach(force)
+    function Babbler:Detach()
         if not self:GetIsClinged() then
             return
         end
 
         local parent = self:GetParent()
-        if not parent then
-            Log("Error: %s is trying to detach but no parent", self)
-            return
-        end
 
-        if not force then
-            -- Do not detach from the alien if he is out of the map (inside a tunnel)
-            local maxDistance = 1000
-            local origin = parent:GetOrigin()
-            if origin:GetLengthSquared() > maxDistance * maxDistance then
-                return
-            end
+        if parent then
+            local away = GetNormalizedVector(self:GetOrigin() - parent:GetOrigin())
+            self:SetOrigin(self:GetOrigin() + away * Babbler.kRadius)
         end
 
         self:ReleaseFromParentCling(parent)
+        self.clinged = false
 
         self:CreateHitBox(Coords.GetTranslation(self:GetOrigin()))
         self:UpdateJumpPhysicsBody()
         self:SetGroundMoveType(false)
-
         ResumeFreeBehavior(self)
     end
 
@@ -1750,7 +1851,15 @@ if Server then
                     radius = radius * Clamp(math.abs(t - self.webTravelStartT) / math.max(self.webTravelTotal, kEpsilon), 0, 1)
                 end
 
-                local forward = Vector(axis.x * self.webWalkDir, axis.y * self.webWalkDir, axis.z * self.webWalkDir)
+                local forward = self.webForwardScratch
+                if not forward then
+                    forward = Vector(0, 0, 0)
+                    self.webForwardScratch = forward
+                end
+                forward.x = axis.x * self.webWalkDir
+                forward.y = axis.y * self.webWalkDir
+                forward.z = axis.z * self.webWalkDir
+
                 self:SetCoords(BuildWebCoords(origin.x, origin.y, origin.z, axis, t, radius, forward))
 
             end
@@ -1779,7 +1888,7 @@ if Server then
 
         if not web or not self:GetIsAlive() then return false end
 
-        if web.GetNumWebbedBabblers and web:GetNumWebbedBabblers() >= kWebMaxBabblers then
+        if web:GetNumWebbedBabblers() >= kWebMaxBabblers then
             return false
         end
 
@@ -1842,6 +1951,17 @@ if Server then
         self.panicExpire = nil
         self.timeNextWebAnger = nil
 
+        -- Web-spawned babblers are deliberately ownerless (see Web:AttachInitialBabblers),
+        -- so OnOwnerChanged's despawn-on-ownerless path never fires for them. Left to
+        -- ResumeFreeBehavior they would idle-wander the map forever once their web dies.
+        if self.webSpawned then
+            self:AddTimedCallback(function(self)
+                if self:GetIsAlive() then self:Kill() end
+                return false
+            end, 1)
+            return
+        end
+
         ResumeFreeBehavior(self)
 
     end
@@ -1880,12 +2000,12 @@ if Server then
 
     function Babbler:UpdateJumpPhysics(deltaTime)
 
-        local velocity = self:GetVelocity()
+        local velocity = self:GetVelocity()  -- Current velocity from physics body
 
         if self.physicsBody and not self.doesGroundMove then
 
             local coords = self.physicsBody:GetCoords()
-            local origin = coords.origin
+            local origin = coords.origin  -- Current physics position
 
             local maxDistance = 1000
 
@@ -1893,7 +2013,7 @@ if Server then
                 Print("%s moved outside of the playable area, destroying", self:GetClassName())
                 DestroyEntity(self)
             else
-                self:SetCoords(coords)
+                self:SetCoords(coords)  -- Sync entity to physics
             end
 
             if self.lastVelocity ~= nil then
@@ -1901,14 +2021,17 @@ if Server then
                 local delta = velocity - self.lastVelocity
                 if delta:GetLengthSquaredXZ() > 0.0001 then
 
-                    local endPoint = self.lastOrigin + self.lastVelocity * (deltaTime + Babbler.kRadius * 3)
+                    local moveDirection = GetNormalizedVector(self.lastVelocity)
+                    local startPoint = self.lastOrigin
+                    local endPoint = startPoint + moveDirection * Babbler.kProcessHitRadius
 
-                    local trace = Shared.TraceCapsule(self.lastOrigin, endPoint, Babbler.kProcessHitRadius, 0, CollisionRep.Damage, PhysicsMask.Bullets, EntityFilterOneAndIsa(self, "Babbler"))
+                    local filter = EntityFilterOneAndIsa(self, "Babbler")
+                    local _, trace, _ = GetBulletTargets(startPoint, endPoint, moveDirection, Babbler.kProcessHitRadius, filter, true)        
+
                     self:ProcessHit(trace.entity, trace.surface)
                     self:RefreshFreeRoam()
 
                 end
-
             end
 
             if self.targetSelector then
@@ -1916,7 +2039,6 @@ if Server then
             end
 
         end
-
     end
 
     function Babbler:GetSendDeathMessageOverride()
@@ -1924,6 +2046,10 @@ if Server then
     end
 
     function Babbler:SetVelocity(velocity)
+
+        self:SyncPhysicsCoords()
+
+        velocity = Vector(velocity)
 
         self.desiredVelocity = velocity
         if self.physicsBody then
@@ -1934,31 +2060,41 @@ if Server then
     end
 
     local function BabblerSetLinearDampingCallback(self)
-        local lifeSpan = Shared.GetTime() - self:GetCreationTime()
-        if self.physicsBody and not self.clinged and (self:GetIsOnGround() or lifeSpan >= kFinalDampingAfterDelay)
-        then
-            self.physicsBody:SetLinearDamping(Babbler.kLinearDamping)
-            self:Jump(nil) -- Force update physics and reset ground move
+
+        if not self:GetIsAlive() then
             return false
         end
-        return self:GetIsAlive()
+
+        if not self.physicsBody or self.clinged then
+            return false
+        end
+
+        local lifeSpan = Shared.GetTime() - self:GetCreationTime()
+        if self:GetIsOnGround() or lifeSpan >= kFinalDampingAfterDelay then
+            self.physicsBody:SetLinearDamping(Babbler.kLinearDamping)
+            --self:Jump(nil) -- Force update physics and reset ground move
+            return false
+        end
+
+        return true
     end
 
     function Babbler:UpdateJumpPhysicsBody()
         local isOnWeb = self:GetIsOnWeb()
         local isClinged = self:GetIsClinged()
         if not self.physicsBody and not isClinged and not isOnWeb then
-            self.physicsBody = Shared.CreatePhysicsSphereBody(true, Babbler.kRadius, Babbler.kMass, self:GetCoords())
+            self.physicsBody = Shared.CreatePhysicsSphereBody(true, Babbler.kRadius, Babbler.kMass, self:GetCoords() )
             self.physicsBody:SetGravityEnabled(true)
             self.physicsBody:SetGroup(PhysicsGroup.ProjectileGroup)
             self.physicsBody:SetGroupFilterMask(PhysicsMask.BabblerMovement)
+
             self.physicsBody:SetCCDEnabled(false)
-            self.physicsBody:SetPhysicsType(self.doesGroundMove and CollisionObject.Kinematic or CollisionObject.Dynamic)
+            self.physicsBody:SetPhysicsType( CollisionObject.Dynamic )
             self.physicsBody:SetLinearDamping(Babbler.kLinearDampingAtSpawn)
             self.physicsBody:SetRestitution(Babbler.kRestitution)
 
-            self:AddTimedCallback(BabblerSetLinearDampingCallback,
-                    kFinalDampingAfterDelay * (0.75 + math.random() * 0.5))
+            self:AddTimedCallback(BabblerSetLinearDampingCallback, kFinalDampingAfterDelay)
+
 
         elseif (isClinged or isOnWeb) and self.physicsBody then
             Shared.DestroyCollisionObject(self.physicsBody)
@@ -1997,6 +2133,11 @@ if Server then
 
     function Babbler:SetMoveType(moveType, target, position, force, ignoreOrderDelay)
 
+        if moveType == kBabblerMoveType.Attack and not target then
+            Log("Error: trying to assign an attack order to %s with no target", self)
+            return
+        end
+
         local targetId = Entity.invalidId
 
         if target then
@@ -2006,17 +2147,15 @@ if Server then
 
         -- Clear move type if no pos nor targets
         if moveType == kBabblerMoveType.Move and not target and not position then
+            Log("Error: %s has move type with no target nor position", self)
             moveType = kBabblerMoveType.None
         end
 
         local diffOfPosition = (self.targetPos and position) and position:GetDistanceTo(self.targetPos) or 0
         if force or ((moveType ~= self.moveType or targetId ~= self.targetId or diffOfPosition > 0) and not GetIgnoreOrders(self)) then
 
-            -- Readjust if we change target (so we don't freeze mid-air)
-            local clingToDiffTarget = (moveType == kBabblerMoveType.Cling and targetId ~= self.targetId)
-            local newMoveOrCancelOrder = (moveType == kBabblerMoveType.None or moveType == kBabblerMoveType.Move)
-            if clingToDiffTarget or newMoveOrCancelOrder then
-                self:Jump(nil) -- flip physics type back on the right track if needed
+            if self:GetIsClinged() then
+                self:Detach()
             end
 
             self.moveType = moveType
@@ -2026,7 +2165,6 @@ if Server then
                 self.targetReached = false -- preserve that state when moving from move <-> attack
             end
 
-            --self.jumpAttempts = 0
             OnMoveTypeChanged(self)
 
             if force or ignoreOrderDelay then
@@ -2057,9 +2195,10 @@ if Server then
 
         if entityHit then
 
-            -- leaping onto a web: catch on contact instead of anti-grav pull
+            local orig = self:GetOrigin()
+
             if self.moveType == kBabblerMoveType.Cling and entityHit:isa("Web") then
-                if self:AttachToWeb(entityHit, self:GetOrigin()) then
+                if self:AttachToWeb(entityHit, orig) then
                     return
                 end
                 -- couldn't attach (full/dead) -> fall through to normal handling
@@ -2072,11 +2211,11 @@ if Server then
                     self.timeLastAttack = Shared.GetTime()
                     self.attackRate = math.max(0.1, kAttackRate + (math.random()-0.5)/2)
 
-                    self:DoDamage(kBabblerDamage, entityHit, self:GetOrigin(), nil, surface)
+                    self:DoDamage(kBabblerDamage, entityHit, orig, nil, surface)
                     self:TriggerUncloak()
 
                     if entityHit:isa("Player") then
-                        self:Jump((entityHit:GetOrigin() - self:GetOrigin()):GetUnit() * 2)
+                        self:Jump((entityHit:GetOrigin() - orig):GetUnit() * 2)
                     end
 
                 end
@@ -2119,8 +2258,26 @@ elseif Client then
 
     end
 
+    local function Smoothstep(e)
+        e = Clamp(e, 0, 1)
+        return e * e * (3 - 2 * e)
+    end
+
+    local function Hash01(a, b)
+        local v = math.sin(a * 12.9898 + b * 78.233) * 43758.5453
+        return v - math.floor(v)
+    end
+
+    local function GetSpinDelta(id, seg)
+        local sign = Hash01(id, seg) < 0.5 and -1 or 1
+        local mag = math.rad(30 + Hash01(id, seg + 101) * 30)
+        if Hash01(id, seg + 202) < 0.25 then
+            mag = mag + math.rad(60 + Hash01(id, seg + 303) * 30)
+        end
+        return sign * mag
+    end
     local kSpinPeriod   = 4.0
-    local kIdleEnd      = 0.40  -- idle fraction of each segment
+    local kIdleEnd      = 0.42  -- idle fraction of each segment
     local kGlanceEnd    = 0.55  -- glance-to-spin-direction window
     local kGlanceAmount = math.rad(30)
     local kHoldEnd      = 0.60  -- glance holds until the spin unwind begins
@@ -2128,6 +2285,7 @@ elseif Client then
 
     local kClientWorldUp = Vector(0, 1, 0)
     local kFacingTurnRate = math.pi * 3   -- rad/s: a 180-degree pirouette in ~0.33s
+    local kSpinWobble = math.rad(13)      -- how much the spin cones off-axis instead of rolling flat
 
     local function GetWebPoseCoords(origin, axis, facingAngle, rollAngle, prevUp0)
 
@@ -2152,8 +2310,15 @@ elseif Client then
         local up = up0 * cu + w * su
         local t  = w * cu - up0 * su
 
+        -- tilt "up" slightly toward the strand as it spins so the roll traces a
+        -- shallow cone instead of a flat, mechanical rotation around the axis
+        local wobble = (math.sin(rollAngle * 2) + 0.3 * math.sin(rollAngle * 5)) * kSpinWobble
+        up = up + axis * wobble
+        up:Normalize()
         local cf, sf = math.cos(facingAngle), math.sin(facingAngle)
         local forward = axis * cf + t * sf
+        forward = forward - up * up:DotProduct(forward) -- re-orthogonalize against tilted up
+        forward:Normalize()
 
         local co = Coords.GetIdentity()
         co.origin = origin
@@ -2163,25 +2328,6 @@ elseif Client then
 
         return co, up0
 
-    end
-
-    local function Smoothstep(e)
-        e = Clamp(e, 0, 1)
-        return e * e * (3 - 2 * e)
-    end
-
-    local function Hash01(a, b)
-        local v = math.sin(a * 12.9898 + b * 78.233) * 43758.5453
-        return v - math.floor(v)
-    end
-
-    local function GetSpinDelta(id, seg)
-        local sign = Hash01(id, seg) < 0.5 and -1 or 1
-        local mag = math.rad(30 + Hash01(id, seg + 101) * 30)
-        if Hash01(id, seg + 202) < 0.25 then
-            mag = mag + math.rad(60 + Hash01(id, seg + 303) * 30)
-        end
-        return sign * mag
     end
 
     function Babbler:GetSpinRenderAngle()
@@ -2342,29 +2488,48 @@ elseif Client then
         self.clientGroundMove = self.doesGroundMove
 
         if self.lastOrigin then
-
             local orig = self:GetOrigin()
             if not self.moveDirection then
                 self.moveDirection = Vector(0, 0, 0)
             end
 
+            -- PRIORITY 1: Actual movement direction (last origin → current origin)
+            -- This reflects where we actually moved, including wander/weave offsets
+            local moveDirFromPath = orig - self.lastOrigin
+            local hasMovement = moveDirFromPath:GetLengthSquaredXZ() >= kEpsilon
+
+            -- PRIORITY 2: Only use target direction if not moving or in attack mode
             local target = self:GetTarget()
-            local rawDir = target and (target:GetOrigin() - orig) or (orig - self.lastOrigin)
+            local targetDirection = nil
+            if target and not hasMovement then
+                -- Stationary but has target - face the target
+                targetDirection = GetNormalizedVectorXZ(target:GetOrigin() - orig)
+            elseif self.moveType == kBabblerMoveType.Attack and hasMovement then
+                -- Attacking AND moving - face target for better hit registration
+                targetDirection = GetNormalizedVectorXZ(target:GetOrigin() - orig)
+            end
+
+            local rawDir = targetDirection or moveDirFromPath
 
             if rawDir:GetLengthSquaredXZ() >= kEpsilon then
-
                 local moveDirection = GetNormalizedVectorXZ(rawDir)
 
-                -- smooth out turning of babblers
-                self.moveDirection = self.moveDirection + moveDirection * deltaTime * (moveDirection - self.moveDirection):GetLength() * 5
-                self.moveDirection:Normalize()
+                -- Smooth out turning of babblers... (rest unchanged)
+                local smoothed = self.moveDirection
+                local dx = moveDirection.x - smoothed.x
+                local dy = moveDirection.y - smoothed.y
+                local dz = moveDirection.z - smoothed.z
+                local turnScale = deltaTime * math.sqrt(dx * dx + dy * dy + dz * dz) * 5
 
+                smoothed.x = smoothed.x + moveDirection.x * turnScale
+                smoothed.y = smoothed.y + moveDirection.y * turnScale
+                smoothed.z = smoothed.z + moveDirection.z * turnScale
+                smoothed:Normalize()
             end
 
             if deltaTime > 0 then
                 self.clientVelocity = (orig - self.lastOrigin) / deltaTime
             end
-
         end
 
         self.clientJumping = self.jumping
@@ -2392,7 +2557,7 @@ elseif Client then
         end
 
         modelMixin:SetAnimationInput("move", move)
-        modelMixin:SetAnimationInput("attacking", self.attacking)
+        modelMixin:SetAnimationInput("attacking", not self.clinged and self.attacking)
 
     end
 
@@ -2424,10 +2589,15 @@ elseif Client then
 
         self.smoothedMoveSpeed = Slerp(self.smoothedMoveSpeed or 0, targetSpeed, dt * 10)
 
-        self:SetPoseParams({
-            {"move_speed", self.smoothedMoveSpeed},
-            {"move_yaw", moveYaw}
-        })
+        local poseParamArgs = self.poseParamArgsCache
+        if not poseParamArgs then
+            poseParamArgs = { {"move_speed", 0}, {"move_yaw", 0} }
+            self.poseParamArgsCache = poseParamArgs
+        end
+        poseParamArgs[1][2] = self.smoothedMoveSpeed
+        poseParamArgs[2][2] = moveYaw
+
+        self:SetPoseParams(poseParamArgs)
 
     end
 
