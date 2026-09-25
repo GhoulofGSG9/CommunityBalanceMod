@@ -60,9 +60,10 @@ Babbler.kFov = 360
 Babbler.kWebWalkSpeed = 1.1
 Babbler.kWebStanceRadius = 0.015
 
+local kMaxWagDist = 8
 local kTargetSearchRange = 12
 local kTargetMaxFollowRange = 30
-local kAttackRate = 0.40
+local kAttackRate = 0.42
 
 local kBabblerOffMapInterval = 1
 local kBabblerWagInterval = 0.4
@@ -723,7 +724,7 @@ function Babbler:OnUpdate(deltaTime)
         local now = Shared.GetTime()
         if not self.cb_routine_moveRandom or now > self.cb_routine_moveRandom then
             self:MoveRandom()
-            self.cb_routine_moveRandom = now + kUpdateMoveInterval + math.random() / 5
+            self.cb_routine_moveRandom = now + kUpdateMoveInterval + math.random() / 8
         end
         if not self.cb_routine_updateWag or now > self.cb_routine_updateWag then
             self:UpdateWag()
@@ -1443,7 +1444,7 @@ if Server then
         if self.moveType == kBabblerMoveType.Wag and not self.babblerOffMap and self:GetIsOnGround() then
 
             local owner = self:GetOwner()
-            if not owner or (owner:GetOrigin() - self:GetOrigin()):GetLength() > 6 then
+            if not owner or (owner:GetOrigin() - self:GetOrigin()):GetLength() > kMaxWagDist then
                 self:SetMoveType(kBabblerMoveType.None)
             end
 
@@ -1555,7 +1556,7 @@ if Server then
             local owner = self:GetOwner()
             local ownerId = self:GetOwnerId()
             local alive = owner and HasMixin(owner, "Live") and owner:GetIsAlive()
-            local ownerOrigin = owner and (not owner:isa("Commander") and owner:GetOrigin() or owner.lastGroundOrigin)
+            local ownerOrigin = owner and (not owner:isa("Commander") and GetEngagementOrOrigin(owner) or owner.lastGroundOrigin)
 
             if not target then
                 target = self:AdoptSiblingTarget(ownerId)
@@ -1566,7 +1567,7 @@ if Server then
             elseif not self.babblerBombSpawned and owner and alive and HasMixin(owner, "BabblerCling")
                     and now >= self.freeRoamUntil then
                 if ownerOrigin then -- If nothing to do, go back to owner and wag a bit
-                    if (ownerOrigin - orig):GetLength() <= 6 then
+                    if (ownerOrigin - orig):GetLength() < kMaxWagDist * 0.8 then
                         self:SetMoveType(kBabblerMoveType.Wag, owner, ownerOrigin)
                     else
                         self:SetMoveType(kBabblerMoveType.Move, nil, ownerOrigin)
