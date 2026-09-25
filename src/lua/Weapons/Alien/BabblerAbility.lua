@@ -101,16 +101,23 @@ end
 
 local function FindTarget(self, player)
 
-    local startPoint = player:GetEyePos()
     local direction = player:GetViewCoords().zAxis
-    local extents = GetDirectedExtentsForDiameter(direction, kPheromoneTraceWidth)
-    
-    local trace = Shared.TraceBox(extents, startPoint, startPoint + direction * self:GetRange(), CollisionRep.Default, PhysicsMask.AllButPCsAndRagdolls, EntityFilterOneAndIsa(player, "Babbler"))
+
+    local startPoint = player:GetEyePos()
+    local endPoint = startPoint + direction * self:GetRange()
+    local filter = EntityFilterOneAndIsa(player, "Babbler")
+
+    local trace = Shared.TraceRay(startPoint, endPoint, CollisionRep.Default, PhysicsMask.AllButPCsAndRagdolls, filter)
+    if not trace.entity then
+        local extents = GetDirectedExtentsForDiameter(direction, kPheromoneTraceWidth)
+        endPoint = trace.endPoint
+        trace = Shared.TraceBox(extents, startPoint, endPoint, CollisionRep.Default, PhysicsMask.AllButPCsAndRagdolls, filter)
+    end
     
     local targetEntity = trace.entity
-    local endPoint = trace.fraction < 1 and (trace.endPoint + trace.normal * kPheromoneTraceWidth) or nil
+    local hitPoint = trace.fraction < 1 and (trace.endPoint + trace.normal * kPheromoneTraceWidth) or nil
     
-    return targetEntity, endPoint
+    return targetEntity, hitPoint
 
 end
 
@@ -214,8 +221,10 @@ if Client then
         local player = self:GetParent()
         if player then
         
-            local target = FindTarget(self, player)
-            self.babblerMoveType = GetBabblerBallOrder(player, target)
+            if player:GetActiveWeaponName() == BabblerAbility.kMapName then
+                local target = FindTarget(self, player)
+                self.babblerMoveType = GetBabblerBallOrder(player, target)
+            end
         
         end
         
