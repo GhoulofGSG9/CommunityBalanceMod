@@ -121,59 +121,74 @@ function Axe:OnPrimaryAttackEnd(player)
     idleTime = Shared.GetTime()
 end
 
-function Axe_HitCheck(self)
-    local player = self:GetParent()
-    if player and player:GetIsAlive() then
-        local coords = player:GetViewAngles():GetCoords()
-        local didHit, target = AttackMeleeCapsule(self, player, kAxeDamage, self:GetRange())
+local toEntity = Vector()
+local function withinFoV(seeingEntity, hitFov, targetOrigin, eyePos)
+    local withinFOV = true
+    
+    -- Calculate vector from eye to target
+    toEntity.x = targetOrigin.x - eyePos.x
+    toEntity.y = targetOrigin.y - eyePos.y  
+    toEntity.z = targetOrigin.z - eyePos.z
+    
+    -- Early exit for very close targets (they're always visible)
+    local toEntityLength = math.sqrt(toEntity.x * toEntity.x + 
+                                     toEntity.y * toEntity.y + 
+                                     toEntity.z * toEntity.z)
+    if toEntityLength <= kEpsilon then
+        return true
+    end
 
-        if not (didHit and target) and coords then -- Only for webs
+    -- Normalize
+    local invLength = 1.0 / toEntityLength
+    toEntity.x = toEntity.x * invLength
+    toEntity.y = toEntity.y * invLength
+    toEntity.z = toEntity.z * invLength
 
-            local boxTrace = Shared.TraceBox(Vector(0.07,0.07,0.07),
-                                             player:GetEyePos(),
-                                             player:GetEyePos() + coords.zAxis * (0.50 + self:GetRange()),
-                                             CollisionRep.Default, PhysicsMask.AllButPCsAndRagdolls,
-                                             EntityFilterTwo(player, self))
-            -- Log("Boxtrace entity: %s, target: %s", boxTrace.entity, target)
-            if boxTrace.entity and boxTrace.entity:isa("Web") then
-                self:DoDamage(kAxeDamage, boxTrace.entity, boxTrace.endPoint, coords.zAxis, "organic", false)
-            else
-                -- local rayTrace = Shared.TraceRay(eyePos, targetOrigin, CollisionRep.LOS, PhysicsMask.All, EntityFilterAll())
-                local rayTrace = Shared.TraceRay(player:GetEyePos(), player:GetEyePos() + coords.zAxis * (0.50 + self:GetRange()), CollisionRep.Default, PhysicsMask.AllButPCsAndRagdolls, EntityFilterTwo(player, self))
-                -- Log("Raytrace entity: %s", rayTrace.entity)
-                if rayTrace.entity and rayTrace.entity:isa("Web") then
-                    self:DoDamage(kAxeDamage, boxTrace.entity, boxTrace.endPoint, coords.zAxis, "organic", false)
-                end
+    -- View direction
+    local seeingEntityAngles = GetEntityViewAngles(seeingEntity)
+    local forwardVec = seeingEntityAngles:GetCoords().zAxis
+    
+    local dotProduct = Math.DotProduct(toEntity, forwardVec)
+    dotProduct = math.max(-1, math.min(1, dotProduct)) -- Safety clamp
+    
+    local halfFovRad = math.rad(hitFov / 2)
+    local angle = math.acos(dotProduct)
+    
+    withinFOV = angle <= halfFovRad
+    
+    return withinFOV
+end
+
+function Axe:Axe_WebHitCheck(coords, player)
+    -- Longer range for webs (less frustrating, avoids having to be so close we trigger it)
+    local range = self:GetRange() * 1.5
+    local hitFov = 55 -- Reasonable coverage compared to the swing
+
+    local enemyTeamNumber = GetEnemyTeamNumber(self:GetTeamNumber())
+    local playerPos = player:GetEyePos()
+    
+    -- Fetch webs in expanded range for FOV consideration
+    local webs = GetEntitiesForTeamWithinRange("Web", enemyTeamNumber, 
+                                              playerPos, kMaxWebLength * 2)
+    
+    for _, web in ipairs(webs) do
+        local closestWebPoint = web:GetClosestPointOnWeb(playerPos + coords.zAxis * (range / 2))
+        
+        -- Check distance first (cheaper than FOV)
+        local distance = closestWebPoint:GetDistanceTo(playerPos)
+        local isWithinHitFoV = withinFoV(player, hitFov, closestWebPoint, playerPos)        
+        if distance <= range and isWithinHitFoV then
+            -- Final raycheck to be sure there are no walls
+            local rayTrace = Shared.TraceRay(playerPos, closestWebPoint, CollisionRep.Default, PhysicsMask.AllButPCsAndRagdolls, EntityFilterTwo(player, self))
+            if rayTrace.entity and rayTrace.entity:isa("Web") then
+                self:DoDamage(kAxeDamage, web, closestWebPoint, coords.yAxis, "organic", false)
+                return true, web
             end
         end
-
-        -- if didHit then
-        --     Log("Hitting entity: %s", target)
-        -- end
-
     end
+    return false, nil
 end
 
-function Axe:Axe_HitCheck(coords, player)
-
-    local boxTrace = Shared.TraceBox(Vector(0.07,0.07,0.07),
-                                     player:GetEyePos(),
-                                     player:GetEyePos() + coords.zAxis * (0.50 + self:GetRange()),
-                                     CollisionRep.Default, PhysicsMask.AllButPCsAndRagdolls,
-                                     EntityFilterTwo(player, self))
-    -- Log("Boxtrace entity: %s, target: %s", boxTrace.entity, target)
-    if boxTrace.entity and boxTrace.entity:isa("Web") then
-        self:DoDamage(kAxeDamage, boxTrace.entity, boxTrace.endPoint, coords.zAxis, "organic", false)
-    else
-        -- local rayTrace = Shared.TraceRay(eyePos, targetOrigin, CollisionRep.LOS, PhysicsMask.All, EntityFilterAll())
-        local rayTrace = Shared.TraceRay(player:GetEyePos(), player:GetEyePos() + coords.zAxis * (0.50 + self:GetRange()), CollisionRep.Default, PhysicsMask.AllButPCsAndRagdolls, EntityFilterTwo(player, self))
-        -- Log("Raytrace entity: %s", rayTrace.entity)
-        if rayTrace.entity and rayTrace.entity:isa("Web") then
-            self:DoDamage(kAxeDamage, boxTrace.entity, boxTrace.endPoint, coords.zAxis, "organic", false)
-        end
-    end
-
-end
 -- local swipeStart = nil
 -- local axeHitDelay = nil
 function Axe:OnTag(tagName)
@@ -191,10 +206,11 @@ function Axe:OnTag(tagName)
     
         local player = self:GetParent()
         local coords = player:GetViewAngles():GetCoords()
-        local didHit, target = AttackMeleeCapsule(self, player, kAxeDamage, self:GetRange())
 
-        if not (didHit and target) and coords then -- Only for webs
-            self:Axe_HitCheck(coords, player)
+        -- Check webs first (so we don't hit clogs around it if we aim for it)
+        local didHit, target = self:Axe_WebHitCheck(coords, player)
+        if not (didHit and target) and coords then
+            didHit, target = AttackMeleeCapsule(self, player, kAxeDamage, self:GetRange())
         end
         
     elseif tagName == "attack_end" then
