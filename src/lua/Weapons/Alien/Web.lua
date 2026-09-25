@@ -247,7 +247,7 @@ if Server then
         end
 
         local owner = babbler:GetOwner()
-        if owner and not babbler.babblerBombSpawned and HasMixin(owner, "BabblerCling") then
+        if owner and not babbler.babblerBombSpawned and HasMixin(owner, "BabblerOwner") then
             owner:WebBabblerAdded()
         end
         self.webbedBabblers[babblerId] = true
@@ -265,7 +265,7 @@ if Server then
         end
 
         local owner = babbler:GetOwner()
-        if owner and not babbler.babblerBombSpawned and HasMixin(owner, "BabblerCling") then
+        if owner and not babbler.babblerBombSpawned and HasMixin(owner, "BabblerOwner") then
             owner:WebBabblerRemoved()
         end
         self.webbedBabblers[babblerId] = nil
