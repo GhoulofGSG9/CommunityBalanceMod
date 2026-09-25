@@ -101,6 +101,17 @@ function GetEngagementOrOrigin(entity)
     return HasMixin(entity, "Target") and entity:GetEngagementPoint() or entity:GetOrigin()
 end
 
+-- Small helpers to avoid allocating temp vectors
+local function VecSub(out, a, b)
+    out.x, out.y, out.z = a.x - b.x, a.y - b.y, a.z - b.z
+    return out
+end
+
+local function VecAddScaled(out, a, b, scale)
+    out.x, out.y, out.z = a.x + b.x * scale, a.y + b.y * scale, a.z + b.z * scale
+    return out
+end
+
 local networkVars =
 {
     attacking = "boolean",
@@ -759,7 +770,12 @@ function Babbler:OnProcessMove(input)
                 -- Others are just using babblers as shield, getorigin is enough.
                 local canEverDetach = HasMixin(parent, "BabblerOwner")
                 local attachedOrigin = canEverDetach and parent:GetAttachedOrigin(self) or parent:GetOrigin()
-                self:SetOrigin(attachedOrigin)
+
+                local current = self:GetOrigin()
+                local dx, dy, dz = attachedOrigin.x - current.x, attachedOrigin.y - current.y, attachedOrigin.z - current.z
+                if dx * dx + dy * dy + dz * dz > kEpsilon * kEpsilon then
+                    self:SetOrigin(attachedOrigin) -- Only set if owner actually moved
+                end
             end
         end
 
@@ -968,9 +984,11 @@ if Server then
         return self:GetOrigin() + kEyeOffset
     end
 
+
+    local kMoveVelocityScratch = Vector(0, 0, 0)
     function Babbler:GetMoveVelocity(targetPos)
 
-        local moveVelocity = targetPos - self:GetOrigin()
+        local moveVelocity = VecSub(kMoveVelocityScratch, targetPos, self:GetOrigin())
         local yDiff = moveVelocity.y
         local moveSpeedXZ = moveVelocity:GetLengthXZ()
 
@@ -995,12 +1013,14 @@ if Server then
 
     end
 
+    local kLeapVelocityScratch = Vector(0, 0, 0)
     function Babbler:GetLeapVelocity(targetPos)
         local babblerJumpGravity = 6.75
-        local toTarget = targetPos - self:GetOrigin()
-        local heightDiff = toTarget.y
 
-        local dirXZ = Vector(toTarget.x, 0, toTarget.z)
+        local dirXZ = VecSub(kLeapVelocityScratch, targetPos, self:GetOrigin())
+        local heightDiff = dirXZ.y
+        dirXZ.y = 0
+
         local horizontalDist = dirXZ:GetLength()
         if horizontalDist > 0.0001 then
             dirXZ:Scale(1 / horizontalDist)
@@ -1227,7 +1247,8 @@ if Server then
         -- Follow pathfinding, simply moving accross the map toward target
         local moveDone = true
 
-        if (prevOrig - targetPos):GetLengthXZ() > 0.25 then
+        local dx0, dz0 = prevOrig.x - targetPos.x, prevOrig.z - targetPos.z
+        if dx0 * dx0 + dz0 * dz0 > 0.0625 then -- same threshold as (prevOrig - targetPos):GetLengthXZ() > 0.25
             self:SetGroundMoveType(true)
 
             -- Gait pulse: subtle +/- speed wobble instead of a constant crawl
@@ -1261,12 +1282,11 @@ if Server then
                 self.wanderAngle = Clamp(self.wanderAngle + (math.random() - 0.5) * deltaTime * self.wanderTurnAccel,
                         -kWanderMaxAngle, kWanderMaxAngle)
 
-                local moveDir = newOrigin - prevOrig
-                moveDir.y = 0
-                if moveDir:GetLengthXZ() > kEpsilon then
+                local moveDirX, moveDirZ = newOrigin.x - prevOrig.x, newOrigin.z - prevOrig.z
+                if moveDirX * moveDirX + moveDirZ * moveDirZ > kEpsilon * kEpsilon then
                     local sinA, cosA = math.sin(self.wanderAngle), math.cos(self.wanderAngle)
-                    newOrigin.x = newOrigin.x + (moveDir.x * cosA - moveDir.z * sinA - moveDir.x)
-                    newOrigin.z = newOrigin.z + (moveDir.x * sinA + moveDir.z * cosA - moveDir.z)
+                    newOrigin.x = newOrigin.x + (moveDirX * cosA - moveDirZ * sinA - moveDirX)
+                    newOrigin.z = newOrigin.z + (moveDirX * sinA + moveDirZ * cosA - moveDirZ)
                 end
 
                 self:SetOrigin(newOrigin)
@@ -1307,8 +1327,12 @@ if Server then
 
         local orig = self:GetOrigin()
         local targetPos = self.targetPos or (target and target:GetOrigin())
-        local distToTarget = targetPos and (orig - targetPos):GetLength()
-        local distToTargetXZ = targetPos and (orig - targetPos):GetLengthXZ()
+        local distToTarget, distToTargetXZ
+        if targetPos then
+            local dx, dy, dz = orig.x - targetPos.x, orig.y - targetPos.y, orig.z - targetPos.z
+            distToTargetXZ = math.sqrt(dx * dx + dz * dz)
+            distToTarget = math.sqrt(dx * dx + dy * dy + dz * dz)
+        end
         local isFriend = target and target.GetTeamNumber and target:GetTeamNumber() == self:GetTeamNumber()
 
         if distToTarget and distToTarget < kMinJumpDistance then
@@ -1334,12 +1358,12 @@ if Server then
     end
 
     -- Ground-hug toward a cling attach point at run speed.
+    local kWalkOriginScratch = Vector(0, 0, 0)
     local function WalkTowardAttachPoint(self, delta, distance, deltaTime)
         local moveDir = GetNormalizedVector(delta)
         local travelDistance = math.min(deltaTime * kBabblerRunSpeed, distance)
         self:SetGroundMoveType(true)
-        local prevOrig = self:GetOrigin()
-        local newOrigin = prevOrig + moveDir * travelDistance
+        local newOrigin = VecAddScaled(kWalkOriginScratch, self:GetOrigin(), moveDir, travelDistance)
         self:SetOrigin(newOrigin)
     end
 
@@ -1360,7 +1384,6 @@ if Server then
         local orig = self:GetOrigin()
         local delta = attachPointOrigin - orig
         local distance = delta:GetLength()
-        local distanceXZ = delta:GetLengthXZ()
 
         local d = 0.7
         local isAlienCom = target and target:isa("AlienCommander")
@@ -1571,21 +1594,23 @@ if Server then
         if target.GetVelocity then
             local velocity = target:GetVelocity()
             if velocity:GetLengthSquared() > kEpsilon then
-                aimPos = aimPos + velocity * kAimLeadTime
+                VecAddScaled(aimPos, aimPos, velocity, kAimLeadTime)
             end
         end
 
         return aimPos
     end
 
+    -- Launch-time scatter on top of the lead point, so a swarm doesn't all
+    -- jump at the exact same pixel.
     local kAimJitterXZ = 1 / 3
     local kAimJitterY = 1 / 1.8
     local function GetJumpAimPoint(target)
-        return GetLeadPosition(target) + Vector(
-            (math.random() - 0.5) * kAimJitterXZ,
-            math.random() * kAimJitterY,
-            (math.random() - 0.5) * kAimJitterXZ
-        )
+        local aimPos = GetLeadPosition(target)
+        aimPos.x = aimPos.x + (math.random() - 0.5) * kAimJitterXZ
+        aimPos.y = aimPos.y + math.random() * kAimJitterY
+        aimPos.z = aimPos.z + (math.random() - 0.5) * kAimJitterXZ
+        return aimPos
     end
 
     -- mid-air homing: babblers curve gently toward their target between
