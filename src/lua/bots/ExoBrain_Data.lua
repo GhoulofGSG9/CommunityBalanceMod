@@ -6,6 +6,8 @@ Script.Load("lua/bots/BotAim.lua")
 local gMarineAimJitterAmount = 0.8
 
 local kExoBrainRetreatHealth = 0.6
+local kExoBotClawRange = 2.5 -- Claw.lua swings 2.8 m from the eye; this is measured to touch
+local kExoBotBackOffRange = 5.0
 
 ------------------------------------------
 --  Handles things like using phase gates
@@ -67,14 +69,17 @@ local function GetShouldFireExoWeapon( weapon, dist, target )
 
     end
 
+    if weapon:isa("Claw") then
+        return dist ~= nil and dist <= kExoBotClawRange
+    end
+
     if weapon:isa("PlasmaLauncher") then
         -- Plasma spends an energy pool instead of charging up a shot
         local energy = weapon.GetChargeAmount and weapon:GetChargeAmount() or 1
         return energy >= (weapon.energyCost or 0)
     end
 
-    -- Minigun and exo flamer build heat and lock out while overheated,
-    -- claws (and anything else) just keep swinging.
+    -- Minigun and exo flamer build heat and lock out while overheated.
     if weapon.overheated then
         return false
     end
@@ -99,6 +104,11 @@ local function PerformAttackEntity( eyePos, target, lastSeenPos, bot, brain, mov
     local aimPos = sighted and GetBestAimPoint( target ) or lastSeenPos
     local dist = GetDistanceToTouch( eyePos, target )
     local doFire = false
+
+    local weaponHolder = bot:GetPlayer():GetActiveWeapon()
+    local leftWeapon = weaponHolder and weaponHolder.GetLeftSlotWeapon and weaponHolder:GetLeftSlotWeapon()
+    local rightWeapon = weaponHolder and weaponHolder.GetRightSlotWeapon and weaponHolder:GetRightSlotWeapon()
+    local hasClaw = (leftWeapon and leftWeapon:isa("Claw")) or (rightWeapon and rightWeapon:isa("Claw"))
 
     -- Avoid doing expensive vis check if we are too far
     local hasClearShot = dist < 45.0 and bot:GetBotCanSeeTarget( target )
@@ -137,7 +147,12 @@ local function PerformAttackEntity( eyePos, target, lastSeenPos, bot, brain, mov
             local strafePos = strafeTarget + myOrigin
             local pathingPos = Pathing.GetClosestPoint(strafePos)
 
-            if strafeTarget:GetLengthSquared() > 0 and target:isa("Player") and (pathingPos - strafePos):GetLength() < 0.2 then
+            if hasClaw and dist < kExoBotBackOffRange and target:isa("Player") then
+                local awayDir = myOrigin - aimPos
+                awayDir.y = 0
+                awayDir:Normalize()
+                bot:GetMotion():SetDesiredMoveTarget(Pathing.GetClosestPoint(myOrigin + awayDir * 3))
+            elseif strafeTarget:GetLengthSquared() > 0 and target:isa("Player") and (pathingPos - strafePos):GetLength() < 0.2 then
                 bot:GetMotion():SetDesiredMoveTarget(strafeTarget + myOrigin)
             else
                 bot:GetMotion():SetDesiredMoveTarget(nil)
@@ -182,11 +197,6 @@ local function PerformAttackEntity( eyePos, target, lastSeenPos, bot, brain, mov
     
     
     if doFire or (brain.lastShootingTime and brain.lastShootingTime > Shared.GetTime() - 0.5) then
-    
-        local player = bot:GetPlayer()
-        local weaponHolder = player:GetActiveWeapon()
-        local leftWeapon = weaponHolder and weaponHolder.GetLeftSlotWeapon and weaponHolder:GetLeftSlotWeapon()
-        local rightWeapon = weaponHolder and weaponHolder.GetRightSlotWeapon and weaponHolder:GetRightSlotWeapon()
 
         -- Left arm is fired by primary attack, right arm by secondary attack
         if GetShouldFireExoWeapon( leftWeapon, dist, target ) then
