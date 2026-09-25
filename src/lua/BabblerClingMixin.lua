@@ -145,7 +145,6 @@ end
 
 function BabblerClingMixin:OnUse(player, elapsedTime, useSuccessTable)
     if Server then
-        local isPlayerOwner = HasMixin(player, "BabblerOwner")
         local isTargetOwner = HasMixin(self, "BabblerOwner")
         for _, babbler in ipairs(player:GetClingedBabblers()) do
             if not self:GetCanAttachBabbler() or (isTargetOwner and self:GetBabblerCount() >= self:GetMaxBabblers()) then
@@ -154,22 +153,12 @@ function BabblerClingMixin:OnUse(player, elapsedTime, useSuccessTable)
 
             if babbler:GetIsAlive() then
 
-                player:DetachBabbler(babbler)
-                -- Only give points if you are the original birth-giver of these babblers
-                -- Do not give point for giving them back to him
-                local disablePointsAward = (isPlayerOwner or isTargetOwner)
-
-                if not self:AttachBabbler(babbler, disablePointsAward) then
-                    if not player:AttachBabbler(babbler, true) then
-                        babbler:OrderIdle()
-                    end
-                    break
-                end
+                self:TriggerEffects(math.random() < 0.5 and "babbler_wag_begin" or "babbler_jump") 
+                babbler:OrderCling(self)
 
             end
         end
     end
-    self:TriggerEffects("babbler_jump") 
 end
 
 if Server then
