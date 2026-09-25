@@ -286,24 +286,24 @@ if Server then
 
     end
 
-    -- Finds the closest point on the web's line segment to the given world position,
-    -- used to pin a babbler roughly where the owner pressed use.
-    function Web:GetClosestPointOnWeb(position)
+end
 
-        local origin = self:GetOrigin()
-        local webVector = self.endPoint - origin
-        local webLength = webVector:GetLength()
+-- Finds the closest point on the web's line segment to the given world position,
+-- used to pin a babbler roughly where the owner pressed use.
+function Web:GetClosestPointOnWeb(position)
 
-        if webLength < kEpsilon then
-            return Vector(origin)
-        end
+    local origin = self:GetOrigin()
+    local webVector = self.endPoint - origin
+    local webLength = webVector:GetLength()
 
-        webVector:Scale(1 / webLength)
-        local t = Clamp(webVector:DotProduct(position - origin), 0, webLength)
-
-        return origin + webVector * t
-
+    if webLength < kEpsilon then
+        return Vector(origin)
     end
+
+    webVector:Scale(1 / webLength)
+    local t = Clamp(webVector:DotProduct(position - origin), 0, webLength)
+
+    return origin + webVector * t
 
 end
 
