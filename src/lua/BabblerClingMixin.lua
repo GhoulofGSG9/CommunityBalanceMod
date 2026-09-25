@@ -157,7 +157,7 @@ function BabblerClingMixin:OnUse(player, elapsedTime, useSuccessTable)
                 player:DetachBabbler(babbler)
                 -- Only give points if you are the original birth-giver of these babblers
                 -- Do not give point for giving them back to him
-                local disablePointsAward = not isPlayerOwner or isTargetOwner
+                local disablePointsAward = (isPlayerOwner or isTargetOwner)
 
                 if not self:AttachBabbler(babbler, disablePointsAward) then
                     if not player:AttachBabbler(babbler, true) then
@@ -196,9 +196,6 @@ if Server then
                     and previousOwner.AddContinuousScore then
                 local amountGiven = 1
                 previousOwner:AddContinuousScore("BabblerDonation", amountGiven, BabblerClingMixin.kAmountDonatedForPoints, BabblerClingMixin.kDonationScoreAdded)
-                --Log("%s detaching from %s and attaching to %s", babbler, babbler:GetOwner(), self)
-            --else
-                --Log("%s reattaching to self:%s/%s", babbler, babbler:GetOwner(), self)
             end
 
             babbler:SetParent(self)
@@ -206,6 +203,9 @@ if Server then
             babbler:SetAttachPoint(freeAttachPoint)
 
             babbler.clinged = true
+            babbler.attacking = false
+            babbler.jumping = false
+            babbler.targetId = self:GetId()
             babbler:DestroyHitbox()
             babbler:UpdateJumpPhysicsBody()
 
