@@ -1,8 +1,11 @@
 <shader>
 
 	<inputs>
-		<input name="intensity" type="float">0.04</input>
-	</inputs>
+		<input name="greebMap" type="texture" address="wrap" srgb="true"/>
+		<input name="circuitMap" type="texture" address="wrap" srgb="true"/>
+		<input name="noiseMap" type="texture" address="wrap" />
+
+	</inputs>	
 
 	<params>
 		<param name="osPosition">true</param>
@@ -10,33 +13,34 @@
 		<param name="vsNormal">true</param>
 		<param name="twoSided">false</param>
 	</params>
-
+	
 	<code>
 	<![CDATA[
 		void MaterialShader(in Material_Input input, inout Material material)
 		{
-
-			// Must stay readable next to an active nano shield without relying on hue: the
-			// nano shield lights the faces turned to the camera with a scrolling circuit, so
-			// this lights only the silhouette edge, with static horizontal plate seams.
-			const float3 tint = float3(2.4, 6, 6);
-
-			float rim = pow(1 - max(-input.vsNormal.z, 0), 6);
-			float seams = saturate(sin(input.osPosition.y * 30) * 3);
-
-			// Same mask as the nano shield view overlay: keep it off the cockpit frame
-			// right in front of the camera.
-			float cockpit = 0;
-
+		
+			const float3 tint = float3(0.8, 2, 2);
+			
+			// Offset the position.
+			material.wsOffset = input.wsNormal * 0.01;
+			
+			float3 greeb = tex2D( greebMap, input.texCoord * 8 ).rgb;
+			float3 circuit2 = tex2D( circuitMap, input.texCoord  * float2(10, 9) ).rgb;
+			float fresnel =  pow(max(-input.vsNormal.z, 0), 2);
+			float3 noise = tex2D( noiseMap, (input.texCoord + float2(0, time * 1)) * float2(1, 0.5) ).rgb; 
+			
+			float mask = 0;
+			
 			if (input.osPosition.z > 0.6)
 			{
-				cockpit = 1;
+				mask = 1;
 			} else {
-				cockpit = clamp( abs(input.osPosition.y) - 0.05 / 0.5, 0, 1);
+				mask = clamp( abs(input.osPosition.y) - 0.05 / 0.5, 0, 1);
 			}
-
-			material.emissive = tint * rim * (0.25 + 0.75 * seams) * intensity * cockpit;
-
+		
+			material.emissive = ((greeb * noise + circuit2) * fresnel) * tint * mask;
+			
+			
 		}
 	]]>
 	</code>
