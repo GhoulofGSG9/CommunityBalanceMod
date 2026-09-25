@@ -12,13 +12,18 @@ local kBabblerBombChargeAmount = 2
 local kBbombViewEffect = PrecacheAsset("cinematics/alien/gorge/bbomb_1p.cinematic")
 local kPheromoneTraceWidth = 0.3
 local networkVars = {
+    remainingCharges = "integer (0 to " .. kBabblerBombChargeAmount .. " )",
+
+    timeLastBabblerBomb = "time",
+    lastChargeFilledTime = "time"
 }
 
 function BabblerBombAbility:OnCreate()
 
     BileBomb.OnCreate(self)
-    self.timeLastBabblerBomb = 0
+
     self.remainingCharges = kBabblerBombChargeAmount
+    self.timeLastBabblerBomb = 0
     self.lastChargeFilledTime = Shared.GetTime()
 end
 
@@ -68,13 +73,13 @@ function BabblerBombAbility:OnTag(tagName)
     
     if self.firingPrimary and tagName == "shoot" then
         local player = self:GetParent()
-		
+        
         if player then
-			
+            
             if Server or (Client and Client.GetIsControllingPlayer()) then
                 CreateBombProjectile(self, player)
             end
-			
+            
             self:TriggerEffects("babbler_bomb_fire")
 
             if Client then
@@ -83,8 +88,8 @@ function BabblerBombAbility:OnTag(tagName)
             end
 
             player:DeductAbilityEnergy(self:GetEnergyCost(player))
+
             self.remainingCharges = self.remainingCharges - 1
-            --self.lastChargeFilledTime = Shared.GetTime()
             self.timeLastBabblerBomb = Shared.GetTime()
 
         end
@@ -107,10 +112,10 @@ function BabblerBombAbility:RechargeCharges()
 
         if gained > 0 then
             self.remainingCharges = math.min(self:GetMaxCharges(), self.remainingCharges + gained)
-			self.lastChargeFilledTime = now
+            self.lastChargeFilledTime = now
         end
-	else
-		self.lastChargeFilledTime = Shared.GetTime()
+    else
+        self.lastChargeFilledTime = Shared.GetTime()
     end
 end
 
@@ -132,6 +137,7 @@ function BabblerBombAbility:GetPrimaryAttackAllowed()
     if not player then return false end
 
     self:RechargeCharges()
+
     local isCooldownReady = Shared.GetTime() >= self.timeLastBabblerBomb + kTimeBetweenBabblerBombShots
     local hasEnoughEnergy = player:GetEnergy() >= self:GetEnergyCost(player)
     local hasCharges = self.remainingCharges > 0
@@ -141,12 +147,12 @@ function BabblerBombAbility:GetPrimaryAttackAllowed()
     
 end
 
-function BabblerBombAbility:OnPrimaryAttackEnd()
-	
-	Ability.OnPrimaryAttackEnd(self, player)
+function BabblerBombAbility:OnPrimaryAttackEnd(player)
 
-	self.firingPrimary = false
-	
+    self.firingPrimary = false
+
+    Ability.OnPrimaryAttackEnd(self, player or self:GetParent())
+
 end
 
 function BabblerBombAbility:GetRechargeInterval()
@@ -158,8 +164,24 @@ function BabblerBombAbility:GetEnergyCost(player)
     return kBabblerBombEnergyCost * energyMultiplier
 end
 
+function BabblerBombAbility:GetProjectedCharges()
+
+    local maxCharges = self:GetMaxCharges()
+    local rechargeInterval = self:GetRechargeInterval()
+    local now = Shared.GetTime()
+
+    local elapsed = now - self.lastChargeFilledTime
+    local pendingGain = math.floor(elapsed / rechargeInterval)
+    local projectedCharges = math.min(maxCharges, self.remainingCharges + pendingGain)
+    local partialElapsed = elapsed - (pendingGain * rechargeInterval)
+
+    return projectedCharges, partialElapsed, rechargeInterval
+
+end
+
 function BabblerBombAbility:GetCurrentCharges()
-    return self.remainingCharges
+    local projectedCharges = self:GetProjectedCharges()
+    return projectedCharges
 end
 
 function BabblerBombAbility:GetMaxCharges()
@@ -167,23 +189,15 @@ function BabblerBombAbility:GetMaxCharges()
 end
 
 function BabblerBombAbility:GetCooldownFraction()
-    local maxCharges = self:GetMaxCharges()
-    local currentCharges = self:GetCurrentCharges()
 
-    if currentCharges >= maxCharges then
+    local maxCharges = self:GetMaxCharges()
+    local projectedCharges, partialElapsed, rechargeInterval = self:GetProjectedCharges()
+
+    if projectedCharges >= maxCharges then
         return 0
     end
 
-    local now = Shared.GetTime()
-    local rechargeInterval = self:GetRechargeInterval()
-    local elapsed = now - self.lastChargeFilledTime
-
-    local fraction = 1 - Clamp(elapsed / rechargeInterval, 0, 1)
-
-    if (fraction == 0) then
-        self:RechargeCharges()
-    end
-    return fraction
+    return 1 - Clamp(partialElapsed / rechargeInterval, 0, 1)
 end
 
 Shared.LinkClassToMap("BabblerBombAbility", BabblerBombAbility.kMapName, networkVars)
