@@ -1,1 +1,4 @@
 shader = "cinematics/vfx_materials/exo_plating.surface_shader"
+greebMap = "cinematics/vfx_materials/exo_plating_shield.dds"
+noiseMap = "cinematics/vfx_materials/exo_plating_noise.dds"
+circuitMap = "cinematics/vfx_materials/exo_plating_circuit.dds"
