@@ -93,28 +93,28 @@ if Client then
         self.active = false
     end
 
-	function BoneShield:OnUpdateRender()
-		local localPlayer = Client.GetLocalPlayer()
+    function BoneShield:OnUpdateRender()
+        local localPlayer = Client.GetLocalPlayer()
 
-		if self.guiObj then
-			local now = Shared.GetTime()
-			local shouldBeVisible = localPlayer and localPlayer:isa("Onos") and (self.active or now <= self.hitPointsRechargeStartTime) and not HelpScreen_GetHelpScreen():GetIsBeingDisplayed() and not GetMainMenu():GetVisible()
+        if self.guiObj then
+            local now = Shared.GetTime()
+            local shouldBeVisible = localPlayer and localPlayer:isa("Onos") and (self.active or now <= self.hitPointsRechargeStartTime) and not HelpScreen_GetHelpScreen():GetIsBeingDisplayed() and not GetMainMenu():GetVisible()
 
-			self.guiObj:SetVisible(shouldBeVisible)
+            self.guiObj:SetVisible(shouldBeVisible)
 
-			if shouldBeVisible then
-				self.guiObj:SetCurrentHP(self.hitPoints)
-				if self.lastHitPoints - self.hitPoints > 1 then -- netvar jitter workaround
-					self.guiObj:StartFlashing()
-				end
+            if shouldBeVisible then
+                self.guiObj:SetCurrentHP(self.hitPoints)
+                if self.lastHitPoints - self.hitPoints > 1 then -- netvar jitter workaround
+                    self.guiObj:StartFlashing()
+                end
 
-				self.guiObj:SetBroken(self.hitPoints <= kEpsilon)
+                self.guiObj:SetBroken(self.hitPoints <= kEpsilon)
 
-				self.lastHitPoints = self.hitPoints
-			end
-		end
-	end
-	
+                self.lastHitPoints = self.hitPoints
+            end
+        end
+    end
+    
     function BoneShield:OnHolsterClient() -- Gets called in WeaponOwnerMixin when OnDestroy happens.
         Ability.OnHolsterClient(self)
         self.active = false
@@ -248,11 +248,10 @@ end
 
 function BoneShield:OnBroken()
     self.hitPoints = 0
-    --self.primaryAttacking = false
-    --self.lastTimeDeactivated = Shared.GetTime()
-    --self:UpdateHitpointsRechargeStartTime()
     self:OnPrimaryAttackEnd()
-    self:GetParent():TriggerEffects("onos_shield_break")
+    if Server then
+        self:GetParent():TriggerEffects("onos_shield_break")
+    end
     self.isBroken = true
 end
 
@@ -260,7 +259,7 @@ function BoneShield:ProcessMoveOnWeapon(player, input)
 
     local now = Shared.GetTime()
 
-    if not self.isBroken and (now < self.hitPointsRechargeStartTime) and self.hitPoints <= kEpsilon or not player:GetIsAlive() then
+    if not self.isBroken and ((now < self.hitPointsRechargeStartTime and self.hitPoints <= kEpsilon) or not player:GetIsAlive()) then
         self:OnBroken()
 
     elseif now > self.hitPointsRechargeStartTime then
