@@ -120,7 +120,7 @@ local networkVars =
     -- Facing is derived client-side from moveDirection (see OnAdjustModelCoords),
     -- so this is never actually sent: bucket size 10 exceeds the 2*pi range.
     m_angles = "interpolated angles (by 10 [], by 10 [], by 10 [])",
-    m_origin = "compensated interpolated position (by 0.03 [2 3 5], by 0.015 [2 3 7], by 0.03 [2 3 5])"
+    m_origin = "compensated interpolated position (by 0.03 [2 3 6], by 0.015 [2 3 7], by 0.03 [2 3 6])"
 }
 
 AddMixinNetworkVars(BaseModelMixin, networkVars)
