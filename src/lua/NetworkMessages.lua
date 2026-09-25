@@ -1474,6 +1474,9 @@ if Server then
             -- config. Carry the damage as a fraction, the way carapace does: a full suit
             -- stays full, so bought plating does not arrive empty.
             exo:SetArmor(exo:GetMaxArmor() * armorFraction)
+            for i = 1, #weapons do
+                DestroyEntity(weapons[i])
+            end
         else
             exo.prevPlayerMapName = self:GetMapName()
             exo.prevPlayerHealth = self:GetHealth()

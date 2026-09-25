@@ -187,6 +187,15 @@ local function SwitchToWelder(marine)
     end
 end
 
+local function GetBotExoConfig(teamNumber, weaponModule, forceSingleArm)
+    local hasDualArms = not forceSingleArm and ModularExo_GetIsTechResearched(kTechId.DualMinigunTech, teamNumber)
+    return
+    {
+        [kExoModuleSlots.RightArm] = weaponModule,
+        [kExoModuleSlots.LeftArm] = hasDualArms and weaponModule or kExoModuleTypes.Claw,
+    }
+end
+
 local function SwitchToPistol(marine)
     local weapon = marine:GetWeapon( Pistol.kMapName )
     if weapon and weapon:GetAmmo() / weapon:GetMaxAmmo() > 0.0 then
@@ -1641,7 +1650,11 @@ local kExecBuyTechId = function(move, bot, brain, marine, action)
         bot:GetMotion():SetDesiredMoveTarget( nil )
         
         -- Log("[%s] Attempting to Buy [%s]", marine, kTechId[buyId])  --string version
-        marine:ProcessBuyAction({ buyId })
+        if action.exoConfig then
+            marine:ProcessExoModularBuyAction(ModularExo_ConvertConfigToNetMessage(action.exoConfig))
+        else
+            marine:ProcessBuyAction({ buyId })
+        end
         SwitchToPrimary(marine)
 
         -- this is a hack because you can't buy an exo if there's a jetpack at your feet
@@ -2247,7 +2260,8 @@ kMarineBrainObjectiveActions =
         local name = kMarineBrainObjectiveTypes[kMarineBrainObjectiveTypes.BuyExo]
         local sdb = brain:GetSenses()
 
-        local techTree = GetTechTree(marine:GetTeamNumber())
+        local teamNumber = marine:GetTeamNumber()
+        local techTree = GetTechTree(teamNumber)
 
         if not techTree:GetHasTech(kTechId.ExosuitTech, true) then
             return kNilAction
@@ -2260,7 +2274,7 @@ kMarineBrainObjectiveActions =
         local exoRailgunRatio = 1/3 -- How many railguns are allowed of the global cap
         local exoCounts = sdb:Get("exoCounts")
 
-        local totalPlayers = GetGamerules():GetTeam(marine:GetTeamNumber()):GetNumPlayers()
+        local totalPlayers = GetGamerules():GetTeam(teamNumber):GetNumPlayers()
         local totalExosAllowed = math.floor(totalPlayers * globalBuyCapRatio)
         local totalRailgunsAllowed = math.floor(totalExosAllowed * exoRailgunRatio)
 
@@ -2269,22 +2283,30 @@ kMarineBrainObjectiveActions =
         end
 
         local shouldBuyExo = totalExosAllowed > 0 and
-            totalExosAllowed > 0 and
             not marine:isa("JetpackMarine") and
             not HasGoodWeapon(marine) and
-            resources >= LookupTechData(kTechId.DualMinigunExosuit, kTechDataCostKey) and
             totalExosAllowed - exoCounts.total > 0
 
         if not shouldBuyExo then
             return kNilAction
         end
 
-        local buyId = kTechId.DualMinigunExosuit
-        if totalRailgunsAllowed > 0 and math.random() > 0.5 then
-            buyId = kTechId.DualRailgunExosuit -- Don't need many railguns, miniguns much more useful
+        local weaponModule = kExoModuleTypes.Minigun
+        if exoCounts.railguns < totalRailgunsAllowed and math.random() > 0.5 then
+            weaponModule = kExoModuleTypes.Railgun -- Don't need many railguns, miniguns much more useful
         end
 
-        local data = sdb:Get("nearestProto")
+        local exoConfig = GetBotExoConfig(teamNumber, weaponModule)
+        local isValid, _, exoCost = ModularExo_GetIsConfigValid(exoConfig, teamNumber)
+        if not isValid or resources < exoCost then
+            exoConfig = GetBotExoConfig(teamNumber, weaponModule, true)
+            isValid, _, exoCost = ModularExo_GetIsConfigValid(exoConfig, teamNumber)
+            if not isValid or resources < exoCost then
+                return kNilAction
+            end
+        end
+
+        local data = sdb:Get("nearestExoProto")
         local proto = data.proto
         local protoDist = data.distance
 
@@ -2303,7 +2325,8 @@ kMarineBrainObjectiveActions =
             name = name,
             weight = weight,
             structure = proto,
-            buyId = buyId,
+            buyId = kTechId.DualMinigunExosuit,
+            exoConfig = exoConfig,
             limit = (totalExosAllowed - exoCounts.total),
             validate = kValidateBuyTechId,
             perform = kExecBuyTechId
@@ -2447,7 +2470,8 @@ kMarineBrainObjectiveActions =
                     
                     -- always try to reserve enough for an exo
                     if bot.wantsExo then
-                        resources = resources - LookupTechData(kTechId.DualMinigunExosuit, kTechDataCostKey)
+                        local _, _, exoCost = ModularExo_GetIsConfigValid(GetBotExoConfig(marine:GetTeamNumber(), kExoModuleTypes.Minigun, true))
+                        resources = resources - exoCost
                     end
                     
                     if bot.wantsJetpack then
@@ -4278,7 +4302,39 @@ function CreateMarineBrainSenses()
 
         end)
 
-    s:Add("nearestExo", 
+    s:Add("nearestExoProto",
+        function(db, marine)
+
+            local protos = GetEntitiesForTeam( "PrototypeLab", marine:GetTeamNumber() )
+
+            local dist, proto = GetMinTableEntry( protos,
+                function(proto)
+                    assert( proto ~= nil )
+                    if proto:GetTechId() == kTechId.ExoPrototypeLab and proto:GetIsBuilt() and proto:GetIsPowered() then
+                        local dist,_ = GetPhaseDistanceForMarine( marine, proto, db.bot.brain.lastGateId )
+
+                        -- Weigh our previous nearest a bit better, to prevent thrashing
+                        if proto:GetId() == db.lastNearestExoProtoId then
+                            return dist * 0.9
+                        else
+                            return dist
+                        end
+                    end
+                end)
+
+            if proto ~= nil then
+                db.lastNearestExoProtoId = proto:GetId()
+            end
+
+            return
+            {
+                proto = proto,
+                distance = dist
+            }
+
+        end)
+
+    s:Add("nearestExo",
         function(db, marine)
 
             local exos = GetEntitiesForTeam( "Exo", marine:GetTeamNumber())

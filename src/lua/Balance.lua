@@ -989,8 +989,8 @@ kExoShieldCost = 15
 kClawCost = 15
 
 kThrustersCost = 15
-kExoArmorModuleCost = 25
-kEjectionSeatCost = 15
+kExoArmorModuleCost = 15
+kEjectionSeatCost = 10
 kExoSupportModuleCost = 10
 kExoRefitCost = 5
 
@@ -1091,8 +1091,6 @@ kEjectionSeatArmor = 0
 -- the total past what the alien counters were tuned against without someone deciding to.
 kExoMaxTotalArmorCap = 520
 kExoLowHealthEjectThreshold = 0
-kEjectorExosuitUseThreshold = 50
-kEjectorExosuitMinArmor = 40 -- set minimum armor to ejector exo suit when auto ejecting
 kExoEjectHoldTime = 1.0 -- seconds the drop key must be held to leave an exo outside combat
 kExoEjectionSeatHoldTime = 0.5 -- the same hold with the Ejection Seat core fitted
 kExoEjectDropGraceTime = 1.0 -- continuous seconds without the drop key before an ejected marine may drop again
