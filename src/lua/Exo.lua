@@ -912,12 +912,17 @@ function Exo:GetFlashlightOn()
     return self.flashlightOn
 end
 
--- The Ejection Seat fires wherever the armor runs out, so it skips the ground checks.
+-- The ground, deploy and command station checks keep a dropped suit out of places it
+-- would block. The Ejection Seat destroys the suit, so it fires wherever the armor runs out.
 function Exo:GetCanEject(isAutoEject)
-    return self:GetIsPlaying() and not self.ejecting
-            and (isAutoEject or (self:GetIsOnGround() and not self:GetIsOnEntity()))
+    if not self:GetIsPlaying() or self.ejecting then
+        return false
+    end
+
+    return isAutoEject
+            or (self:GetIsOnGround() and not self:GetIsOnEntity()
             and self.creationTime + kExosuitDeployDuration < Shared.GetTime()
-            and #GetEntitiesForTeamWithinRange("CommandStation", self:GetTeamNumber(), self:GetOrigin(), 2.5) == 0
+            and #GetEntitiesForTeamWithinRange("CommandStation", self:GetTeamNumber(), self:GetOrigin(), 2.5) == 0)
 end
 
 -- Why the manual eject (hold the drop key) is unavailable right now, as a locale key,
