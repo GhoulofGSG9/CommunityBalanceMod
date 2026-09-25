@@ -460,7 +460,7 @@ function Babbler:GetIsOnGround(performGroundTrace)
         end
 
         -- Really make sure we stabilized (no longer going down)
-        local minYSpeed = 0.15
+        local minYSpeed = 0.1
         if not (absVelY < minYSpeed and absLastVelY < minYSpeed) then
             isOnGround = false
         end
@@ -1083,7 +1083,7 @@ if Server then
             end
         end
 
-        -- Keep clinging if current host morhphed into an embryo or went commander (drop otherwise)
+        -- Keep clinging if current host morphed into an embryo or went commander (drop otherwise)
         if oldId == self.targetId then
             local pos
             local target = newId and Shared.GetEntity(newId)
@@ -1727,10 +1727,6 @@ if Server then
                 return false -- just for safety
             end
 
-            self.clinged = true
-            self.attacking = false
-            self.jumping = false
-            self:DestroyHitbox()
             self:SetOrigin(attachPointOrigin)
             return true
 
