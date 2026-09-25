@@ -2040,7 +2040,9 @@ local kModuleButtonHoverColor = Color(0, 0.7, 1, 1)
 -- Cannot pay for this module right now. Vanilla greys an item it will not sell and turns the
 -- cost red instead of hiding it (see the UNAVAILABLE tiles in the armoury menu), so a module
 -- gets the same treatment: grey name and picture, red cost, no hover, click ignored.
+-- Red means missing resources only; a locked or incompatible module greys out whole.
 local kModuleUnaffordableColor = Color(0.55, 0.6, 0.64, 1)
+local kModuleUnavailableFrameColor = Color(0.2, 0.2, 0.2, 0.4)
 
 -- Player facing name of a research node, for the "Requires ..." line on a locked module.
 -- The research title is the short one ("Exosuit Cores"); the display name is the commander
@@ -2832,11 +2834,11 @@ function GUIMarineBuyMenu:_SetDetailsSectionExoModule(moduleType, lockedTechId, 
     end
     if incompatible then
         self.modularExoDetailStats:SetText(Locale.ResolveString("EXO_MODULE_INCOMPATIBLE"))
-        self.modularExoDetailStats:SetColor(kCannotBuyColor)
+        self.modularExoDetailStats:SetColor(kModuleUnaffordableColor)
     elseif lockedTechId then
         self.modularExoDetailStats:SetText(string.format(Locale.ResolveString("EXO_MODULE_LOCKED_FORMAT"),
                                                          GetResearchDisplayName(lockedTechId)))
-        self.modularExoDetailStats:SetColor(kCannotBuyColor)
+        self.modularExoDetailStats:SetColor(kModuleUnaffordableColor)
     else
         local statText = #statParts > 0 and table.concat(statParts, "    ") or Locale.ResolveString("EXO_DETAILS_NO_STAT_CHANGE")
         self.modularExoDetailStats:SetText(statText)
@@ -2882,7 +2884,12 @@ function GUIMarineBuyMenu:_UpdateExoModularButtons()
 		local researched = self:_GetHostCanSellExoConfig()
         -- A configuration carrying a module the commander has not researched, or a second
         -- shooting arm without Dual Arms, is refused by the server, so BUY refuses too.
-        if not researched or self.exoConfigLockedTechId ~= nil or PlayerUI_GetPlayerResources() < self:_GetExoConfigPrice() then
+        if not researched or self.exoConfigLockedTechId ~= nil then
+            self.modularExoBuyButton:SetColor(kModuleUnaffordableColor)
+            self.modularExoBuyButtonText:SetColor(Color(0.5, 0.5, 0.5, 1))
+            self.modularExoCostText:SetColor(kModuleUnaffordableColor)
+            self.modularExoCostIcon:SetColor(kModuleUnaffordableColor)
+        elseif PlayerUI_GetPlayerResources() < self:_GetExoConfigPrice() then
             self.modularExoBuyButton:SetColor(Color(1, 0, 0, 1))
             self.modularExoBuyButtonText:SetColor(Color(0.5, 0.5, 0.5, 1))
             self.modularExoCostText:SetColor(kCannotBuyColor)
@@ -3116,8 +3123,8 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
                 buttonData.state = "disabled"
                 incompatible = badReason == "bad model right"
             elseif lockedTechId then
-                -- Buildable, just not researched yet. It reads like an unaffordable module -
-                -- greyed, no hover, click ignored - and the details box says which research.
+                -- Buildable, just not researched yet. Greyed out, cost included, no hover,
+                -- click ignored - and the details box says which research.
                 buttonData.state = "locked"
             else
                 canAfford = playerResources >= self:_GetExoConfigPrice(candidateCost or 0)
@@ -3125,8 +3132,8 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
             end
             col = kDisabledColor
 
-            if not isValid and (badReason == "bad model right" or badReason == "bad model left") then
-                col = Color(0.2, 0.2, 0.2, 0.4)
+            if lockedTechId or not isValid and (badReason == "bad model right" or badReason == "bad model left") then
+                col = kModuleUnavailableFrameColor
             end
 
             self.exoConfig[buttonData.slotType] = current
@@ -3135,10 +3142,13 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
 
         -- Unaffordable reads through the contents, not through the button frame, so that a
         -- module that is both selected and unaffordable still shows the selected highlight.
-        -- A locked module gets the same treatment: nothing about it can be bought either.
+        -- A locked module greys its cost as well: red would say it is the pres that is missing.
         local contentColor = col
         local costColor = col
-        if not canAfford or lockedTechId then
+        if lockedTechId then
+            contentColor = kModuleUnaffordableColor
+            costColor = kModuleUnaffordableColor
+        elseif not canAfford then
             contentColor = kModuleUnaffordableColor
             costColor = kCannotBuyColor
         end
