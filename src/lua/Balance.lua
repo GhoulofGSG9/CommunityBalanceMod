@@ -989,8 +989,8 @@ kExoShieldCost = 15
 kClawCost = 15
 
 kThrustersCost = 15
-kExoArmorModuleCost = 25
-kEjectionSeatCost = 15
+kExoArmorModuleCost = 15
+kEjectionSeatCost = 10
 kExoSupportModuleCost = 10
 kExoRefitCost = 5
 
