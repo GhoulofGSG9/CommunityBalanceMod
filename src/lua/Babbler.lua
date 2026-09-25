@@ -1723,7 +1723,12 @@ if Server then
 
         if HasMixin(target, "BabblerCling") then
 
-            if not target:AttachBabbler(self) then
+            local owner = self:GetOwner()
+            local isPlayerOwner = HasMixin(owner, "BabblerOwner")
+            local isTargetOwner = HasMixin(target, "BabblerOwner")
+
+            local disablePointsAward = (not isPlayerOwner) or isTargetOwner
+            if not target:AttachBabbler(self, disablePointsAward) then
                 return false -- just for safety
             end
 
