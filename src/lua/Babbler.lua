@@ -44,6 +44,7 @@ local kBabblerModelVariants =
 }
 local kBabblerWorldMaterialIndex = 0
 
+local kAnimForagingDuration = 4
 local kAnimationGraph = PrecacheAsset("models/alien/babbler/babbler.animation_graph")
 
 Babbler.kMass = 15
@@ -126,6 +127,8 @@ local networkVars =
     doesGroundMove = "boolean",
     jumping = "boolean",
     wagging = "boolean",
+    foraging = "boolean",
+    hungry = "boolean",
     creationTime = "time",
     silenced = "boolean",
     variant = "enum kBabblerVariants",
@@ -270,6 +273,9 @@ function Babbler:OnCreate()
 
         self.moveType = kBabblerMoveType.None
         self.clinged = false
+
+        self.foraging = false
+        self.hungry = false
 
         self.onWeb = false
         self.webWalking = false
@@ -566,10 +572,19 @@ function Babbler:UpdateBabbler(deltaTime)
     self:UpdateClientSkinState()
 
     if self:GetIsClinged() or not self:GetIsAlive() then
+        self.attacking = false
+        self.doesGroundMove = false
         return
     end
 
     if Server then
+
+        self.attacking = self.timeLastAttack + 0.2 > Shared.GetTime()
+
+        if self.foraging or self.hungry then
+            self:UpdateRelevancy()
+            return
+        end
 
         if self:GetIsOnWeb() then
             self:UpdateWebBehavior(deltaTime)
@@ -601,7 +616,6 @@ function Babbler:UpdateBabbler(deltaTime)
         self:UpdateJumpPhysicsBody()
         self:UpdateJumpPhysics(deltaTime)
 
-        self.attacking = self.timeLastAttack + 0.2 > Shared.GetTime()
         self.wagging = self.moveType == kBabblerMoveType.Wag
 
         if isEnemy and self.moveType == kBabblerMoveType.Move and target and targetReached and CanReachTarget(self, target) then
@@ -797,6 +811,7 @@ if Server then
 
     local kIdleConfig =
     {
+        foragingChance = 0.4,                 -- Dig the ground for a bit
         pauseChance  = 0.28,                  -- sniff the air, do nothing
         pauseMin     = 1.4,  pauseRange = 2.6,
         chirpChance  = 0.3,                   -- chirp during pauses
@@ -877,7 +892,16 @@ if Server then
             self.idleNextDecisionTime = now + kIdleConfig.pauseMin + math.random() * kIdleConfig.pauseRange
             if math.random() < kIdleConfig.chirpChance then
                 self:TriggerEffects("babbler_jump")
+            elseif math.random() < kIdleConfig.foragingChance then
+                if math.random() < 0.6 then
+                    self.foraging = true
+                else
+                    self.hungry = true
+                end
+                self:AddTimedCallback(function(self) self.foraging = false ; self.hungry = false ; end, kAnimForagingDuration)
+                self:SetMoveType(kBabblerMoveType.None, owner, ownerOrigin)
             end
+
         else
             local dest = self:PickIdleDestination()
             if dest then
@@ -905,6 +929,12 @@ if Server then
         chatterRange = 8,     -- ambient chirps, calm delay after attach
         chatterInitialMin = 2,
         chatterDelayRange = 4,
+
+        foragingMin   = kAnimForagingDuration + 5,
+        foragingRange = 18,
+        foragingInitialMin = 10, -- let them spread a bit on the web first
+        foragingDelayRange = 20,
+
         angerMin      = 0.4,
         angerRange = 0.5,    -- angry barks while panicked
     }
@@ -1906,9 +1936,22 @@ if Server then
 
         -- Make babbler do some happy noise once in a while
         if self.timeNextWebChatter == nil or Shared.GetTime() >= self.timeNextWebChatter then
-            self:TriggerEffects("babbler_jump")
+            self:TriggerEffects(math.random() < 0.5 and "babbler_wag_begin" or "babbler_jump") 
             self.timeNextWebChatter = Shared.GetTime() + (kWebConfig.chatterMin + math.random() * kWebConfig.chatterRange) * self.webIdleMult
         end
+
+        -- Make babbler investigate the web once in a while
+        if self.timeNextWebForage == nil or Shared.GetTime() >= self.timeNextWebForage then
+            if math.random() < 0.65 then
+                self.foraging = true
+            else
+                self.hungry = true
+            end
+            self:AddTimedCallback(function(self) self.foraging = false ; self.hungry = false ; end, kAnimForagingDuration)
+
+            self.timeNextWebForage = Shared.GetTime() + (kWebConfig.foragingMin + math.random() * kWebConfig.foragingRange) * self.webIdleMult
+        end
+
 
     end
 
@@ -1948,6 +1991,7 @@ if Server then
         self.wagging = false
 
         self.timeNextWebChatter = Shared.GetTime() + kWebConfig.chatterInitialMin + math.random() * kWebConfig.chatterDelayRange
+        self.timeNextWebForage = Shared.GetTime() + kWebConfig.chatterInitialMin + math.random() * kWebConfig.chatterDelayRange
 
         -- disable physic simulation
         self:SetGroundMoveType(true)
@@ -1969,12 +2013,16 @@ if Server then
             web:RemoveWebbedBabbler(self)
         end
 
+        self.foraging = false
+        self.hungry = false
+
         self.onWeb = false
         self.webId = Entity.invalidId
 
         self.webWalking = false
         self.webFastTravel = false
         self.timeNextWebChatter = nil
+        self.timeNextWebForage = nil
 
         self.panicExpire = nil
         self.timeNextWebAnger = nil
@@ -2570,7 +2618,7 @@ elseif Client then
         PROFILE("Babbler:OnUpdateAnimationInput")
 
         local move = "idle"
-        if self.clinged then
+        if self.clinged or self.foraging or self.hungry then
             move = "idle"
         elseif self.onWeb then
             if self.webWalking then
@@ -2584,8 +2632,10 @@ elseif Client then
             move = "wag"
         end
 
+        modelMixin:SetAnimationInput("forage", self.foraging)
+        modelMixin:SetAnimationInput("hungry", self.hungry)
         modelMixin:SetAnimationInput("move", move)
-        modelMixin:SetAnimationInput("attacking", not self.clinged and self.attacking)
+        modelMixin:SetAnimationInput("attacking", not (self.clinged or self.foraging or self.hungry) and self.attacking)
 
     end
 
