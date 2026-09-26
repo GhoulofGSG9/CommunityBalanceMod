@@ -2056,7 +2056,8 @@ local function RegenFieldTick(self)
     self.regenFieldTicksLeft = ticksLeft - 1
 
     for _, target in ipairs(GetSupportAbilityTargets(self)) do
-        target:AddHealth(kExoRegenFieldHealPerSecond, false, false, false, self)
+        target.regenerationHealth = math.min(target:GetRegeneratingHealth() + kExoRegenFieldHealPerSecond, target:GetMaxHealth() - target:GetHealth())
+        target.regenerating = target.regenerationHealth > 0
     end
 
     if self.regenFieldTicksLeft <= 0 then
