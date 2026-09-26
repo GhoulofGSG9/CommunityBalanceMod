@@ -2785,7 +2785,6 @@ function GUIMarineBuyMenu:_UpdateExoModularVisibility()
         GUIMakeFontScale(self.currentMoneyText, "kAgencyFBBold", kExoDetailsTextFontSize)
         self.costTextIcon:SetScale(Vector(1, 1, 1) * kExoResourceIconScale)
         self.currentMoneyTextIcon:SetScale(Vector(1, 1, 1) * kExoResourceIconScale)
-        self.itemDescription:SetTextClipped(true, kExoDetailsBoxWidth, -1)
         GUIMakeFontScale(self.itemDescription, "kAgencyFB", kExoDetailsDescFontSize)
 
         local coords = self:_GetPigPicturePixelCoordinatesForTechID(kTechId.DualMinigunExosuit)
