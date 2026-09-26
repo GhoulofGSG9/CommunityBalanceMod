@@ -399,7 +399,7 @@ function Spectator:OnEntityChange(oldEntityId, newEntityId)
     end
 
     if self.selectedId == oldEntityId then
-        self.selectedId = newEntityId
+        self.selectedId = newEntityId or Entity.invalidId
     end
 end
 
