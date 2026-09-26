@@ -76,6 +76,8 @@ Drifter.kTouchRange = 1.5 -- Model max extents for "touch" uncloaking
 Drifter.kEnzymeRange = 22
 
 local kDrifterSelfOrderRange = 12
+local kDrifterIdleTaskCheckInterval = 4
+local kDrifterIdleTaskGracePeriod = 3
 local kDrifterPVESnapRange = 2.0
 local kDrifterAlienSnapRange = 2.0
 
@@ -403,6 +405,7 @@ function Drifter:OnOrderGiven(newOrder)
     self.fieldCloudDemandedAt = {}
     self.fieldCloudTechId = {}
     self.timeCloudBlockedSince = nil
+    self.timeLastOrderGiven = Shared.GetTime()
 
     local currentOrder = self:GetCurrentOrder()
     if (currentOrder and newOrder:GetType() == kTechId.Follow and currentOrder:GetType() == kTechId.Move) then
@@ -481,14 +484,16 @@ function Drifter:OnOverrideOrder(order)
     Shared.SortEntitiesByDistance(origin, nearbyAliens)
 
     -- Autosnap on nearby PvE for a grow order
-    for _, pve in ipairs(nearbyPVE) do
-        if not pve:GetIsBuilt() and GetAreFriends(self, pve) and not IsBeingGrown(self, pve) and (not pve.GetCanAutoBuild or pve:GetCanAutoBuild()) then
-            order.orderParam = pve:GetId()
-            order:SetLocation(pve:GetOrigin())
-            order:SetType(kTechId.Grow)
-            orderTarget = pve
-            --Log("Drifter -- Snapping on nearest unbuilt to construct")
-            break
+    if (order:GetType() == kTechId.Move or order:GetType() == kTechId.Default) then
+        for _, pve in ipairs(nearbyPVE) do
+            if not pve:GetIsBuilt() and GetAreFriends(self, pve) and not IsBeingGrown(self, pve) and (not pve.GetCanAutoBuild or pve:GetCanAutoBuild()) then
+                order.orderParam = pve:GetId()
+                order:SetLocation(pve:GetOrigin())
+                order:SetType(kTechId.Grow)
+                orderTarget = pve
+                --Log("Drifter -- Snapping on nearest unbuilt to construct")
+                break
+            end
         end
     end
 
@@ -930,7 +935,7 @@ local function UpdateTasks(self, deltaTime)
 
         self.newOrderFirstUpdate = true
 
-        if not self.timeLastTaskCheck or self.timeLastTaskCheck + 2 < now then
+        if (not self.timeLastTaskCheck or self.timeLastTaskCheck + kDrifterIdleTaskCheckInterval < now) and (self.timeLastOrderGiven or 0) + kDrifterIdleTaskGracePeriod < now then
 
             if GetIsUnitActive(self) then
                 FindTask(self)
