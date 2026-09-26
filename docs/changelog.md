@@ -87,11 +87,15 @@
   - Target highlighting on all aliens (red) and weldable marines (blue) including structures.
   
 ### Prototype Lab
-  - Advanced prototype lab upgrade required to unlock modular exosuits and cores.
-  - Protolabs while researching exotech will show a rotating exo hologram.
-  - Protolabs with exotech available will show a static exo inside an orb.
-  - Exotech is tied to the specific protolab it was researched on.
-  - Exotech will be lost when the protolab gets destroyed or recycled.
+  - A built prototype lab is an exosuit prototype lab: claw + minigun and claw + railgun exosuits can be bought as soon as it is built.
+  - Researches Dual Exosuit Arms (25 tres, 60 s), Advanced Exosuit Arms (20 tres, 60 s: flame and plasma arms), Exosuit Cores (15 tres, 45 s: Thrusters, Ejection Seat, Armor Plating) and Exosuit Abilities (15 tres, 45 s: support abilities).
+  - Opens straight on the exosuit configuration page.
+  - Protolabs show a rotating exo hologram while researching and a static exo inside an orb otherwise.
+  - Researches stay with the team when a protolab is destroyed or recycled; another built protolab sells exosuits again.
+
+### Jetpack
+  - Researched and bought at the Advanced Armory instead of the Prototype Lab (50 tres, 130 s research).
+  - Basic armories label the grenade launcher, flamethrower, heavy machine gun and jetpack tiles ADVANCED ARMORY ONLY.
 
 ### Arc (Robotics) Factory
   - New skin
