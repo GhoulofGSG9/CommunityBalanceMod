@@ -139,7 +139,6 @@ if kCBMaddon then
 	## ALIEN
 	  - Rebalance of existing alien support structures (reduced eHP, cost, and size; increased movement speed).
 	  - New alien support structure upgrades (advanced crag, shift, shade, and whip) with powerful abilities.
-	  - Hive biomass 5 introduced (2 hive xeno).
 	  - Rework and bugfixes to onos stomp.
 	  - Rework of cloak.
 	  - New gorge ability (babbler bomb).
@@ -571,11 +570,6 @@ if kCBMaddon then
 	  - Based eHP decreased to be +7.5% of vanilla.
 	  - Gains +2.5% eHP per hive biomass returned to current value after 3rd biomass upgrade.
 	  - Maturation time increased to 260s from 220s.
-	  - Added biomass 5 research to hives (4th upgrade).
-		- Costs 190 tres and takes 10 mins to research.
-		- During research, a global heartbeat sound will play once every minute.
-		- During research, a global status icon will be applied to marines with an accurate timer.
-		- On complete, the hive will become magenta on the map, change skin, and a sound will play.
 
 	### Veil/Spur/Shell
 	  - Veils: Cloaked
