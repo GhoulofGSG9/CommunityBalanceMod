@@ -271,13 +271,9 @@ if Server then
     local function GetClingSpotsCount(entity)
         if not entity then return nil end
         if entity:isa("Web") then
-            return math.max(kWebMaxBabblers - entity:GetNumWebbedBabblers(), 0)
+            return math.max(kWebMaxBabblers - entity:GetNumWebbedBabblers() - GetNumBabblersEnRouteToCling(entity), 0)
         elseif HasMixin(entity, "BabblerCling") then
-            local spots = entity:GetMaxClingedBabblers() - entity:GetNumClingedBabblers()
-            if HasMixin(entity, "BabblerOwner") then
-                spots = math.min(spots, entity:GetMaxBabblers() - entity:GetBabblerCount())
-            end
-            return math.max(spots, 0)
+            return entity:GetNumFreeDonationSpots()
         end
         return nil
     end
