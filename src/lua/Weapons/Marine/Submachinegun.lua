@@ -168,7 +168,7 @@ function Submachinegun:OnCreate()
     InitMixin(self, PickupableWeaponMixin)
     InitMixin(self, EntityChangeMixin)
     InitMixin(self, LiveMixin)
-	InitMixin(self, PointGiverMixin)
+    InitMixin(self, PointGiverMixin)
 
     if Client then
         InitMixin(self, ClientWeaponEffectsMixin)
@@ -388,24 +388,11 @@ function Submachinegun:FirePrimary(player)
     FireBullets(self, player)
 end
 
+-- Same FOV-cone web detection the axe uses
+local kButtWebHitFov = 55
 function Submachinegun:Melee_HitCheck(coords, player)
 
-    local boxTrace = Shared.TraceBox(Vector(0.2,0.1,0.2),
-                                     player:GetEyePos(),
-                                     player:GetEyePos() + coords.zAxis * (kButtRange + 0.4),
-                                     CollisionRep.Default, PhysicsMask.AllButPCsAndRagdolls,
-                                     EntityFilterTwo(player, self))
-    -- Log("Boxtrace entity: %s, target: %s", boxTrace.entity, target)
-    if boxTrace.entity and boxTrace.entity:isa("Web") then
-        self:DoDamage(kSMGMeleeDamage, boxTrace.entity, boxTrace.endPoint, coords.zAxis, "organic", false)
-    else
-        -- local rayTrace = Shared.TraceRay(eyePos, targetOrigin, CollisionRep.LOS, PhysicsMask.All, EntityFilterAll())
-        local rayTrace = Shared.TraceRay(player:GetEyePos(), player:GetEyePos() + coords.zAxis * (kButtRange + 0.4), CollisionRep.Default, PhysicsMask.AllButPCsAndRagdolls, EntityFilterTwo(player, self))
-        -- Log("Raytrace entity: %s", rayTrace.entity)
-        if rayTrace.entity and rayTrace.entity:isa("Web") then
-            self:DoDamage(kSMGMeleeDamage, rayTrace.entity, rayTrace.endPoint, coords.zAxis, "organic", false)
-        end
-    end
+    return PerformMeleeWebHitCheck(self, player, kSMGMeleeDamage, kButtRange + 0.4, kButtWebHitFov)
 
 end
 
@@ -501,15 +488,15 @@ if Client then
 
     function Submachinegun:OnClientPrimaryAttackStart()
         local player = self:GetParent()
-		
-		StartSoundEffectAtOrigin(kOneShotSoundName, self:GetOrigin())
-		Shared.PlaySound(self, kLoopingSounds[self.soundType])
-		
-		--[[if player and player:GetIsLocalPlayer() then
-			Shared.PlaySound(self, kLocalAttackSoundName, 0.70)
-		else
-			Shared.PlaySound(self, kAttackSoundName, 1.0)
-		end]]
+        
+        StartSoundEffectAtOrigin(kOneShotSoundName, self:GetOrigin())
+        Shared.PlaySound(self, kLoopingSounds[self.soundType])
+        
+        --[[if player and player:GetIsLocalPlayer() then
+            Shared.PlaySound(self, kLocalAttackSoundName, 0.70)
+        else
+            Shared.PlaySound(self, kAttackSoundName, 1.0)
+        end]]
         
         if not self.muzzleCinematic then            
             CreateMuzzleEffect(self)                
@@ -563,12 +550,12 @@ if Client then
     function Submachinegun:OnClientPrimaryAttackEnd()
 
         -- Just assume the looping sound is playing.
-		Shared.StopSound(self, kLoopingSounds[self.soundType]) --(self, kAttackSoundName)
-		
-		local player = self:GetParent()
-		--[[if player and player:GetIsLocalPlayer() then
-			Shared.StopSound(self, kLocalAttackSoundName)
-		end]]
+        Shared.StopSound(self, kLoopingSounds[self.soundType]) --(self, kAttackSoundName)
+        
+        local player = self:GetParent()
+        --[[if player and player:GetIsLocalPlayer() then
+            Shared.StopSound(self, kLocalAttackSoundName)
+        end]]
         Shared.PlaySound(self, kEndSounds[math.ceil(self.soundType / 3)], 0.5)
         
         if self.muzzleCinematic and self.muzzleCinematic ~= Entity.invalidId then
@@ -613,7 +600,7 @@ if Client then
         return self:GetOrigin()
         
     end
-	
+    
     function Submachinegun:GetUIDisplaySettings()
         return { xSize = 256, ySize = 417, script = "lua/GUILMGDisplay.lua"}
     end
@@ -629,17 +616,17 @@ function Submachinegun:ModifyDamageTaken(damageTable, attacker, doer, damageType
 end
 
 function Submachinegun:OnReload(player)
-	
+    
     if self:CanReload() then
-		self.reloading = true
-	
-		if player and player:GetHasCatPackBoost()then
-			self:TriggerEffects("reload_speed1")
-			Shared.PlaySound(self, kReloadFastSoundName, 0.5)
-		else
-			self:TriggerEffects("reload_speed1")
-			Shared.PlaySound(self, kReloadFastSoundName, 0.5)
-		end
+        self.reloading = true
+    
+        if player and player:GetHasCatPackBoost()then
+            self:TriggerEffects("reload_speed1")
+            Shared.PlaySound(self, kReloadFastSoundName, 0.5)
+        else
+            self:TriggerEffects("reload_speed1")
+            Shared.PlaySound(self, kReloadFastSoundName, 0.5)
+        end
     end
 end
 
@@ -660,7 +647,7 @@ if Server then
 end
 
 function Submachinegun:GetCatalystSpeedBase()
-	return self.secondaryAttacking and kSubmachinegunMeleeHaste or kSubmachinegunWeaponHaste
+    return self.secondaryAttacking and kSubmachinegunMeleeHaste or kSubmachinegunWeaponHaste
 end
 
 Shared.LinkClassToMap("Submachinegun", Submachinegun.kMapName, networkVars)
