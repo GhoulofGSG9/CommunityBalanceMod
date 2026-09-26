@@ -459,7 +459,7 @@ function Babbler:GetTarget()
 
 end
 
-function Babbler:GetIsOnGround(performGroundTrace)
+function Babbler:GetIsOnGround()
     local vel = self:GetVelocity()
     local velLength = vel:GetLength()
     local absVelY = math.abs(vel.y)
@@ -1268,19 +1268,22 @@ if Server then
         return success
     end
 
-    function Babbler:UpdateMove_randomJumps()
+    function Babbler:UpdateMove_randomJumps(targetPos)
         -- Notes:
         --  To tune this, go gorge in a long hallway
         -- and throw babblers at the end.
         -- Tweak to your liking
 
-        if not (self.cursor.index + 2 <= #self.cursor.points) then
-            return
+        local cursorNextPos = nil
+        -- Sideway jumps only if we still have some ground to cover, otherwise counterproductive
+        if (self.cursor and self.cursor.index + 5 <= #self.cursor.points) then
+            cursorNextPos = self.cursor.points[self.cursor.index + 2]
         end
+
         local now = Shared.GetTime()
         local deviation = 0.1 + math.random() * 0.2 -- How far they deviate from path when moving (no straight line, more variations)
         local highJumpProb = 0.05
-        local targetOrigin = self.cursor.points[self.cursor.index + 2]
+        local targetOrigin = cursorNextPos or targetPos
         local targetVelocity = Vector(math.random() - 0.5 < 0 and deviation or -deviation,
                 0.2 + deviation * 1.5 + (math.random() < highJumpProb and 1.6 or 0),
                 math.random() - 0.5 < 0 and deviation or -deviation)
@@ -1355,22 +1358,39 @@ if Server then
                 end
 
                 self:SetOrigin(newOrigin)
-            end
+            end            
 
             self.targetSelector:AttackerMoved()
+        else
+             if self.doesGroundMove then
+        --         Log("%s Close from target, test ground state", self)
+                 --local ground = GetGroundAt(self, prevOrig, PhysicsMask.AIMovement, nil, true)
+
+                --if prevOrig.y - ground.y > Babbler.kRadius or targetPos.y - prevOrig.y > Babbler.kRadius then
+                if targetPos.y - prevOrig.y > Babbler.kRadius then
+                     self:SetGroundMoveType(false) -- Trigger falling
+        --             Log("%s LOCK STATE DETECTED (ground-diff: %s, target-diff: %s)",
+        --                 self,
+        --                 prevOrig.y - ground.y,
+        --                 targetPos.y - prevOrig.y
+        --                 )
+        --         else
+        --             Log("%s-%s Everything good (ground-diff: %s, target-diff: %s)",
+        --                 self, prevOrig,
+        --                 prevOrig.y - ground.y,
+        --                 targetPos.y - prevOrig.y
+        --                 )
+
+                 end
+             end
         end
 
         -- Errative jump behavior when going from one place to an other
-        -- Applies if we are at least X path points away from target
-
-        if not moveDone
-            and self.cursor and self.cursor.index + 5 <= #self.cursor.points
-            and self.timeNextMoveJump < now
-            -- and (not self.lastMoveJumpPathPointLeft or self.cursor.index < self.lastMoveJumpPathPointLeft)
+        if not moveDone and self.timeNextMoveJump < now
         then
 
             -- Could eventually do double jumps (forward and sideway)
-            self:UpdateMove_randomJumps()
+            self:UpdateMove_randomJumps(targetPos)
             self:UpdateMove_forwardJumps(distToTarget, targetPos)
 
             -- The constant added delay has to be higher than the self.timeLastJump delay in the function
@@ -1475,8 +1495,13 @@ if Server then
         then
             WalkTowardAttachPoint(self, delta, distance, deltaTime)
         else -- Multi-leap upward (or level, or downward) toward targets
-            local leapTarget = attachPointOrigin
 
+            -- TODO: Bandaid fix (until we can figure out why GetGroundAt is not giving us the ground properly)
+            if self.doesGroundMove and self.lastOrigin:GetDistanceTo(self:GetOrigin()) < kEpsilon then
+                self:SetGroundMoveType(false)
+            end
+
+            local leapTarget = attachPointOrigin
             if (self.nextLeapTime or 0) < now then
                 if distance > babblerMaxLeapDistance then
                     leapTarget = orig + GetNormalizedVector(delta) * babblerMaxLeapDistance
@@ -1485,7 +1510,8 @@ if Server then
                 local moveVelocity, flightTime = self:GetLeapVelocity(leapTarget)
                 -- If target is above a 45/3 degree angle from us, need to jump
                 -- If we havn't jumped for a while (stuck ?) jump anyway
-                if not obstacleInWay and (yDiff > -0.5 or now - self.timeLastJump > 3) then
+                -- if (not obstacleInWay and yDiff > -0.5) or now - self.timeLastJump > 3 then
+                if (not obstacleInWay and yDiff > -0.5) then
                     self:Jump(moveVelocity)
                 end
                 self.nextLeapTime = now + flightTime/2 + math.random() * 0.3
@@ -1743,6 +1769,7 @@ if Server then
                 if speedXZ > desiredSpeedXZ then
                     local scale = math.max(desiredSpeedXZ, kEpsilon) / speedXZ
                     moveVel.x = moveVel.x * scale
+                    moveVel.y = moveVel.y * scale
                     moveVel.z = moveVel.z * scale
                 end
 
