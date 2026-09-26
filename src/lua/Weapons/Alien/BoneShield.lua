@@ -204,7 +204,6 @@ function BoneShield:GetCanUseBoneShield(player)
             and player:GetIsOnGround()
             and not self.secondaryAttacking
             and not player.charging
-            and not (player.GetIsStomping and player:GetIsStomping())
 end
 
 function BoneShield:OnPrimaryAttack(player)
