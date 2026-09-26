@@ -135,6 +135,10 @@ function BabblerClingMixin:GetCanBeUsed(entity, useSuccessTable)
         success = false
     end
 
+    if success and HasMixin(self, "BabblerOwner") and self:GetBabblerCount() >= self:GetMaxBabblers() then
+        success = false
+    end
+
     if success and (not entity.GetNumClingedBabblers or entity:GetNumClingedBabblers() == 0) then
         success = false
     end
@@ -145,9 +149,21 @@ end
 
 function BabblerClingMixin:OnUse(player, elapsedTime, useSuccessTable)
     if Server then
+
         local isTargetOwner = HasMixin(self, "BabblerOwner")
+
+        local freeSpots = self:GetMaxClingedBabblers() - self:GetNumClingedBabblers()
+        if isTargetOwner then
+            freeSpots = math.min(freeSpots, self:GetMaxBabblers() - self:GetBabblerCount())
+        end
+
+        if freeSpots <= 0 then
+            return
+        end
+
         for _, babbler in ipairs(player:GetClingedBabblers()) do
-            if not self:GetCanAttachBabbler() or (isTargetOwner and self:GetBabblerCount() >= self:GetMaxBabblers()) then
+
+            if freeSpots <= 0 then
                 break
             end
 
@@ -155,6 +171,7 @@ function BabblerClingMixin:OnUse(player, elapsedTime, useSuccessTable)
 
                 self:TriggerEffects(math.random() < 0.5 and "babbler_wag_begin" or "babbler_jump") 
                 babbler:OrderCling(self)
+                freeSpots = freeSpots - 1
 
             end
         end
@@ -172,6 +189,12 @@ if Server then
 
         if self.attachedBabblers[babblerId] then return false end
 
+        local previousOwner = babbler:GetOwner()
+
+        if previousOwner ~= self and HasMixin(self, "BabblerOwner") and self:GetBabblerCount() >= self:GetMaxBabblers() then
+            return false
+        end
+
         local freeAttachPoint = #self.freeAttachPoints > 0 and table.remove(self.freeAttachPoints)
         if freeAttachPoint then
 
@@ -180,7 +203,6 @@ if Server then
             self.babblerShieldRemaining = self.babblerShieldRemaining + self.babblerShieldPerBabbler
 
             -- Do not count babblers you attach on yourself
-            local previousOwner = babbler:GetOwner()
             if previousOwner and previousOwner ~= self and not disablePoints
                     and previousOwner.AddContinuousScore then
                 local amountGiven = 1
