@@ -116,7 +116,6 @@ local function MapBlipMixinOnUpdateServer()
     end
 end
 
-
 local function CreateMapBlip(self, blipType, blipTeam, _)
 
     local mapName = MapBlip.kMapName
@@ -177,11 +176,7 @@ end
 --
 function MapBlipMixin:SetOrigin(orig)
     if self.lastBlipOrigin ~= orig then
-        if self.lastBlipOrigin then
-            VectorCopy(orig, self.lastBlipOrigin)
-        else
-            self.lastBlipOrigin = Vector(orig)
-        end
+        self.lastBlipOrigin = Vector(orig)
 
         local isInitTick = not self.mapBlipSyncTick or Shared.GetTime() - self.mapBlipSyncTick <= 0.1
         if isInitTick then
@@ -301,7 +296,17 @@ function MapBlipMixin:UpdateFogEntity(sighted)
     local _, blipType = self:GetMapBlipInfo()
     f:SetFogEntMapBlipInfo(true, blipType, teamNumber, GetIsUnitActive(self), self:isa("Player"))
 
+    local orig = Vector(self.GetPositionForMinimap and self:GetPositionForMinimap() or self:GetOrigin())
+    if self:isa("Player") then
+        orig.y = self:GetModelOrigin().y -- Model middle, better for LOS check
+    elseif not self:isa("PowerPoint") then -- Elevate a bit off the ground anything but powernode (their orig is good)
+        orig = orig + Vector(0, 0.25, 0)
+    end
+
     f.reentranceOff = true
+    f:SetOrigin(orig)
+    f:SetAngles(self:GetAngles())
+
     if isNewEntity then
         f:OnInitializedMapBlipMixin() -- Need to happen AFTER we set the custom host blips
 
@@ -309,6 +314,7 @@ function MapBlipMixin:UpdateFogEntity(sighted)
             -- Couldn't get a mapblip for this fog entity (e.g. hit the entity
             -- limit) -- drop it entirely
             DestroyEntity(f)
+            f.reentranceOff = nil
             return nil
         end
 
@@ -336,15 +342,6 @@ function MapBlipMixin:UpdateFogEntity(sighted)
         kFogOfWarEnts_fogToHost[f:GetId()] = id
     end
 
-    local orig = self:GetOrigin()
-    if self:isa("Player") then
-        orig.y = self:GetModelOrigin().y -- Model middle, better for LOS check
-    elseif not self:isa("PowerPoint") then -- Elevate a bit off the ground anything but powernode (their orig is good)
-        orig = self:GetOrigin() + Vector(0, 0.25, 0)
-    end
-
-    f:SetOrigin(orig)
-    f:SetAngles(self:GetAngles())  
     return f
 end
 
@@ -364,6 +361,8 @@ function MapBlipMixin:StashFogEntity()
     self.blipTeam = kTeamInvalid
     self.isActive = false
     self:SetTeamNumber(kTeamInvalid)
+
+    self.lastBlipOrigin = nil
 
     if #kFogOfWarEntsPool > kMaxQueueSize then
         self:AddTimedCallback(DestroyEntity, 0)
