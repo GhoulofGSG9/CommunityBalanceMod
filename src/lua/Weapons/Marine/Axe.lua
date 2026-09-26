@@ -62,9 +62,9 @@ function Axe:GetHUDSlot()
 end
 
 function Axe:GetRange()
-	local player = self:GetParent()
-	local floorAim = player and player:GetViewCoords().zAxis.y or 0
-	floorAim = floorAim * floorAim
+    local player = self:GetParent()
+    local floorAim = player and player:GetViewCoords().zAxis.y or 0
+    floorAim = floorAim * floorAim
     return Axe.kRange + Clamp(floorAim,0,1) * Axe.kFloorRange
 end
 
@@ -121,72 +121,11 @@ function Axe:OnPrimaryAttackEnd(player)
     idleTime = Shared.GetTime()
 end
 
-local toEntity = Vector()
-local function withinFoV(seeingEntity, hitFov, targetOrigin, eyePos)
-    local withinFOV = true
-    
-    -- Calculate vector from eye to target
-    toEntity.x = targetOrigin.x - eyePos.x
-    toEntity.y = targetOrigin.y - eyePos.y  
-    toEntity.z = targetOrigin.z - eyePos.z
-    
-    -- Early exit for very close targets (they're always visible)
-    local toEntityLength = math.sqrt(toEntity.x * toEntity.x + 
-                                     toEntity.y * toEntity.y + 
-                                     toEntity.z * toEntity.z)
-    if toEntityLength <= kEpsilon then
-        return true
-    end
-
-    -- Normalize
-    local invLength = 1.0 / toEntityLength
-    toEntity.x = toEntity.x * invLength
-    toEntity.y = toEntity.y * invLength
-    toEntity.z = toEntity.z * invLength
-
-    -- View direction
-    local seeingEntityAngles = GetEntityViewAngles(seeingEntity)
-    local forwardVec = seeingEntityAngles:GetCoords().zAxis
-    
-    local dotProduct = Math.DotProduct(toEntity, forwardVec)
-    dotProduct = math.max(-1, math.min(1, dotProduct)) -- Safety clamp
-    
-    local halfFovRad = math.rad(hitFov / 2)
-    local angle = math.acos(dotProduct)
-    
-    withinFOV = angle <= halfFovRad
-    
-    return withinFOV
-end
-
+-- Longer range/wider FOV for webs than the axe's normal swing (less frustrating, avoids
+-- having to be so close we trigger it).
+local kAxeWebHitFov = 55 -- Reasonable coverage compared to the swing
 function Axe:Axe_WebHitCheck(coords, player)
-    -- Longer range for webs (less frustrating, avoids having to be so close we trigger it)
-    local range = self:GetRange() * 1.5
-    local hitFov = 55 -- Reasonable coverage compared to the swing
-
-    local enemyTeamNumber = GetEnemyTeamNumber(self:GetTeamNumber())
-    local playerPos = player:GetEyePos()
-    
-    -- Fetch webs in expanded range for FOV consideration
-    local webs = GetEntitiesForTeamWithinRange("Web", enemyTeamNumber, 
-                                              playerPos, kMaxWebLength * 2)
-    
-    for _, web in ipairs(webs) do
-        local closestWebPoint = web:GetClosestPointOnWeb(playerPos + coords.zAxis * (range / 2))
-        
-        -- Check distance first (cheaper than FOV)
-        local distance = closestWebPoint:GetDistanceTo(playerPos)
-        local isWithinHitFoV = withinFoV(player, hitFov, closestWebPoint, playerPos)        
-        if distance <= range and isWithinHitFoV then
-            -- Final raycheck to be sure there are no walls
-            local rayTrace = Shared.TraceRay(playerPos, closestWebPoint, CollisionRep.Default, PhysicsMask.AllButPCsAndRagdolls, EntityFilterTwo(player, self))
-            if rayTrace.entity and rayTrace.entity:isa("Web") then
-                self:DoDamage(kAxeDamage, web, closestWebPoint, coords.yAxis, "organic", false)
-                return true, web
-            end
-        end
-    end
-    return false, nil
+    return PerformMeleeWebHitCheck(self, player, kAxeDamage, self:GetRange() * 1.5, kAxeWebHitFov)
 end
 
 -- local swipeStart = nil
