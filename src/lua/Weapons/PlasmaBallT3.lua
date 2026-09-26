@@ -74,13 +74,25 @@ if Server then
         return 0 
     end
 
-    local function HealShortensDot(dotMarker, entity)
+    local function GetIsBurnOver(dotMarker, entity)
+
+        local entityId = entity:GetId()
+        local markerId = dotMarker:GetId()
+
+        if dotMarker.dotEndTime > (entity.plasmaDotEndTime or 0) then
+            entity.plasmaDotEndTime = dotMarker.dotEndTime
+            entity.plasmaDotMarkerId = markerId
+        end
+
+        if entity.plasmaDotMarkerId ~= markerId then
+            return true
+        end
 
         local healCut = entity.plasmaDotHealCut or 0
-        local base = dotMarker.healCutBase[entity:GetId()]
+        local base = dotMarker.healCutBase[entityId]
         if not base then
-            dotMarker.healCutBase[entity:GetId()] = healCut
-            return false
+            base = healCut
+            dotMarker.healCutBase[entityId] = base
         end
 
         return Shared.GetTime() > dotMarker.dotEndTime - (healCut - base)
@@ -117,7 +129,7 @@ if Server then
         dotMarker:SetLoSCheck(true)
         dotMarker.dotEndTime = Shared.GetTime() + kPlasmaDOTDuration
         dotMarker.healCutBase = {}
-        dotMarker.immuneCondition = HealShortensDot
+        dotMarker.immuneCondition = GetIsBurnOver
 
         for _, entity in ipairs(hitEntities) do
             dotMarker.healCutBase[entity:GetId()] = entity.plasmaDotHealCut or 0

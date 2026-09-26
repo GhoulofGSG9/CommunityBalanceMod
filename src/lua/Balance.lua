@@ -1047,12 +1047,12 @@ kExoAbilitiesTechResearchTime = 45
 kPlasmaT3LifeTime = kGrenadeLifetime -- same fuse as the grenade launcher
 
 kPlasmaBombSpeed = 15
-kPlasmaBombDamage = 35
+kPlasmaBombDamage = 40
 kPlasmaBombDamageRadius = 4 -- 4 is the pulse damage radius (matches pulse cinematic)
 kPlasmaBombEnergyCost = 0.60
 
 kPlasmaBombDOTDamage = 5 -- DOT applied after direct damage
-kPlasmaDOTDuration = 5.5
+kPlasmaDOTDuration = 3.0
 kPlasmaDOTInterval = 0.5
 kPlasmaDOTHealReduction = 0.5
 
