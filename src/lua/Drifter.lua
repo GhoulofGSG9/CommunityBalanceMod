@@ -76,6 +76,8 @@ Drifter.kTouchRange = 1.5 -- Model max extents for "touch" uncloaking
 Drifter.kEnzymeRange = 22
 
 local kDrifterSelfOrderRange = 12
+local kDrifterIdleTaskCheckInterval = 4
+local kDrifterIdleTaskGracePeriod = 3
 local kDrifterPVESnapRange = 2.0
 local kDrifterAlienSnapRange = 2.0
 
@@ -402,8 +404,11 @@ function Drifter:OnOrderGiven(newOrder)
     --This will cancel Consume if it is running.
     self.fieldCloudDemandedAt = {}
     self.fieldCloudTechId = {}
+    self.timeCloudBlockedSince = nil
+    self.timeLastOrderGiven = Shared.GetTime()
 
-    if (newOrder:GetType() == kTechId.Follow and self:GetCurrentOrder():GetType() == kTechId.Move) then
+    local currentOrder = self:GetCurrentOrder()
+    if (currentOrder and newOrder:GetType() == kTechId.Follow and currentOrder:GetType() == kTechId.Move) then
         -- QoL: If we have move orders, just discard them and go straight for the target
         -- (because ns2 is autochaining a move and THEN a follow order, which is not a nice detour)
         self:ClearCurrentOrder()
@@ -479,14 +484,16 @@ function Drifter:OnOverrideOrder(order)
     Shared.SortEntitiesByDistance(origin, nearbyAliens)
 
     -- Autosnap on nearby PvE for a grow order
-    for _, pve in ipairs(nearbyPVE) do
-        if not pve:GetIsBuilt() and GetAreFriends(self, pve) and not IsBeingGrown(self, pve) and (not pve.GetCanAutoBuild or pve:GetCanAutoBuild()) then
-            order.orderParam = pve:GetId()
-            order:SetLocation(pve:GetOrigin())
-            order:SetType(kTechId.Grow)
-            orderTarget = pve
-            --Log("Drifter -- Snapping on nearest unbuilt to construct")
-            break
+    if (order:GetType() == kTechId.Move or order:GetType() == kTechId.Default) then
+        for _, pve in ipairs(nearbyPVE) do
+            if not pve:GetIsBuilt() and GetAreFriends(self, pve) and not IsBeingGrown(self, pve) and (not pve.GetCanAutoBuild or pve:GetCanAutoBuild()) then
+                order.orderParam = pve:GetId()
+                order:SetLocation(pve:GetOrigin())
+                order:SetType(kTechId.Grow)
+                orderTarget = pve
+                --Log("Drifter -- Snapping on nearest unbuilt to construct")
+                break
+            end
         end
     end
 
@@ -570,7 +577,7 @@ end
 function Drifter:GetFollowPosition(target)
 
     if not target:isa("Player") then
-        return None
+        return nil
     end
     
     local coords = target:GetViewAngles():GetCoords()
@@ -662,11 +669,13 @@ function Drifter:HideBehindFollowedTarget(target)
         dirBehind.y = 0
         dirBehind:Normalize()
 
-        --a - math.floor(a/b)*b
-        local a = Shared.GetTime() * 0.8
-        local b = 2 -- max range
-        local range = (a - math.floor(a/b)*b)
-        local safeSpot = target:GetOrigin() + dirBehind * (range <= 1 and 2.5 or 8)
+        local distToThreat = (target:GetOrigin() - e:GetOrigin()):GetLengthXZ()
+        if self.followHideFar then
+            self.followHideFar = distToThreat < 10
+        else
+            self.followHideFar = distToThreat < 6
+        end
+        local safeSpot = target:GetOrigin() + dirBehind * (self.followHideFar and 8 or 2.5)
 
         --[[
         DebugWireSphere(safeSpot, 0.10,
@@ -697,11 +706,11 @@ function Drifter:ProcessFollowOrder(moveSpeed, deltaTime)
         else
             if (target) then
                 
-                local repositionSpeed = moveSpeed * 1
+                local repositionSpeed = moveSpeed
 
                 -- Use target speed if we are not in combat for smooth following
                 if HasMixin(target, "Combat") and not (self:GetIsInCombat() or target:GetIsInCombat()) then
-                    repositionSpeed = math.max(Drifter.kMoveSpeed * 0.4, target:GetVelocity():GetLengthXZ())
+                    repositionSpeed = math.max(moveSpeed * 0.4, target:GetVelocity():GetLengthXZ())
                 end
 
                 if (self.timeLastFollowPosComputed + 0.25 < Shared.GetTime()) then
@@ -818,14 +827,26 @@ function Drifter:ProcessEnzymeOrder(moveSpeed, deltaTime)
 
             -- move to target otherwise
             if self:MoveToTarget(PhysicsMask.AIMovement, targetPos, moveSpeed, deltaTime) then
-                if #self.fieldCloudDemandedAt > 0 then
-                    table.remove(self.fieldCloudDemandedAt, 1)
-                    table.remove(self.fieldCloudTechId, 1)
-                    --Log("Drifter -- MoveTarget done: removed side-quest first entry")
-                else
-                    self:ClearOrders()
-                    --Log("Drifter -- MoveTarget done: clearing order")
+
+                if not self.timeCloudBlockedSince then
+                    self.timeCloudBlockedSince = Shared.GetTime()
+                elseif self.timeCloudBlockedSince + 2 < Shared.GetTime() then
+
+                    if #self.fieldCloudDemandedAt > 0 then
+                        table.remove(self.fieldCloudDemandedAt, 1)
+                        table.remove(self.fieldCloudTechId, 1)
+                        --Log("Drifter -- MoveTarget done: removed side-quest first entry")
+                    else
+                        self:ClearOrders()
+                        --Log("Drifter -- MoveTarget done: clearing order")
+                    end
+
+                    self.timeCloudBlockedSince = nil
+
                 end
+
+            else
+                self.timeCloudBlockedSince = nil
             end
 
         end
@@ -914,7 +935,7 @@ local function UpdateTasks(self, deltaTime)
 
         self.newOrderFirstUpdate = true
 
-        if not self.timeLastTaskCheck or self.timeLastTaskCheck + 2 < now then
+        if (not self.timeLastTaskCheck or self.timeLastTaskCheck + kDrifterIdleTaskCheckInterval < now) and (self.timeLastOrderGiven or 0) + kDrifterIdleTaskGracePeriod < now then
 
             if GetIsUnitActive(self) then
                 FindTask(self)
