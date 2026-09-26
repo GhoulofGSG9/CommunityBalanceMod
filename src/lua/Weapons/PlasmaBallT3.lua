@@ -126,14 +126,21 @@ if Server then
         dotMarker:SetDeathIconIndex(kDeathMessageIcon.EMPBlast)
         dotMarker:SetOwner(owner)
         dotMarker:SetFallOffFunc(NoFalloff)
-        dotMarker:SetLoSCheck(true)
+        dotMarker:SetLoSCheck(false)
         dotMarker.dotEndTime = Shared.GetTime() + kPlasmaDOTDuration
         dotMarker.healCutBase = {}
         dotMarker.immuneCondition = GetIsBurnOver
 
         for _, entity in ipairs(hitEntities) do
             dotMarker.healCutBase[entity:GetId()] = entity.plasmaDotHealCut or 0
-            self:DoDamage(shotDamage, entity, position, GetNormalizedVector(entity:GetOrigin() - position), "none")
+        end
+
+        local directHit = targetHit and table.removevalue(hitEntities, targetHit)
+
+        RadiusDamage(hitEntities, center, kPlasmaBombDamageRadius, shotDamage, self, false, NoFalloff)
+
+        if directHit then
+            self:DoDamage(shotDamage, targetHit, position, GetNormalizedVector(targetHit:GetOrigin() - position), "none")
         end
 
         -- The electrify goes to the one alien the bomb physically landed on, not to the
