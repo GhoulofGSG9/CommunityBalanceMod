@@ -1,11 +1,13 @@
 BabblerOwnerMixin = CreateMixin(BabblerOwnerMixin)
 BabblerOwnerMixin.type = "BabblerOwner"
 
+
+local kMaxTrackedBabblers = 18
 BabblerOwnerMixin.networkVars = 
 {
-    babblerCount = "integer (0 to 18)",
-    bombBabblerCount = "integer (0 to 18)",
-    webbedBabblerCount = "integer (0 to 18)",
+    babblerCount = "integer (0 to " .. kMaxTrackedBabblers .. ")",
+    webbedBabblerCount = "integer (0 to " .. kMaxTrackedBabblers .. ")",
+    bombBabblerCount = "integer (0 to " .. kMaxTrackedBabblers .. ")"
 }
 
 kBabblerHatchTime = 2.5
@@ -13,16 +15,32 @@ function BabblerOwnerMixin:__initmixin()
     
     PROFILE("BabblerOwnerMixin:__initmixin")
     
-	self.babblerCount = 0
+    self.babblerCount = 0
+    self.webbedBabblerCount = 0
     self.bombBabblerCount = 0
+    self.babblerBaitId = Entity.invalidId
 
-	if Server then
-		self:AddTimedCallback(self.HatchBabbler, kBabblerHatchTime)
-	end
+    if Server then
+        self:AddTimedCallback(self.HatchBabbler, kBabblerHatchTime)
+    end
 end
 
 function BabblerOwnerMixin:GetBabblerCount()
-	return self.babblerCount
+    return self.babblerCount
+end
+
+-- Upper bound of the webbedBabblerCount network var declared above.
+local kMaxTrackedWebbedBabblers = 6
+
+function BabblerOwnerMixin:WebBabblerAdded()
+    self.webbedBabblerCount = math.min(kMaxTrackedWebbedBabblers, self.webbedBabblerCount + 1)
+end
+function BabblerOwnerMixin:WebBabblerRemoved()
+    self.webbedBabblerCount = math.max(0, self.webbedBabblerCount - 1)
+end
+
+function BabblerOwnerMixin:GetNumWebbedBabblers()
+    return self.webbedBabblerCount or 0
 end
 
 function BabblerOwnerMixin:GetBombBabblerCount()
@@ -30,12 +48,7 @@ function BabblerOwnerMixin:GetBombBabblerCount()
 end
 
 function BabblerOwnerMixin:GetMaxBabblers()
-	return 6
-end
-
--- server: bump in AttachToWeb success and wherever babblers leave webs
-function BabblerOwnerMixin:GetNumWebbedBabblers()
-    return self.webbedBabblerCount or 0
+    return 6
 end
 
 function BabblerOwnerMixin:OnWeaponAdded(weapon)
@@ -46,18 +59,9 @@ end
 
 -- Returns if the owner can hatch/spawn a babbler
 function BabblerOwnerMixin:GetCanHatchBabbler()
-    -- owner needs to be on a playing team
-    if not self:GetIsOnPlayingTeam() then
-        return false
-    end
-
-    -- owner needs to be alive
-    if HasMixin(self, "Live") and not self:GetIsAlive() then
-        return false
-    end
-	
-    -- owner needs to be not under attack
-    if self:GetIsUnderFire() then
+    -- owner needs to be below the babbler limit
+    local aboveBabblerLimit = self:GetBabblerCount() >= self:GetMaxBabblers()
+    if aboveBabblerLimit then
         return false
     end
 
@@ -66,9 +70,18 @@ function BabblerOwnerMixin:GetCanHatchBabbler()
         return false
     end
 
-    -- owner needs to be below the babbler limit
-    local aboveBabblerLimit = self:GetBabblerCount() >= self:GetMaxBabblers()
-    if aboveBabblerLimit then
+    -- owner needs to be on a playing team
+    if self.GetIsOnPlayingTeam and not self:GetIsOnPlayingTeam() then
+        return false
+    end
+
+    -- owner needs to be alive
+    if HasMixin(self, "Live") and not self:GetIsAlive() then
+        return false
+    end
+    
+    -- owner needs to be not under attack
+    if self.GetIsUnderFire and self:GetIsUnderFire() then
         return false
     end
 
@@ -79,7 +92,7 @@ end
 if Server then
 
     function BabblerOwnerMixin:BabblerCreated()
-        self.babblerCount = self.babblerCount + 1
+        self.babblerCount = math.min(kMaxTrackedBabblers, self.babblerCount + 1)
         --Log("%s - Babblers created, new count: %s", self, self.babblerCount)
     end
 
@@ -89,44 +102,77 @@ if Server then
     end
 
     function BabblerOwnerMixin:BombBabblerCreated()
-        self.bombBabblerCount = self.bombBabblerCount + 1
+        self.bombBabblerCount = math.min(kMaxTrackedBabblers, self.bombBabblerCount + 1)
     end
 
     function BabblerOwnerMixin:BombBabblerDestroyed()
         self.bombBabblerCount = math.max(0, self.bombBabblerCount - 1)
     end
-	
+    
     local function CountRealBabblers(owner)
 
         local count = 0
+        local webbedCount = 0
+        local ownerId = owner:GetId()
         for _, babbler in ipairs(GetEntitiesForTeam("Babbler", owner:GetTeamNumber())) do
-            if babbler:GetOwnerId() == owner:GetId() and not babbler.babblerBombSpawned then
+            if babbler:GetOwnerId() == ownerId and not babbler.babblerBombSpawned then
                 count = count + 1
+                if babbler:GetIsOnWeb() then
+                    webbedCount = webbedCount + 1
+                end
             end
         end
 
-        return count
+        return count, webbedCount
+
+    end
+
+    -- The audit is a full team-wide entity scan, so it is throttled instead of
+    -- running on every hatch tick (it used to run several times a second).
+    local kCounterAuditInterval = 10
+    local function AuditBabblerCount(self)
+
+        local now = Shared.GetTime()
+        if self.timeNextBabblerAudit and now < self.timeNextBabblerAudit then
+            return
+        end
+        self.timeNextBabblerAudit = now + kCounterAuditInterval
+
+        local actual, webbed = CountRealBabblers(self)
+        if actual ~= self.babblerCount then
+            Print("Error: BabblerOwner drift: counter %d, actual %d (fixing)", self.babblerCount, actual)
+            self.babblerCount = math.min(kMaxTrackedBabblers, actual)
+        end
+
+        if webbed ~= self.webbedBabblerCount then
+            self.webbedBabblerCount = math.min(kMaxTrackedBabblers, webbed)
+        end
 
     end
 
     function BabblerOwnerMixin:HatchBabbler()
 
         -- truth check before acting on the counter
-        local actual = CountRealBabblers(self)
-        if actual ~= self.babblerCount then
-            Print("Error: BabblerOwner drift: counter %d, actual %d (fixing)", self.babblerCount, actual)
-            self.babblerCount = actual
-        end
+        AuditBabblerCount(self)
 
         if self:GetCanHatchBabbler() then
 
+            -- GetCanAttachBabbler said there is room, but the attach point list is
+            -- the authority: bail rather than CreateEntity at a nil origin.
             local origin = self:GetFreeBabblerAttachPointOrigin()
+            if not origin then
+                return true
+            end
+
             local babbler = CreateEntity(Babbler.kMapName, origin, self:GetTeamNumber())
+            if not babbler then
+                return true
+            end
 
             babbler:SetOwner(self)
-            babbler:SetSilenced(self.silenced)
+            babbler:SetSilenced(self.silenced == true)
 
-            local client = self:GetClient()
+            local client = self.GetClient and self:GetClient()
             if client and client.variantData then
                 babbler:SetVariant(client.variantData.babblerVariant)
             end
@@ -139,20 +185,24 @@ if Server then
     end
 
     function BabblerOwnerMixin:HatchMaxBabblers()
-        while self:GetCanHatchBabbler() do
+        for _ = 1, self:GetMaxBabblers() do
+            if not self:GetCanHatchBabbler() then
+                break
+            end
             self:HatchBabbler()
         end
     end
 
     function BabblerOwnerMixin:DestroyAllOwnedBabblers()
+        local ownerId = self:GetId()
         for _, babbler in ipairs(GetEntitiesForTeam("Babbler", self:GetTeamNumber())) do
-            if babbler:GetOwner() == self then
+            if babbler:GetOwnerId() == ownerId and babbler:GetIsAlive() then
                 babbler:Kill()
             end
         end
     end
 
-	function BabblerOwnerMixin:OnKill()
-		self:DestroyAllOwnedBabblers()
-	end
+    function BabblerOwnerMixin:OnKill()
+        self:DestroyAllOwnedBabblers()
+    end
 end

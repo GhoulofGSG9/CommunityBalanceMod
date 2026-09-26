@@ -16,8 +16,6 @@ class 'BabblerPheromone' (Projectile)
 BabblerPheromone.kMapName = "babblerpheromone"
 BabblerPheromone.kModelName = PrecacheAsset("models/alien/babbler/babbler_ball.model")
 
-local precached1 = PrecacheAsset("models/alien/babbler/babbler_ball.surface_shader")
-
 local kBabblerTargetSearchRange = 15
 local kBabblerSearchRange = 1000
 local kBabblerPheromoneDuration = 5
@@ -45,7 +43,8 @@ function BabblerPheromone:OnCreate()
 
         self:AddTimedCallback(BabblerPheromone.TimeUp, kBabblerPheromoneDuration)
         self.impact = false
-        self.worldCollision = false
+        self.currentBounceCount = 0
+        self.maxBounceRegistered = 3
 
     end
 
@@ -57,6 +56,118 @@ function BabblerPheromone:OnCreate()
 
 end
 
+-- Gathers every babbler this ball's owner can command, closest first, with
+-- already-loose babblers preferred over ones still riding the owner (so a
+-- hit doesn't yank a babbler off the owner if a free one nearby can do the
+-- job instead).
+local function CollectBabblers(self)
+
+    local owner = self:GetOwner()
+    local searchOrigin = owner and owner:GetOrigin() or self:GetOrigin()
+
+    local recruits = {}
+
+    local ownerId = self:GetOwnerId()
+    if not ownerId or ownerId == Entity.invalidId then
+        return recruits
+    end
+
+    local babblers = GetEntitiesForTeamWithinRange("Babbler", self:GetTeamNumber(), searchOrigin, kBabblerSearchRange)
+
+    local sortKeys = {}
+    local fieldBabblerPriorityRatio = 2.5
+
+    for _, babbler in ipairs(babblers) do
+        if babbler:GetOwnerId() == ownerId and babbler:GetIsAlive() and not babbler:GetIsOnWeb() then
+            table.insert(recruits, babbler)
+            sortKeys[babbler] = babbler:GetOrigin():GetDistanceTo(searchOrigin)
+                    * (babbler:GetIsClinged() and fieldBabblerPriorityRatio or 1)
+        end
+    end
+
+    table.sort(recruits, function(a, b)
+        return sortKeys[a] < sortKeys[b]
+    end)
+
+    return recruits
+
+end
+
+local function DispatchBabblers(babblers, order, entity, position, spots)
+
+    if not position then
+        return
+    end
+
+    for _, babbler in ipairs(babblers) do
+
+        if spots ~= nil and spots <= 0 then break end
+
+        local isClinged = babbler:GetIsClinged()
+
+        local alreadyThere = order == kBabblerMoveType.Cling
+                and entity ~= nil
+                and isClinged
+                and babbler:GetParent() == entity
+
+        if not alreadyThere then
+
+            if isClinged then
+                babbler:Detach()
+            end
+
+            if order == kBabblerMoveType.Cling then
+                babbler:OrderCling(entity, position)
+            elseif order == kBabblerMoveType.Attack then
+                babbler:OrderAttack(entity, position)
+            else
+                babbler:OrderMove(Vector(position.x + (math.random() - 0.5) / 2,
+                                         position.y + math.random() / 2,
+                                         position.z + (math.random() - 0.5) / 2))
+            end
+
+            babbler:RefreshFreeRoam()
+
+        end
+
+        if spots ~= nil then
+            spots = spots - 1
+        end
+
+    end
+
+end
+
+-- Immediate response on throw: give babblers a head start toward
+-- whatever's in the owner's view before the ball has even had a
+-- chance to physically hit anything.
+function BabblerPheromone:InitialDispatch()
+
+    local owner = self:GetOwner()
+    if owner and HasMixin(owner, "Live") and not owner:GetIsAlive() then
+        owner = nil
+    end
+
+    local dirPos
+    if owner and owner.GetViewCoords then
+        local forwardViewDir = GetNormalizedVectorXZ(owner:GetViewCoords().zAxis)
+        -- Looking straight up or down normalizes to (0,0,0); fall back to
+        -- the owner's own position rather than ordering everyone onto it.
+        if forwardViewDir:GetLengthSquared() > kEpsilon then
+            dirPos = owner:GetOrigin() + forwardViewDir * 5
+        else
+            dirPos = Vector(owner:GetOrigin())
+        end
+    end
+
+    local target = owner and self:GetTarget(owner)
+    local order = target and GetBabblerBallOrder(owner, target) or kBabblerMoveType.Move
+    local position = target and GetEngagementOrOrigin(target) or dirPos
+
+    DispatchBabblers(CollectBabblers(self), order, target, position)
+
+end
+
 local kBabblerTargetLateralPenalty = 2
 local kUpVector = Vector(0, 0.5, 0)
 function BabblerPheromone:GetTarget(owner)
@@ -64,14 +175,14 @@ function BabblerPheromone:GetTarget(owner)
     local ownerOrig = owner:GetOrigin()
     local midWayOrig = (orig + ownerOrig) * 0.5
 
-    -- Direction from owner to pheromone
     local dir = orig - ownerOrig
     local dirLength = dir:GetLength()
-    local searchRange = dir:GetLength() * 0.5 + kBabblerTargetSearchRange
 
     if dirLength < kEpsilon then -- Too close
         return nil
     end
+
+    local searchRange = dirLength * 0.5 + kBabblerTargetSearchRange
     dir:Scale(1 / dirLength)
 
     local enemyTeamNumber = GetEnemyTeamNumber(self:GetTeamNumber())
@@ -81,25 +192,26 @@ function BabblerPheromone:GetTarget(owner)
 
     for _, ent in ipairs(nearestTargets) do
 
-        if ent and not GetWallBetween(ownerOrig + kUpVector, ent:GetOrigin() + kUpVector, ent) then
+        if ent then
 
-            local toEnt = ent:GetOrigin() - ownerOrig
+            local entOrigin = ent:GetOrigin()
 
-            -- Projection along owner->pheromone axis
-            local alongDir = Math.DotProduct(toEnt, dir)
+            if not GetWallBetween(ownerOrig + kUpVector, entOrigin + kUpVector, ent) then
 
-            -- Only consider entities at or beyond the owner, in the pheromone's direction
-            if alongDir > 0 then
+                local toEnt = entOrigin - ownerOrig
 
-                -- Perpendicular distance from the owner->pheromone ray
-                local lateral = (toEnt - dir * alongDir):GetLength()
+                local alongDir = Math.DotProduct(toEnt, dir)
 
-                -- Score: prioritize being on the owner->pheromone line, then closeness to owner
-                local score = alongDir + lateral * kBabblerTargetLateralPenalty
+                if alongDir > 0 then
 
-                if not bestScore or score < bestScore then
-                    bestEnt = ent
-                    bestScore = score
+                    local lateral = (toEnt - dir * alongDir):GetLength()
+                    local score = alongDir + lateral * kBabblerTargetLateralPenalty
+
+                    if not bestScore or score < bestScore then
+                        bestEnt = ent
+                        bestScore = score
+                    end
+
                 end
 
             end
@@ -109,34 +221,6 @@ function BabblerPheromone:GetTarget(owner)
     end
 
     return bestEnt
-end
-
--- Force order for all babblers to the same target
-function BabblerPheromone:MoveBabblers()
-	local orig = self:GetOrigin()
-	local owner = self:GetOwner()
-	local ownerId = self:GetOwnerId()
-	
-	local target = self:GetTarget(owner)
-	local targetPos = target and (target.GetEngagementPoint and target:GetEngagementPoint() or target:GetOrigin())
-
-	for _, babbler in ipairs(GetEntitiesForTeamWithinRange("Babbler", self:GetTeamNumber(), orig, kBabblerSearchRange)) do
-		if babbler:GetOwnerId() == ownerId and not babbler:GetIsOnWeb() then
-			if babbler:GetIsClinged() and babbler:GetParent() == owner then
-				babbler:Detach()
-			end
-
-			if target then
-				-- Log("Attack group order issued by the bait toward %s", target)
-				babbler:SetMoveType(kBabblerMoveType.Attack, target, targetPos, true)
-			else --if babbler.moveType ~= kBabblerMoveType.Attack then
-				-- Log("Move group order issued by the bait toward %s", target)
-				babbler:SetMoveType(kBabblerMoveType.Move, nil, self:GetOrigin(), true)
-			end
-
-            babbler:RefreshFreeRoam()
-		end
-	end
 end
 
 function BabblerPheromone:GetProjectileModel()
@@ -157,11 +241,11 @@ function BabblerPheromone:OnUpdateRender()
 
     if not self.timeLastPheromoneEffect or self.timeLastPheromoneEffect + kPheromoneEffectInterval < Shared.GetTime() then
 
-        if self.destinationEntityId and self.destinationEntityId ~= Entity.invalidId and Shared.GetEntity(self.destinationEntityId) then
-            
-            local destinationEntity = Shared.GetEntity(self.destinationEntityId)
+        local destinationEntity = self.destinationEntityId and self.destinationEntityId ~= Entity.invalidId
+                and Shared.GetEntity(self.destinationEntityId)
+
+        if destinationEntity then
             destinationEntity:TriggerEffects("babbler_pheromone")
-            
         else
             self:TriggerEffects("babbler_pheromone")
         end
@@ -182,182 +266,80 @@ end
 
 if Server then
 
-    function BabblerPheromone:OnUpdate(deltaTime)
+    -- Room left on a clingable host; nil = no cap (Move/Attack, or a target
+    -- that hosts no limited cling room). Callers treat nil as unbounded.
+    local function GetClingSpotsCount(owner, entity)
+        if not entity then return nil end
 
-        Projectile.OnUpdate(self, deltaTime)
-
-        if not self.firstUpdate then
-
-            self.firstUpdate = true
-
-            local gorge = self:GetOwner()
-            local gorgeId = self:GetOwnerId()
-            for _, babbler in ipairs(GetEntitiesForTeamWithinRange("Babbler", self:GetTeamNumber(), self:GetOrigin(), kBabblerSearchRange )) do
-
-                if babbler:GetIsClinged() and babbler:GetOwnerId() == gorgeId and babbler:GetParent() == gorge then
-
-                    babbler:Detach()
-
-                end
-
-            end
-
+        if entity:isa("Web") then
+            return math.max(kWebMaxBabblers - entity:GetNumWebbedBabblers() - GetNumBabblersEnRouteToCling(entity), 0)
+        elseif HasMixin(entity, "BabblerCling") and owner ~= entity then
+            return entity:GetNumFreeDonationSpots()
         end
-
+        return nil -- No restriction
     end
 
-    local function CanGetAttach(self, entity)
-        -- Can only attach to friends
-        if not GetAreFriends(self, entity) then
+    function BabblerPheromone:ProcessHit(entity, surface, normal, endPoint)
+
+        if self.babblerOrderingDisabled then
             return false
         end
 
-        -- Can only attach when there are attach points available
-        if HasMixin(entity, "BabblerCling") and not entity:GetCanAttachBabbler() then
-            return false
-        end
+        --self.firstUpdate = true
+        local orig = self:GetOrigin()
 
-        -- Don't attach to babbler owners that allready have max babblers
-        -- Exclude current owner so gorge can reattack own bablers
+        -- If we bounce close enough to our own owner, treat it as hitting
+        -- them (don't wait for the small ball hitbox to register a real
+        -- touch) - this is how throwing the ball at your own feet reclaims
+        -- babblers.
         local owner = self:GetOwner()
-        if entity ~= owner and HasMixin(entity, "BabblerOwner")
-                and entity:GetBabblerCount() >= entity:GetMaxBabblers() then
-            return false
+        local selfSnappingDist = 0.75
+        if not entity and owner and orig:GetDistanceTo(owner:GetOrigin()) < selfSnappingDist then
+            entity = owner
         end
-
-        return true
-    end
-
-    -- Helper function to adjust babbler move type
-    local function GetMoveType(self, entity)
-        local moveType = kBabblerMoveType.Move
-
-        if CanGetAttach(self, entity) then
-            moveType = kBabblerMoveType.Cling
-        elseif GetAreEnemies(self, entity) and HasMixin(entity, "Live") and entity:GetIsAlive() and entity:GetCanTakeDamage() or ( entity:isa("PowerPoint") and entity:GetBuiltFraction() >= 0.009 ) then
-            moveType = kBabblerMoveType.Attack
-        end
-
-        return moveType
-    end
-
-    local function CollectRecruits(self)
-
-        local owner = self:GetOwner()
-        local searchOrigin = owner and owner:GetOrigin() or self:GetOrigin()
-
-        local recruits = {}
-        local babblers = GetEntitiesForTeamWithinRange("Babbler", self:GetTeamNumber(), searchOrigin, kBabblerSearchRange)
-        Shared.SortEntitiesByDistance(searchOrigin, babblers)
-
-        for _, babbler in ipairs(babblers) do
-            if babbler:GetOwnerId() == self:GetOwnerId() and not babbler:GetIsOnWeb() then
-                table.insert(recruits, babbler)
-            end
-        end
-
-        table.sort(recruits, function(a, b)
-            return (a:GetIsClinged() and 1 or 0) < (b:GetIsClinged() and 1 or 0)
-        end)
-
-        return recruits
-
-    end
-
-    local function SendBabblersToWeb(self, web, impactPoint, spots)
-
-        for _, babbler in ipairs(CollectRecruits(self)) do
-            if spots <= 0 then break end
-            if babbler:GetIsClinged() then
-                babbler:Detach()
-            end
-            -- SetWebOrder can refuse (dead web, already webbed); only count real dispatches
-            if babbler:SetWebOrder(web, impactPoint) then
-                spots = spots - 1
-            end
-        end
-
-    end
-
-    function BabblerPheromone:ProcessHit(entity, surface, normal, endPoint )
 
         if not entity then
-            self:MoveBabblers() -- world bounce: recall the squad
-            return false
-        end
 
-        -- Recalling the whole roster
-        if not self.worldCollision then
-            self.worldCollision = true
-            if not entity:isa("Web") and not GetAreFriends(self, entity) then
-                self:MoveBabblers()
+            -- Nothing hit yet: give a move order on the first few positions
+            -- the ball bounces through, so babblers can path in behind
+            -- corners instead of waiting for a direct hit that may never
+            -- come. Capped so a long bounce doesn't spam orders every tick.
+            self.currentBounceCount = self.currentBounceCount + 1
+            if self.currentBounceCount <= self.maxBounceRegistered then
+
+                local target = owner and self:GetTarget(owner)
+                local order = target and GetBabblerBallOrder(owner, target) or kBabblerMoveType.Move
+                local position = target and GetEngagementOrOrigin(target) or orig
+
+                DispatchBabblers(CollectBabblers(self), order, target, position)
+
             end
+
+            return false
+
         end
 
-        local isWeb = entity:isa("Web")
-        local webSpotsLeft = isWeb and (kWebMaxBabblers - entity:GetNumWebbedBabblers()) or 0
+        local order = GetBabblerBallOrder(owner, entity)
 
-        local isValidHit = ( entity:isa("PowerPoint") and entity:GetBuiltFraction() >= 0.009 )
-                or ( isWeb )
-                or ( (GetAreEnemies(self, entity) or HasMixin(entity, "BabblerCling"))
-                        and HasMixin(entity, "Live") and entity:GetIsAlive() )
-
-        if not isValidHit then        
+        -- Hit something real but not worth an order (a corpse, a structure
+        -- that can't host a cling, etc.) - let the ball keep flying rather
+        -- than pop it on an irrelevant graze.
+        if order == kBabblerMoveType.Move then
             return false
         end
 
         self.impact = true
-        if not (entity:GetCanTakeDamage() or isWeb) then
-            return false
-        end
-
         self.destinationEntityId = entity:GetId()
         self:SetModel(nil)
         self:TriggerEffects("babbler_pheromone_puff")
         self.triggeredPuff = true
 
-        if isWeb then
-            -- Only dispatch as many babblers as the strand has room for
-            SendBabblersToWeb(self, entity, endPoint, webSpotsLeft)
-        else
+        -- Cap how many babblers can pile onto a target with limited room;
+        -- Attack has no such cap.
+        DispatchBabblers(CollectBabblers(self), order, entity,
+                endPoint or GetEngagementOrOrigin(entity), GetClingSpotsCount(owner, entity))
 
-            local owner = self:GetOwner()
-            local moveType = GetMoveType(self, entity)
-            local position = HasMixin(entity, "Target") and entity:GetEngagementPoint() or entity:GetOrigin()
-
-            local spots = kBabblerSearchRange
-            if moveType == kBabblerMoveType.Cling then
-                spots = math.max(entity:GetMaxClingedBabblers() - entity:GetNumClingedBabblers(), 0)
-            end
-
-            for _, babbler in ipairs(CollectRecruits(self)) do
-
-                if spots <= 0 then break end
-
-                local isRider = babbler:GetIsClinged() and babbler:GetParent() == owner
-
-                -- Riders only join Cling dispatches (where a slot is budgeted
-                -- for them); Attack/Move orders are for babblers already free
-                if moveType == kBabblerMoveType.Cling or not isRider then
-
-                    if isRider then
-                        babbler:Detach()
-                    end
-
-                    babbler:SetMoveType(moveType, entity, position, true)
-                    if moveType == kBabblerMoveType.Attack then
-                        babbler:TriggerEffects("babbler_engage")
-                    end
-
-                    spots = spots - 1
-
-                end
-
-            end
-
-        end
-
-        DestroyEntity(self) -- Now handled inside CreateBabblerPheromone()
+        DestroyEntity(self)
         return true
 
     end

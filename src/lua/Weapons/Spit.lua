@@ -56,17 +56,6 @@ function Spit:OnDestroy()
     PredictedProjectile.OnDestroy(self)
 end
 
-function Spit:PostDoDamage(target, damage)
-
-    if Server and target then
-        local parent = self:GetOwner()
-        if target:isa("Player") and parent and GetAreEnemies(parent, target) then
-            self.hitEnemy = true
-            self.hitOnos = target:isa("Onos")
-        end
-    end
-end
-
 function Spit:GetDeathIconIndex()
     return kDeathMessageIcon.Spit
 end
@@ -97,36 +86,54 @@ end
 
 if Server then
 
-    local function OrderBabblerToAttack(this, target, targetPos)
-        local owner = this:GetOwner()
+    local function OrderBabblerToAttack(self, target)
+        local owner = self:GetOwner()
         if not owner then return end
 
         local orig = owner:GetOrigin()
-        for _, babbler in ipairs(GetEntitiesForTeamWithinRange("Babbler", owner:GetTeamNumber(), orig, 6))
+        for _, babbler in ipairs(GetEntitiesForTeamWithinRange("Babbler", owner:GetTeamNumber(), orig, 8))
         do
-            if babbler:GetOwner() == owner and not babbler:GetIsClinged() then
-                babbler:SetMoveType(kBabblerMoveType.Attack, target, targetPos, true)
+            if not babbler:GetIsClinged() and babbler:GetOwner() == owner then
+                babbler:OrderAttack(target, target:GetOrigin())
+            end
+        end
+    end
+
+    function Spit:PostDoDamage(target, damage)
+
+        if target then
+            local parent = self:GetOwner()
+            if target:isa("Player") and parent and GetAreEnemies(parent, target) then
+                self.hitEnemy = true
+                self.hitOnos = target:isa("Onos")
+                OrderBabblerToAttack(self)
             end
         end
     end
 
     function Spit:ProcessHit(targetHit, surface, normal, hitPoint)
 
-        if self:GetOwner() ~= targetHit then
-            self:DoDamage(kSpitDamage, targetHit, hitPoint, normal, "none", false, false)
-            OrderBabblerToAttack(self, targetHit, hitPoint)
-        elseif self:GetOwner() == targetHit then
-            --a little hacky
+        if targetHit then
+
             local player = self:GetOwner()
-            if player then
+
+            if player and targetHit == player then -- A little hacky
                 local eyePos = player:GetEyePos()
                 local viewCoords = player:GetViewCoords()
                 local trace = Shared.TraceRay(eyePos, eyePos + viewCoords.zAxis * 1.5, CollisionRep.Damage, PhysicsMask.Bullets, EntityFilterOneAndIsa(player, "Babbler"))
                 if trace.fraction ~= 1 then
-                    local entity = trace.entity
-                    self:DoDamage(kSpitDamage, entity, hitPoint, normal, "none", false, false)
+                    targetHit = trace.entity
                 end
             end
+
+            if targetHit == player then
+                targetHit = nil
+            end
+
+            if targetHit then -- Do spit damage and order nearby roaming babblers to attack too
+                self:DoDamage(kSpitDamage, targetHit, hitPoint, normal, "none", false, false)
+            end
+
         end
 
         self:TriggerEffects("spit_hit", { effecthostcoords = self:GetCoords() })

@@ -869,7 +869,6 @@ set {
     "Mine",
     "Claw",
     "Flamethrower",
-    "ExoFlamer",
     "Grenade", -- Grenade Launcher
     "Mine",
     "PlasmaT3",

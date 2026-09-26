@@ -447,6 +447,9 @@ kBileBombDuration = 5
 kBileBombSplashRadius = 6
 kBileBombDotInterval = 0.4
 
+kWebNumBabblers = 0 -- number of babblers spawned attached to each web
+kWebMaxBabblers = 6  -- max babblers allowed on a single web
+
 kWebBuildCost = 0
 kWebbedDuration = 5
 kWebbedParasiteDuration = 10

@@ -97,7 +97,7 @@ Player.kFallingDirtEffect           = PrecacheAsset("cinematics/alien/onos/dirt_
 Player.kRunIdleSpeed = 1
 
 Player.kLoginBreakingDistance = 150
-local kDownwardUseRange = 2.2
+local kDownwardUseRange = kPlayerUseRange * 1.25
 Player.kUseHolsterTime = 0.5
 Player.kDefaultBuildTime = .2
 local kUseBoxSize = Vector(0.5, 0.5, 0.5)
@@ -802,6 +802,10 @@ function Player:PerformUseTrace()
 
     end
 
+    if self.GetUseDistanceOverride then
+        useRange = self:GetUseDistanceOverride(useRange)
+    end
+
     -----------------
     -- Artifially increase the range if we are actually building, so we get 2 completly different thresholds
     -- for starting to 'use', and stopping it. Those removing the glitch in/out/in/out effect near edge values.
@@ -863,7 +867,7 @@ function Player:PerformUseTrace()
     if trace.fraction < 1 and trace.entity ~= nil then
 
         local distToEnt = trace.endPoint:GetDistanceTo(startPoint)
-        local maxDistToUse = trace.entity.GetUseMaxRange and trace.entity:GetUseMaxRange(self) or useRange
+        local maxDistToUse = trace.entity.GetUseMaxRange and trace.entity:GetUseMaxRange() or useRange
         -- Only return this entity if it can be used and it does not have a usable point (which should have been
         -- caught in the above cases).
         if distToEnt <= maxDistToUse and GetCanEntityBeUsedWithNoUsablePoint(self, trace.entity) then

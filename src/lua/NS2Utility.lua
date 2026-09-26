@@ -803,6 +803,7 @@ function ValidateSpawnPoint(spawnPoint, capsuleHeight, capsuleRadius, filter, or
             if rayTrace2.fraction == 1 then
                 return Vector(groundPoint.x, groundPoint.y - halfHeight, groundPoint.z)
             end
+
         end
 
     end
@@ -845,6 +846,7 @@ function GetRandomSpawnForCapsule(capsuleHeight, capsuleRadius, origin, minRange
                     return validSpawnPoint
                 end
             end
+
         end
 
     end
@@ -1435,6 +1437,7 @@ function GetCanAttackEntity(seeingEntity, targetEntity)
 end
 
 -- Computes line of sight to entity, set considerObstacles to true to check if any other entity is blocking LOS
+local toEntity = Vector()
 local kDefaultDoorFilter = EntityFilterAllButIsa("Door")
 function GetCanSeeEntity(seeingEntity, targetEntity, considerObstacles, obstaclesFilter, skipTrace)
 
@@ -1455,30 +1458,34 @@ function GetCanSeeEntity(seeingEntity, targetEntity, considerObstacles, obstacle
         -- Anything that has the GetFov method supports FOV checking.
         if seeingEntity.GetFov ~= nil then
 
-            local dx = targetOrigin.x - eyePos.x
-            local dy = targetOrigin.y - eyePos.y
-            local dz = targetOrigin.z - eyePos.z
+            -- Reuse vector
+            toEntity.x = targetOrigin.x - eyePos.x
+            toEntity.y = targetOrigin.y - eyePos.y
+            toEntity.z = targetOrigin.z - eyePos.z
+
+            -- Normalize vector
+            local toEntityLength = math.sqrt(toEntity.x * toEntity.x + toEntity.y * toEntity.y + toEntity.z * toEntity.z)
+            if toEntityLength > kEpsilon then
+
+                toEntity.x = toEntity.x / toEntityLength
+                toEntity.y = toEntity.y / toEntityLength
+                toEntity.z = toEntity.z / toEntityLength
+
+            end
 
             local seeingEntityAngles = GetEntityViewAngles(seeingEntity)
             local normViewVec = seeingEntityAngles:GetCoords().zAxis
-            local dotProduct = dx * normViewVec.x + dy * normViewVec.y + dz * normViewVec.z
+            local dotProduct = Math.DotProduct(toEntity, normViewVec)
+            local fov = seeingEntity:GetFov()
 
-            local toEntityLength = math.sqrt(dx * dx + dy * dy + dz * dz)
-            if toEntityLength > kEpsilon then
-                dotProduct = dotProduct / toEntityLength
-            end
-
-            local fov
             -- players have separate fov for marking enemies as sighted
             if seeingEntity.GetMinimapFov then
                 fov = seeingEntity:GetMinimapFov(targetEntity)
-            else
-                fov = seeingEntity:GetFov()
             end
 
             local halfFov = math.rad(fov / 2)
-            withinFOV = dotProduct >= -1 and dotProduct <= 1 and halfFov > 0
-                    and (halfFov > math.pi or dotProduct > math.cos(halfFov))
+            local s = math.acos(dotProduct)
+            withinFOV = s < halfFov
 
         end
 
@@ -3438,6 +3445,86 @@ function GetBulletTargets(startPoint, endPoint, spreadDirection, bulletSize, fil
 
 end
 
+-- Returns whether targetOrigin, as seen from eyePos, falls within hitFov degrees of
+-- seeingEntity's current view direction.
+local toMeleeWebEntity = Vector()
+function GetIsWithinMeleeFov(seeingEntity, hitFov, targetOrigin, eyePos)
+
+    local withinFOV = true
+
+    -- Calculate vector from eye to target
+    toMeleeWebEntity.x = targetOrigin.x - eyePos.x
+    toMeleeWebEntity.y = targetOrigin.y - eyePos.y
+    toMeleeWebEntity.z = targetOrigin.z - eyePos.z
+
+    -- Early exit for very close targets (they're always visible)
+    local toEntityLength = math.sqrt(toMeleeWebEntity.x * toMeleeWebEntity.x +
+                                     toMeleeWebEntity.y * toMeleeWebEntity.y +
+                                     toMeleeWebEntity.z * toMeleeWebEntity.z)
+    if toEntityLength <= kEpsilon then
+        return true
+    end
+
+    -- Normalize
+    local invLength = 1.0 / toEntityLength
+    toMeleeWebEntity.x = toMeleeWebEntity.x * invLength
+    toMeleeWebEntity.y = toMeleeWebEntity.y * invLength
+    toMeleeWebEntity.z = toMeleeWebEntity.z * invLength
+
+    -- View direction
+    local seeingEntityAngles = GetEntityViewAngles(seeingEntity)
+    local forwardVec = seeingEntityAngles:GetCoords().zAxis
+
+    local dotProduct = Math.DotProduct(toMeleeWebEntity, forwardVec)
+    dotProduct = math.max(-1, math.min(1, dotProduct)) -- Safety clamp
+
+    local halfFovRad = math.rad(hitFov / 2)
+    local angle = math.acos(dotProduct)
+
+    withinFOV = angle <= halfFovRad
+
+    return withinFOV
+
+end
+
+-- Looks for a Web within range/hitFov of player's view and damages it if one is found and
+-- unobstructed. damage/range/hitFov are passed in so each weapon (Axe, Submachinegun
+-- rifle-butt, ...) can tune reach and cone to its own swing without duplicating this
+-- search-and-verify logic.
+function PerformMeleeWebHitCheck(self, player, damage, range, hitFov)
+
+    local enemyTeamNumber = GetEnemyTeamNumber(self:GetTeamNumber())
+    local playerPos = player:GetEyePos()
+    local viewCoords = player:GetViewAngles():GetCoords()
+
+    -- Fetch webs in expanded range for FOV consideration
+    local webs = GetEntitiesForTeamWithinRange("Web", enemyTeamNumber,
+                                              playerPos, kMaxWebLength * 2)
+
+    for _, web in ipairs(webs) do
+
+        local closestWebPoint = web:GetClosestPointOnWeb(playerPos + viewCoords.zAxis * (range / 2))
+
+        -- Check distance first (cheaper than FOV)
+        local distance = closestWebPoint:GetDistanceTo(playerPos)
+        local isWithinHitFoV = GetIsWithinMeleeFov(player, hitFov, closestWebPoint, playerPos)
+
+        if distance <= range and isWithinHitFoV then
+
+            -- Final raycheck to be sure there are no walls
+            local rayTrace = Shared.TraceRay(playerPos, closestWebPoint, CollisionRep.Default, PhysicsMask.AllButPCsAndRagdolls, EntityFilterTwo(player, self))
+            if rayTrace.entity and rayTrace.entity:isa("Web") then
+                self:DoDamage(damage, web, closestWebPoint, viewCoords.yAxis, "organic", false)
+                return true, web
+            end
+
+        end
+
+    end
+
+    return false, nil
+
+end
 
 local kAlienStructureMoveSound = PrecacheAsset("sound/NS2.fev/alien/infestation/build")
 function UpdateAlienStructureMove(self, deltaTime)

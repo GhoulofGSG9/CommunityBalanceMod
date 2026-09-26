@@ -850,10 +850,12 @@ local kGorgeBuildStructureMessage =
     direction = "vector",
     structureIndex = "integer (1 to 5)",
     lastClickedPosition = "vector",
-    lastClickedPositionNormal = "vector"
+    lastClickedPositionNormal = "vector",
+    ghostOrigin = "vector",
+    ghostNormal = "vector"
 }
 
-function BuildGorgeDropStructureMessage(origin, direction, structureIndex, lastClickedPosition, lastClickedPositionNormal)
+function BuildGorgeDropStructureMessage(origin, direction, structureIndex, lastClickedPosition, lastClickedPositionNormal, ghostOrigin, ghostNormal)
 
     local t = {}
 
@@ -862,13 +864,15 @@ function BuildGorgeDropStructureMessage(origin, direction, structureIndex, lastC
     t.structureIndex = structureIndex
     t.lastClickedPosition = lastClickedPosition or Vector(0,0,0)
     t.lastClickedPositionNormal = lastClickedPositionNormal or Vector(0,0,0)
+    t.ghostOrigin = ghostOrigin or Vector(0,0,0)
+    t.ghostNormal = ghostNormal or Vector(0,0,0)
 
     return t
 
 end
 
 function ParseGorgeBuildMessage(t)
-    return t.origin, t.direction, t.structureIndex, t.lastClickedPosition, t.lastClickedPositionNormal
+    return t.origin, t.direction, t.structureIndex, t.lastClickedPosition, t.lastClickedPositionNormal, t.ghostOrigin, t.ghostNormal
 end
 
 local kMutePlayerMessage =
