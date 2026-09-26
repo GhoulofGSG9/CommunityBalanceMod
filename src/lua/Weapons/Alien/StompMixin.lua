@@ -17,6 +17,8 @@ StompMixin.type = "Stomp"
 
 -- local kStompRadius = 2
 
+local kAttackDurationStomp = Shared.GetAnimationLength("models/alien/onos/onos_view.model", "stomp")
+
 -- GetHasSecondary and GetSecondaryEnergyCost should completely override any existing
 -- same named function defined in the object.
 StompMixin.overrideFunctions =
@@ -97,6 +99,7 @@ function StompMixin:OnSecondaryAttack(player)
 
     if player:GetEnergy() >= kStompEnergyCost and player:GetIsOnGround() and not self.primaryAttacking then
         self.secondaryAttacking = true
+        self.secondaryAttackStartTime = Shared.GetTime()
         player.stomping = true
     end
 
@@ -145,6 +148,18 @@ function StompMixin:UnregisterShockwave(shockwave)
 end
 
 function StompMixin:OnProcessMove(input)
+
+    if self.secondaryAttacking and self.secondaryAttackStartTime and
+            Shared.GetTime() > self.secondaryAttackStartTime + kAttackDurationStomp then
+
+        self.secondaryAttacking = false
+
+        local player = self:GetParent()
+        if player then
+            player.stomping = false
+        end
+
+    end
 
     if Server then
 
