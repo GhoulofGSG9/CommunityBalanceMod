@@ -40,6 +40,7 @@ if kCBMaddon then
 	  - Exosuit base speed is 5.95 m/s (from 7), base armor 140 (from 170) and armor per Armor upgrade 40. Arm cost / armor / weight: Claw 15 / 90 / 0.04, Minigun 25 / 90 / 0.12, Railgun 25 / 60 / 0.09, Plasma Launcher 25 / 60 / 0.10, Flamethrower 25 / 60 / 0.09. Thrusters and the Ejection Seat are weightless; only Armor Plating (0.10) costs speed among the cores. Claw + Railgun or Flamethrower 5.18 m/s, Claw + Minigun 5.0, dual Minigun 4.52 with or without Thrusters, all under the 5.75 marine sprint.
 	  - Railgun deals 20 on a tap and 120 on a full charge (still one-shots any skulk), and only one railgun charges at a time, so the Dual Railgun Firing Sync option is gone. Range stays at 30 m: it must remain under the 40 m relevancy distance so lerks never die to an exo their client has not received.
 	  - Plasma Launcher reworked into a grenade launcher with a pulse grenade: one bomb type with a 2 s fuse that detonates on contact or on expiry, and a 4 m blast plus burn. No energy drain: only the alien a bomb lands on is electrified. One bomb from a full cell, then one every 2 s.
+	  - Plasma burn lasts 3 s (from 5.5) and no longer stacks: a new bomb replaces the burn on a target. Direct damage 40 (from 35). Blast and burn need line of sight.
 	  - Healing from a gorge, crag or hive cuts 0.5 s off the plasma burn on the healed target.
 	  - Flamethrower arm is back as a pure weapon: marine flamethrower damage, range and burn, no ground flames and no welding. Exosuits can no longer repair other exosuits.
 	  - New Armor Plating utility module: +80 armor for 15 pres and 10% weight. Total exosuit armor is capped at 520.
@@ -321,7 +322,7 @@ if kCBMaddon then
 	  - Energy based weapon. Energy regens over time (25%/s).
 	  - Plasma bomb projectile:
 		- Costs 80% energy per bomb.
-		- Direct (35) and DoT Damage (25) in size 4 AoE. 
+		- Direct (40) and DoT Damage (12.5) in size 4 AoE. 
 		- Fires one plasma ball in an arc.
 		- Pulse debuff for 5 seconds.
 		- Hitbox size of 0.495.
@@ -683,6 +684,7 @@ else
 	  - Exosuit base speed is 5.95 m/s (from 7), base armor 140 (from 170) and armor per Armor upgrade 40. Arm cost / armor / weight: Claw 15 / 90 / 0.04, Minigun 25 / 90 / 0.12, Railgun 25 / 60 / 0.09, Plasma Launcher 25 / 60 / 0.10, Flamethrower 25 / 60 / 0.09. Thrusters and the Ejection Seat are weightless; only Armor Plating (0.10) costs speed among the cores. Claw + Railgun or Flamethrower 5.18 m/s, Claw + Minigun 5.0, dual Minigun 4.52 with or without Thrusters, all under the 5.75 marine sprint.
 	  - Railgun deals 20 on a tap and 120 on a full charge (still one-shots any skulk), and only one railgun charges at a time, so the Dual Railgun Firing Sync option is gone. Range stays at 30 m: it must remain under the 40 m relevancy distance so lerks never die to an exo their client has not received.
 	  - Plasma Launcher reworked into a grenade launcher with a pulse grenade: one bomb type with a 2 s fuse that detonates on contact or on expiry, and a 4 m blast plus burn. No energy drain: only the alien a bomb lands on is electrified. One bomb from a full cell, then one every 2 s.
+	  - Plasma burn lasts 3 s (from 5.5) and no longer stacks: a new bomb replaces the burn on a target. Direct damage 40 (from 35). Blast and burn need line of sight.
 	  - Healing from a gorge, crag or hive cuts 0.5 s off the plasma burn on the healed target.
 	  - Flamethrower arm is back as a pure weapon: marine flamethrower damage, range and burn, no ground flames and no welding. Exosuits can no longer repair other exosuits.
 	  - New Armor Plating utility module: +80 armor for 15 pres and 10% weight. Total exosuit armor is capped at 520.
@@ -950,7 +952,7 @@ else
 	  - Energy based weapon. Energy regens over time (25%/s).
 	  - Plasma bomb projectile:
 		- Costs 80% energy per bomb.
-		- Direct (35) and DoT Damage (25) in size 4 AoE. 
+		- Direct (40) and DoT Damage (12.5) in size 4 AoE. 
 		- Fires one plasma ball in an arc.
 		- Pulse debuff for 5 seconds.
 		- Hitbox size of 0.495.
