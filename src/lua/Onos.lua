@@ -240,12 +240,12 @@ function Onos:GetCanJump()
     
 end
 
-function Onos:OnKill()
+function Onos:OnKill(attacker, doer, point, direction)
     if self.rumbleSound ~= nil then
         self.rumbleSound:Stop()
     end
 
-    Player.OnKill(self)
+    Alien.OnKill(self, attacker, doer, point, direction)
 end
 
 function Onos:GetPlayFootsteps()

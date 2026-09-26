@@ -200,10 +200,10 @@ function Fade:ModifyJump(input, velocity, jumpVelocity)
     jumpVelocity:Scale(kFadeGravityMod)
 end
 
-function Fade:OnKill()
+function Fade:OnKill(attacker, doer, point, direction)
     self:TriggerEffects("metabolize_stop") --Might not be ideal
 
-    Player.OnKill(self)
+    Alien.OnKill(self, attacker, doer, point, direction)
 end
 
 function Fade:OnDestroy()
