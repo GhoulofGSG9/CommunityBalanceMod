@@ -127,6 +127,8 @@ function Gore:OnHolster(player)
     -- If a stomp was interrupted mid-animation by switching weapons, its
     -- "end" tag never fires, so this must be reset here too.
     self.secondaryAttacking = false
+    player.stomping = false
+    
     self:OnAttackEnd()
     
 end
