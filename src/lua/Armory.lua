@@ -278,8 +278,8 @@ function Armory:GetTechButtons(techId)
     -- Show button to upgraded to advanced armory
     if self:GetTechId() == kTechId.Armory and self:GetResearchingId() ~= kTechId.AdvancedArmoryUpgrade then
         techButtons[kMarineUpgradeButtonIndex] = kTechId.AdvancedArmoryUpgrade
-    --else
-        --techButtons[kMarineUpgradeButtonIndex] = kTechId.HeavyMachineGunTech
+    elseif self:GetTechId() == kTechId.AdvancedArmory then
+        techButtons[kMarineUpgradeButtonIndex] = kTechId.JetpackTech
     end
 
     return techButtons
@@ -290,7 +290,9 @@ function Armory:GetTechAllowed(techId, techNode, player)
 
     local allowed, canAfford = ScriptActor.GetTechAllowed(self, techId, techNode, player)
 
-    if techId == kTechId.HeavyRifleTech then
+    -- The tech tree only asks that the team owns an advanced armory, so a basic armory would
+    -- otherwise be allowed to run these too.
+    if techId == kTechId.HeavyRifleTech or techId == kTechId.JetpackTech then
         allowed = allowed and self:GetTechId() == kTechId.AdvancedArmory
     end
 
@@ -385,54 +387,50 @@ function Armory:GetDamagedAlertId()
     return kTechId.MarineAlertStructureUnderAttack
 end
 
+Armory.kItemList =
+{
+    kTechId.Rifle,
+    kTechId.Pistol,
+    kTechId.Axe,
+
+    kTechId.Welder,
+    kTechId.LayMines,
+    kTechId.Shotgun,
+    kTechId.ClusterGrenade,
+    kTechId.GasGrenade,
+    kTechId.PulseGrenade,
+    kTechId.ScanGrenade,
+    kTechId.Submachinegun,
+}
+
+-- Sold at an advanced armory only; the buy menu at a basic armory says so on their tiles.
+Armory.kAdvancedArmoryOnlyItems =
+{
+    kTechId.GrenadeLauncher,
+    kTechId.Flamethrower,
+    kTechId.HeavyMachineGun,
+    kTechId.Jetpack,
+}
+
+Armory.kAdvancedItemList = {}
+for _, techId in ipairs(Armory.kItemList) do
+    table.insert(Armory.kAdvancedItemList, techId)
+end
+for _, techId in ipairs(Armory.kAdvancedArmoryOnlyItems) do
+    table.insert(Armory.kAdvancedItemList, techId)
+end
+
+local kNoItems = {}
+
 function Armory:GetItemList(forPlayer)
 
     -- An exo comes here to refit its modules, never to buy: the marine item list has nothing
     -- an exo could take, so it is not offered one.
     if forPlayer and forPlayer:isa("Exo") then
-        return { }
+        return kNoItems
     end
 
-    local itemList =
-    {
-        kTechId.Rifle,
-        kTechId.Pistol,
-        kTechId.Axe,
-
-        kTechId.Welder,
-        kTechId.LayMines,
-        kTechId.Shotgun,
-        kTechId.ClusterGrenade,
-        kTechId.GasGrenade,
-        kTechId.PulseGrenade,
-		kTechId.ScanGrenade,
-		kTechId.Submachinegun
-    }
-
-    if self:GetTechId() == kTechId.AdvancedArmory then
-
-        itemList =
-        {
-            kTechId.Rifle,
-            kTechId.Pistol,
-            kTechId.Axe,
-
-            kTechId.Welder,
-            kTechId.LayMines,
-            kTechId.Shotgun,
-            kTechId.GrenadeLauncher,
-            kTechId.Flamethrower,
-            kTechId.HeavyMachineGun,
-            kTechId.ClusterGrenade,
-            kTechId.GasGrenade,
-            kTechId.PulseGrenade,
-			kTechId.ScanGrenade,
-			kTechId.Submachinegun
-        }
-
-    end
-
-    return itemList
+    return self:GetTechId() == kTechId.AdvancedArmory and Armory.kAdvancedItemList or Armory.kItemList
 
 end
 

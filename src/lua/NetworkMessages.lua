@@ -1397,7 +1397,19 @@ if Server then
         -- valuation of something the player already owns, not a request to be gated.
         local discount = 0
         if self:isa("Exo") then
-            local _, _, wornResCost = ModularExo_GetIsConfigValid(ModularExo_ConvertNetMessageToConfig(self))
+            local wornConfig = ModularExo_ConvertNetMessageToConfig(self)
+            -- Refitting the suit already worn would only charge the refit fee.
+            local unchanged = true
+            for slotType, _ in pairs(kExoModuleSlotsData) do
+                if (wornConfig[slotType] or kExoModuleTypes.None) ~= (exoConfig[slotType] or kExoModuleTypes.None) then
+                    unchanged = false
+                    break
+                end
+            end
+            if unchanged then
+                return
+            end
+            local _, _, wornResCost = ModularExo_GetIsConfigValid(wornConfig)
             discount = wornResCost or 0
         end
 

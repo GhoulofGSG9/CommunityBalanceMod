@@ -13,7 +13,7 @@ local kTextOffset
 -- eject hint on the same baseline. Each caption is centred under its own badge, so the
 -- badges have to stand far enough apart that the two widest captions cannot meet.
 -- 260 unscaled units clears the English worst case ("Eject - deploying" beside
--- "Adrenaline Field  120 s") and is the floor; Initialize() widens it when the locale in
+-- "Catalyst Field  120 s") and is the floor; Initialize() widens it when the locale in
 -- use needs more, measured from the real strings (see GetWidestCaptionWidth).
 local kAbilityButtonOffset
 

@@ -1626,10 +1626,32 @@ function BuildTechData()
             [kTechIDShowEnables] = false,
 			[kTechDataCostKey] = kCoreExosuitTechResearchCost,
 			[kTechDataResearchTimeKey] = kCoreExosuitTechResearchTime,
-			[kTechDataDisplayName] = "RESEARCH_CORES_EXOSUIT",
+			[kTechDataDisplayName] = "RESEARCH_CORES_EXOSUIT_TITLE",
 			[kTechDataResearchName] = "RESEARCH_CORES_EXOSUIT_TITLE",
             [kTechDataHotkey] = Move.S,
             [kTechDataTooltipInfo] = "CORES_EXOSUIT_TECH_TOOLTIP",
+        },
+
+        {
+            [kTechDataId] = kTechId.AdvancedExoArmsTech,
+            [kTechIDShowEnables] = false,
+            [kTechDataCostKey] = kAdvancedExoArmsTechResearchCost,
+            [kTechDataResearchTimeKey] = kAdvancedExoArmsTechResearchTime,
+            [kTechDataDisplayName] = "ADVANCED_EXO_ARMS_TECH",
+            [kTechDataResearchName] = "ADVANCED_EXO_ARMS_TECH",
+            [kTechDataHotkey] = Move.F,
+            [kTechDataTooltipInfo] = "ADVANCED_EXO_ARMS_TECH_TOOLTIP",
+        },
+
+        {
+            [kTechDataId] = kTechId.ExoAbilitiesTech,
+            [kTechIDShowEnables] = false,
+            [kTechDataCostKey] = kExoAbilitiesTechResearchCost,
+            [kTechDataResearchTimeKey] = kExoAbilitiesTechResearchTime,
+            [kTechDataDisplayName] = "EXO_ABILITIES_TECH",
+            [kTechDataResearchName] = "EXO_ABILITIES_TECH",
+            [kTechDataHotkey] = Move.A,
+            [kTechDataTooltipInfo] = "EXO_ABILITIES_TECH_TOOLTIP",
         },
 
         {
@@ -1759,7 +1781,7 @@ function BuildTechData()
             [kTechDataTooltipInfo] = "JETPACK_TOOLTIP",
             [kTechDataModel] = Jetpack.kModelName,
             [kTechDataCostKey] = kJetpackDropCost,
-            [kStructureAttachId] = {kTechId.PrototypeLab, kTechId.ExoPrototypeLab},
+            [kStructureAttachId] = kTechId.AdvancedArmory,
             [kStructureAttachRange] = kArmoryWeaponAttachRange,
             [kStructureAttachRequiresPower] = true,
         },
@@ -4910,14 +4932,14 @@ function BuildTechData()
 		
 		{ 
 			[kTechDataId] = kTechId.ExoPrototypeLab,
-			[kTechDataHint] = "EXO_PROTOTYPE_LAB_HINT", -- "Jetpacks, Exos"
-			[kTechDataTooltipInfo] = "EXO_PROTOTYPE_LAB_TOOLTIP", -- "You can buy Jetpacks and Exosuits from here."
+			[kTechDataHint] = "EXO_PROTOTYPE_LAB_HINT",
+			[kTechDataTooltipInfo] = "EXO_PROTOTYPE_LAB_TOOLTIP",
 			[kTechDataGhostModelClass] = "MarineGhostModel",
 			[kTechIDShowEnables] = false,
 			[kTechDataRequiresPower] = true,
 			[kTechDataMapName] = ExoPrototypeLab.kMapName,
 			[kTechDataDisplayName] = "EXO_PROTOTYPE_LAB", -- "Prototype lab"
-			[kTechDataCostKey] = kExoPrototypeLabUpgradeCost + kPrototypeLabCost,
+			[kTechDataCostKey] = kPrototypeLabCost,
 			[kTechDataModel] = PrototypeLab.kModelName,
 			[kTechDataMaxHealth] = kPrototypeLabHealth,
 			[kTechDataMaxArmor] = kPrototypeLabArmor,

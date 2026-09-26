@@ -74,8 +74,8 @@ local kMarineCommanderTechPath =
     -- Tier 5
     {
         kTechId.JetpackTech,
-        kTechId.UpgradeToExoPrototypeLab, --Balance Mod
-        --kTechId.ExosuitTech, --Balance Mod
+        kTechId.DualMinigunTech,
+        kTechId.CoresExosuitTech,
         kTechId.AdvancedMarineSupport, -- Nanoshield, Powersurge, Catpack
         kTechId.Weapons3,
         kTechId.Armor3,
@@ -119,7 +119,6 @@ local kMarineTechPathOverrides =
 local kTechTestReroutes =
 {
     [kTechId.AdvancedArmoryUpgrade] = kTechId.AdvancedArmory,
-	[kTechId.UpgradeToExoPrototypeLab] = kTechId.ExoPrototypeLab --Balance Mod
 }
 
 --[[

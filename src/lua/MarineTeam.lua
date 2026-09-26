@@ -715,18 +715,18 @@ function MarineTeam:InitTechTree()
     -- Marine tier 3
     self.techTree:AddBuildNode(kTechId.PrototypeLab,          kTechId.ArmsLab,                     kTechId.None)
 
-    --Exosuit with advanced Proto
-    self.techTree:AddUpgradeNode(kTechId.UpgradeToExoPrototypeLab,  kTechId.PrototypeLab)
     self.techTree:AddBuildNode(kTechId.ExoPrototypeLab,             kTechId.PrototypeLab,    kTechId.None)
     self.techTree:AddResearchNode(kTechId.ExosuitTech,              kTechId.ExoPrototypeLab, kTechId.None)
     self.techTree:AddBuyNode(kTechId.DualMinigunExosuit,            kTechId.ExoPrototypeLab)
     self.techTree:AddResearchNode(kTechId.CoresExosuitTech,         kTechId.ExoPrototypeLab, kTechId.None)
     self.techTree:AddResearchNode(kTechId.DualMinigunTech,          kTechId.ExoPrototypeLab, kTechId.None)
+    self.techTree:AddResearchNode(kTechId.AdvancedExoArmsTech,      kTechId.ExoPrototypeLab, kTechId.None)
+    self.techTree:AddResearchNode(kTechId.ExoAbilitiesTech,         kTechId.ExoPrototypeLab, kTechId.None)
     
     -- Jetpack
     self.techTree:AddUpgradeNode(kTechId.UpgradeToInfantryPrototypeLab,  kTechId.PrototypeLab,    kTechId.AdvancedArmory)
     self.techTree:AddBuildNode(kTechId.InfantryPrototypeLab,             kTechId.PrototypeLab,    kTechId.AdvancedArmory)
-    self.techTree:AddResearchNode(kTechId.JetpackTech,                   kTechId.PrototypeLab,    kTechId.None)
+    self.techTree:AddResearchNode(kTechId.JetpackTech,                   kTechId.AdvancedArmory,  kTechId.None)
     self.techTree:AddBuyNode(kTechId.Jetpack,                            kTechId.JetpackTech,     kTechId.None)
     self.techTree:AddTargetedActivation(kTechId.DropJetpack,             kTechId.JetpackTech,     kTechId.None)
     

@@ -180,24 +180,9 @@ end
 
 function PrototypeLab:GetTechButtons(techId)
 
-    local techButtons = 
-    { kTechId.JetpackTech, kTechId.None, kTechId.None, kTechId.None, 
+    return
+    { kTechId.DualMinigunTech, kTechId.AdvancedExoArmsTech, kTechId.CoresExosuitTech, kTechId.ExoAbilitiesTech,
       kTechId.None, kTechId.None, kTechId.None, kTechId.None }
-    
-	if self:GetTechId() == kTechId.PrototypeLab and self:GetResearchingId() ~= kTechId.UpgradeToExoPrototypeLab and self:GetTechId() ~= kTechId.InfantryPrototypeLab then
-		techButtons[5] = kTechId.UpgradeToExoPrototypeLab
-	end
-
-	--[[if self:GetTechId() == kTechId.PrototypeLab and self:GetResearchingId() ~= kTechId.UpgradeToInfantryPrototypeLab and self:GetTechId() ~= kTechId.ExoPrototypeLab then
-		techButtons[1] = kTechId.UpgradeToInfantryPrototypeLab
-	end]]
-	
-	if self:GetTechId() == kTechId.ExoPrototypeLab then
-		techButtons[2] = kTechId.CoresExosuitTech
-		techButtons[3] = kTechId.DualMinigunTech
-	end
-
-	return techButtons
 end
 
 function PrototypeLab:GetRequiresPower()
@@ -290,15 +275,10 @@ function PrototypeLab:OnUpdate(deltaTime)
 end
 
 function PrototypeLab:GetItemList(forPlayer)
-    if forPlayer and forPlayer:isa("Exo") and self:GetTechId() == kTechId.ExoPrototypeLab then
+    if self:GetTechId() == kTechId.ExoPrototypeLab then
         return { kTechId.DualMinigunExosuit }
-    elseif self:GetTechId() == kTechId.ExoPrototypeLab then
-		return {kTechId.Jetpack, kTechId.DualMinigunExosuit}
-	--[[elseif self:GetTechId() == kTechId.InfantryPrototypeLab then
-        return {kTechId.Jetpack }]]
-	else
-		return {kTechId.Jetpack}
     end
+    return { }
 end
 
 function PrototypeLab:GetReceivesStructuralDamage()
@@ -342,8 +322,10 @@ if Client then
             self.haloCinematicFinished:SetRepeatStyle(Cinematic.Repeat_Loop)
         end
         
-        self.haloCinematicResearch:SetIsVisible(self.GetResearchingId(self) == kTechId.UpgradeToExoPrototypeLab and self.GetIsResearching(self) and self:GetIsPowered())
-        self.haloCinematicFinished:SetIsVisible(self:GetTechId() == kTechId.ExoPrototypeLab and self:GetIsPowered())
+        local powered = self:GetIsPowered()
+        local researching = self:GetIsResearching()
+        self.haloCinematicResearch:SetIsVisible(researching and powered)
+        self.haloCinematicFinished:SetIsVisible(not researching and powered and self:GetTechId() == kTechId.ExoPrototypeLab)
     end
 end
 

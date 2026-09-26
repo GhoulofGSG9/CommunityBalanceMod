@@ -208,6 +208,16 @@ function CreateMarineComSenses()
         return builtArmories
     end)
 
+    s:Add("builtAdvancedArmories", function(db)
+        local builtAdvancedArmories = {}
+        for _, armory in ipairs(db:Get("builtArmories")) do
+            if armory:GetTechId() == kTechId.AdvancedArmory then
+                table.insert(builtAdvancedArmories, armory)
+            end
+        end
+        return builtAdvancedArmories
+    end)
+
     s:Add("prototypeLabs", function(db)
         return GetEntitiesAliveForTeam("PrototypeLab", db.bot:GetTeamNumber())
     end)
@@ -221,17 +231,6 @@ function CreateMarineComSenses()
             end
         end
         return activeInfantryPortals
-    end)
-
-    s:Add("builtPrototypeLabs", function(db)
-        local builtPrototypeLabs = {}
-        local protoLabs = GetEntitiesAliveForTeam("PrototypeLab", db.bot:GetTeamNumber())
-        for _, lab in ipairs(protoLabs) do
-            if lab:GetIsBuilt() then
-                table.insert(builtPrototypeLabs, lab)
-            end
-        end
-        return builtPrototypeLabs
     end)
 
     s:Add("builtRoboticsFactories", function(db)

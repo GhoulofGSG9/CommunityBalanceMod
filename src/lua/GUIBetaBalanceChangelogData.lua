@@ -29,8 +29,10 @@ if kCBMaddon then
 	
 	## Balance and QoL Changes
 	### Exosuits
-	  - Exosuit research is now two parallel projects at the Exosuit Prototype Lab: Exosuit Modules (15 tres, 45 s) unlocks Thrusters, Ejection Seat, Armor Plating and the support abilities, Advanced Exosuit Arms (25 tres, 60 s) unlocks the flame and plasma arms and allows a weapon on both arms instead of a claw on one of them. Locked modules stay visible in the configuration page and name the research they wait on.
-	  - The Prototype Lab is built off the Arms Lab instead of the Advanced Armory, and sits beside it on the tech map. Exosuits therefore arrive earlier, so base exosuit armor drops to 140 (from 170) while armor upgrades give 40 per level again.
+	  - Exosuit research is four parallel projects at the Exosuit Prototype Lab: Dual Exosuit Arms (25 tres, 60 s) allows a weapon on both arms instead of a claw on one of them, Advanced Exosuit Arms (20 tres, 60 s) unlocks the flame and plasma arms, Exosuit Cores (15 tres, 45 s) unlocks Thrusters, Ejection Seat and Armor Plating, and Exosuit Abilities (15 tres, 45 s) unlocks the support abilities. Locked modules stay visible in the configuration page and name the research they wait on.
+	  - The Prototype Lab is built off the Arms Lab instead of the Advanced Armory and is an Exosuit Prototype Lab as soon as it is built: there is no upgrade research, and claw + minigun or claw + railgun suits can be bought right away. Exosuits therefore arrive earlier, so base exosuit armor drops to 140 (from 170) while armor upgrades give 40 per level again.
+	  - Jetpacks moved to the Advanced Armory: Jetpack research runs there (50 tres, 130 s, from 25 tres and 110 s at the Prototype Lab; the higher price stands in for the Prototype Lab a jetpack rush no longer has to build) and jetpacks are bought there. Jetpacks and exosuits no longer share a building, so the two tech paths compete.
+	  - At a basic Armory the grenade launcher, flamethrower, heavy machine gun and jetpack tiles read ADVANCED ARMORY ONLY instead of UNAVAILABLE.
 	  - Exosuits can refit at any built Armory, not only at the Prototype Lab, and only within use range of it. The Armory sells nothing else to an exosuit.
 	  - Minigun damage back to the vanilla 6 with the vanilla 0.3 heat-up.
 	  - Armories and prototype labs react to an exosuit standing at its own, wider use range instead of a marine's.
@@ -40,10 +42,10 @@ if kCBMaddon then
 	  - Plasma Launcher reworked into a grenade launcher with a pulse grenade: one bomb type with a 2 s fuse that detonates on contact or on expiry, and a 4 m blast plus burn. No energy drain: only the alien a bomb lands on is electrified. One bomb from a full cell, then one every 2 s.
 	  - Flamethrower arm is back as a pure weapon: marine flamethrower damage, range and burn, no ground flames and no welding. Exosuits can no longer repair other exosuits.
 	  - New Armor Plating utility module: +80 armor for 15 pres and 10% weight. Total exosuit armor is capped at 520.
-	  - New Support Ability slot (10 pres, no weight): Nano Shield Field, Adrenaline Field or Regen Field pulse an 8 m field that affects marines but not exosuits, 120 s cooldown. The Nano Shield Field is a lighter shield than the commander's: 1.5 s and 20% damage reduction. Press Reload to trigger; with no marine in range the press is refused and the charge is kept.
+	  - New Support Ability slot (10 pres, no weight): Nano Shield Field, Catalyst Field or Regen Field pulse an 8 m field that affects marines but not exosuits, 120 s cooldown. The Nano Shield Field is a lighter shield than the commander's: 1.5 s and 20% damage reduction. Press Reload to trigger; with no marine in range the press is refused and the charge is kept.
 	  - Eject by holding the drop key for 1 s, or 0.5 s with the Ejection Seat fitted. The HUD badge shows the hold progress and the reason when ejecting is blocked (combat, airborne, deploying). The marine keeps their weapon when the key is still held through the eject.
-	  - Buy menu: selecting the Exosuit tile at a prototype lab opens a full-width configuration page with a Back button, a description for every module, live armor and speed readouts and per-module affordability colouring. Speed reads as a percentage of the marine walk speed, and every module carries a tag line for range, damage type and specials. Exosuit pilots land on the page directly. Buying requires an Exosuit Prototype Lab.
-	  - Prototype lab: exosuits can use it from 2.4 m instead of hugging it, its screens deploy for exosuits too, and Research Exosuits takes 110 s (from 90). Jetpack and Exosuit research cost 25 pres and take 110 s again (vanilla values; CBM had 20 pres / 90 s). The tech map no longer shows a second Exosuit node or the stray Armory to Observatory line, and now carries rows for Research Exosuits, Exosuit Modules and Advanced Exosuit Arms under the Exosuit Prototype Lab.
+	  - Buy menu: the Exosuit Prototype Lab opens straight on the exosuit configuration page, styled like the armory menu. It explains what an exosuit is, shows stat bars (armor, speed, range, damage against lifeforms and structures) that preview the module under the cursor, and gives every module a description and a tag line for range, damage type and specials. The cost row separates the module cost from the suit total or the refit price, and BUY says why it is refused. Modules still waiting on research grey out with an UNRESEARCHED tab, red means missing pres. Speed reads as a percentage of the marine walk speed. Exosuit pilots land on the page directly, and rebuilding the suit already worn is not a purchase.
+	  - Prototype lab: exosuits can use it from 2.4 m instead of hugging it, and its screens deploy for exosuits too. The tech map shows the lab with its four researches and Jetpack research under the Advanced Armory, and no longer shows the stray Armory to Observatory line.
 	  - Thrusters cost 15 pres and the Ejection Seat 10 pres, so a core module is a choice rather than an automatic pick. The Ejection Seat's automatic eject fires anywhere, including mid-air, while the suit deploys and next to a command station. Refitting an exosuit costs a flat 5 pres on top of the price difference, so swapping between two configurations of equal price is never free. A refit carries the suit's damage over as a fraction of its armor, so a full suit stays full.
 	  - The Ejection Seat saves the pilot, not the suit: its automatic eject destroys the exosuit. A manually ejected suit keeps its real armor, minus any damage taken during the eject, and is destroyed when that leaves it empty; it can be re-entered at any armor.
 	  - The support ability cooldown carries over through a refit and through ejecting and re-entering the suit.
@@ -325,7 +327,7 @@ if kCBMaddon then
 	### Jetpack
 	  - Min 6% activation energy required (bugfix).
 	  - No longer affected by stomp when slightly above the ground (bugfix).
-	  - Tech unlock cost to 20 from 25 tres.
+	  - Researched and bought at the Advanced Armory instead of the Prototype Lab (50 tres, 130 s research).
 
 	### Sub Machine Gun
 	  - Unlocked with submachine gun tech from armory (10 tres and 30s research time).
@@ -382,10 +384,10 @@ if kCBMaddon then
 
 	## MARINE - COMMANDER / STRUCTURES
 	### Prototype Lab
-	  - Exosuit tech changed to upgrade prototype lab into exosuit prototype lab.
-	    - The research is tied to the exosuit prototype lab (lost when structure is destroyed or recycled).
-	  - While exosuit prototype lab is researching, a rotating exo hologram will appear above the prototype lab.
-	    - When completed, the hologram will become static and the map icon will become purple.
+	  - A prototype lab becomes an exosuit prototype lab when it finishes building; there is no upgrade research.
+	    - Its researches stay with the team when the lab is destroyed or recycled; another built lab sells exosuits again.
+	  - While the exosuit prototype lab is researching, a rotating exo hologram will appear above it.
+	    - Otherwise the hologram is static, and the map icon is purple.
 	  
 	### ARC (Robotics) Factory
 	  - New skin and is purple on the map.
@@ -668,8 +670,10 @@ else
 	
 	## Balance and QoL Changes
 	### Exosuits
-	  - Exosuit research is now two parallel projects at the Exosuit Prototype Lab: Exosuit Modules (15 tres, 45 s) unlocks Thrusters, Ejection Seat, Armor Plating and the support abilities, Advanced Exosuit Arms (25 tres, 60 s) unlocks the flame and plasma arms and allows a weapon on both arms instead of a claw on one of them. Locked modules stay visible in the configuration page and name the research they wait on.
-	  - The Prototype Lab is built off the Arms Lab instead of the Advanced Armory, and sits beside it on the tech map. Exosuits therefore arrive earlier, so base exosuit armor drops to 140 (from 170) while armor upgrades give 40 per level again.
+	  - Exosuit research is four parallel projects at the Exosuit Prototype Lab: Dual Exosuit Arms (25 tres, 60 s) allows a weapon on both arms instead of a claw on one of them, Advanced Exosuit Arms (20 tres, 60 s) unlocks the flame and plasma arms, Exosuit Cores (15 tres, 45 s) unlocks Thrusters, Ejection Seat and Armor Plating, and Exosuit Abilities (15 tres, 45 s) unlocks the support abilities. Locked modules stay visible in the configuration page and name the research they wait on.
+	  - The Prototype Lab is built off the Arms Lab instead of the Advanced Armory and is an Exosuit Prototype Lab as soon as it is built: there is no upgrade research, and claw + minigun or claw + railgun suits can be bought right away. Exosuits therefore arrive earlier, so base exosuit armor drops to 140 (from 170) while armor upgrades give 40 per level again.
+	  - Jetpacks moved to the Advanced Armory: Jetpack research runs there (50 tres, 130 s, from 25 tres and 110 s at the Prototype Lab; the higher price stands in for the Prototype Lab a jetpack rush no longer has to build) and jetpacks are bought there. Jetpacks and exosuits no longer share a building, so the two tech paths compete.
+	  - At a basic Armory the grenade launcher, flamethrower, heavy machine gun and jetpack tiles read ADVANCED ARMORY ONLY instead of UNAVAILABLE.
 	  - Exosuits can refit at any built Armory, not only at the Prototype Lab, and only within use range of it. The Armory sells nothing else to an exosuit.
 	  - Minigun damage back to the vanilla 6 with the vanilla 0.3 heat-up.
 	  - Armories and prototype labs react to an exosuit standing at its own, wider use range instead of a marine's.
@@ -679,10 +683,10 @@ else
 	  - Plasma Launcher reworked into a grenade launcher with a pulse grenade: one bomb type with a 2 s fuse that detonates on contact or on expiry, and a 4 m blast plus burn. No energy drain: only the alien a bomb lands on is electrified. One bomb from a full cell, then one every 2 s.
 	  - Flamethrower arm is back as a pure weapon: marine flamethrower damage, range and burn, no ground flames and no welding. Exosuits can no longer repair other exosuits.
 	  - New Armor Plating utility module: +80 armor for 15 pres and 10% weight. Total exosuit armor is capped at 520.
-	  - New Support Ability slot (10 pres, no weight): Nano Shield Field, Adrenaline Field or Regen Field pulse an 8 m field that affects marines but not exosuits, 120 s cooldown. The Nano Shield Field is a lighter shield than the commander's: 1.5 s and 20% damage reduction. Press Reload to trigger; with no marine in range the press is refused and the charge is kept.
+	  - New Support Ability slot (10 pres, no weight): Nano Shield Field, Catalyst Field or Regen Field pulse an 8 m field that affects marines but not exosuits, 120 s cooldown. The Nano Shield Field is a lighter shield than the commander's: 1.5 s and 20% damage reduction. Press Reload to trigger; with no marine in range the press is refused and the charge is kept.
 	  - Eject by holding the drop key for 1 s, or 0.5 s with the Ejection Seat fitted. The HUD badge shows the hold progress and the reason when ejecting is blocked (combat, airborne, deploying). The marine keeps their weapon when the key is still held through the eject.
-	  - Buy menu: selecting the Exosuit tile at a prototype lab opens a full-width configuration page with a Back button, a description for every module, live armor and speed readouts and per-module affordability colouring. Speed reads as a percentage of the marine walk speed, and every module carries a tag line for range, damage type and specials. Exosuit pilots land on the page directly. Buying requires an Exosuit Prototype Lab.
-	  - Prototype lab: exosuits can use it from 2.4 m instead of hugging it, its screens deploy for exosuits too, and Research Exosuits takes 110 s (from 90). Jetpack and Exosuit research cost 25 pres and take 110 s again (vanilla values; CBM had 20 pres / 90 s). The tech map no longer shows a second Exosuit node or the stray Armory to Observatory line, and now carries rows for Research Exosuits, Exosuit Modules and Advanced Exosuit Arms under the Exosuit Prototype Lab.
+	  - Buy menu: the Exosuit Prototype Lab opens straight on the exosuit configuration page, styled like the armory menu. It explains what an exosuit is, shows stat bars (armor, speed, range, damage against lifeforms and structures) that preview the module under the cursor, and gives every module a description and a tag line for range, damage type and specials. The cost row separates the module cost from the suit total or the refit price, and BUY says why it is refused. Modules still waiting on research grey out with an UNRESEARCHED tab, red means missing pres. Speed reads as a percentage of the marine walk speed. Exosuit pilots land on the page directly, and rebuilding the suit already worn is not a purchase.
+	  - Prototype lab: exosuits can use it from 2.4 m instead of hugging it, and its screens deploy for exosuits too. The tech map shows the lab with its four researches and Jetpack research under the Advanced Armory, and no longer shows the stray Armory to Observatory line.
 	  - Thrusters cost 15 pres and the Ejection Seat 10 pres, so a core module is a choice rather than an automatic pick. The Ejection Seat's automatic eject fires anywhere, including mid-air, while the suit deploys and next to a command station. Refitting an exosuit costs a flat 5 pres on top of the price difference, so swapping between two configurations of equal price is never free. A refit carries the suit's damage over as a fraction of its armor, so a full suit stays full.
 	  - The Ejection Seat saves the pilot, not the suit: its automatic eject destroys the exosuit. A manually ejected suit keeps its real armor, minus any damage taken during the eject, and is destroyed when that leaves it empty; it can be re-entered at any armor.
 	  - The support ability cooldown carries over through a refit and through ejecting and re-entering the suit.
@@ -956,7 +960,7 @@ else
 	### Jetpack
 	  - Min 6% activation energy required (bugfix).
 	  - No longer affected by stomp when slightly above the ground (bugfix).
-	  - Tech unlock cost to 20 from 25 tres.
+	  - Researched and bought at the Advanced Armory instead of the Prototype Lab (50 tres, 130 s research).
 
 	### Hand Grenades
 	  - Self damage reduced by 66%.
@@ -999,10 +1003,10 @@ else
 
 	## MARINE - COMMANDER / STRUCTURES
 	### Prototype Lab
-	  - Exosuit tech changed to upgrade prototype lab into exosuit prototype lab.
-	    - The research is tied to the exosuit prototype lab (lost when structure is destroyed or recycled).
-	  - While exosuit prototype lab is researching, a rotating exo hologram will appear above the prototype lab.
-	    - When completed, the hologram will become static and the map icon will become purple.
+	  - A prototype lab becomes an exosuit prototype lab when it finishes building; there is no upgrade research.
+	    - Its researches stay with the team when the lab is destroyed or recycled; another built lab sells exosuits again.
+	  - While the exosuit prototype lab is researching, a rotating exo hologram will appear above it.
+	    - Otherwise the hologram is static, and the map icon is purple.
 	  
 	### ARC (Robotics) Factory
 	  - New skin and is purple on the map.

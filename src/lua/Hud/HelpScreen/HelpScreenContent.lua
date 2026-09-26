@@ -580,7 +580,7 @@ function HelpScreen_InitializeContent()
         useLocale = true,
         })
     
-    -- Exosuit Support Ability: Adrenaline Field
+    -- Exosuit Support Ability: Catalyst Field
     HelpScreen_AddContent({
         name = "ExoAdrenalineField",
         title = "EXO_ABILITY_ADRENALINE_FIELD",
