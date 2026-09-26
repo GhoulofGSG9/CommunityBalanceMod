@@ -1851,7 +1851,7 @@ if Server then
 
         if parent then
             local away = GetNormalizedVector(self:GetOrigin() - parent:GetOrigin())
-            away.y = math.max(0, away.y) -- never push downward below the map
+            away.y = math.max(0.05, away.y) -- never push downward below the map
             if away:GetLengthSquared() < kEpsilon then
                 away = Vector(math.random()-0.5, 0, math.random()-0.5)
             end
