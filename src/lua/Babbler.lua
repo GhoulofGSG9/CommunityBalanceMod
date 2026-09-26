@@ -276,7 +276,6 @@ function Babbler:OnCreate()
 
         self.foraging = false
         self.hungry = false
-
         self.onWeb = false
         self.webWalking = false
 
@@ -506,12 +505,26 @@ local kDefaultMask = bit.bor(kRelevantToTeam1Unit, kRelevantToTeam2Unit, kReleva
 local kDefaultMaskTeam1 = bit.bor(kRelevantToTeam1Unit, kRelevantToTeam2Unit, kRelevantToTeam1Commander, kRelevantToReadyRoom)
 local kDefaultMaskTeam2 = bit.bor(kRelevantToTeam1Unit, kRelevantToTeam2Unit, kRelevantToTeam2Commander, kRelevantToReadyRoom)
 local kDefaultMaskBoth = bit.bor(kDefaultMaskTeam1, kDefaultMaskTeam2)
+
+-- Squared distance a babbler must stay within its owner to inherit the owner's "sighted"
+-- reveal (e.g. from a marine scan).
+local kSightedFollowRangeSq = 16
+local kSightedLingerTime = 1
+
 function Babbler:UpdateRelevancy()
 
     PROFILE("Babbler:UpdateRelevancy")
 
     local owner = self:GetOwner()
-    local sighted = owner ~= nil and (owner:GetOrigin() - self:GetOrigin()):GetLengthSquared() < 16 and (HasMixin(owner, "LOS") and owner:GetIsSighted())
+    local ownerSighted = owner ~= nil and (owner:GetOrigin() - self:GetOrigin()):GetLengthSquared() < kSightedFollowRangeSq
+            and (HasMixin(owner, "LOS") and owner:GetIsSighted())
+
+    local now = Shared.GetTime()
+    if ownerSighted or (self:GetIsDetected() and self:GetIsOnWeb()) then
+        self.timeLastSighted = now
+    end
+
+    local sighted = self.timeLastSighted ~= nil and now < self.timeLastSighted + kSightedLingerTime
 
     local mask = kDefaultMask
 
@@ -545,6 +558,7 @@ local function NoObstacleInWay(self, targetPos, ignoreEntity)
     return trace.fraction >= 0.9
 end
 
+local kCanReachFallbackDist = 2 -- In case we are above target (cannot move to it with path)
 local function CanReachTarget(self, target)
 
     local trace = Shared.TraceRay(self:GetEyePos(), GetEngagementOrOrigin(target),
@@ -554,7 +568,8 @@ local function CanReachTarget(self, target)
         return true
     end
 
-    return (target:GetOrigin() - self:GetOrigin()):GetLength() < 1.5
+    local toTarget = target:GetOrigin() - self:GetOrigin()
+    return toTarget:GetLengthXZ() < kCanReachFallbackDist
 
 end
 
@@ -585,7 +600,6 @@ function Babbler:UpdateBabbler(deltaTime)
             self:UpdateRelevancy()
             return
         end
-
         if self:GetIsOnWeb() then
             self:UpdateWebBehavior(deltaTime)
             self:UpdateRelevancy()
@@ -901,7 +915,6 @@ if Server then
                 self:AddTimedCallback(function(self) self.foraging = false ; self.hungry = false ; end, kAnimForagingDuration)
                 self:SetMoveType(kBabblerMoveType.None, owner, ownerOrigin)
             end
-
         else
             local dest = self:PickIdleDestination()
             if dest then
@@ -929,12 +942,10 @@ if Server then
         chatterRange = 8,     -- ambient chirps, calm delay after attach
         chatterInitialMin = 2,
         chatterDelayRange = 4,
-
         foragingMin   = kAnimForagingDuration + 5,
         foragingRange = 18,
         foragingInitialMin = 10, -- let them spread a bit on the web first
         foragingDelayRange = 20,
-
         angerMin      = 0.4,
         angerRange = 0.5,    -- angry barks while panicked
     }
@@ -1939,7 +1950,6 @@ if Server then
             self:TriggerEffects(math.random() < 0.5 and "babbler_wag_begin" or "babbler_jump") 
             self.timeNextWebChatter = Shared.GetTime() + (kWebConfig.chatterMin + math.random() * kWebConfig.chatterRange) * self.webIdleMult
         end
-
         -- Make babbler investigate the web once in a while
         if self.timeNextWebForage == nil or Shared.GetTime() >= self.timeNextWebForage then
             if math.random() < 0.65 then
@@ -1951,7 +1961,6 @@ if Server then
 
             self.timeNextWebForage = Shared.GetTime() + (kWebConfig.foragingMin + math.random() * kWebConfig.foragingRange) * self.webIdleMult
         end
-
 
     end
 
@@ -2015,7 +2024,6 @@ if Server then
 
         self.foraging = false
         self.hungry = false
-
         self.onWeb = false
         self.webId = Entity.invalidId
 
