@@ -198,12 +198,13 @@ end
 -- NOTE(Salads): BoneShield now only has a energy recharge cooldown.
 function BoneShield:GetCanUseBoneShield(player)
     local now = Shared.GetTime()
-    return
-    (now - self.lastTimeDeactivated) > kBoneShieldActivationCooldown
+    local canUse = (now - self.lastTimeDeactivated) > kBoneShieldActivationCooldown
             and self.hitPoints > (kMaxBoneshieldHitpoints * kBoneShieldMinimumStartHitpointsFactor)
             and player:GetIsOnGround()
-            and not self.secondaryAttacking
+            and not player.stomping
             and not player.charging
+    return canUse
+    
 end
 
 function BoneShield:OnPrimaryAttack(player)
@@ -241,6 +242,7 @@ end
 function BoneShield:OnHolster(player)
     Ability.OnHolster(self, player)
     self.secondaryAttacking = false
+    player.stomping = false
     self:OnPrimaryAttackEnd(player)
     self.holsterTime = Shared.GetTime()
 end
