@@ -288,6 +288,8 @@ kTechId = enum {
     'Weapons1', 'Weapons2', 'Weapons3', 'AdvancedMarineSupport',
     'Armor1', 'Armor2', 'Armor3', 'NanoArmor',
 	
+	'AdvancedExoArmsTech', 'ExoAbilitiesTech',
+
 	'Max', -- Unused, for legacy reasons, do NOT use!
 }
 

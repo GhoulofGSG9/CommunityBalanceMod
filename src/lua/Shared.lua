@@ -516,8 +516,7 @@ function ModularExo_GetIsTechResearched(techId, teamNumber)
 end
 
 -- True when the config puts a real weapon in both arms. A claw on one side is what an
--- unresearched exo gets. This is only half of what the research covers: the flame and
--- plasma arms carry it as their own requiredTechId.
+-- unresearched exo gets.
 function ModularExo_GetConfigNeedsDualArmsTech(config)
 
     local leftData  = kExoModuleTypesData[config[kExoModuleSlots.LeftArm] or kExoModuleTypes.None]

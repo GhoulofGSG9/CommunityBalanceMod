@@ -129,7 +129,7 @@ kNerveGasCloudRadius = 7
 
 kJetpackCost = 15
 kJetpackDropCost = 15
-kJetpackTechResearchCost = 25
+kJetpackTechResearchCost = 50
 kJetpackFuelTechResearchCost = 15
 kJetpackArmorTechResearchCost = 15
 
@@ -605,7 +605,7 @@ kMineResearchTime  = 20
 kTechEMPResearchTime = 60
 kTechMACSpeedResearchTime = 15
 
-kJetpackTechResearchTime = 110
+kJetpackTechResearchTime = 130
 kJetpackFuelTechResearchTime = 60
 kJetpackArmorTechResearchTime = 60
 kExosuitTechResearchTime = 110
@@ -1021,20 +1021,24 @@ kExoNanoShieldFieldDamageScalar = 0.8 -- damage taken while under the field's sh
 
 -- Exo Tech Research
 kExoShieldTech = kTechId.ExosuitTech -- (depreciated)
-kExoFlamerTech = kTechId.DualMinigunTech
-kRailgunTech = kTechId.ExosuitTech
-kPlasmaLauncherTech = kTechId.DualMinigunTech
-kMinigunTech = kTechId.ExosuitTech
--- Core (utility) and support (ability) modules sit behind the Exosuit Cores research at the
--- exo prototype lab. kTechId.DualMinigunTech covers everything past the starting pair of arms:
--- a weapon in both arms, which ModularExo_GetIsConfigValid decides, and the flame and plasma
--- arms, which out-damage the minigun against everything it is not built for.
+-- Claw + minigun and claw + railgun need no research, only a built prototype lab to buy at.
+-- Everything else is one of four researches at the lab: Dual Arms (a weapon in
+-- both arms, decided by ModularExo_GetConfigNeedsDualArmsTech), Advanced Arms (flame and
+-- plasma), Cores (utility modules) and Abilities (support abilities).
+kExoFlamerTech = kTechId.AdvancedExoArmsTech
+kRailgunTech = kTechId.None
+kPlasmaLauncherTech = kTechId.AdvancedExoArmsTech
+kMinigunTech = kTechId.None
 kExoArmorModuleTech = kTechId.CoresExosuitTech
 kExoThrusterModuleTech = kTechId.CoresExosuitTech
 kEjectionSeatModuleTech = kTechId.CoresExosuitTech
-kExoSupportModuleTech = kTechId.CoresExosuitTech
+kExoSupportModuleTech = kTechId.ExoAbilitiesTech
 kCoreExosuitTechResearchCost = 15
 kCoreExosuitTechResearchTime = 45
+kAdvancedExoArmsTechResearchCost = 20
+kAdvancedExoArmsTechResearchTime = 60
+kExoAbilitiesTechResearchCost = 15
+kExoAbilitiesTechResearchTime = 45
 
 -- Plasmalauncher arm
 kPlasmaT3LifeTime = kGrenadeLifetime -- same fuse as the grenade launcher

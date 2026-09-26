@@ -16,7 +16,26 @@ end
 local kDeployTime = 5.5
 
 function PrototypeLab:OnConstructionComplete()
+
     self:AddTimedCallback(OnDeploy, kDeployTime)
+
+    if self:GetTechId() ~= kTechId.ExoPrototypeLab then
+        self:SetTechId(kTechId.ExoPrototypeLab)
+        if HasMixin(self, "MapBlip") then
+            self:MarkBlipDirty()
+        end
+    end
+
+    local team = self:GetTeam()
+    local techTree = team and team.GetTechTree and team:GetTechTree()
+    local exosuitNode = techTree and techTree:GetTechNode(kTechId.ExosuitTech)
+    if exosuitNode and not exosuitNode:GetResearched() then
+        exosuitNode:SetResearchProgress(1)
+        techTree:SetTechNodeChanged(exosuitNode, string.format("researchProgress = %.2f", 1))
+        exosuitNode:SetResearched(true)
+        techTree:QueueOnResearchComplete(kTechId.ExosuitTech, self)
+    end
+
 end
 
 -- west/east = x/-x
@@ -88,104 +107,4 @@ function PrototypeLab:UpdateLoggedIn()
     
     return true
     
-end
-
--- %%% New CBM Functions %%% --
-function PrototypeLab:UpdateResearch()
-
-    local researchId = self:GetResearchingId()
-
-    if researchId == kTechId.UpgradeToExoPrototypeLab then
-    
-        local techTree = self:GetTeam():GetTechTree()
-		
-        local researchNode = techTree:GetTechNode(kTechId.ExoPrototypeLab)   
-        researchNode:SetResearchProgress(self.researchProgress)
-        techTree:SetTechNodeChanged(researchNode, string.format("researchProgress = %.2f", self.researchProgress)) 
-
-    elseif researchId == kTechId.UpgradeToInfantryPrototypeLab then
-    
-        local techTree = self:GetTeam():GetTechTree()    
-        local researchNode = techTree:GetTechNode(kTechId.JetpackTech)   
-        researchNode:SetResearchProgress(self.researchProgress)
-        techTree:SetTechNodeChanged(researchNode, string.format("researchProgress = %.2f", self.researchProgress)) 
-	
-    end
-
-end
-
-
-function PrototypeLab:OnResearchCancel(researchId)
-
-    if researchId == kTechId.UpgradeToExoPrototypeLab then
-    
-        local team = self:GetTeam()
-        
-        if team then
-        
-            local techTree = team:GetTechTree()
-            local researchNode = techTree:GetTechNode(kTechId.ExoPrototypeLab)
-            if researchNode then
-                researchNode:ClearResearching()
-                techTree:SetTechNodeChanged(researchNode, string.format("researchProgress = %.2f", 0))   
-            end
-        end
-
-	elseif researchId == kTechId.UpgradeToInfantryPrototypeLab then
-
-        local team = self:GetTeam()
-        
-        if team then
-        
-            local techTree = team:GetTechTree()
-            local researchNode = techTree:GetTechNode(kTechId.JetpackTech)
-            if researchNode then
-                researchNode:ClearResearching()
-                techTree:SetTechNodeChanged(researchNode, string.format("researchProgress = %.2f", 0))   
-            end
-        end	
-		
-    end
-end
-
--- Called when research or upgrade complete
-function PrototypeLab:OnResearchComplete(researchId)
-    if researchId == kTechId.UpgradeToExoPrototypeLab then
-    
-        self:SetTechId(kTechId.ExoPrototypeLab)
-        
-        local techTree = self:GetTeam():GetTechTree()
-        local researchNode = techTree:GetTechNode(kTechId.ExosuitTech)
-        
-        if researchNode then     
-   
-            researchNode:SetResearchProgress(1)
-            techTree:SetTechNodeChanged(researchNode, string.format("researchProgress = %.2f", 1))
-            researchNode:SetResearched(true)
-            techTree:QueueOnResearchComplete(kTechId.ExosuitTech, self)
-            
-        end
-
-    elseif researchId == kTechId.UpgradeToInfantryPrototypeLab then
-    
-        self:SetTechId(kTechId.InfantryPrototypeLab)
-        
-        local techTree = self:GetTeam():GetTechTree()
-        local researchNode = techTree:GetTechNode(kTechId.JetpackTech)
-        
-        if researchNode then     
-   
-            researchNode:SetResearchProgress(1)
-            techTree:SetTechNodeChanged(researchNode, string.format("researchProgress = %.2f", 1))
-            researchNode:SetResearched(true)
-            techTree:QueueOnResearchComplete(kTechId.JetpackTech, self)
-            
-        end
-        
-    end
-	
-	
-	if HasMixin(self, "MapBlip") then 
-		self:MarkBlipDirty()
-	end       
 end

@@ -2263,7 +2263,7 @@ kMarineBrainObjectiveActions =
         local teamNumber = marine:GetTeamNumber()
         local techTree = GetTechTree(teamNumber)
 
-        if not techTree:GetHasTech(kTechId.ExosuitTech, true) then
+        if not techTree:GetHasTech(kTechId.ExoPrototypeLab, true) then
             return kNilAction
         end
 
@@ -2521,15 +2521,15 @@ kMarineBrainObjectiveActions =
         local name = kMarineBrainObjectiveTypes[kMarineBrainObjectiveTypes.BuyJetpack]
         local sdb = brain:GetSenses()
 
-        local data = sdb:Get("nearestProto")
-        local proto = data.proto
-        local protoDist = data.distance
+        local data = sdb:Get("nearestAdvancedArmory")
+        local armory = data.armory
+        local armoryDist = data.distance
         local weight = 0
         local resources = marine:GetResources()
-        
+
         local techTree = GetTechTree(marine:GetTeamNumber())
-        
-        if proto and protoDist and not marine:isa("JetpackMarine") and techTree:GetHasTech(kTechId.JetpackTech, true) and resources >= LookupTechData(kTechId.Jetpack, kTechDataCostKey) then
+
+        if armory and armoryDist and not marine:isa("JetpackMarine") and techTree:GetHasTech(kTechId.JetpackTech, true) and resources >= LookupTechData(kTechId.Jetpack, kTechDataCostKey) then
             weight = GetMarineObjectiveBaselineWeight( kMarineBrainObjectiveTypes.BuyJetpack )
                     
             if bot.wantsJetpack then
@@ -2541,7 +2541,7 @@ kMarineBrainObjectiveActions =
         { 
             name = name, 
             weight = weight,
-            structure = proto,
+            structure = armory,
             buyId = kTechId.Jetpack,
             validate = kValidateBuyTechId,
             perform = kExecBuyTechId
@@ -4270,19 +4270,19 @@ function CreateMarineBrainSenses()
             }
         end)
             
-    s:Add("nearestProto", 
+    s:Add("nearestAdvancedArmory",
         function(db, marine)
 
-            local protos = GetEntitiesForTeam( "PrototypeLab", marine:GetTeamNumber() )
+            local armories = GetEntitiesForTeam( "Armory", marine:GetTeamNumber() )
 
-            local dist, proto = GetMinTableEntry( protos,
-                function(proto)
-                    assert( proto ~= nil )
-                    if proto:GetIsBuilt() and proto:GetIsPowered() then
-                        local dist,_ = GetPhaseDistanceForMarine( marine, proto, db.bot.brain.lastGateId )
+            local dist, armory = GetMinTableEntry( armories,
+                function(armory)
+                    assert( armory ~= nil )
+                    if armory:GetTechId() == kTechId.AdvancedArmory and armory:GetIsBuilt() and armory:GetIsPowered() then
+                        local dist,_ = GetPhaseDistanceForMarine( marine, armory, db.bot.brain.lastGateId )
 
                         -- Weigh our previous nearest a bit better, to prevent thrashing
-                        if proto:GetId() == db.lastNearestProtoId then
+                        if armory:GetId() == db.lastNearestAdvancedArmoryId then
                             return dist * 0.9
                         else
                             return dist
@@ -4290,13 +4290,13 @@ function CreateMarineBrainSenses()
                     end
                 end)
 
-            if proto ~= nil then 
-                db.lastNearestProtoId = proto:GetId() 
+            if armory ~= nil then
+                db.lastNearestAdvancedArmoryId = armory:GetId()
             end
 
-            return 
+            return
             {
-                proto = proto, 
+                armory = armory,
                 distance = dist
             }
 

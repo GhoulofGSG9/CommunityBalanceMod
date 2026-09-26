@@ -51,10 +51,8 @@ GUIMarineBuyMenu.kSpecialTextContentColor_Debuff = Color(239/255, 94/255,  80/25
 
 GUIMarineBuyMenu.kErrorFrameTextPadding          = 10 -- X, both sides
 
--- Prototype lab layout anchors, shared by the vanilla item list and the modular exo panel.
--- The background art (prototypelab_background.dds, 1383x811) is chamfered at the top left,
--- so nothing may sit higher or further left than the item list already does.
-local kPrototypeLabItemListPos = Vector(97, 149, 0)
+-- The prototype lab background art (prototypelab_background.dds, 1383x811) is chamfered at
+-- the top left, so nothing may sit higher or further left than this.
 local kPrototypeLabRightSidePos = Vector(580, 38, 0)
 
 local kButtonShowState = enum({
@@ -66,6 +64,7 @@ local kButtonShowState = enum({
     'InsufficientFunds',
     'Available',
     'Disabled', -- Tutorial should block 'Axe' purchasing, for example. Override 'GUIMarineBuyMenu:GetTechIDDisabled(techID)' for this.
+    'AdvancedArmoryOnly',
 })
 
 local kButtonShowStateDefinitions =
@@ -79,6 +78,12 @@ local kButtonShowStateDefinitions =
     [kButtonShowState.NotHosted] = {
         ShowError = true,
         Text = "BUYMENU_ERROR_UNAVAILABLE",
+        TextColor = Color(94/255, 116/255, 128/255)
+    },
+
+    [kButtonShowState.AdvancedArmoryOnly] = {
+        ShowError = true,
+        Text = "BUYMENU_ERROR_ADVANCED_ARMORY_ONLY",
         TextColor = Color(94/255, 116/255, 128/255)
     },
 
@@ -135,6 +140,7 @@ local kWeaponGroupButtonPositions =
         Vector(4, 262, 0),
         Vector(4, 380, 0),
     },
+
 	
 	[kButtonGroupFrame_Labeled_x5] =
     {
@@ -469,7 +475,7 @@ local kTechIdInfo =
                   0%|                                    80%-padding| |80%             |100% (Width)
     ╔═════════════╤═════════════════════════════════════════════════════════════════════╗ ─0%
     ║             │ ┌───────────────────────────────────────────────┐ ┌───────────────┐ ║ 
-    ║ Jetpack     │ │ POWER MODULE                                  │ │     HEAVY     │ ║
+    ║             │ │ POWER MODULE                                  │ │     HEAVY     │ ║
     ║             │ │ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐  │ │               │ ║ 
     ╟─────────────┤ │ │ +20P │ │ +20P │ │ +20P │ │ +20P │ │ +20P │  │ │     20Z/      │ ║ 
     ║             │ │ │ -40R │ │ -40R │ │ -40R │ │ -40R │ │ -40R │  │ │       /40Z    │ ║ 
@@ -607,6 +613,7 @@ GUIMarineBuyMenu.kExoModuleData = {
     -- Weapon modules
     [kExoModuleTypes.Claw]         = {
         label          = "EXO_MODULE_CLAW",
+        stats          = { Range = 0.1, LifeFormDamage = 0.3, StructureDamage = 0.8 },
         image          = kInventoryIconsTexture,
         imageTexCoords = { GetSmallIconPixelCoordinates(kTechId.Claw) },
     },
@@ -627,21 +634,25 @@ GUIMarineBuyMenu.kExoModuleData = {
     --},
     [kExoModuleTypes.Railgun]      = {
         label          = "RAILGUN",
+        stats          = { Range = 1.0, LifeFormDamage = 1.0, StructureDamage = 0.85 },
         image          = kInventoryIconsTexture,
         imageTexCoords = { GetSmallIconPixelCoordinates(kTechId.ClawRailgunExosuit) },
     },
 	[kExoModuleTypes.PlasmaLauncher]      = {
         label          = "EXO_MODULE_PLASMALAUNCHER",
+        stats          = { Range = 0.6, LifeFormDamage = 0.55, StructureDamage = 0.4 },
         image          = kInventoryIconsTexture,
         imageTexCoords = { GetSmallIconPixelCoordinates(kTechId.PulseGrenade) },
     },
     [kExoModuleTypes.Minigun]      = {
         label          = "MINIGUN",
+        stats          = { Range = 0.7, LifeFormDamage = 0.9, StructureDamage = 0.8 },
         image          = kInventoryIconsTexture,
         imageTexCoords = { GetSmallIconPixelCoordinates(kTechId.Exosuit) },
     },
     [kExoModuleTypes.Flamethrower] = {
         label          = "FLAMETHROWER",
+        stats          = { Range = 0.4, LifeFormDamage = 0.6, StructureDamage = 1.0 },
         image          = kInventoryIconsTexture,
         imageTexCoords = { GetSmallIconPixelCoordinates(kTechId.Flamethrower) },
     },
@@ -706,7 +717,7 @@ function GUIMarineBuyMenu:_GetPigPicturePixelCoordinatesForTechID(techId)
 
     local pictureWidth = 651 -- armory dimensions
     local pictureHeight = 319
-    if self.usePrototypeLabLayout then
+    if self.usePrototypeLabLayout or techId == kTechId.Jetpack then
         pictureWidth = 403
         pictureHeight = 424
     end
@@ -796,6 +807,7 @@ function GUIMarineBuyMenu:_UpdateStatBar(barItem, stat)
     local statFullWidth = self.rangeBar:GetTextureWidth()
     local statFullHeight = self.rangeBar:GetTextureHeight()
     local statWidth = stat * statFullWidth
+    local displayWidth = stat * (self.statBarDisplayWidth or statFullWidth)
     local desaturateBy = 0.35
     local statColor
     if stat <= 0.5 then
@@ -805,7 +817,7 @@ function GUIMarineBuyMenu:_UpdateStatBar(barItem, stat)
         statColor = LerpColor(Desaturate(Color(1,1,0), desaturateBy), Desaturate(Color(0,1,0), desaturateBy), (stat - 0.5) / 0.5)
     end
 
-    barItem:SetSize(Vector(statWidth, statFullHeight, 0))
+    barItem:SetSize(Vector(displayWidth, statFullHeight, 0))
     barItem:SetTexturePixelCoordinates(0, 0, statWidth, statFullHeight)
     barItem:SetColor(statColor)
 
@@ -975,16 +987,7 @@ function GUIMarineBuyMenu:SetHostStructure(hostStructure)
 	
     if self.usePrototypeLabLayout then
         self:_InitializeExoModularButtons()
-        -- A player who is already in an exo came to refit, so open straight on the
-        -- configuration page; everyone else starts on the vanilla item list. Only a host
-        -- that can hand over a configuration opens on the page, so a plain lab keeps the
-        -- list.
-        local localPlayer = Client.GetLocalPlayer()
-        self.exoConfigPageActive = localPlayer ~= nil and localPlayer:isa("Exo")
-            and self:_GetHostCanSellExoConfig()
-        if self.exoConfigPageActive then
-            MarineBuy_OnUpgradeSelected()
-        end
+        MarineBuy_OnUpgradeSelected()
         self:_RefreshExoModularButtons()
     end	
 end
@@ -999,7 +1002,7 @@ end
 
 function GUIMarineBuyMenu:CreatePrototypeLabUI()
     
-    self.defaultTechId = kTechId.Jetpack
+    self.defaultTechId = kTechId.DualMinigunExosuit
     
     self.background = self:CreateAnimatedGraphicItem()
     self.background:SetTexture(kPrototypeLabBackgroundTexture)
@@ -1011,26 +1014,6 @@ function GUIMarineBuyMenu:CreatePrototypeLabUI()
     self.background:SetOptionFlag(GUIItem.CorrectScaling)
     self.background:SetLayer(kGUILayerMarineBuyMenu)
     
-    local buttonPositions = kWeaponGroupButtonPositions[kButtonGroupFrame_Unlabeled_x2]
-
-    local buttonGroup = self:CreateAnimatedGraphicItem()
-    buttonGroup:AddAsChildTo(self.background)
-    buttonGroup:SetIsScaling(false)
-    buttonGroup:SetPosition(Vector(kPrototypeLabItemListPos.x, kPrototypeLabItemListPos.y, 0))
-    buttonGroup:SetTexture(kButtonGroupFrame_Unlabeled_x2)
-    buttonGroup:SetSizeFromTexture()
-    buttonGroup:SetOptionFlag(GUIItem.CorrectScaling)
-
-    -- Vanilla item list: jetpack on top, exosuit below, in the order PrototypeLab:GetItemList
-    -- hands them out. Both tiles look and behave like vanilla; the exosuit tile is the entry
-    -- point to the modular configuration page instead of a purchase (see HandleItemClicked).
-    self.itemListGroup = buttonGroup
-    self:_InitializeWeaponGroup(buttonGroup, buttonPositions,
-                                {
-                                    kTechId.Jetpack,
-                                    kTechId.DualMinigunExosuit,
-                                })
-
     self:_CreateRightSide(Vector(kPrototypeLabRightSidePos.x, kPrototypeLabRightSidePos.y, 0))
 
 end
@@ -1138,15 +1121,16 @@ function GUIMarineBuyMenu:CreateArmoryUI()
     weaponGroupBottomRight:AddAsChildTo(self.background)
     weaponGroupBottomRight:SetPosition(Vector(weaponGroupTopRight:GetPosition().x, weaponGroupTopRight:GetPosition().y + weaponGroupTopRight:GetSize().y + paddingYWeaponGroups, 0))
 	
-	weaponGroupBottomRight:SetTexture(kButtonGroupFrame_Labeled_x4)
+	weaponGroupBottomRight:SetTexture(kButtonGroupFrame_Labeled_x5)
 	weaponGroupBottomRight:SetSizeFromTexture()
 	weaponGroupBottomRight:SetOptionFlag(GUIItem.CorrectScaling)
-	self:_InitializeWeaponGroup(weaponGroupBottomRight, x4ButtonPositions,
+	self:_InitializeWeaponGroup(weaponGroupBottomRight, x5ButtonPositions,
 	{
 		kTechId.GasGrenade,
 		kTechId.ClusterGrenade,
 		kTechId.PulseGrenade,
-		kTechId.LayMines
+		kTechId.LayMines,
+		kTechId.Jetpack
 	})
 
     local labelItemBottomRight = self:CreateAnimatedTextItem()
@@ -1490,6 +1474,12 @@ function GUIMarineBuyMenu:_SetDetailsSectionTechId(techId, techCost)
     local description = kTechIdInfo[techId].Description
     self.itemDescription:SetText(Locale.ResolveString(description))
 
+    -- The armory atlas has no jetpack, so the armory borrows the prototype lab picture.
+    local borrowedPicture = techId == kTechId.Jetpack and not self.usePrototypeLabLayout
+    if not self.usePrototypeLabLayout then
+        self.bigPicture:SetTexture(borrowedPicture and kPrototypeLabBigPicturesTexture or kArmoryBigPicturesTexture)
+    end
+
     local bigPictureCoords = self:_GetPigPicturePixelCoordinatesForTechID(techId)
     self.bigPicture:SetTexturePixelCoordinates(GUIUnpackCoords(bigPictureCoords))
 
@@ -1529,6 +1519,18 @@ function GUIMarineBuyMenu:_SetDetailsSectionTechId(techId, techCost)
 
     end
 
+    -- A borrowed picture is scaled to the armory picture height and centred in its frame.
+    if not self.usePrototypeLabLayout then
+        local size = self.bigPictureDefaultSize
+        if borrowedPicture then
+            local width = size.y * 403 / 424
+            self.bigPicture:SetSize(Vector(width, size.y, 0))
+            self.bigPicture:SetPosition(Vector((size.x - width) * 0.5, self.bigPicture:GetPosition().y, 0))
+        else
+            self.bigPicture:SetSize(size)
+        end
+    end
+
 
     -- Update the "special" stuff.
     local techSpecial = kTechIdInfo[techId].Special
@@ -1542,17 +1544,6 @@ function GUIMarineBuyMenu:_SetDetailsSectionTechId(techId, techCost)
         self.specialFrame:SetIsVisible(false)
     end
 	
-    -- The modular configuration page borrows these items and leaves them hidden, so hand
-    -- them back to the vanilla details section whenever an item tile is hovered. The exosuit
-    -- tile is an ordinary vanilla tile again: it keeps its own picture, cost, stat bars and
-    -- "SPECIAL: Massive" box, and only its click is different (see HandleItemClicked).
-    self.itemTitle:SetIsVisible(true)
-    self.costText:SetIsVisible(true)
-    self.itemDescription:SetIsVisible(true)
-    self.bigPicture:SetIsVisible(true)
-    self.currentMoneyText:SetIsVisible(true)
-    self.currentMoneyTextIcon:SetIsVisible(true)
-
 end
 
 function GUIMarineBuyMenu:_UpdateRealTimeElements(buttonTable, techId, techAvailable, currentMoney, techCost)
@@ -1633,6 +1624,18 @@ function GUIMarineBuyMenu:_UpdateBuyButtonAvailability(buttonTable, hoverStateCh
 
 end
 
+local kAdvancedArmoryOnlyItemSet = nil
+
+-- A basic armory does not host these at all; name the structure that does instead of the
+-- generic UNAVAILABLE.
+local function GetIsAdvancedArmoryOnly(hostStructure, techId)
+    if not hostStructure:isa("Armory") or hostStructure:GetTechId() == kTechId.AdvancedArmory then
+        return false
+    end
+    kAdvancedArmoryOnlyItemSet = kAdvancedArmoryOnlyItemSet or set(Armory.kAdvancedArmoryOnlyItems)
+    return kAdvancedArmoryOnlyItemSet[techId] == true
+end
+
 function GUIMarineBuyMenu:Update(deltaTime)
 
     -- Update all of the buy buttons.
@@ -1640,12 +1643,7 @@ function GUIMarineBuyMenu:Update(deltaTime)
     local hoveredTechAvailable = false
     local hoveredCanAfford = false
 
-    -- The prototype lab menu has two pages: the vanilla item list and the modular exosuit
-    -- configuration page. Only one of them is on screen, and only the one on screen takes
-    -- hover and clicks, so the item tiles are skipped entirely while the config page is up.
-    local configPageActive = self:_GetIsExoConfigPageActive()
-
-    for i = 1, (configPageActive and 0 or #self.buyButtons) do
+    for i = 1, #self.buyButtons do
 
         local buttonTable = self.buyButtons[i]
         local buttonItem = buttonTable.Button
@@ -1692,7 +1690,7 @@ function GUIMarineBuyMenu:Update(deltaTime)
         if buttonTable.Disabled then
             buttonState = kButtonShowState.Disabled
         elseif not buttonTable.Hosted then
-            buttonState = kButtonShowState.NotHosted
+            buttonState = GetIsAdvancedArmoryOnly(self.hostStructure, techId) and kButtonShowState.AdvancedArmoryOnly or kButtonShowState.NotHosted
         elseif techOccupied then
             buttonState = kButtonShowState.Occupied
         elseif techAlreadyEquipped then
@@ -1786,21 +1784,6 @@ local function HandleItemClicked(self)
         
         local item = self.hoveredBuyButton
 
-        -- The exosuit tile never buys anything. It is the entry point to the modular
-        -- configuration page, where the suit is put together and bought. It stays clickable
-        -- while the tech is unresearched or already worn, so a player can look at a build or
-        -- come back to refit one; the page's own BUY button is what refuses in those cases.
-        if item.TechID == kTechId.DualMinigunExosuit then
-
-            if item.Hosted and not item.Disabled then
-                self.exoConfigPageActive = true
-                MarineBuy_OnUpgradeSelected()
-                return true, false
-            end
-
-            return false, false
-
-        end
 		        
         local researched = self:_GetResearchInfo(item.TechID)
         local itemCost = MarineBuy_GetCosts(item.TechID)
@@ -1817,17 +1800,11 @@ local function HandleItemClicked(self)
     end
 	
     if self:_GetIsExoConfigPageActive() then
-        -- BACK returns to the item list. Checked before everything else so it wins over any
-        -- module button the button art happens to overlap.
-        if self.modularExoBackButton and GetIsMouseOver(self, self.modularExoBackButton) then
-            self.exoConfigPageActive = false
-            MarineBuy_OnUpgradeDeselected()
-            return true, false
-        end
         -- ModularExo_HandleExoModularBuy drops a request it does not like without telling
         -- anyone, so closing the menu on a refused buy looks exactly like a successful one.
-        -- Test the same four things the server does - the host, the configuration, the
-        -- research and the price - and leave the page up when any of them fails. Note this
+        -- Test the same five things the server does - the host, the configuration, the
+        -- research, that it changes the suit worn and the price - and leave the page up
+        -- when any of them fails. Note this
         -- is the host test, not _GetResearchInfo: the button paint and the server both gate
         -- on the host being able to hand over a configuration, and the click has to agree
         -- with them.
@@ -1835,7 +1812,8 @@ local function HandleItemClicked(self)
 
             local isValid, _, resourceCost = ModularExo_GetIsConfigValid(self.exoConfig)
             local lockedTechId = ModularExo_GetConfigLockedTechId(self.exoConfig)
-            if isValid and lockedTechId == nil and PlayerUI_GetPlayerResources() >= self:_GetExoConfigPrice(resourceCost) then
+            if isValid and lockedTechId == nil and not self:_GetIsExoConfigUnchanged()
+            and PlayerUI_GetPlayerResources() >= self:_GetExoConfigPrice(resourceCost) then
                 Client.SendNetworkMessage("ExoModularBuy", ModularExo_ConvertConfigToNetMessage(self.exoConfig))
                 MarineBuy_OnClose()
                 return true, true
@@ -1846,8 +1824,7 @@ local function HandleItemClicked(self)
         end
         for buttonI, buttonData in ipairs(self.modularExoModuleButtonList) do
             if GetIsMouseOver(self, buttonData.buttonGraphic) then
-                if buttonData.state == "enabled" then
-                    self.modularExoDetailsModule = buttonData.moduleType
+                if buttonData.state == "enabled" or buttonData.state == "unaffordable" then
                     self.exoConfig[buttonData.slotType] = buttonData.moduleType
                     if buttonData.forceToDefaultConfig then
                         self.exoConfig[kExoModuleSlots.RightArm] = kExoModuleTypes.Minigun
@@ -1924,38 +1901,35 @@ local kTextColor = Color(kMarineFontColor)
 
 local kDisabledColor = Color(0.82, 0.98, 1, 0.5)
 local kCannotBuyColor = Color(0.98, 0.24, 0.17, 1)
+local kBuyTextRefusedColor = Color(0.5, 0.5, 0.5, 1)
+local kBuyButtonUnaffordableColor = Color(1, 0, 0, 1)
 local kEnabledColor = Color(1, 1, 1, 1)
 
--- Modular exo configuration page layout. Unscaled coordinates inside the buy menu background
--- (prototypelab_background.dds is 1383x811). Everything in the modular block is placed
--- relative to self.rightSideRoot, which sits at kPrototypeLabRightSidePos in that
--- background. All tunables for the page live here.
+-- Modular exo configuration page layout, in unscaled coordinates of the vanilla 1383x811
+-- prototypelab_background.dds. Everything is placed relative to self.rightSideRoot, which
+-- sits at kPrototypeLabRightSidePos. A larger background scales the configuration area (see
+-- GetConfigAreaSize); the details column stays in background pixels.
 --
--- The page replaces the vanilla item list rather than sitting next to it, so the whole left
--- column is free: the module details get the space the item list used to take, and the arm
--- columns move out to the edges of a wider configuration area.
---
---  x  0    60  105                 540                                     1360   1383
+--  x  0    80                  540                                     1360   1383
 --     +-----------------------------------------------------------------------------+ y 0
 --     |  (the frame art is chamfered here, nothing can sit higher on the left)       |
---     |        +--------+                                                           | 118
---     |        |  BACK  |         Left Arm      [         ]      Right Arm          | 170
---     |        +--------+         +---------+   [   exo   ]    +---------+          |
---     |   MODULE NAME             | 5 arms  |   [  model  ]    | 4 arms  |          | 200
---     |   COST: 20                |         |   [ preview ]    |         |          |
---     |   +40 ARMOR  -4% SPEED    +---------+   [         ]    +---------+          | 474
---     |                                     Core Module                             |
---     |   Description, up to seven   +-------------------------------------+        | 480
---     |   lines across the whole            Support Ability                         |
---     |   left column                +-------------------------------------+        | 610
---     |                                   [ res | BUY | armour, speed ]             | 710
+--     |                             LEFT ARM [         ]      RIGHT ARM              | 76
+--     |   MODULE NAME             +---------+   [   exo   ]    +---------+          | 200
+--     |   COST / CURRENT          | 5 arms  |   [  model  ]    | 4 arms  |          |
+--     |   TOTAL                   |         |   [ preview ]    |         |          |
+--     |   ---- EXOSUIT ----       +---------+   [         ]    +---------+          |
+--     |   five stat bars                                         CORE MODULE        |
+--     |   tags                       +-------------------------------------+        | 480
+--     |   Description                                          SUPPORT ABILITY      |
+--     |                              +-------------------------------------+        | 610
+--     |                                   [ price | BUY | armour, speed ]           | 710
 --     +-----------------------------------------------------------------------------+ 811
 --
 -- The configuration area is everything right of the module details column.
 -- The area is measured from the background texture at init (GetConfigAreaSize), because
 -- CBM ships its own prototypelab_background.dds (1700x1000) while vanilla's is 1383x811;
 -- with fixed numbers the page sat in the top left of the larger frame.
-local kConfigAreaOffsetX = -40      -- background x 540, where the vanilla item list ended
+local kConfigAreaOffsetX = -40      -- background x 540, right of the details column
 local kConfigAreaRightMargin = 70   -- frame edge to the right of the last arm column, about
                                     -- the same as the frame's divider left of the first
 local kConfigAreaBottomMargin = 3   -- frame edge below the buy row
@@ -1967,14 +1941,25 @@ local kVanillaBackgroundHeight = 811
 local kVanillaConfigAreaWidth = kVanillaBackgroundWidth - (kPrototypeLabRightSidePos.x + kConfigAreaOffsetX) - kConfigAreaRightMargin
 local kVanillaConfigAreaHeight = kVanillaBackgroundHeight - kPrototypeLabRightSidePos.y - kConfigAreaBottomMargin
 
--- Slot panels. Every panel is a labelled group: a title sitting above a framed box of
--- buttons, the way the vanilla WEAPONS / UTILITY groups read.
 local kSlotPanelPadding = 8         -- inside a slot panel, around its buttons
-local kSlotTitleOffsetY = -38       -- slot label, above its panel
-local kSlotTitleFontSize = 38
+-- Slot panels are drawn like the armory's weapon groups (button_group_frame_labeled_x4.dds):
+-- a half black box with a 4 px grey border, and the label in the light tab above its top
+-- right corner. The box is built from plain rectangles so it keeps its border at any size;
+-- only the tab is cut from the texture (x 310-451, y 0-22) and widened to fit the label.
+local kSlotTitleFontSize = 24
+local kGroupFrameFillColor = Color(0, 0, 0, 0.5)
+local kGroupFrameBorderColor = Color(64/255, 69/255, 71/255, 0.4)
+local kGroupFrameBorderWidth = 4
+local kGroupFrameTabCoords = { 310, 0, 451, 22 }
+local kGroupFrameTabLabelX = 25                 -- the armory's label starts 25 into the tab
+local kGroupFrameTabLabelPaddingRight = 12
+-- The armory's error frame, over a module's picture, for why it cannot be picked.
+local kModuleStatusFontSize = 20
+local kModuleStatusHeight = 28
+local kModuleStatusPadding = 8
 
-local kArmColumnYp = 0.0494         -- 76, top of both vertical arm columns (the slot titles
-                                    -- sit 36 above that, clear of the frame's top edge)
+local kArmColumnYp = 0.0494         -- 76, top of both vertical arm columns (the slot tabs
+                                    -- sit above that, clear of the frame's top edge)
 local kUtilityRowYp = 0.574         -- 480, core module row
 local kAbilityRowYp = 0.7429        -- 610, support ability row
 local kBuyButtonYp = 0.8727         -- 710, buy button / cost / armour readout, bottom centre
@@ -1996,6 +1981,8 @@ local kModuleButtonPaddingY = 4
 local kModuleLabelFontSize = 30
 local kModuleStatFontSize = 28
 local kModuleStatIconSize = 22
+-- resource_icon_lit.dds is 48 wide, 18 of it glow around a 30 wide coin (see _CreateButton).
+local kLitIconGlowScale = 48 / 30
 local kModuleStatTextGap = 4
 local kModuleTeamCountOffsetX = 84  -- team icon, right of the cost icon and its number
 local kWeaponImageSize = Vector(68, 34, 0)  -- 2:1, the shape of an inventory icon cell
@@ -2005,48 +1992,63 @@ local kUtilityImageSize = Vector(34, 34, 0) -- square, the shape of a build menu
 -- worked out from the panels themselves once they are built.
 local kExoModelPreviewMargin = 10
 
--- Module details own the left column, in the space the vanilla item list takes on the list
--- page. The whole column is free while the configuration page is up, so a description gets a
--- readable measure instead of three cramped lines. Background coordinates.
+-- Module details own the left column. Background coordinates.
 -- The details column sits inside the background's left panel frame. On the CBM
 -- prototypelab_background that frame's inner edges are at about x 40 and x 460, so the
 -- text keeps a margin on both sides of it; the vanilla background has no frame there.
 local kExoDetailsPos = Vector(80, 200, 0)
 local kExoDetailsBoxWidth = 370             -- 80 .. 450
 local kExoDetailsTitleY = 0
-local kExoDetailsCostY = 54
-local kExoDetailsStatsY = 92
-local kExoDetailsTagsY = 130         -- role tags: range, damage type, what it does
-local kExoDetailsDescY = 166
+local kExoDetailsCostY = 54          -- TOTAL / CURRENT, the armory's COST / CURRENT pair
+local kExoDetailsModuleCostY = 92    -- the hovered module's own price
+local kExoDetailsSeparatorY = 124    -- EXOSUIT label and rule: the bars below describe the suit
+local kExoDetailsSeparatorRuleY = 152
+local kExoDetailsStatsY = 160
+-- Five armory style stat bars (range, vs lifeforms, vs structures, armor, speed) at the
+-- armory's label/bar offsets and row pitch.
+local kExoStatRowSpacing = 32
+local kExoStatLabelX = 145
+local kExoStatBarX = 175
+local kExoStatBarsBottomY = kExoDetailsStatsY + 5 * kExoStatRowSpacing
+local kExoDetailsTagsY = kExoStatBarsBottomY + 2   -- role tags, or why a module cannot be picked
+local kExoDetailsDescY = kExoDetailsTagsY + 64     -- room for a two line reason
+local kExoDetailsOverviewDescY = kExoDetailsTagsY
+local kExoDetailsReasonMaxLines = 2
+-- A hovered module leaves some bars where they are; those fade so the ones it moves stand out.
+local kExoStatLabelColor = Color(1, 1, 1, 1)
+local kExoStatUnchangedLabelColor = Color(1, 1, 1, 0.35)
+local kExoStatUnchangedAlpha = 0.35
+-- Bars span the range the configurations actually cover: armor from the bare suit to the
+-- cap, speed from 60% to 105% of the marine walk speed (the lightest suits pass 100%).
+local kExoSpeedBarMinPercent = 60
+local kExoSpeedBarMaxPercent = 105
 local kExoDetailsDescMaxLines = 11
-local kExoDetailsTitleFontSize = 48
-local kExoDetailsTextFontSize = 32
-local kExoDetailsTagsFontSize = 24
-local kExoDetailsDescFontSize = 28   -- a notch under the stat line, so a description reads as body text
+local kExoDetailsTitleFontSize = 52
+local kExoDetailsTextFontSize = 34
+local kExoDetailsTagsFontSize = 26
+local kExoDetailsDescFontSize = 30   -- a notch under the cost line, so a description reads as body text
 
--- Vanilla values of the details items, restored when the modular panel is hidden again.
-local kVanillaDetailTitleFontSize = 55
+-- Armory sizes of the details items; the exo page scales its own from these.
 local kVanillaDetailCostFontSize = 60
 local kVanillaDetailDescFontSize = 33
-local kVanillaDetailDescClipWidth = 687
-
--- BACK button: top of the freed left column, above the module details, inside the frame's
--- upper left chamfer line.
-local kExoConfigBackButtonPos = Vector(105, 118, 0)
-local kExoConfigBackButtonSize = Vector(190, 52, 0)
+local kVanillaResourceIconScale = 1.5
+-- The armory's resource icons, scaled down with the text they hang off.
+local kExoResourceIconScale = kVanillaResourceIconScale * kExoDetailsTextFontSize / kVanillaDetailCostFontSize
+-- Clear of the widest total line, inside the details column.
+local kExoDetailsMoneyOffsetX = 170
+local kDetailsCostColor = Color(164/255, 196/255, 201/255, 1)
 
 local kSlotPanelBackgroundColor = Color(0, 0, 0, 0.6)
 local kModuleButtonHoverColor = Color(0, 0.7, 1, 1)
--- Cannot pay for this module right now. Vanilla greys an item it will not sell and turns the
--- cost red instead of hiding it (see the UNAVAILABLE tiles in the armoury menu), so a module
--- gets the same treatment: grey name and picture, red cost, no hover, click ignored.
+-- Cannot pay for this module right now: grey name and picture and a red cost, like the
+-- armory's unaffordable tiles. It can still be picked to plan a suit; BUY refuses the price.
 -- Red means missing resources only; a locked or incompatible module greys out whole.
 local kModuleUnaffordableColor = Color(0.55, 0.6, 0.64, 1)
 local kModuleUnavailableFrameColor = Color(0.2, 0.2, 0.2, 0.4)
 
 -- Player facing name of a research node, for the "Requires ..." line on a locked module.
--- The research title is the short one ("Exosuit Cores"); the display name is the commander
--- button label ("Research Exosuit Core Tech"), so it is only the fallback.
+-- The research title is the short one ("Exosuit Cores"); the display name, the commander
+-- button label, is only the fallback.
 local function GetResearchDisplayName(techId)
 
     local nameKey = LookupTechData(techId, kTechDataResearchName)
@@ -2177,7 +2179,8 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
 
     self.activeExoConfig = nil
     local player = Client.GetLocalPlayer()
-    if player and player:isa("Exo") then
+    self.exoIsRefit = player ~= nil and player:isa("Exo")
+    if self.exoIsRefit then
         self.activeExoConfig = ModularExo_ConvertNetMessageToConfig(player)
         -- isValid, badReason, resourceCost
         local _, _, resourceCost = ModularExo_GetIsConfigValid(self.activeExoConfig)
@@ -2302,11 +2305,11 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
     GUIMakeFontScale(self.modularExoSpeedNoteText, "kAgencyFB", readoutFontSize * 0.6)
     self.modularExoBuyButton:AddChild(self.modularExoSpeedNoteText)
 
-    -- Details section. Name, cost and description reuse the vanilla itemTitle / costText /
-    -- itemDescription items; only the armour/weight line has no vanilla counterpart, so it
-    -- gets its own item here. All four are moved into the exosuit details box by
-    -- _UpdateExoModularVisibility, so the position set here does not matter.
-    self.modularExoDetailsModule = self.exoConfig[kExoModuleSlots.LeftArm]
+    -- Details section. Name, cost, resources, stat bars and description reuse the armory's
+    -- details items; this one holds why a module cannot be picked. _UpdateExoModularVisibility
+    -- places them all, so the position set here does not matter.
+    -- false is the exosuit overview, shown whenever no module is hovered.
+    self.modularExoDetailsModule = false
     self.modularExoDetailStats = self:CreateAnimatedTextItem()
     table.insert(self.modularExoGraphicItemsToDestroyList, self.modularExoDetailStats)
     self.modularExoDetailStats:SetIsScaling(false)
@@ -2316,12 +2319,12 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
     self.modularExoDetailStats:SetTextAlignmentX(GUIItem.Align_Min)
     self.modularExoDetailStats:SetTextAlignmentY(GUIItem.Align_Min)
     self.modularExoDetailStats:SetText("")
-    self.modularExoDetailStats:SetColor(GUIMarineBuyMenu.kSpecialTextContentColor)
+    self.modularExoDetailStats:SetColor(kTextColor)
     self.modularExoDetailStats:SetOptionFlag(GUIItem.CorrectScaling)
-    GUIMakeFontScale(self.modularExoDetailStats, "kAgencyFB", kExoDetailsTextFontSize)
+    GUIMakeFontScale(self.modularExoDetailStats, "kAgencyFB", kExoDetailsTagsFontSize)
     self.rightSideRoot:AddChild(self.modularExoDetailStats)
 
-    -- Role tags under the stat line: range class, damage type and what the module does,
+    -- Role tags under the stat bars: range class, damage type and what the module does,
     -- so a build can be read off without the paragraph.
     self.modularExoDetailTags = self:CreateAnimatedTextItem()
     table.insert(self.modularExoGraphicItemsToDestroyList, self.modularExoDetailTags)
@@ -2337,64 +2340,74 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
     GUIMakeFontScale(self.modularExoDetailTags, "kAgencyFB", kExoDetailsTagsFontSize)
     self.rightSideRoot:AddChild(self.modularExoDetailTags)
 
-    --BUY/UPGRADE BUTTON ENDS HERE
-
-    -- BACK button: leaves the configuration page and puts the vanilla item list back. Built
-    -- from the same parts as the buy button so the two read as one control set. An exo
-    -- refitting at an armory has no item list to go back to, so it never gets the button.
-    if self.exoRefitHost then
-
-        self.modularExoBackButtonBackground = nil
-        self.modularExoBackButton = nil
-        self.modularExoBackButtonText = nil
-
-    else
-
-        self.modularExoBackButtonBackground = self:CreateAnimatedGraphicItem()
-        table.insert(self.modularExoGraphicItemsToDestroyList, self.modularExoBackButtonBackground)
-        self.modularExoBackButtonBackground:SetIsScaling(false)
-        self.modularExoBackButtonBackground:SetSize(kExoConfigBackButtonSize)
-        self.modularExoBackButtonBackground:SetPosition(kExoConfigBackButtonPos - self.rightSideRoot:GetPosition())
-        self.modularExoBackButtonBackground:SetTexture(kButtonTexture)
-        self.modularExoBackButtonBackground:SetColor(kSlotPanelBackgroundColor)
-        self.modularExoBackButtonBackground:SetOptionFlag(GUIItem.CorrectScaling)
-        self.rightSideRoot:AddChild(self.modularExoBackButtonBackground)
-
-        self.modularExoBackButton = self:CreateAnimatedGraphicItem()
-        self.modularExoBackButton:SetIsScaling(false)
-        self.modularExoBackButton:SetAnchor(GUIItem.Left, GUIItem.Top)
-        self.modularExoBackButton:SetSize(kExoConfigBackButtonSize)
-        self.modularExoBackButton:SetPosition(Vector(0, 0, 0))
-        self.modularExoBackButton:SetTexture(kMenuSelectionTexture)
-        self.modularExoBackButton:SetLayer(kGUILayerMarineBuyMenu)
-        self.modularExoBackButton:SetOptionFlag(GUIItem.CorrectScaling)
-        self.modularExoBackButtonBackground:AddChild(self.modularExoBackButton)
-
-        self.modularExoBackButtonText = self:CreateAnimatedTextItem()
-        self.modularExoBackButtonText:SetIsScaling(false)
-        self.modularExoBackButtonText:SetAnchor(GUIItem.Middle, GUIItem.Center)
-        self.modularExoBackButtonText:SetPosition(Vector(0, 0, 0))
-        self.modularExoBackButtonText:SetFontName(kFont)
-        self.modularExoBackButtonText:SetTextAlignmentX(GUIItem.Align_Center)
-        self.modularExoBackButtonText:SetTextAlignmentY(GUIItem.Align_Center)
-        self.modularExoBackButtonText:SetText(Locale.ResolveString("BACK"))
-        self.modularExoBackButtonText:SetFontIsBold(true)
-        self.modularExoBackButtonText:SetColor(kCloseButtonColor)
-        self.modularExoBackButtonText:SetOptionFlag(GUIItem.CorrectScaling)
-        GUIMakeFontScale(self.modularExoBackButtonText, "kAgencyFB", kFontSize)
-        self.modularExoBackButton:AddChild(self.modularExoBackButtonText)
-
+    local function CreateDetailText(fontSize, color)
+        local text = self:CreateAnimatedTextItem()
+        table.insert(self.modularExoGraphicItemsToDestroyList, text)
+        text:SetIsScaling(false)
+        text:SetAnchor(GUIItem.Left, GUIItem.Top)
+        text:SetFontName(kFont)
+        text:SetTextAlignmentX(GUIItem.Align_Min)
+        text:SetTextAlignmentY(GUIItem.Align_Min)
+        text:SetColor(color)
+        text:SetOptionFlag(GUIItem.CorrectScaling)
+        GUIMakeFontScale(text, "kAgencyFB", fontSize)
+        self.rightSideRoot:AddChild(text)
+        return text
     end
+
+    self.modularExoModuleCostText = CreateDetailText(kExoDetailsTagsFontSize, kTextColor)
+
+    self.modularExoSeparatorText = CreateDetailText(kExoDetailsTagsFontSize, kTextColor)
+    self.modularExoSeparatorText:SetText(string.upper(Locale.ResolveString("EXOSUIT")))
+    self.modularExoSeparatorRule = self:CreateAnimatedGraphicItem()
+    table.insert(self.modularExoGraphicItemsToDestroyList, self.modularExoSeparatorRule)
+    self.modularExoSeparatorRule:SetIsScaling(false)
+    self.modularExoSeparatorRule:SetSize(Vector(kExoDetailsBoxWidth, 2, 0))
+    self.modularExoSeparatorRule:SetColor(kGroupFrameBorderColor)
+    self.modularExoSeparatorRule:SetOptionFlag(GUIItem.CorrectScaling)
+    self.rightSideRoot:AddChild(self.modularExoSeparatorRule)
+
+    -- The overview's "SPECIAL: Massive" list, one item per line so drawbacks can be red like
+    -- the armory's. They are placed under the description whenever it is set.
+    local exoInfo = kTechIdInfo[kTechId.DualMinigunExosuit]
+    local special = kSpecialDefinitions[exoInfo.Special]
+    self.exoOverviewSpecialItems = {}
+    self.exoOverviewSpecialLines = {}
+    local function AddSpecialLine(text, color)
+        local item = self:CreateAnimatedTextItem()
+        item:SetIsScaling(false)
+        item:SetAnchor(GUIItem.Left, GUIItem.Top)
+        item:SetFontName(kFont)
+        item:SetTextAlignmentX(GUIItem.Align_Min)
+        item:SetTextAlignmentY(GUIItem.Align_Min)
+        item:SetColor(color)
+        item:SetOptionFlag(GUIItem.CorrectScaling)
+        GUIMakeFontScale(item, "kAgencyFB", kExoDetailsDescFontSize)
+        local wrapped, _, lineCount = WordWrap(item, text, 0, kExoDetailsBoxWidth, 2)
+        item:SetText(wrapped)
+        self.rightSideRoot:AddChild(item)
+        table.insert(self.exoOverviewSpecialItems, item)
+        table.insert(self.exoOverviewSpecialLines, math.max(1, lineCount or 1))
+    end
+    AddSpecialLine(string.format("%s%s", Locale.ResolveString("BUYMENU_TITLE_PREFIX"), Locale.ResolveString(special.Title)), kTextColor)
+    for i, specialText in ipairs(special.Specials) do
+        local isDebuff = special.SpecialsDebuffs and special.SpecialsDebuffs[i]
+        AddSpecialLine(Locale.ResolveString(specialText), isDebuff and GUIMarineBuyMenu.kSpecialTextContentColor_Debuff or GUIMarineBuyMenu.kSpecialTextContentColor)
+    end
+
+    --BUY/UPGRADE BUTTON ENDS HERE
 
     local slotData = GUIMarineBuyMenu.kExoSlotData
     local panelRects = {}
+    local panelTabs = {}
+    local maxTabWidth = 0
+    self.exoSlotPanels = {}
 
     for slotType, slotGUIDetails in pairs(slotData) do
         local panelBackground = self:CreateAnimatedGraphicItem()
         table.insert(self.modularExoGraphicItemsToDestroyList, panelBackground)
         panelBackground:SetIsScaling(false)
-        panelBackground:SetTexture(kButtonTexture)
-        panelBackground:SetColor(kSlotPanelBackgroundColor)
+        panelBackground:SetColor(kGroupFrameFillColor)
         panelBackground:SetOptionFlag(GUIItem.CorrectScaling)
         local panelSize
         
@@ -2403,16 +2416,32 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
         local panelTitle = self:CreateAnimatedTextItem()
         panelTitle:SetIsScaling(false)
         panelTitle:SetFontName(kFont)
-        panelTitle:SetFontIsBold(true)
-        panelTitle:SetPosition(Vector(0, kSlotTitleOffsetY * layoutScale, 0))
-		panelTitle:SetAnchor(GUIItem.Center, GUIItem.Top)
-		panelTitle:SetTextAlignmentX(GUIItem.Align_Center)
+        panelTitle:SetAnchor(GUIItem.Left, GUIItem.Top)
+        panelTitle:SetTextAlignmentX(GUIItem.Align_Min)
         panelTitle:SetTextAlignmentY(GUIItem.Align_Min)
-        panelTitle:SetColor(kTextColor)
+        panelTitle:SetPosition(Vector(kGroupFrameTabLabelX * layoutScale, 0, 0))
         panelTitle:SetOptionFlag(GUIItem.CorrectScaling)
-        panelTitle:SetText(Locale.ResolveString(slotGUIDetails.label))
+        panelTitle:SetText(string.upper(Locale.ResolveString(slotGUIDetails.label)))
         GUIMakeFontScale(panelTitle, "kAgencyFB", kSlotTitleFontSize * layoutScale)
-        panelBackground:AddChild(panelTitle)
+
+        local tabCoords = kGroupFrameTabCoords
+        local tabHeight = (tabCoords[4] - tabCoords[2]) * layoutScale
+        local labelWidth = panelTitle:GetTextWidth(panelTitle:GetText()) * panelTitle:GetScale().x
+        local tabWidth = math.max((tabCoords[3] - tabCoords[1]) * layoutScale,
+                                  (kGroupFrameTabLabelX + kGroupFrameTabLabelPaddingRight) * layoutScale + labelWidth)
+        local panelTab = self:CreateAnimatedGraphicItem()
+        panelTab:SetIsScaling(false)
+        panelTab:SetAnchor(GUIItem.Right, GUIItem.Top)
+        panelTab:SetSize(Vector(tabWidth, tabHeight, 0))
+        panelTab:SetPosition(Vector(-tabWidth, -tabHeight, 0))
+        panelTab:SetTexture(kButtonGroupFrame_Labeled_x4)
+        panelTab:SetTexturePixelCoordinates(GUIUnpackCoords(tabCoords))
+        panelTab:SetOptionFlag(GUIItem.CorrectScaling)
+        panelTab:AddChild(panelTitle)
+        panelBackground:AddChild(panelTab)
+        table.insert(panelTabs, panelTab)
+        maxTabWidth = math.max(maxTabWidth, tabWidth)
+        table.insert(self.exoSlotPanels, panelBackground)
         local padding = kSlotPanelPadding * layoutScale
         local startOffsetX = padding
         local startOffsetY = padding
@@ -2458,6 +2487,24 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
         panelSize = Vector(offsetX + padding, offsetY + padding, 0)
         
         panelBackground:SetSize(panelSize)
+        local border = kGroupFrameBorderWidth * layoutScale
+        local edges =
+        {
+            { Vector(0, 0, 0), Vector(panelSize.x, border, 0) },
+            { Vector(0, panelSize.y - border, 0), Vector(panelSize.x, border, 0) },
+            { Vector(0, border, 0), Vector(border, panelSize.y - border * 2, 0) },
+            { Vector(panelSize.x - border, border, 0), Vector(border, panelSize.y - border * 2, 0) },
+        }
+        for _, edge in ipairs(edges) do
+            local edgeItem = self:CreateAnimatedGraphicItem()
+            edgeItem:SetIsScaling(false)
+            edgeItem:SetPosition(edge[1])
+            edgeItem:SetSize(edge[2])
+            edgeItem:SetColor(kGroupFrameBorderColor)
+            edgeItem:SetOptionFlag(GUIItem.CorrectScaling)
+            panelBackground:AddChild(edgeItem)
+        end
+
         local panelX = kConfigAreaOffsetX + slotGUIDetails.xp * kConfigAreaWidth
         local panelY = slotGUIDetails.yp * kConfigAreaHeight
         if slotGUIDetails.anchorX == GUIItem.Right then
@@ -2469,6 +2516,13 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
         panelBackground:SetPosition(Vector(panelX, panelY, 0))
         self.rightSideRoot:AddChild(panelBackground)
         panelRects[slotType] = { x = panelX, y = panelY, size = panelSize }
+    end
+
+    -- One tab width for every slot, so the labels read as a set.
+    for _, panelTab in ipairs(panelTabs) do
+        local tabHeight = panelTab:GetSize().y
+        panelTab:SetSize(Vector(maxTabWidth, tabHeight, 0))
+        panelTab:SetPosition(Vector(-maxTabWidth, -tabHeight, 0))
     end
 
     -- The exo model preview fills whatever gap the two arm columns leave between them,
@@ -2500,13 +2554,53 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
     -- The details items hang off rightSideRoot, the details box is placed in the background.
     self.exoDetailsBoxPos = kExoDetailsPos - self.rightSideRoot:GetPosition()
 
-    -- _UpdateExoModularVisibility re-asserts these four positions on every frame the page
-    -- is up, so build the vectors here instead of allocating eight of them per frame.
     self.exoDetailsTitlePos = self.exoDetailsBoxPos + Vector(0, kExoDetailsTitleY, 0)
     self.exoDetailsCostPos  = self.exoDetailsBoxPos + Vector(0, kExoDetailsCostY, 0)
-    self.exoDetailsStatsPos = self.exoDetailsBoxPos + Vector(0, kExoDetailsStatsY, 0)
+    self.exoDetailsMoneyPos = self.exoDetailsCostPos + Vector(kExoDetailsMoneyOffsetX, 0, 0)
+    self.exoDetailsModuleCostPos = self.exoDetailsBoxPos + Vector(0, kExoDetailsModuleCostY, 0)
+    self.exoDetailsSeparatorPos = self.exoDetailsBoxPos + Vector(0, kExoDetailsSeparatorY, 0)
+    self.exoDetailsSeparatorRulePos = self.exoDetailsBoxPos + Vector(0, kExoDetailsSeparatorRuleY, 0)
     self.exoDetailsTagsPos  = self.exoDetailsBoxPos + Vector(0, kExoDetailsTagsY, 0)
     self.exoDetailsDescPos  = self.exoDetailsBoxPos + Vector(0, kExoDetailsDescY, 0)
+    self.exoDetailsOverviewDescPos = self.exoDetailsBoxPos + Vector(0, kExoDetailsOverviewDescY, 0)
+
+    self.statBarDisplayWidth = kExoDetailsBoxWidth - kExoStatBarX
+    self.rangeText:SetText(Locale.ResolveString("BUYMENU_RANGE"))
+
+    local function CreateStatRow(labelKey)
+        local text = self:CreateAnimatedTextItem()
+        table.insert(self.modularExoGraphicItemsToDestroyList, text)
+        text:SetIsScaling(false)
+        text:SetColor(Color(1, 1, 1))
+        text:SetTextAlignmentX(GUIItem.Align_Max)
+        text:SetText(Locale.ResolveString(labelKey))
+        text:SetOptionFlag(GUIItem.CorrectScaling)
+        GUIMakeFontScale(text, "kAgencyFB", kVanillaDetailDescFontSize)
+        self.rightSideRoot:AddChild(text)
+        local bar = self:CreateAnimatedGraphicItem()
+        table.insert(self.modularExoGraphicItemsToDestroyList, bar)
+        bar:SetIsScaling(false)
+        bar:SetTexture(kVSBarTexture)
+        bar:SetSizeFromTexture()
+        bar:SetOptionFlag(GUIItem.CorrectScaling)
+        self.rightSideRoot:AddChild(bar)
+        return text, bar
+    end
+    self.exoArmorText, self.exoArmorBar = CreateStatRow("EXO_DETAILS_ARMOR_BAR")
+    self.exoSpeedText, self.exoSpeedBar = CreateStatRow("EXO_DETAILS_SPEED_BAR")
+
+    local barOffsetY = self.rangeBar:GetPosition().y - self.rangeText:GetPosition().y
+    local statPairs =
+    {
+        { self.rangeText, self.rangeBar }, { self.vsLifeformsText, self.vsLifeformBar },
+        { self.vsStructuresText, self.vsStructuresBar }, { self.exoArmorText, self.exoArmorBar },
+        { self.exoSpeedText, self.exoSpeedBar },
+    }
+    self.exoStatRows = {}
+    for i, pair in ipairs(statPairs) do
+        local textPos = self.exoDetailsBoxPos + Vector(kExoStatLabelX, kExoDetailsStatsY + (i - 1) * kExoStatRowSpacing, 0)
+        self.exoStatRows[i] = { text = pair[1], bar = pair[2], textPos = textPos, barPos = textPos + Vector(kExoStatBarX - kExoStatLabelX, barOffsetY, 0) }
+    end
 
 end
 
@@ -2564,12 +2658,14 @@ function GUIMarineBuyMenu:MakeModuleButton(moduleType, moduleTypeData, offsetX, 
 
     if resourceCost > 0 then
 
+        local litIconSize = statIconSize * kLitIconGlowScale
+        local litIconGlow = (litIconSize - statIconSize) * 0.5
         icon = self:CreateAnimatedGraphicItem()
         icon:SetIsScaling(false)
         icon:SetAnchor(GUIItem.Left, GUIItem.Bottom)
-        icon:SetSize(Vector(statIconSize, statIconSize, 0))
-        icon:SetPosition(Vector(padX, -statIconSize - padY, 0))
-        icon:SetTexture(kResourceIconTexture)
+        icon:SetSize(Vector(litIconSize, litIconSize, 0))
+        icon:SetPosition(Vector(padX - litIconGlow, -statIconSize - padY - litIconGlow, 0))
+        icon:SetTexture(kResourceIcon_Lit)
         icon:SetColor(kTextColor)
         icon:SetOptionFlag(GUIItem.CorrectScaling)
         buttonGraphic:AddChild(icon)
@@ -2616,6 +2712,24 @@ function GUIMarineBuyMenu:MakeModuleButton(moduleType, moduleTypeData, offsetX, 
 
     end
 
+    local statusFrame = self:CreateAnimatedGraphicItem()
+    statusFrame:SetIsScaling(false)
+    statusFrame:SetAnchor(GUIItem.Right, GUIItem.Bottom)
+    statusFrame:SetTexture(kButtonErrorFrame)
+    statusFrame:SetIsVisible(false)
+    statusFrame:SetOptionFlag(GUIItem.CorrectScaling)
+    buttonGraphic:AddChild(statusFrame)
+
+    local statusText = self:CreateAnimatedTextItem()
+    statusText:SetIsScaling(false)
+    statusText:SetAnchor(GUIItem.Left, GUIItem.Center)
+    statusText:SetTextAlignmentX(GUIItem.Align_Min)
+    statusText:SetTextAlignmentY(GUIItem.Align_Center)
+    statusText:SetPosition(Vector(kModuleStatusPadding * layoutScale, 0, 0))
+    statusText:SetOptionFlag(GUIItem.CorrectScaling)
+    GUIMakeFontScale(statusText, "kAgencyFBBold", kModuleStatusFontSize * layoutScale)
+    statusFrame:AddChild(statusText)
+
     if isRow then
         offsetX = offsetX + buttonSize.x + kRowButtonSpacingX * layoutScale
     else
@@ -2632,218 +2746,199 @@ function GUIMarineBuyMenu:MakeModuleButton(moduleType, moduleTypeData, offsetX, 
         costIcon        = icon,
         teamNumber      = teamNumber,
         teamIcon        = teamIcon,
+        statusFrame     = statusFrame,
+        statusText      = statusText,
         thingsToRecolor = { label, image },
     })
     return buttonGraphic, offsetX, offsetY
 
 end
 
--- Which of the prototype lab menu's two pages is up. self.exoConfigPageActive is the whole
--- state: false (or nil) is the vanilla item list, true is the modular configuration page.
--- It is set to true by clicking the exosuit tile and by opening the menu while already in an
--- exo, and back to false by the BACK button. Everything else - what is drawn, what takes
--- hover, and where a click goes - reads it through here.
+-- The prototype lab layout (a lab, or an armory refitting an exo) is the configuration page.
 function GUIMarineBuyMenu:_GetIsExoConfigPageActive()
-    return self.modularExoGraphicItemsToDestroyList ~= nil and self.exoConfigPageActive == true
+    return self.modularExoGraphicItemsToDestroyList ~= nil
 end
 
--- Shows/hides the modular exo configuration page. It is a page of its own: while it is up the
--- vanilla item list is hidden and the page owns the whole menu. The vanilla details items
--- (title, cost and description) plus the modular armour/weight line move into the left column
--- the item list left free and are filled from the hovered module, the stat bars and the
--- resource readout go away, and the big picture item is reused as the exo model preview
--- between the arm columns.
+-- Lays the shared details items out for the configuration page: title, cost, resources,
+-- stat bars and description move into the left column, and the big picture item becomes the
+-- exo model preview between the arm columns.
 function GUIMarineBuyMenu:_UpdateExoModularVisibility()
 
-    if not self.modularExoGraphicItemsToDestroyList then
+    if not self:_GetIsExoConfigPageActive() then
         return
     end
 
-    local showModular = self:_GetIsExoConfigPageActive()
+    self.hoveringExo = true
+    self.modularExoConfigActive = true
 
-    self.hoveringExo = showModular
-    self.modularExoConfigActive = showModular
+    if not self.modularExoLayoutApplied then
 
-    if self.itemListGroup then
-        self.itemListGroup:SetIsVisible(not showModular)
-    end
-
-    for _, element in ipairs(self.modularExoGraphicItemsToDestroyList) do
-        element:SetIsVisible(showModular)
-    end
-
-    -- Items with no module equivalent. The title / cost / description are deliberately not
-    -- in here: the modular panel writes module info into them instead.
-    self.vanillaDetailItems = self.vanillaDetailItems or
-    {
-        self.currentMoneyText, self.currentMoneyTextIcon,
-        self.rangeText, self.rangeBar,
-        self.vsLifeformsText, self.vsLifeformBar,
-        self.vsStructuresText, self.vsStructuresBar,
-    }
-
-    if self.modularExoPreviewActive ~= showModular then
-
-        local leavingConfigPage = self.modularExoPreviewActive == true
-        self.modularExoPreviewActive = showModular
-
-        -- Both directions of the transition rewrite the details text (vanilla hovers on
-        -- the way out, _SetDetailsSectionTechId below), so the module the box last showed
-        -- no longer describes what is on screen. Force the next frame to repaint it.
+        self.modularExoLayoutApplied = true
         self.exoDetailsShownModule = nil
 
-        -- Remember where vanilla put the details items so they can go back.
-        self.vanillaDetailsLayout = self.vanillaDetailsLayout or
-        {
-            titlePos = self.itemTitle:GetPosition(),
-            costPos  = self.costText:GetPosition(),
-            descPos  = self.itemDescription:GetPosition(),
-        }
-
-        -- The big resource icon hanging off costText is sized for the vanilla 60pt cost
-        -- line and dwarfs the module details, so it only belongs to the vanilla layout.
-        self.costTextIcon:SetIsVisible(not showModular)
-
-        if showModular then
-
-            GUIMakeFontScale(self.itemTitle, "kAgencyFBBold", kExoDetailsTitleFontSize)
-            GUIMakeFontScale(self.costText, "kAgencyFB", kExoDetailsTextFontSize)
-            self.itemDescription:SetTextClipped(true, kExoDetailsBoxWidth, -1)
-            GUIMakeFontScale(self.itemDescription, "kAgencyFB", kExoDetailsDescFontSize)
-
-            local coords = self:_GetPigPicturePixelCoordinatesForTechID(kTechId.DualMinigunExosuit)
-            self.bigPicture:SetTexturePixelCoordinates(GUIUnpackCoords(coords))
-            self.bigPicture:SetAnchor(GUIItem.Left, GUIItem.Top)
-
-        else
-
-            self.itemTitle:SetPosition(self.vanillaDetailsLayout.titlePos)
-            self.costText:SetPosition(self.vanillaDetailsLayout.costPos)
-            self.itemDescription:SetPosition(self.vanillaDetailsLayout.descPos)
-
-            GUIMakeFontScale(self.itemTitle, "kAgencyFBBold", kVanillaDetailTitleFontSize)
-            GUIMakeFontScale(self.costText, "kAgencyFBBold", kVanillaDetailCostFontSize)
-            self.itemDescription:SetTextClipped(true, kVanillaDetailDescClipWidth, -1)
-            GUIMakeFontScale(self.itemDescription, "kAgencyFB", kVanillaDetailDescFontSize)
-
-            if self.bigPictureDefaultSize then
-                self.bigPicture:SetAnchor(GUIItem.Left, GUIItem.Top)
-                self.bigPicture:SetSize(self.bigPictureDefaultSize)
-            end
-
-            -- The details section still holds whatever module the page last showed, and
-            -- nothing repaints it until the mouse enters a tile. Put the exosuit's own
-            -- vanilla details back, since that is the tile the player just came from.
-            if leavingConfigPage then
-                self:_SetDetailsSectionTechId(kTechId.DualMinigunExosuit,
-                                              LookupTechData(kTechId.DualMinigunExosuit, kTechDataCostKey, -1))
-            end
-
+        for _, element in ipairs(self.modularExoGraphicItemsToDestroyList) do
+            element:SetIsVisible(true)
         end
 
-    end
+        GUIMakeFontScale(self.itemTitle, "kAgencyFBBold", kExoDetailsTitleFontSize)
+        GUIMakeFontScale(self.costText, "kAgencyFBBold", kExoDetailsTextFontSize)
+        GUIMakeFontScale(self.currentMoneyText, "kAgencyFBBold", kExoDetailsTextFontSize)
+        self.costTextIcon:SetScale(Vector(1, 1, 1) * kExoResourceIconScale)
+        self.currentMoneyTextIcon:SetScale(Vector(1, 1, 1) * kExoResourceIconScale)
+        self.itemDescription:SetTextClipped(true, kExoDetailsBoxWidth, -1)
+        GUIMakeFontScale(self.itemDescription, "kAgencyFB", kExoDetailsDescFontSize)
 
-    if showModular then
+        local coords = self:_GetPigPicturePixelCoordinatesForTechID(kTechId.DualMinigunExosuit)
+        self.bigPicture:SetTexturePixelCoordinates(GUIUnpackCoords(coords))
+        self.bigPicture:SetAnchor(GUIItem.Left, GUIItem.Top)
 
-        for _, element in ipairs(self.vanillaDetailItems) do
-            element:SetIsVisible(false)
+        self.itemTitle:SetPosition(self.exoDetailsTitlePos)
+        self.costText:SetPosition(self.exoDetailsCostPos)
+        self.currentMoneyText:SetPosition(self.exoDetailsMoneyPos)
+        self.modularExoDetailStats:SetPosition(self.exoDetailsTagsPos)
+        self.modularExoDetailTags:SetPosition(self.exoDetailsTagsPos)
+        self.modularExoModuleCostText:SetPosition(self.exoDetailsModuleCostPos)
+        self.modularExoSeparatorText:SetPosition(self.exoDetailsSeparatorPos)
+        self.modularExoSeparatorRule:SetPosition(self.exoDetailsSeparatorRulePos)
+        for _, row in ipairs(self.exoStatRows) do
+            row.text:SetPosition(row.textPos)
+            row.bar:SetPosition(row.barPos)
+            row.text:SetIsVisible(true)
+            row.bar:SetIsVisible(true)
         end
-
-        -- The exosuit's own "SPECIAL: Massive ..." box is 717 wide and would sit across the
-        -- centred module rows, so it stays out of the modular layout entirely.
-        self.specialFrame:SetIsVisible(false)
-
-        -- _SetDetailsSectionTechId re-applies the vanilla layout to itemDescription and
-        -- bigPicture on every vanilla hover change, and it runs earlier in Update than this
-        -- does. Re-assert the modular layout every frame rather than only on the transition,
-        -- otherwise one hover leaves the description and the model preview stranded in the
-        -- middle of the panel.
-        if self.exoDetailsTitlePos then
-            self.itemTitle:SetPosition(self.exoDetailsTitlePos)
-            self.costText:SetPosition(self.exoDetailsCostPos)
-            self.modularExoDetailStats:SetPosition(self.exoDetailsStatsPos)
-            self.modularExoDetailTags:SetPosition(self.exoDetailsTagsPos)
-            self.itemDescription:SetPosition(self.exoDetailsDescPos)
-        end
-
         if self.exoModelPreviewSize then
             self.bigPicture:SetSize(self.exoModelPreviewSize)
             self.bigPicture:SetPosition(self.exoModelPreviewPos)
         end
 
-        local showModuleDetails = self.modularExoDetailsModule ~= nil
-        self.itemTitle:SetIsVisible(showModuleDetails)
-        self.costText:SetIsVisible(showModuleDetails)
-        self.itemDescription:SetIsVisible(showModuleDetails)
-        self.modularExoDetailStats:SetIsVisible(showModuleDetails)
-        self.modularExoDetailTags:SetIsVisible(showModuleDetails)
-        self.bigPicture:SetIsVisible(true)
+        -- The special frame is wider than the details column; the overview lists the
+        -- specials as text instead.
+        self.specialFrame:SetIsVisible(false)
 
-        -- The box is a pure function of the module it shows, so it only needs repainting
-        -- when that module changes - otherwise this ran string.format and WordWrap over
-        -- the same text every frame. The transition above clears the record, so coming
-        -- back to the page repaints even when the same module is still the hovered one.
-        if self.modularExoDetailsModule ~= self.exoDetailsShownModule
-        or self.modularExoDetailsLockedTechId ~= self.exoDetailsShownLockedTechId
-        or self.modularExoDetailsIncompatible ~= self.exoDetailsShownIncompatible then
-            self.exoDetailsShownModule = self.modularExoDetailsModule
-            self.exoDetailsShownLockedTechId = self.modularExoDetailsLockedTechId
-            self.exoDetailsShownIncompatible = self.modularExoDetailsIncompatible
-            self:_SetDetailsSectionExoModule(self.modularExoDetailsModule, self.modularExoDetailsLockedTechId, self.modularExoDetailsIncompatible)
+    end
+
+    local overview = self.modularExoDetailsModule == false
+
+    -- Repaint only when what the box shows changes: WordWrap is too costly to run per frame.
+    if self.modularExoDetailsModule ~= self.exoDetailsShownModule
+    or self.modularExoDetailsSlot ~= self.exoDetailsShownSlot
+    or self.modularExoDetailsLockedTechId ~= self.exoDetailsShownLockedTechId
+    or self.modularExoDetailsPairingTechId ~= self.exoDetailsShownPairingTechId
+    or self.modularExoDetailsIncompatible ~= self.exoDetailsShownIncompatible
+    or self.modularExoDetailsPrice ~= self.exoDetailsShownPrice
+    or self.modularExoBuyRefusal ~= self.exoDetailsShownBuyRefusal
+    or self.exoConfigLockedTechId ~= self.exoDetailsShownConfigLockedTechId then
+        self.exoDetailsShownModule = self.modularExoDetailsModule
+        self.exoDetailsShownSlot = self.modularExoDetailsSlot
+        self.exoDetailsShownLockedTechId = self.modularExoDetailsLockedTechId
+        self.exoDetailsShownPairingTechId = self.modularExoDetailsPairingTechId
+        self.exoDetailsShownIncompatible = self.modularExoDetailsIncompatible
+        self.exoDetailsShownPrice = self.modularExoDetailsPrice
+        self.exoDetailsShownBuyRefusal = self.modularExoBuyRefusal
+        self.exoDetailsShownConfigLockedTechId = self.exoConfigLockedTechId
+        if overview then
+            self:_SetDetailsSectionExoOverview()
+        else
+            self:_SetDetailsSectionExoModule(self.modularExoDetailsModule)
         end
+        self:_RefreshExoReason()
+        self:_RefreshExoCostRow()
+        self:_RefreshExoStatBars()
+    end
 
+    local showReason = self.exoDetailsReasonShown == true
+    local descOnOwnRow = overview and not showReason
+    self.itemDescription:SetPosition(descOnOwnRow and self.exoDetailsOverviewDescPos or self.exoDetailsDescPos)
+    self.modularExoModuleCostText:SetIsVisible(not overview)
+    self.modularExoDetailStats:SetIsVisible(showReason)
+    self.modularExoDetailTags:SetIsVisible(not overview and not showReason)
+    local positionIndex = descOnOwnRow and 1 or 2
+    for i, item in ipairs(self.exoOverviewSpecialItems) do
+        item:SetIsVisible(overview)
+        local positions = self.exoOverviewSpecialPositions and self.exoOverviewSpecialPositions[i]
+        if overview and positions then
+            item:SetPosition(positions[positionIndex])
+        end
     end
 
 end
 
--- Modular counterpart of _SetDetailsSectionTechId: fills the details section from an exo
--- module instead of a techId. Name, cost, the armour and weight the module contributes, and
--- a one line description out of EXO_MODULE_<NAME>_DESC.
--- lockedTechId is the research the hovered button is still waiting on, or nil; incompatible
--- says the module cannot sit beside the other arm's. Either one makes the stat line give up
--- its numbers to say why instead: a module that cannot be bought is better explained than
--- measured, and the greyed button alone never said which of the two reasons applied.
-function GUIMarineBuyMenu:_SetDetailsSectionExoModule(moduleType, lockedTechId, incompatible)
+-- Why the thing under the mouse cannot be had: a locked or incompatible module, or a BUY the
+-- server would refuse. Shown on the tags row; nil hides it.
+local kExoBuyRefusalText =
+{
+    host = "EXO_BUY_REFUSED_HOST",
+    funds = "EXO_BUY_REFUSED_FUNDS",
+    unchanged = "EXO_BUY_REFUSED_UNCHANGED",
+}
 
-    if moduleType == nil or self.modularExoDetailStats == nil then
+function GUIMarineBuyMenu:_RefreshExoReason()
+
+    local reason
+    if self.modularExoDetailsModule == false then
+        local refusal = self.modularExoBuyRefusal
+        if refusal == "locked" and self.exoConfigLockedTechId then
+            reason = string.format(Locale.ResolveString("EXO_MODULE_LOCKED_FORMAT"), GetResearchDisplayName(self.exoConfigLockedTechId))
+        elseif refusal and kExoBuyRefusalText[refusal] then
+            reason = Locale.ResolveString(kExoBuyRefusalText[refusal])
+        end
+    elseif self.modularExoDetailsIncompatible then
+        reason = Locale.ResolveString("EXO_MODULE_INCOMPATIBLE")
+    elseif self.modularExoDetailsLockedTechId and self.modularExoDetailsPairingTechId then
+        reason = string.format(Locale.ResolveString("EXO_MODULE_LOCKED_BOTH_FORMAT"),
+                               GetResearchDisplayName(self.modularExoDetailsLockedTechId),
+                               GetResearchDisplayName(self.modularExoDetailsPairingTechId))
+    elseif self.modularExoDetailsLockedTechId then
+        reason = string.format(Locale.ResolveString("EXO_MODULE_LOCKED_FORMAT"), GetResearchDisplayName(self.modularExoDetailsLockedTechId))
+    end
+
+    self.exoDetailsReasonShown = reason ~= nil
+    if reason then
+        local wrapped = WordWrap(self.modularExoDetailStats, reason, 0, kExoDetailsBoxWidth, kExoDetailsReasonMaxLines)
+        self.modularExoDetailStats:SetText(wrapped)
+    end
+
+end
+
+-- TOTAL is what BUY would charge for the suit on screen, or for it with the hovered module
+-- fitted; for an exo it is the refit price. Red when it is more than the player has.
+function GUIMarineBuyMenu:_RefreshExoCostRow()
+
+    if not self.modularExoModuleCostText then
         return
     end
 
-    local moduleGUIDetails = GUIMarineBuyMenu.kExoModuleData[moduleType]
-    if moduleGUIDetails == nil then
+    local price
+    if self.modularExoDetailsModule == false then
+        price = self:_GetExoConfigPrice()
+    else
+        price = self.modularExoDetailsPrice
+    end
+
+    local label = Locale.ResolveString(self.exoIsRefit and "EXO_DETAILS_REFIT" or "EXO_DETAILS_TOTAL")
+    if price then
+        self.costText:SetText(string.format("%s: %d", label, price))
+        self.costText:SetColor(price > PlayerUI_GetPlayerResources() and kCannotBuyColor or kDetailsCostColor)
+    else
+        self.costText:SetText(string.format("%s: -", label))
+        self.costText:SetColor(kDetailsCostColor)
+    end
+
+end
+
+-- Modular counterpart of _SetDetailsSectionTechId: name, own price, tags and description of
+-- an exo module. Cost row, reason and bars are refreshed separately.
+function GUIMarineBuyMenu:_SetDetailsSectionExoModule(moduleType)
+
+    local moduleGUIDetails = moduleType and GUIMarineBuyMenu.kExoModuleData[moduleType]
+    if moduleGUIDetails == nil or self.modularExoModuleCostText == nil then
         return
     end
 
     local moduleTypeData = kExoModuleTypesData[moduleType] or {}
 
     self.itemTitle:SetText(string.upper(Locale.ResolveString(moduleGUIDetails.label)))
-
-    local resourceCost = moduleTypeData.resourceCost or 0
-    self.costText:SetText(string.format("%s: %d", Locale.ResolveString("BUYMENU_COST"), resourceCost))
-
-    -- Weight is an internal number; what a player cares about is the speed it costs,
-    -- shown against the marine walk speed as 100% (see Exo:GetInventorySpeedScalar).
-    local armorValue = moduleTypeData.armorValue or 0
-    local speedLoss = ModularExo_GetSpeedPercent(moduleTypeData.weight or 0)
-    local statParts = {}
-    if armorValue ~= 0 then
-        table.insert(statParts, string.format(Locale.ResolveString("EXO_DETAILS_ARMOR_FORMAT"), armorValue))
-    end
-    if speedLoss > 0 then
-        table.insert(statParts, string.format(Locale.ResolveString("EXO_DETAILS_SPEED_FORMAT"), speedLoss))
-    end
-    if incompatible then
-        self.modularExoDetailStats:SetText(Locale.ResolveString("EXO_MODULE_INCOMPATIBLE"))
-        self.modularExoDetailStats:SetColor(kModuleUnaffordableColor)
-    elseif lockedTechId then
-        self.modularExoDetailStats:SetText(string.format(Locale.ResolveString("EXO_MODULE_LOCKED_FORMAT"),
-                                                         GetResearchDisplayName(lockedTechId)))
-        self.modularExoDetailStats:SetColor(kModuleUnaffordableColor)
-    else
-        local statText = #statParts > 0 and table.concat(statParts, "    ") or Locale.ResolveString("EXO_DETAILS_NO_STAT_CHANGE")
-        self.modularExoDetailStats:SetText(statText)
-        self.modularExoDetailStats:SetColor(GUIMarineBuyMenu.kSpecialTextContentColor)
-    end
+    self.modularExoModuleCostText:SetText(string.format(Locale.ResolveString("EXO_DETAILS_MODULE_COST_FORMAT"), moduleTypeData.resourceCost or 0))
 
     -- An unknown key resolves to itself, which is how a module with no tag line stays blank.
     local tagsKey = string.format("EXO_MODULE_%s_TAGS", string.upper(kExoModuleTypes[moduleType]))
@@ -2860,18 +2955,130 @@ function GUIMarineBuyMenu:_SetDetailsSectionExoModule(moduleType, lockedTechId, 
 
 end
 
+-- The exosuit's description plus its "Massive" specials, as text: the special frame is wider
+-- than the details column.
+function GUIMarineBuyMenu:_SetDetailsSectionExoOverview()
+
+    self.itemTitle:SetText(string.upper(Locale.ResolveString("EXOSUIT")))
+
+    local exoInfo = kTechIdInfo[kTechId.DualMinigunExosuit]
+    local wrapped, _, lineCount = WordWrap(self.itemDescription, Locale.ResolveString(exoInfo.Description), 0, kExoDetailsBoxWidth, kExoDetailsDescMaxLines)
+    self.itemDescription:SetText(wrapped)
+
+    -- Both places the description can start: its own row, or below a reason line.
+    local lineHeight = self.itemDescription:GetTextHeight("Ag") * self.itemDescription:GetScale().y
+    local y = (math.max(1, lineCount or 1) + 0.5) * lineHeight
+    self.exoOverviewSpecialPositions = {}
+    for i, _ in ipairs(self.exoOverviewSpecialItems) do
+        self.exoOverviewSpecialPositions[i] =
+        {
+            self.exoDetailsOverviewDescPos + Vector(0, y, 0),
+            self.exoDetailsDescPos + Vector(0, y, 0),
+        }
+        y = y + self.exoOverviewSpecialLines[i] * lineHeight
+    end
+
+end
+
+local kNoArmStats = { Range = 0, LifeFormDamage = 0, StructureDamage = 0 }
+
+-- Range, vs lifeforms, vs structures, armor, speed of a suit, each 0..1, in exoStatRows
+-- order. Damage is the mean of the two arms and range the longer arm.
+local function GetExoConfigStatValues(config, armorLevels, values)
+    local leftData = GUIMarineBuyMenu.kExoModuleData[config[kExoModuleSlots.LeftArm]]
+    local rightData = GUIMarineBuyMenu.kExoModuleData[config[kExoModuleSlots.RightArm]]
+    local left = leftData and leftData.stats or kNoArmStats
+    local right = rightData and rightData.stats or kNoArmStats
+    local armor = ModularExo_GetConfigArmor(config, armorLevels)
+    local speedPercent = ModularExo_GetSpeedPercent(ModularExo_GetConfigSpeedFraction(config))
+    values[1] = math.max(left.Range, right.Range)
+    values[2] = (left.LifeFormDamage + right.LifeFormDamage) * 0.5
+    values[3] = (left.StructureDamage + right.StructureDamage) * 0.5
+    values[4] = Clamp((armor - kBaseExoArmor) / (kExoMaxTotalArmorCap - kBaseExoArmor), 0, 1)
+    values[5] = Clamp((speedPercent - kExoSpeedBarMinPercent) / (kExoSpeedBarMaxPercent - kExoSpeedBarMinPercent), 0, 1)
+end
+
+-- The bars describe the suit on screen or, while a module is hovered, that suit with the
+-- module fitted (the candidate its button is priced for); bars the module leaves unchanged
+-- are faded.
+function GUIMarineBuyMenu:_RefreshExoStatBars()
+
+    if not self.exoStatRows then
+        return
+    end
+
+    local armorLevels = PlayerUI_GetArmorLevel and PlayerUI_GetArmorLevel() or 0
+    self.exoStatsCurrent = self.exoStatsCurrent or {}
+    self.exoStatsShown = self.exoStatsShown or {}
+    GetExoConfigStatValues(self.exoConfig, armorLevels, self.exoStatsCurrent)
+
+    local slot = self.modularExoDetailsModule and self.modularExoDetailsSlot
+    local values = self.exoStatsCurrent
+    if slot then
+        self.exoStatsConfig = self.exoStatsConfig or {}
+        local config = self.exoStatsConfig
+        for slotType, _ in pairs(kExoModuleSlotsData) do
+            config[slotType] = self.exoConfig[slotType]
+        end
+        config[slot] = self.modularExoDetailsModule
+        if self.modularExoDetailsForceDual then
+            config[kExoModuleSlots.RightArm] = self.modularExoDetailsModule
+        end
+        GetExoConfigStatValues(config, armorLevels, self.exoStatsShown)
+        values = self.exoStatsShown
+    end
+
+    for i, row in ipairs(self.exoStatRows) do
+        self:_UpdateStatBar(row.bar, values[i])
+        local unchanged = slot and math.abs(values[i] - self.exoStatsCurrent[i]) < 0.001
+        if unchanged then
+            local barColor = row.bar:GetColor()
+            barColor.a = kExoStatUnchangedAlpha
+            row.bar:SetColor(barColor)
+        end
+        row.text:SetColor(unchanged and kExoStatUnchangedLabelColor or kExoStatLabelColor)
+    end
+
+end
+
 -- What buying the configuration on screen costs, priced exactly the way
 -- ModularExo_HandleExoModularBuy charges for it: the whole configuration, less a refund
 -- for the one the player is already wearing, never below zero, plus the flat refit fee.
 -- Pass a cost to price a candidate; omit it for whatever _RefreshExoModularButtons
 -- last measured.
 function GUIMarineBuyMenu:_GetExoConfigPrice(resourceCost)
+    if resourceCost == nil and self.exoConfigUnchanged then
+        return 0
+    end
     local refund = self.activeExoConfigResCost or 0
     local price = math.max(0, (resourceCost or self.exoConfigResourceCost or 0) - refund)
     if refund > 0 then
         price = price + kExoRefitCost
     end
     return price
+end
+
+-- An exo looking at the suit it already wears: refitting it would only charge the fee.
+function GUIMarineBuyMenu:_GetIsExoConfigUnchanged()
+    if not self.exoIsRefit then
+        return false
+    end
+    for slotType, _ in pairs(kExoModuleSlotsData) do
+        if (self.exoConfig[slotType] or kExoModuleTypes.None) ~= (self.activeExoConfig[slotType] or kExoModuleTypes.None) then
+            return false
+        end
+    end
+    return true
+end
+
+function GUIMarineBuyMenu:_GetIsMouseInExoSlotPanel()
+    local mouseX, mouseY = Client.GetCursorPosScreen()
+    for _, panel in ipairs(self.exoSlotPanels) do
+        if GUIItemContainsPoint(panel, mouseX, mouseY, true) then
+            return true
+        end
+    end
+    return false
 end
 
 function GUIMarineBuyMenu:_UpdateExoModularButtons()
@@ -2882,20 +3089,34 @@ function GUIMarineBuyMenu:_UpdateExoModularButtons()
 				
         -- local researched = self:_GetResearchInfo(kTechId.DualMinigunExosuit)
 		local researched = self:_GetHostCanSellExoConfig()
-        -- A configuration carrying a module the commander has not researched, or a second
-        -- shooting arm without Dual Arms, is refused by the server, so BUY refuses too.
-        if not researched or self.exoConfigLockedTechId ~= nil then
+        local buyHovered = GetIsMouseOver(self, self.modularExoBuyButton)
+        local refusal = nil
+        if not researched then
+            refusal = "host"
+        elseif self.exoConfigLockedTechId ~= nil then
+            refusal = "locked"
+        elseif self.exoConfigUnchanged then
+            refusal = "unchanged"
+        elseif PlayerUI_GetPlayerResources() < self:_GetExoConfigPrice() then
+            refusal = "funds"
+        end
+        self.modularExoBuyRefusal = buyHovered and refusal or nil
+
+        -- A configuration carrying a module the commander has not researched, a second
+        -- shooting arm without Dual Arms, or the suit already worn is refused by the server,
+        -- so BUY refuses too.
+        if not researched or self.exoConfigLockedTechId ~= nil or self.exoConfigUnchanged then
             self.modularExoBuyButton:SetColor(kModuleUnaffordableColor)
-            self.modularExoBuyButtonText:SetColor(Color(0.5, 0.5, 0.5, 1))
+            self.modularExoBuyButtonText:SetColor(kBuyTextRefusedColor)
             self.modularExoCostText:SetColor(kModuleUnaffordableColor)
             self.modularExoCostIcon:SetColor(kModuleUnaffordableColor)
         elseif PlayerUI_GetPlayerResources() < self:_GetExoConfigPrice() then
-            self.modularExoBuyButton:SetColor(Color(1, 0, 0, 1))
-            self.modularExoBuyButtonText:SetColor(Color(0.5, 0.5, 0.5, 1))
+            self.modularExoBuyButton:SetColor(kBuyButtonUnaffordableColor)
+            self.modularExoBuyButtonText:SetColor(kBuyTextRefusedColor)
             self.modularExoCostText:SetColor(kCannotBuyColor)
             self.modularExoCostIcon:SetColor(kCannotBuyColor)
         else
-            if GetIsMouseOver(self, self.modularExoBuyButton) then
+            if buyHovered then
                 self.modularExoBuyButton:SetColor(kCloseButtonColorHover)
                 self.modularExoCostText:SetColor(kCloseButtonColorHover)
                 self.modularExoCostIcon:SetColor(kCloseButtonColorHover)
@@ -2911,25 +3132,18 @@ function GUIMarineBuyMenu:_UpdateExoModularButtons()
             --self.modularExoCostText:SetColor(kTextColor)
             --self.modularExoCostIcon:SetColor(kTextColor)
         end
-        if self.modularExoBackButton then
-            if GetIsMouseOver(self, self.modularExoBackButton) then
-                self.modularExoBackButton:SetColor(kCloseButtonColorHover)
-                self.modularExoBackButtonText:SetColor(kCloseButtonColorHover)
-            else
-                self.modularExoBackButton:SetColor(kCloseButtonColor)
-                self.modularExoBackButtonText:SetColor(kCloseButtonColor)
-            end
-        end
 
         local hoveredModuleType = nil
         local hoveredLockedTechId = nil
         local hoveredIncompatible = false
+        local hoveredButton = nil
         for buttonI, buttonData in ipairs(self.modularExoModuleButtonList) do
             if GetIsMouseOver(self, buttonData.buttonGraphic) then
+                hoveredButton = buttonData
                 hoveredModuleType = buttonData.moduleType
                 hoveredLockedTechId = buttonData.lockedTechId
                 hoveredIncompatible = buttonData.incompatible
-                if buttonData.state == "enabled" then
+                if buttonData.state == "enabled" or buttonData.state == "unaffordable" then
                     buttonData.buttonGraphic:SetColor(kModuleButtonHoverColor)
                 end
             else
@@ -2937,15 +3151,21 @@ function GUIMarineBuyMenu:_UpdateExoModularButtons()
             end
         end
 
-        -- The details box follows the mouse, and keeps the last module it was given so it
-        -- never blanks out while the mouse travels between two buttons. The lock travels with
-        -- it: the same module can be free in one slot and locked in the other, so the button
-        -- that was hovered is what decides, not the module on its own.
-        if hoveredModuleType then
-            self.modularExoDetailsModule = hoveredModuleType
-            self.modularExoDetailsLockedTechId = hoveredLockedTechId
-            self.modularExoDetailsIncompatible = hoveredIncompatible
+        -- In the gap between two buttons of a panel keep the module just left, rather than
+        -- flashing the overview; outside the panels the box shows the exosuit overview.
+        if not hoveredButton and self:_GetIsMouseInExoSlotPanel() then
+            return
         end
+
+        -- The lock travels with the button, not the module: the same module can be free in
+        -- one slot and locked in the other.
+        self.modularExoDetailsModule = hoveredModuleType or false
+        self.modularExoDetailsLockedTechId = hoveredLockedTechId
+        self.modularExoDetailsPairingTechId = hoveredButton and hoveredButton.pairingLockedTechId
+        self.modularExoDetailsIncompatible = hoveredIncompatible
+        self.modularExoDetailsPrice = hoveredButton and hoveredButton.price
+        self.modularExoDetailsSlot = hoveredButton and hoveredButton.slotType
+        self.modularExoDetailsForceDual = hoveredButton ~= nil and hoveredButton.forceRightToDual == true
     end
 end
 
@@ -2988,11 +3208,12 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
     local playerResources = PlayerUI_GetPlayerResources()
     local armorLevels = PlayerUI_GetArmorLevel and PlayerUI_GetArmorLevel() or 0
 
-    -- The two prototype lab research nodes, read once per repaint. They are cache keys below
+    -- The prototype lab research nodes, read once per repaint. They are cache keys below
     -- as well, so finishing a research while the menu is open repaints the grid.
-    local hasCoresTech    = ModularExo_GetIsTechResearched(kTechId.CoresExosuitTech)
-    local hasDualArmsTech = ModularExo_GetIsTechResearched(kTechId.DualMinigunTech)
-    local hasExosuitTech  = ModularExo_GetIsTechResearched(kTechId.ExosuitTech)
+    local hasCoresTech     = ModularExo_GetIsTechResearched(kTechId.CoresExosuitTech)
+    local hasDualArmsTech  = ModularExo_GetIsTechResearched(kTechId.DualMinigunTech)
+    local hasAdvArmsTech   = ModularExo_GetIsTechResearched(kTechId.AdvancedExoArmsTech)
+    local hasAbilitiesTech = ModularExo_GetIsTechResearched(kTechId.ExoAbilitiesTech)
 
     -- Repainting the grid costs one ModularExo_GetIsConfigValid call per button plus a
     -- string per label, and this is called on every frame the page is up. None of it can
@@ -3015,12 +3236,14 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
     and self.exoButtonsPaintedAbility == ability
     and self.exoButtonsPaintedCoresTech == hasCoresTech
     and self.exoButtonsPaintedDualArmsTech == hasDualArmsTech
-    and self.exoButtonsPaintedExosuitTech == hasExosuitTech then
+    and self.exoButtonsPaintedAdvArmsTech == hasAdvArmsTech
+    and self.exoButtonsPaintedAbilitiesTech == hasAbilitiesTech then
         return
     end
 
     self.exoButtonsPainted = true
     self.exoButtonsPaintedResources = playerResources
+    self.currentMoneyText:SetText(string.format("%s %s", Locale.ResolveString("BUYMENU_CURRENTMONEY_PREFIX"), ToString(math.floor(playerResources * 10) / 10)))
     self.exoButtonsPaintedArmorLevels = armorLevels
     self.exoButtonsPaintedRightArm = rightArm
     self.exoButtonsPaintedLeftArm = leftArm
@@ -3028,17 +3251,21 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
     self.exoButtonsPaintedAbility = ability
     self.exoButtonsPaintedCoresTech = hasCoresTech
     self.exoButtonsPaintedDualArmsTech = hasDualArmsTech
-    self.exoButtonsPaintedExosuitTech = hasExosuitTech
+    self.exoButtonsPaintedAdvArmsTech = hasAdvArmsTech
+    self.exoButtonsPaintedAbilitiesTech = hasAbilitiesTech
 
     -- What the configuration on screen is still waiting on, if anything. The BUY button and
     -- the click handler gate on this, and it is the same call the server makes.
     self.exoConfigLockedTechId = ModularExo_GetConfigLockedTechId(self.exoConfig)
+    self.exoConfigUnchanged = self:_GetIsExoConfigUnchanged()
 
     local _, _, resourceCost, _, _ = ModularExo_GetIsConfigValid(self.exoConfig)
     resourceCost = resourceCost or 0
     self.exoConfigResourceCost = resourceCost
 
     local currentConfigPrice = self:_GetExoConfigPrice()
+    self:_RefreshExoCostRow()
+    self:_RefreshExoStatBars()
 
     self.modularExoCostText:SetText(tostring(currentConfigPrice))
     if self.modularExoArmorText then
@@ -3059,6 +3286,7 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
         local buttonModuleTypeData = kExoModuleTypesData[buttonData.moduleType]
         local requiredTechId = buttonModuleTypeData and buttonModuleTypeData.requiredTechId
         local lockedTechId = nil
+        local pairingTechId = nil
         local incompatible = false
         if requiredTechId and not ModularExo_GetIsTechResearched(requiredTechId) then
             lockedTechId = requiredTechId
@@ -3069,19 +3297,19 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
             -- Already selected. It still has to be paid for as part of the whole
             -- configuration, so it can be selected and unaffordable at the same time.
             buttonData.state = "selected"
+            buttonData.forceRightToDual = false
+            buttonData.price = currentConfigPrice
             canAfford = playerResources >= currentConfigPrice
             col = kEnabledColor
 
             -- The configuration on screen is the candidate here, so an outstanding pairing
             -- research belongs on both arm buttons. It has to be read from the pairing rule
-            -- rather than from exoConfigLockedTechId, which now also carries that same techId
-            -- for a single flame or plasma arm - that arm's own requiredTechId already says so,
-            -- and a claw beside it requires nothing.
-            if lockedTechId == nil
-            and ModularExo_GetConfigNeedsDualArmsTech(self.exoConfig)
-            and not ModularExo_GetIsTechResearched(kTechId.DualMinigunTech)
+            -- rather than from exoConfigLockedTechId, which reports a module's own research
+            -- first, and a claw beside it requires nothing.
+            if ModularExo_GetConfigNeedsDualArmsTech(self.exoConfig)
+            and not hasDualArmsTech
             and kExoModuleSlotsData[buttonData.slotType].category == kExoModuleCategories.Weapon then
-                lockedTechId = kTechId.DualMinigunTech
+                pairingTechId = kTechId.DualMinigunTech
             end
 
         else
@@ -3089,6 +3317,7 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
             self.exoConfig[buttonData.slotType] = buttonData.moduleType
             local isValid, badReason, candidateCost = ModularExo_GetIsConfigValid(self.exoConfig)
             local candidateNeedsDualArms = ModularExo_GetConfigNeedsDualArmsTech(self.exoConfig)
+            local candidateUnchanged = self:_GetIsExoConfigUnchanged()
             if buttonData.slotType == kExoModuleSlots.LeftArm and badReason == "bad model right" then
 
                 -- Picking this left arm drags the right arm to the same module, so price the
@@ -3101,14 +3330,15 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
                 local _, _, dualCost = ModularExo_GetIsConfigValid(self.exoConfig)
                 candidateCost = dualCost or candidateCost
                 candidateNeedsDualArms = ModularExo_GetConfigNeedsDualArmsTech(self.exoConfig)
+                candidateUnchanged = self:_GetIsExoConfigUnchanged()
                 self.exoConfig[kExoModuleSlots.RightArm] = restoreRightArm
 
             else
                 buttonData.forceRightToDual = false
             end
 
-            if lockedTechId == nil and candidateNeedsDualArms and not hasDualArmsTech then
-                lockedTechId = kTechId.DualMinigunTech
+            if candidateNeedsDualArms and not hasDualArmsTech then
+                pairingTechId = kTechId.DualMinigunTech
             end
 
             -- THIS IS FOR WHEN THE RIGHT ARM CONTROLS THE UI!
@@ -3119,25 +3349,34 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
                 buttonData.forceLeftToDual = false
             end]]
 
+            local candidatePrice = candidateUnchanged and 0 or self:_GetExoConfigPrice(candidateCost or 0)
             if not isValid then
                 buttonData.state = "disabled"
                 incompatible = badReason == "bad model right"
-            elseif lockedTechId then
+            elseif lockedTechId or pairingTechId then
                 -- Buildable, just not researched yet. Greyed out, cost included, no hover,
                 -- click ignored - and the details box says which research.
                 buttonData.state = "locked"
             else
-                canAfford = playerResources >= self:_GetExoConfigPrice(candidateCost or 0)
+                canAfford = playerResources >= candidatePrice
                 buttonData.state = canAfford and "enabled" or "unaffordable"
             end
+            buttonData.price = isValid and candidatePrice or nil
             col = kDisabledColor
 
-            if lockedTechId or not isValid and (badReason == "bad model right" or badReason == "bad model left") then
+            if lockedTechId or pairingTechId or not isValid and (badReason == "bad model right" or badReason == "bad model left") then
                 col = kModuleUnavailableFrameColor
             end
 
             self.exoConfig[buttonData.slotType] = current
 
+        end
+
+        if lockedTechId == nil then
+            lockedTechId = pairingTechId
+            pairingTechId = nil
+        elseif pairingTechId == lockedTechId then
+            pairingTechId = nil
         end
 
         -- Unaffordable reads through the contents, not through the button frame, so that a
@@ -3154,7 +3393,30 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
         end
 
         buttonData.lockedTechId = lockedTechId
+        buttonData.pairingLockedTechId = pairingTechId
         buttonData.incompatible = incompatible
+
+        local statusState = nil
+        if buttonData.state == "disabled" then
+            statusState = kButtonShowState.NotHosted
+        elseif lockedTechId then
+            statusState = kButtonShowState.Unresearched
+        end
+        if statusState then
+            local statusDef = kButtonShowStateDefinitions[statusState]
+            local layoutScale = self.exoLayoutScale or 1
+            buttonData.statusText:SetText(Locale.ResolveString(statusDef.Text))
+            buttonData.statusText:SetColor(statusDef.TextColor)
+            local textWidth = buttonData.statusText:GetTextWidth(buttonData.statusText:GetText()) * buttonData.statusText:GetScale().x
+            local frameSize = Vector(textWidth + kModuleStatusPadding * 2 * layoutScale, kModuleStatusHeight * layoutScale, 0)
+            buttonData.statusFrame:SetSize(frameSize)
+            buttonData.statusFrame:SetPosition(Vector(-frameSize.x, -frameSize.y - kModuleButtonPaddingY * layoutScale, 0))
+        end
+        buttonData.statusFrame:SetIsVisible(statusState ~= nil)
+        if buttonData.teamIcon then
+            buttonData.teamIcon:SetIsVisible(statusState == nil)
+            buttonData.teamNumber:SetIsVisible(statusState == nil)
+        end
         buttonData.col = col
         buttonData.buttonGraphic:SetColor(col)
 

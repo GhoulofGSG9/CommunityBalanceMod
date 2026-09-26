@@ -144,8 +144,19 @@ if Client then
 	Locale.substitutions["COMMANDERERROR_TOO_MANY_CARGO_GATES"] = "Can't build or too many cargo gates."
 	
 	Locale.substitutions["EXO_PROTOTYPE_LAB_HINT"] = "Exosuits"
-	Locale.substitutions["EXO_PROTOTYPE_LAB_TOOLTIP"] = "Unlocks exosuit tech."
+	Locale.substitutions["EXO_PROTOTYPE_LAB_TOOLTIP"] = "Sells modular exosuits and researches their arms, cores and abilities."
 	Locale.substitutions["EXO_PROTOTYPE_LAB"] = "Exosuit Prototype Lab"
+	Locale.substitutions["PROTOTYPE_LAB_HINT"] = "Exosuits"
+	Locale.substitutions["PROTOTYPE_LAB_TOOLTIP"] = "You can buy Exosuits from here."
+	Locale.substitutions["EXOSUIT_TOOLTIP"] = "Heavy modular armor. Exosuits can't build, command or be beaconed."
+	Locale.substitutions["COMMANDER_TUT_BUILD_PROTO"] = "Now since you have an Arms Lab, it's time to unlock Exosuits for your marines. Build a [2:PrototypeLab] from the advanced build menu [1:AdvancedMenu]."
+	Locale.substitutions["BOT_RESEARCH_START_DUALMINIGUNTECH"] = "Starting research: Dual Exosuit Arms"
+	Locale.substitutions["BOT_RESEARCH_START_CORESEXOSUITTECH"] = "Starting research: Exosuit Cores"
+
+	Locale.substitutions["ADVANCED_ARMORY_HINT"] = "Flamethrowers, grenades, Jetpacks"
+	Locale.substitutions["ADVANCED_ARMORY_TOOLTIP"] = "Allows access to advanced weapons like grenade launchers and flamethrowers, and to Jetpack research."
+	Locale.substitutions["BUYMENU_ERROR_ADVANCED_ARMORY_ONLY"] = "ADVANCED ARMORY ONLY"
+	Locale.substitutions["COMMANDER_TUT_UPGRADE_JETPACK"] = "Select the advanced armory [1:AdvancedArmory] and research Jetpacks [2:JetpackTech]"
 	
 	Locale.substitutions["INFANTRY_PROTOTYPE_LAB_HINT"] = "Jetpacks"
 	Locale.substitutions["INFANTRY_PROTOTYPE_LAB_TOOLTIP"] = "Unlocks jetpack tech."
@@ -153,9 +164,12 @@ if Client then
 	Locale.substitutions["JETPACK_TECH_TOOLTIP"] = "Allows Jetpacks to be purchased."
 	Locale.substitutions["RESEARCH_JETPACKS_TITLE"] = "Jetpacks"
 	
-	Locale.substitutions["RESEARCH_CORES_EXOSUIT"] = "Research Exosuit Modules"
-	Locale.substitutions["RESEARCH_CORES_EXOSUIT_TITLE"] = "Exosuit Modules"
-	Locale.substitutions["CORES_EXOSUIT_TECH_TOOLTIP"] = "Unlocks exosuit modules: Thrusters, Ejection Seat, Armor Plating and the support abilities."
+	Locale.substitutions["RESEARCH_CORES_EXOSUIT_TITLE"] = "Exosuit Cores"
+	Locale.substitutions["CORES_EXOSUIT_TECH_TOOLTIP"] = "Unlocks the exosuit core modules: Thrusters, Ejection Seat and Armor Plating."
+	Locale.substitutions["ADVANCED_EXO_ARMS_TECH"] = "Advanced Exosuit Arms"
+	Locale.substitutions["ADVANCED_EXO_ARMS_TECH_TOOLTIP"] = "Unlocks the flame and plasma arms."
+	Locale.substitutions["EXO_ABILITIES_TECH"] = "Exosuit Abilities"
+	Locale.substitutions["EXO_ABILITIES_TECH_TOOLTIP"] = "Unlocks the exosuit support abilities: Nano Shield Field, Catalyst Field and Regen Field."
 	
 	Locale.substitutions["RESEARCH_DUAL_EXOS"] = "Research Dual Exosuit Tech"
 	Locale.substitutions["RESEARCH_DUAL_EXOS_TITLE"] = "Dual Exosuits"
@@ -187,7 +201,7 @@ if Client then
 	
 	-- Exosuit configuration page
 	Locale.substitutions["EXOSUIT_MODULAR_TOOLTIP"] = "Configurable heavy armor. Arms, core module and support ability are chosen at the Exosuit Prototype Lab, and a fitted exosuit can be refitted at any Armory."
-	Locale.substitutions["EXOSUIT_MODULAR_BUYDESCRIPTION"] = "Configurable heavy armor. Select the suit to choose two arms, a core module and a support ability; armor, speed and price follow the modules you pick. A fitted exosuit can be refitted at any Armory."
+	Locale.substitutions["EXOSUIT_MODULAR_BUYDESCRIPTION"] = "Heavy powered armor: a large armor pool at the cost of mobility. Cannot build or command; welders and MACs repair it. Refit at any Armory."
 	Locale.substitutions["EXO_MODULESLOT_LEFT_ARM"] = "Left Arm Weapon"
 	Locale.substitutions["EXO_MODULESLOT_RIGHT_ARM"] = "Right Arm Weapon"
 	Locale.substitutions["EXO_MODULESLOT_UTILITY"] = "Core Module"
@@ -208,12 +222,12 @@ if Client then
 	Locale.substitutions["EXO_MODULE_EJECTIONSEAT_DESC"] = "Core module: when the suit's armor runs out you are thrown clear instead of dying in it, but the exosuit is destroyed. A manual eject takes half a second instead of one. It saves the marine, not the suit."
 	Locale.substitutions["EXO_MODULE_ARMOR"] = "Armor Plating"
 	Locale.substitutions["EXO_MODULE_ARMOR_TOOLTIP"] = "Bolt-on plating: 80 extra armor at the cost of speed."
-	Locale.substitutions["EXO_MODULE_ARMOR_DESC"] = "Core module: 80 extra armor bolted on, paid for with speed. It costs as much as a weapon arm: the last stretch of armor is meant to be paid for."
+	Locale.substitutions["EXO_MODULE_ARMOR_DESC"] = "Core module: 80 extra armor bolted on, paid for with speed."
 	
 	-- Exosuit support abilities
 	Locale.substitutions["EXO_ABILITY_NANOSHIELD_FIELD"] = "Nano Shield Field"
 	Locale.substitutions["EXO_ABILITY_NANOSHIELD_FIELD_TOOLTIP"] = "Pulse a light nano shield onto every marine within 8 meters. Marines only, exosuits are not affected. Shield lasts 1.5 seconds and cuts damage by a fifth. 120 second cooldown."
-	Locale.substitutions["EXO_ABILITY_ADRENALINE_FIELD"] = "Adrenaline Field"
+	Locale.substitutions["EXO_ABILITY_ADRENALINE_FIELD"] = "Catalyst Field"
 	Locale.substitutions["EXO_ABILITY_ADRENALINE_FIELD_TOOLTIP"] = "Pulse a catalyst boost onto every marine within 8 meters. Marines only, exosuits are not affected. Boost lasts 5 seconds. 120 second cooldown."
 	Locale.substitutions["EXO_ABILITY_REGEN_FIELD"] = "Regen Field"
 	Locale.substitutions["EXO_ABILITY_REGEN_FIELD_TOOLTIP"] = "Heal every marine within 8 meters for 8 health per second over 5 seconds (40 health, no armor). Marines only, exosuits are not affected. 120 second cooldown."
@@ -224,9 +238,11 @@ if Client then
 	Locale.substitutions["EXO_ABILITY_COOLDOWN_FORMAT"] = "%s  %d s"
 	
 	-- Exosuit buy menu readouts
-	Locale.substitutions["EXO_DETAILS_ARMOR_FORMAT"] = "+%d ARMOR"
-	Locale.substitutions["EXO_DETAILS_SPEED_FORMAT"] = "-%d%% SPEED"
-	Locale.substitutions["EXO_DETAILS_NO_STAT_CHANGE"] = "NO STAT CHANGE"
+	Locale.substitutions["EXO_DETAILS_ARMOR_BAR"] = "ARMOR:"
+	Locale.substitutions["EXO_DETAILS_SPEED_BAR"] = "SPEED:"
+	Locale.substitutions["EXO_DETAILS_TOTAL"] = "Total"
+	Locale.substitutions["EXO_DETAILS_REFIT"] = "Refit"
+	Locale.substitutions["EXO_DETAILS_MODULE_COST_FORMAT"] = "Module cost: %d"
 	Locale.substitutions["EXO_MODULE_INCOMPATIBLE"] = "Cannot be mounted next to the other arm"
 	Locale.substitutions["EXO_BUY_ARMOR_SPEED_FORMAT"] = "%d armor   %d%% speed"
 	Locale.substitutions["EXO_BUY_SPEED_BASELINE"] = "marine walk = 100% speed"
@@ -257,9 +273,13 @@ if Client then
 	
 	
 	-- Exosuit research gates and armory refit
-	Locale.substitutions["DUAL_ARMS_TECH"] = "Advanced Exosuit Arms"
-	Locale.substitutions["DUAL_ARMS_TECH_TOOLTIP"] = "Unlocks the flame and plasma arms, and lets an exosuit mount a weapon on both arms instead of a claw on one of them."
+	Locale.substitutions["DUAL_ARMS_TECH"] = "Dual Exosuit Arms"
+	Locale.substitutions["DUAL_ARMS_TECH_TOOLTIP"] = "Lets an exosuit mount a weapon on both arms instead of a claw on one of them."
 	Locale.substitutions["EXO_MODULE_LOCKED_FORMAT"] = "Requires %s"
+	Locale.substitutions["EXO_MODULE_LOCKED_BOTH_FORMAT"] = "Requires %s and %s"
+	Locale.substitutions["EXO_BUY_REFUSED_HOST"] = "Needs a built Exosuit Prototype Lab"
+	Locale.substitutions["EXO_BUY_REFUSED_UNCHANGED"] = "This is the suit you are wearing"
+	Locale.substitutions["EXO_BUY_REFUSED_FUNDS"] = "Not enough resources"
 	
 end
 
