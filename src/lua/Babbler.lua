@@ -375,6 +375,13 @@ function Babbler:DestroyHitbox()
     end
 end
 
+function Babbler:DestroyPhysicsBody()
+    if self.physicsBody then
+        Shared.DestroyCollisionObject(self.physicsBody)
+        self.physicsBody = nil
+    end
+end
+
 function Babbler:GetIsFlameAble()
     return true
 end
@@ -402,11 +409,7 @@ function Babbler:OnDestroy()
         self:Detach()
     end
 
-    if self.physicsBody then
-        Shared.DestroyCollisionObject(self.physicsBody)
-        self.physicsBody = nil
-    end
-
+    self:DestroyPhysicsBody()
     self:DestroyHitbox()
 
     if Client then
@@ -1364,28 +1367,14 @@ if Server then
             end            
 
             self.targetSelector:AttackerMoved()
-        else
+        else -- Safety net
              if self.doesGroundMove then
-        --         Log("%s Close from target, test ground state", self)
-                 --local ground = GetGroundAt(self, prevOrig, PhysicsMask.AIMovement, nil, true)
+                 local ground = GetGroundAt(self, prevOrig, PhysicsMask.AIMovement, nil, true)
 
-                --if prevOrig.y - ground.y > Babbler.kRadius or targetPos.y - prevOrig.y > Babbler.kRadius then
-                if targetPos.y - prevOrig.y > Babbler.kRadius then
+                if prevOrig.y - ground.y > Babbler.kRadius or targetPos.y - prevOrig.y > Babbler.kRadius then
                      self:SetGroundMoveType(false) -- Trigger falling
-        --             Log("%s LOCK STATE DETECTED (ground-diff: %s, target-diff: %s)",
-        --                 self,
-        --                 prevOrig.y - ground.y,
-        --                 targetPos.y - prevOrig.y
-        --                 )
-        --         else
-        --             Log("%s-%s Everything good (ground-diff: %s, target-diff: %s)",
-        --                 self, prevOrig,
-        --                 prevOrig.y - ground.y,
-        --                 targetPos.y - prevOrig.y
-        --                 )
-
-                 end
-             end
+                end
+            end
         end
 
         -- Errative jump behavior when going from one place to an other
@@ -1499,7 +1488,7 @@ if Server then
             WalkTowardAttachPoint(self, delta, distance, deltaTime)
         else -- Multi-leap upward (or level, or downward) toward targets
 
-            -- TODO: Bandaid fix (until we can figure out why GetGroundAt is not giving us the ground properly)
+            -- Last safeguard to prevent in-the-air stuck babblers (kept just in case)
             if self.doesGroundMove and self.lastOrigin:GetDistanceTo(self:GetOrigin()) < kEpsilon then
                 self:SetGroundMoveType(false)
             end
@@ -2245,12 +2234,13 @@ if Server then
             self.physicsBody:SetLinearDamping(Babbler.kLinearDampingAtSpawn)
             self.physicsBody:SetRestitution(Babbler.kRestitution)
 
+            self.physicsBody:SetEntity(self)
+
             self:AddTimedCallback(BabblerSetLinearDampingCallback, kFinalDampingAfterDelay)
 
 
-        elseif (isClinged or isOnWeb) and self.physicsBody then
-            Shared.DestroyCollisionObject(self.physicsBody)
-            self.physicsBody = nil
+        elseif (isClinged or isOnWeb) then
+            self:DestroyPhysicsBody()
         end
     end
 
