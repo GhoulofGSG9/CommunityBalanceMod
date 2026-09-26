@@ -1054,6 +1054,7 @@ kPlasmaBombEnergyCost = 0.60
 kPlasmaBombDOTDamage = 5 -- DOT applied after direct damage
 kPlasmaDOTDuration = 5.5
 kPlasmaDOTInterval = 0.5
+kPlasmaDOTHealReduction = 0.5
 
 kPlasmaHitBoxRadiusT3 = 0.495 -- Hitbox radius from center of projectile...
 

@@ -74,6 +74,19 @@ if Server then
         return 0 
     end
 
+    local function HealShortensDot(dotMarker, entity)
+
+        local healCut = entity.plasmaDotHealCut or 0
+        local base = dotMarker.healCutBase[entity:GetId()]
+        if not base then
+            dotMarker.healCutBase[entity:GetId()] = healCut
+            return false
+        end
+
+        return Shared.GetTime() > dotMarker.dotEndTime - (healCut - base)
+
+    end
+
     -- Shared explosion body. A contact hit and the fuse running out must produce the
     -- exact same blast, so both go through here. self.detonated makes a second call a
     -- no-op, so a bomb can never go off twice.
@@ -102,8 +115,12 @@ if Server then
         dotMarker:SetOwner(owner)
         dotMarker:SetFallOffFunc(NoFalloff)
         dotMarker:SetLoSCheck(true)
+        dotMarker.dotEndTime = Shared.GetTime() + kPlasmaDOTDuration
+        dotMarker.healCutBase = {}
+        dotMarker.immuneCondition = HealShortensDot
 
         for _, entity in ipairs(hitEntities) do
+            dotMarker.healCutBase[entity:GetId()] = entity.plasmaDotHealCut or 0
             self:DoDamage(shotDamage, entity, position, GetNormalizedVector(entity:GetOrigin() - position), "none")
         end
 
