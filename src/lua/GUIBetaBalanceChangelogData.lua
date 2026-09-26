@@ -62,7 +62,8 @@ if kCBMaddon then
 	    - Nano Shield Field: 1.5 s shield, 20% less damage.
 	    - Catalyst Field: catalyst for nearby marines.
 	    - Regen Field: heals health over time, shown on the health bar like a medpack.
-	    - With no marine in range the charge is kept. The cooldown survives refits and ejecting.
+	    - Marines already under a nano shield, or boosted by catalyst in the last 4 s, are skipped, so a commander's drop is never replaced.
+	    - With no marine in range, or none the nano or catalyst field can affect, the charge is kept. The cooldown survives refits and ejecting.
 
 	### Exosuits: Buying, Refitting and Ejecting
 	  - The Prototype Lab opens straight on the exosuit configuration page.
@@ -726,7 +727,8 @@ else
 	    - Nano Shield Field: 1.5 s shield, 20% less damage.
 	    - Catalyst Field: catalyst for nearby marines.
 	    - Regen Field: heals health over time, shown on the health bar like a medpack.
-	    - With no marine in range the charge is kept. The cooldown survives refits and ejecting.
+	    - Marines already under a nano shield, or boosted by catalyst in the last 4 s, are skipped, so a commander's drop is never replaced.
+	    - With no marine in range, or none the nano or catalyst field can affect, the charge is kept. The cooldown survives refits and ejecting.
 
 	### Exosuits: Buying, Refitting and Ejecting
 	  - The Prototype Lab opens straight on the exosuit configuration page.
