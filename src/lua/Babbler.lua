@@ -183,6 +183,29 @@ function GetBabblerBallOrder(owner, target)
     return kBabblerMoveType.Move
 end
 
+-- Cling-attach and babbler-cap counters (BabblerClingMixin, BabblerOwnerMixin) only update
+-- once a babbler physically arrives and clings - they don't reflect babblers already
+-- travelling toward a target with a Cling order. Anything computing how much room is left
+-- on a target needs to subtract these in-flight babblers too, or it'll keep dispatching more
+-- past the target's real remaining capacity while the first batch is still en route.
+function GetNumBabblersEnRouteToCling(target)
+
+    local count = 0
+    if not target then return count end
+
+    for _, babbler in ipairs(GetEntitiesForTeam("Babbler", target:GetTeamNumber())) do
+
+        local isClinged = babbler:GetIsClinged()
+        local hasClingOrder = (babbler.moveType == kBabblerMoveType.Cling)
+        if not isClinged and hasClingOrder and babbler:GetTarget() == target then
+            count = count + 1
+        end
+
+    end
+
+    return count
+
+end
 function Babbler:CreateHitBox(coords)
 
     if self:GetIsAlive() and not self:GetIsDestroyed() and not self.clinged then
@@ -1828,7 +1851,21 @@ if Server then
 
         if parent then
             local away = GetNormalizedVector(self:GetOrigin() - parent:GetOrigin())
-            self:SetOrigin(self:GetOrigin() + away * Babbler.kRadius)
+            away.y = math.max(0, away.y) -- never push downward below the map
+            if away:GetLengthSquared() < kEpsilon then
+                away = Vector(math.random()-0.5, 0, math.random()-0.5)
+            end
+
+            local detachOrigin = self:GetOrigin() + away * Babbler.kRadius
+
+            -- Safety net: if a low attach point still leaves us under the floor right below
+            -- the detach point, snap back up onto it.
+            local ground = GetGroundAt(self, detachOrigin, PhysicsMask.AIMovement)
+            if ground and detachOrigin.y < ground.y + Babbler.kRadius and self:GetOrigin().y - ground.y < 1 then
+                detachOrigin.y = ground.y + Babbler.kRadius
+            end
+
+            self:SetOrigin(detachOrigin)
         end
 
         self:ReleaseFromParentCling(parent)
