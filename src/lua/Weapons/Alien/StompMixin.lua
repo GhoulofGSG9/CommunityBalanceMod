@@ -108,7 +108,7 @@ function StompMixin:OnTag(tagName)
 
     PROFILE("StompMixin:OnTag")
 
-    if tagName == "stomp_hit" then
+    if self.secondaryAttacking and tagName == "stomp_hit" then
 
         local player = self:GetParent()
 
