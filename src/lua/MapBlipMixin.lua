@@ -296,11 +296,11 @@ function MapBlipMixin:UpdateFogEntity(sighted)
     local _, blipType = self:GetMapBlipInfo()
     f:SetFogEntMapBlipInfo(true, blipType, teamNumber, GetIsUnitActive(self), self:isa("Player"))
 
-    local orig = self:GetOrigin()
+    local orig = Vector(self.GetPositionForMinimap and self:GetPositionForMinimap() or self:GetOrigin())
     if self:isa("Player") then
         orig.y = self:GetModelOrigin().y -- Model middle, better for LOS check
     elseif not self:isa("PowerPoint") then -- Elevate a bit off the ground anything but powernode (their orig is good)
-        orig = self:GetOrigin() + Vector(0, 0.25, 0)
+        orig = orig + Vector(0, 0.25, 0)
     end
 
     f.reentranceOff = true
