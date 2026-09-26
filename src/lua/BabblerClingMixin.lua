@@ -72,6 +72,21 @@ function BabblerClingMixin:GetCanAttachBabbler()
     return (not self.isHallucination and numClingedBabbler < numAttachPoints and not self:isa("Hallucination"))
 end
 
+-- How many more babblers this entity can actually end up with, right now.
+function BabblerClingMixin:GetNumFreeDonationSpots()
+
+    local freeSpots = self:GetMaxClingedBabblers() - self:GetNumClingedBabblers()
+
+    if HasMixin(self, "BabblerOwner") then
+        freeSpots = math.min(freeSpots, self:GetMaxBabblers() - self:GetBabblerCount())
+    end
+
+    freeSpots = freeSpots - GetNumBabblersEnRouteToCling(self)
+
+    return math.max(freeSpots, 0)
+
+end
+
 function BabblerClingMixin:ModifyDamageTaken(damageTable, attacker, doer, damageType, hitPoint, weapon)
     local damage = damageTable.damage or 0
     if damage > 0 and self:GetApplyBabblerShield(damageType) then
@@ -135,7 +150,7 @@ function BabblerClingMixin:GetCanBeUsed(entity, useSuccessTable)
         success = false
     end
 
-    if success and HasMixin(self, "BabblerOwner") and self:GetBabblerCount() >= self:GetMaxBabblers() then
+    if success and self:GetNumFreeDonationSpots() <= 0 then
         success = false
     end
 
@@ -150,12 +165,10 @@ end
 function BabblerClingMixin:OnUse(player, elapsedTime, useSuccessTable)
     if Server then
 
-        local isTargetOwner = HasMixin(self, "BabblerOwner")
-
-        local freeSpots = self:GetMaxClingedBabblers() - self:GetNumClingedBabblers()
-        if isTargetOwner then
-            freeSpots = math.min(freeSpots, self:GetMaxBabblers() - self:GetBabblerCount())
-        end
+        -- See GetNumFreeDonationSpots: bounds by free attach points, the owner cap, and
+        -- babblers already en route here, so this loop can't over-commit past what self can
+        -- really end up holding once everything arrives.
+        local freeSpots = self:GetNumFreeDonationSpots()
 
         if freeSpots <= 0 then
             return
@@ -191,6 +204,12 @@ if Server then
 
         local previousOwner = babbler:GetOwner()
 
+        -- A donation (attaching a babbler self doesn't already own) must also respect the
+        -- owner's overall babbler cap - cling attach points alone aren't enough, since a
+        -- BabblerOwner can have babblers roaming free (not clinged) that still count against
+        -- GetMaxBabblers(). Skip this when self already owns the babbler (e.g. it's one of
+        -- self's own hatchlings walking up to cling) since that babbler was already counted
+        -- against the cap the moment it was created/assigned to self.
         if previousOwner ~= self and HasMixin(self, "BabblerOwner") and self:GetBabblerCount() >= self:GetMaxBabblers() then
             return false
         end
