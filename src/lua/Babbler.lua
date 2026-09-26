@@ -1949,6 +1949,7 @@ if Server then
         if self.timeNextWebChatter == nil or Shared.GetTime() >= self.timeNextWebChatter then
             self:TriggerEffects(math.random() < 0.5 and "babbler_wag_begin" or "babbler_jump") 
             self.timeNextWebChatter = Shared.GetTime() + (kWebConfig.chatterMin + math.random() * kWebConfig.chatterRange) * self.webIdleMult
+            self.wagging = math.random() < 0.4
         end
         -- Make babbler investigate the web once in a while
         if self.timeNextWebForage == nil or Shared.GetTime() >= self.timeNextWebForage then
@@ -2245,6 +2246,8 @@ if Server then
             self.moveType = moveType
             self.targetId = targetId
             self.targetPos = position
+            self.hungry = false
+            self.foraging = false
             if not (moveType == kBabblerMoveType.Move or moveType == kBabblerMoveType.Attack) then
                 self.targetReached = false -- preserve that state when moving from move <-> attack
             end
@@ -2629,6 +2632,9 @@ elseif Client then
         if self.clinged or self.foraging or self.hungry then
             move = "idle"
         elseif self.onWeb then
+            if self.wagging then
+                move = "wag"
+            end
             if self.webWalking then
                 move = "run"
             end
