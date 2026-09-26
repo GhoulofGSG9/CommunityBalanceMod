@@ -178,12 +178,15 @@ function WeaponOwnerMixin:SetActiveWeapon(weaponMapName, keepQuickSwitchSlot)
     if foundWeapon then
         
         local newWeapon = foundWeapon
+        local activeWeapon = self:GetActiveWeapon()
+
+        if activeWeapon and self.GetCanChangeWeapon and not self:GetCanChangeWeapon() then
+            return false
+        end
         
         if newWeapon.OnSetActive then
             newWeapon:OnSetActive()
         end
-        
-        local activeWeapon = self:GetActiveWeapon()
         
         if activeWeapon == nil or activeWeapon:GetMapName() ~= weaponMapName then
         
