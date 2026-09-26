@@ -35,11 +35,11 @@ if Client then
     local kArmCueIntervalMin = 2.5
     local kArmCueIntervalMax = 4.5
 
-    local kBeaconBlinkPeriod = 1.2
-    local kBeaconBlinkOnTime = 0.3
+    local kBeaconBlinkPeriod = 1.6
+    local kBeaconBlinkOnTime = 0.4
 
     -- In the suit's own space: no bone sits in the same place on the claw and dual models.
-    local kBeaconOffset = Vector(0, 2.25, -0.35)
+    local kBeaconOffset = Vector(0, 2, 0.6)
 
     local function DestroyCue(exo, slot)
 
