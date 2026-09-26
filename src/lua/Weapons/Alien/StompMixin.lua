@@ -97,6 +97,7 @@ function StompMixin:OnSecondaryAttack(player)
 
     if player:GetEnergy() >= kStompEnergyCost and player:GetIsOnGround() and not self.primaryAttacking then
         self.secondaryAttacking = true
+        player.stomping = true
     end
 
 end
@@ -122,6 +123,11 @@ function StompMixin:OnTag(tagName)
 
     elseif tagName == "end" then
         self.secondaryAttacking = false
+
+        local player = self:GetParent()
+        if player then
+            player.stomping = false
+        end
     end
 
 end
