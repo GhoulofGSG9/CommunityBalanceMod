@@ -273,7 +273,11 @@ if Server then
         if entity:isa("Web") then
             return math.max(kWebMaxBabblers - entity:GetNumWebbedBabblers(), 0)
         elseif HasMixin(entity, "BabblerCling") then
-            return math.max(entity:GetMaxClingedBabblers() - entity:GetNumClingedBabblers(), 0)
+            local spots = entity:GetMaxClingedBabblers() - entity:GetNumClingedBabblers()
+            if HasMixin(entity, "BabblerOwner") then
+                spots = math.min(spots, entity:GetMaxBabblers() - entity:GetBabblerCount())
+            end
+            return math.max(spots, 0)
         end
         return nil
     end
