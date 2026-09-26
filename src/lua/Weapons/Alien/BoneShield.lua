@@ -217,10 +217,12 @@ function BoneShield:OnPrimaryAttack(player)
     end
 end
 
-function BoneShield:OnPrimaryAttackEnd()
+function BoneShield:OnPrimaryAttackEnd(player)
     self.primaryAttacking = false
-    self.lastTimeDeactivated = Shared.GetTime()
-    self:UpdateHitpointsRechargeStartTime()
+    if self:GetCanUseBoneShield(player) then
+        self.lastTimeDeactivated = Shared.GetTime()
+        self:UpdateHitpointsRechargeStartTime()
+    end
 end
 
 --Note: POSE 3P params are controlled in Onos.lua
