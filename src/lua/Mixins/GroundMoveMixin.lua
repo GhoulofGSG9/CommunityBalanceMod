@@ -73,11 +73,13 @@ function GroundMoveMixin:__initmixin()
     self.timeGroundTouched = 0
     self.timeAheadCollision = 0
     self.performedDownTraceLastMove = false
+    self.stepSkipOrigin = Vector()
     self.lastGroundCheck = {
         distance = 0, -- How far from the ground we checked we were
         origin = Vector(0, 0, 0), -- Position of the test, written in place
         originValid = false, -- origin has not been written yet, do not match it
         normal = false, -- Normal from position to ground
+        normalStore = Vector(),
         surfaceMaterial = "" -- material hit
     }
 
@@ -102,6 +104,10 @@ local function _SetGroundCheckCache(self, distance, hitEntities, normal, surface
         self.lastGroundCheck.distance = distance
         VectorCopy(self:GetOrigin(), self.lastGroundCheck.origin)
         self.lastGroundCheck.originValid = true
+        if normal then
+            VectorCopy(normal, self.lastGroundCheck.normalStore)
+            normal = self.lastGroundCheck.normalStore
+        end
         self.lastGroundCheck.normal = normal
         self.lastGroundCheck.surfaceMaterial = surfaceMaterial
     else
@@ -581,9 +587,8 @@ local function DoStepMove(self, _, velocity, deltaTime)
     local onGround, normal
     
     local canSkipUpCheck = not (self.GetCrouching and self:GetCrouching()) and self.performedDownTraceLastMove
+            and self.stepSkipOrigin == oldOrigin
     if canSkipUpCheck then
-        -- Shortcut the up PerformMovement(), because any issues will be catched up
-        -- by the next forward PerformMovement anyway. (and kUpVector is small enough)
         self:SetOrigin(oldOrigin + kUpVector)
         stepAmount = kUpVector.y
     else
@@ -597,6 +602,7 @@ local function DoStepMove(self, _, velocity, deltaTime)
     local startOrigin = Vector(self:GetOrigin())
     local completedMove = _PerformMovement(self, velocity * deltaTime, kTracesAmount, velocity, true, slowDownFraction, deflectMove, nil, deltaTime)
     local horizMoveAmount = (startOrigin - self:GetOrigin()):GetLengthXZ()
+    local forwardEndY = self:GetOrigin().y
 
     if completedMove then
         -- step down again (slightly more than we went up to account for slopes)
@@ -612,8 +618,9 @@ local function DoStepMove(self, _, velocity, deltaTime)
         end
 
         if (averageSurfaceNormal and averageSurfaceNormal.y >= 0.5) then
-            local downDistTravelled = startOrigin.y - self:GetOrigin().y
-            self.performedDownTraceLastMove = (downDistTravelled - (kUpVector.y * 0.99)) >= 0
+            local downDistTravelled = forwardEndY - self:GetOrigin().y
+            self.performedDownTraceLastMove = (downDistTravelled - (kUpVector.y * 0.99)) >= 0 and not (self.GetCrouching and self:GetCrouching())
+            VectorCopy(self:GetOrigin(), self.stepSkipOrigin)
             _SetGroundCheckCache(self, downDistance, hitEntities, averageSurfaceNormal, surfaceMaterial)
             success = true
         end
