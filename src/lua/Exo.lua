@@ -2114,7 +2114,7 @@ function Exo:UpdateSupportAbility(input)
 
         for _, target in ipairs(targets) do
 
-            if HasMixin(target, "CatPack") then
+            if HasMixin(target, "CatPack") and target:GetCanUseCatPack() then
                 target:ApplyCatPack()
                 target:TriggerEffects("catpack_pickup", { effecthostcoords = target:GetCoords() })
                 affected = affected + 1
