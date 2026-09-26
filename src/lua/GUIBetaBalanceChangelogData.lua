@@ -28,40 +28,58 @@ if kCBMaddon then
 	#TLDR of v3.6 Playtest 4:
 	
 	## Balance and QoL Changes
-	### Exosuits
-	  - Exosuit research is four parallel projects at the Exosuit Prototype Lab: Dual Exosuit Arms (25 tres, 60 s) allows a weapon on both arms instead of a claw on one of them, Advanced Exosuit Arms (20 tres, 60 s) unlocks the flame and plasma arms, Exosuit Cores (15 tres, 45 s) unlocks Thrusters, Ejection Seat and Armor Plating, and Exosuit Abilities (15 tres, 45 s) unlocks the support abilities. Locked modules stay visible in the configuration page and name the research they wait on.
-	  - The Prototype Lab is built off the Arms Lab instead of the Advanced Armory and is an Exosuit Prototype Lab as soon as it is built: there is no upgrade research, and claw + minigun or claw + railgun suits can be bought right away. Exosuits therefore arrive earlier, so base exosuit armor drops to 140 (from 170) while armor upgrades give 40 per level again.
-	  - Jetpacks moved to the Advanced Armory: Jetpack research runs there (40 tres, 130 s, from 25 tres and 110 s at the Prototype Lab; the higher price stands in for the Prototype Lab a jetpack rush no longer has to build) and jetpacks are bought there. Jetpacks and exosuits no longer share a building, so the two tech paths compete.
-	  - At a basic Armory the grenade launcher, flamethrower, heavy machine gun and jetpack tiles read ADVANCED ARMORY ONLY instead of UNAVAILABLE.
-	  - Exosuits can refit at any built Armory, not only at the Prototype Lab, and only within use range of it. The Armory sells nothing else to an exosuit.
-	  - Minigun damage back to the vanilla 6 with the vanilla 0.3 heat-up.
-	  - Armories and prototype labs react to an exosuit standing at its own, wider use range instead of a marine's.
-	  - Modular exosuit rework: every build is re-anchored on the vanilla exosuit. Claw + Minigun at 40 pres has 320 armor (440 at Armor 3) and moves at 5.0 m/s, the marine walk speed; other arm combinations are sideways trades instead of strictly worse ones.
-	  - Exosuit base speed is 5.95 m/s (from 7), base armor 140 (from 170) and armor per Armor upgrade 40. Arm cost / armor / weight: Claw 15 / 90 / 0.04, Minigun 25 / 90 / 0.12, Railgun 25 / 60 / 0.09, Plasma Launcher 25 / 60 / 0.10, Flamethrower 25 / 60 / 0.09. Thrusters and the Ejection Seat are weightless; only Armor Plating (0.10) costs speed among the cores. Claw + Railgun or Flamethrower 5.18 m/s, Claw + Minigun 5.0, dual Minigun 4.52 with or without Thrusters, all under the 5.75 marine sprint.
-	  - Railgun deals 20 on a tap and 120 on a full charge (still one-shots any skulk), and only one railgun charges at a time, so the Dual Railgun Firing Sync option is gone. Range stays at 30 m: it must remain under the 40 m relevancy distance so lerks never die to an exo their client has not received.
-	  - Plasma Launcher reworked into a grenade launcher with a pulse grenade: one bomb type with a 2 s fuse that detonates on contact or on expiry, and a 4 m blast plus burn. No energy drain: only the alien a bomb lands on is electrified. One bomb from a full cell, then one every 2 s.
-	  - Plasma burn lasts 3 s (from 5.5) and no longer stacks: a new bomb replaces the burn on a target. Direct damage 40 (from 35). Blast and burn need line of sight.
-	  - Healing from a gorge, crag or hive cuts 0.5 s off the plasma burn on the healed target.
-	  - Flamethrower arm is back as a pure weapon: marine flamethrower damage, range and burn, no ground flames and no welding. Exosuits can no longer repair other exosuits.
-	  - New Armor Plating utility module: +80 armor for 15 pres and 10% weight. Total exosuit armor is capped at 520.
-	  - New Support Ability slot (10 pres, no weight): Nano Shield Field, Catalyst Field or Regen Field pulse an 8 m field that affects marines but not exosuits, 120 s cooldown. The Nano Shield Field is a lighter shield than the commander's: 1.5 s and 20% damage reduction. Press Reload to trigger; with no marine in range the press is refused and the charge is kept.
-	  - Regen Field heals health only and shows on the marine health bar like a medpack.
-	  - Eject by holding the drop key for 1 s, or 0.5 s with the Ejection Seat fitted. The HUD badge shows the hold progress and the reason when ejecting is blocked (combat, airborne, deploying). The marine keeps their weapon when the key is still held through the eject.
-	  - Buy menu: the Exosuit Prototype Lab opens straight on the exosuit configuration page, styled like the armory menu.
-	  - Exosuit configuration page: explains what an exosuit is, shows stat bars (armor, speed, range, damage against lifeforms and structures) that preview the module under the cursor, and gives every module a description and a tag line for range, damage type and specials.
-	  - Exosuit configuration page: the cost row separates the module cost from the suit total or the refit price, and BUY says why it is refused. Modules still waiting on research grey out with an UNRESEARCHED tab, red means missing pres. Speed reads as a percentage of the marine walk speed. Exosuit pilots land on the page directly, and rebuilding the suit already worn is not a purchase.
-	  - Prototype lab: exosuits can use it from 2.4 m instead of hugging it, and its screens deploy for exosuits too. The tech map shows the lab with its four researches and Jetpack research under the Advanced Armory, and no longer shows the stray Armory to Observatory line.
-	  - Thrusters cost 15 pres and the Ejection Seat 10 pres, so a core module is a choice rather than an automatic pick. The Ejection Seat's automatic eject fires anywhere, including mid-air, while the suit deploys and next to a command station. Refitting an exosuit costs a flat 5 pres on top of the price difference, so swapping between two configurations of equal price is never free. A refit carries the suit's damage over as a fraction of its armor, so a full suit stays full.
-	  - The Ejection Seat saves the pilot, not the suit: its automatic eject destroys the exosuit. A manually ejected suit keeps its real armor, minus any damage taken during the eject, and is destroyed when that leaves it empty; it can be re-entered at any armor.
-	  - The support ability cooldown carries over through a refit and through ejecting and re-entering the suit.
-	  - Bots buy exosuits through the modular configuration at modular prices and research, and fall back to a claw arm when a suit with two weapon arms is out of reach. A bot with a claw arm backs away from aliens that get close and punches only while they are in reach.
-	  - An exosuit's loadout can be read on the suit. Flamethrower and plasma arms puff their muzzle effect at irregular intervals while they have not fired, the Ejection Seat blinks an orange light above the torso, and Armor Plating shows as a static edge glow with plate seams. Plating stays apart from a Nano Shield by shape and motion, not by color.
-	  - The configuration page says why an arm cannot be mounted next to the other one instead of only greying the button.
-	  - The exosuit flame arm is blocked by an onos bone shield, like the marine flamethrower, and its cone is narrower.
-	  - Fixed the ExoModularBuy network message being handled twice on the server and Exo:OnDestroy not chaining to Player:OnDestroy.
-	  - Fixed vanilla bug with railgunTargetMixin (enemy highlight), increased refresh rate, and changed color back to TSF blue.
-	  - Exo thrusters use 3x the fuel when off the ground instead of 2x the fuel.
-	  - Updated classic ammo counter system to display avaliable shots for plasma launcher.
+	### Exosuits: Tech Path
+	  - The Prototype Lab needs an Arms Lab instead of an Advanced Armory. Once built it sells claw + minigun and claw + railgun exosuits, no upgrade needed.
+	  - Four optional researches at the Prototype Lab, run in parallel:
+	    - Dual Exosuit Arms (25 tres, 60 s): a weapon on both arms.
+	    - Advanced Exosuit Arms (20 tres, 60 s): flamethrower and plasma launcher arms.
+	    - Exosuit Cores (15 tres, 45 s): Thrusters, Ejection Seat and Armor Plating.
+	    - Exosuit Abilities (15 tres, 45 s): support abilities.
+	  - Jetpacks moved to the Advanced Armory: research them there (40 tres, 130 s) and buy them there. A basic Armory marks those items ADVANCED ARMORY ONLY.
+
+	### Exosuits: Build Your Own
+	  - An exosuit is two arms plus optional modules. Price, armor and speed add up from the parts.
+	  - Example: claw + minigun costs 40 pres (vanilla exosuit 55), has 320 armor (440 at Armor 3) and walks as fast as a marine.
+	  - Arms, pres / armor: Claw 15 / 90, Minigun 25 / 90, Railgun 25 / 60, Plasma Launcher 25 / 60, Flamethrower 25 / 60.
+	  - Modules: Thrusters 15 pres, Ejection Seat 10 pres, Armor Plating 15 pres, one support ability 10 pres.
+	  - Base armor 140, +40 per Armor upgrade, 520 at most.
+	  - Arms and Armor Plating slow the suit. Every build is slower than a sprinting marine.
+
+	### Exosuits: Weapons
+	  - Minigun: vanilla damage and heat-up.
+	  - Railgun: 20 damage on a tap, 120 fully charged (kills a skulk). Only one railgun charges at a time. 30 m range.
+	  - Plasma Launcher: lobs a bomb every 2 s. It bursts for 40 damage in 4 m and burns for 3 s. The alien hit directly is electrified.
+	    - Burns do not stack and need line of sight.
+	    - Gorge, crag and hive heals shorten the burn.
+	  - Flamethrower arm: marine flamethrower damage, range and burn, narrower cone. No ground flames, no welding, blocked by bone shield.
+	  - Exosuits can no longer repair each other.
+
+	### Exosuits: Modules and Abilities
+	  - Thrusters: use 3x fuel in the air.
+	  - Ejection Seat: eject in 0.5 s instead of 1 s. When the armor runs low, the seat throws the pilot out, even mid-air. The suit is lost.
+	  - Armor Plating: +80 armor.
+	  - Support ability: press Reload, 120 s cooldown, affects marines within 8 m.
+	    - Nano Shield Field: 1.5 s shield, 20% less damage.
+	    - Catalyst Field: catalyst for nearby marines.
+	    - Regen Field: heals health over time, shown on the health bar like a medpack.
+	    - With no marine in range the charge is kept. The cooldown survives refits and ejecting.
+
+	### Exosuits: Buying, Refitting and Ejecting
+	  - The Prototype Lab opens straight on the exosuit configuration page.
+	    - Stat bars preview the module under the cursor. Every module has a short description.
+	    - Grey or red items say why they cannot be bought: research, pres or an incompatible arm.
+	  - Refit at any built Armory: pay the price difference plus 5 pres. Damage carries over, so a full suit stays full.
+	  - Exosuits can use armories and labs from 2.4 m away.
+	  - Eject by holding the drop key for 1 s. The HUD shows the progress and why ejecting is blocked (combat, airborne, deploying).
+	  - An ejected suit keeps its armor and can be entered again.
+	  - The loadout shows on the suit: idle flame and plasma arms puff, the Ejection Seat blinks orange, Armor Plating glows at the edges.
+	  - Bots buy and use modular exosuits.
+	  - The tech map shows the lab researches, and Jetpack under the Advanced Armory.
+
+	### Exosuits: Fixes
+	  - Railgun target highlight works again, refreshes faster and is TSF blue.
+	  - The classic ammo counter shows plasma launcher shots.
+	  - Fixed exosuit purchases being handled twice on the server.
 	
 	### PvE
 	  - Base alien support structures now all cost 10 tres from 8 (Advanced to 18 tres from 20).
@@ -674,40 +692,58 @@ else
 	#TLDR of v3.6 Playtest 4:
 	
 	## Balance and QoL Changes
-	### Exosuits
-	  - Exosuit research is four parallel projects at the Exosuit Prototype Lab: Dual Exosuit Arms (25 tres, 60 s) allows a weapon on both arms instead of a claw on one of them, Advanced Exosuit Arms (20 tres, 60 s) unlocks the flame and plasma arms, Exosuit Cores (15 tres, 45 s) unlocks Thrusters, Ejection Seat and Armor Plating, and Exosuit Abilities (15 tres, 45 s) unlocks the support abilities. Locked modules stay visible in the configuration page and name the research they wait on.
-	  - The Prototype Lab is built off the Arms Lab instead of the Advanced Armory and is an Exosuit Prototype Lab as soon as it is built: there is no upgrade research, and claw + minigun or claw + railgun suits can be bought right away. Exosuits therefore arrive earlier, so base exosuit armor drops to 140 (from 170) while armor upgrades give 40 per level again.
-	  - Jetpacks moved to the Advanced Armory: Jetpack research runs there (40 tres, 130 s, from 25 tres and 110 s at the Prototype Lab; the higher price stands in for the Prototype Lab a jetpack rush no longer has to build) and jetpacks are bought there. Jetpacks and exosuits no longer share a building, so the two tech paths compete.
-	  - At a basic Armory the grenade launcher, flamethrower, heavy machine gun and jetpack tiles read ADVANCED ARMORY ONLY instead of UNAVAILABLE.
-	  - Exosuits can refit at any built Armory, not only at the Prototype Lab, and only within use range of it. The Armory sells nothing else to an exosuit.
-	  - Minigun damage back to the vanilla 6 with the vanilla 0.3 heat-up.
-	  - Armories and prototype labs react to an exosuit standing at its own, wider use range instead of a marine's.
-	  - Modular exosuit rework: every build is re-anchored on the vanilla exosuit. Claw + Minigun at 40 pres has 320 armor (440 at Armor 3) and moves at 5.0 m/s, the marine walk speed; other arm combinations are sideways trades instead of strictly worse ones.
-	  - Exosuit base speed is 5.95 m/s (from 7), base armor 140 (from 170) and armor per Armor upgrade 40. Arm cost / armor / weight: Claw 15 / 90 / 0.04, Minigun 25 / 90 / 0.12, Railgun 25 / 60 / 0.09, Plasma Launcher 25 / 60 / 0.10, Flamethrower 25 / 60 / 0.09. Thrusters and the Ejection Seat are weightless; only Armor Plating (0.10) costs speed among the cores. Claw + Railgun or Flamethrower 5.18 m/s, Claw + Minigun 5.0, dual Minigun 4.52 with or without Thrusters, all under the 5.75 marine sprint.
-	  - Railgun deals 20 on a tap and 120 on a full charge (still one-shots any skulk), and only one railgun charges at a time, so the Dual Railgun Firing Sync option is gone. Range stays at 30 m: it must remain under the 40 m relevancy distance so lerks never die to an exo their client has not received.
-	  - Plasma Launcher reworked into a grenade launcher with a pulse grenade: one bomb type with a 2 s fuse that detonates on contact or on expiry, and a 4 m blast plus burn. No energy drain: only the alien a bomb lands on is electrified. One bomb from a full cell, then one every 2 s.
-	  - Plasma burn lasts 3 s (from 5.5) and no longer stacks: a new bomb replaces the burn on a target. Direct damage 40 (from 35). Blast and burn need line of sight.
-	  - Healing from a gorge, crag or hive cuts 0.5 s off the plasma burn on the healed target.
-	  - Flamethrower arm is back as a pure weapon: marine flamethrower damage, range and burn, no ground flames and no welding. Exosuits can no longer repair other exosuits.
-	  - New Armor Plating utility module: +80 armor for 15 pres and 10% weight. Total exosuit armor is capped at 520.
-	  - New Support Ability slot (10 pres, no weight): Nano Shield Field, Catalyst Field or Regen Field pulse an 8 m field that affects marines but not exosuits, 120 s cooldown. The Nano Shield Field is a lighter shield than the commander's: 1.5 s and 20% damage reduction. Press Reload to trigger; with no marine in range the press is refused and the charge is kept.
-	  - Regen Field heals health only and shows on the marine health bar like a medpack.
-	  - Eject by holding the drop key for 1 s, or 0.5 s with the Ejection Seat fitted. The HUD badge shows the hold progress and the reason when ejecting is blocked (combat, airborne, deploying). The marine keeps their weapon when the key is still held through the eject.
-	  - Buy menu: the Exosuit Prototype Lab opens straight on the exosuit configuration page, styled like the armory menu.
-	  - Exosuit configuration page: explains what an exosuit is, shows stat bars (armor, speed, range, damage against lifeforms and structures) that preview the module under the cursor, and gives every module a description and a tag line for range, damage type and specials.
-	  - Exosuit configuration page: the cost row separates the module cost from the suit total or the refit price, and BUY says why it is refused. Modules still waiting on research grey out with an UNRESEARCHED tab, red means missing pres. Speed reads as a percentage of the marine walk speed. Exosuit pilots land on the page directly, and rebuilding the suit already worn is not a purchase.
-	  - Prototype lab: exosuits can use it from 2.4 m instead of hugging it, and its screens deploy for exosuits too. The tech map shows the lab with its four researches and Jetpack research under the Advanced Armory, and no longer shows the stray Armory to Observatory line.
-	  - Thrusters cost 15 pres and the Ejection Seat 10 pres, so a core module is a choice rather than an automatic pick. The Ejection Seat's automatic eject fires anywhere, including mid-air, while the suit deploys and next to a command station. Refitting an exosuit costs a flat 5 pres on top of the price difference, so swapping between two configurations of equal price is never free. A refit carries the suit's damage over as a fraction of its armor, so a full suit stays full.
-	  - The Ejection Seat saves the pilot, not the suit: its automatic eject destroys the exosuit. A manually ejected suit keeps its real armor, minus any damage taken during the eject, and is destroyed when that leaves it empty; it can be re-entered at any armor.
-	  - The support ability cooldown carries over through a refit and through ejecting and re-entering the suit.
-	  - Bots buy exosuits through the modular configuration at modular prices and research, and fall back to a claw arm when a suit with two weapon arms is out of reach. A bot with a claw arm backs away from aliens that get close and punches only while they are in reach.
-	  - An exosuit's loadout can be read on the suit. Flamethrower and plasma arms puff their muzzle effect at irregular intervals while they have not fired, the Ejection Seat blinks an orange light above the torso, and Armor Plating shows as a static edge glow with plate seams. Plating stays apart from a Nano Shield by shape and motion, not by color.
-	  - The configuration page says why an arm cannot be mounted next to the other one instead of only greying the button.
-	  - The exosuit flame arm is blocked by an onos bone shield, like the marine flamethrower, and its cone is narrower.
-	  - Fixed the ExoModularBuy network message being handled twice on the server and Exo:OnDestroy not chaining to Player:OnDestroy.
-	  - Fixed vanilla bug with railgunTargetMixin (enemy highlight), increased refresh rate, and changed color back to TSF blue.
-	  - Exo thrusters use 3x the fuel when off the ground instead of 2x the fuel.
-	  - Updated classic ammo counter system to display avaliable shots for plasma launcher.
+	### Exosuits: Tech Path
+	  - The Prototype Lab needs an Arms Lab instead of an Advanced Armory. Once built it sells claw + minigun and claw + railgun exosuits, no upgrade needed.
+	  - Four optional researches at the Prototype Lab, run in parallel:
+	    - Dual Exosuit Arms (25 tres, 60 s): a weapon on both arms.
+	    - Advanced Exosuit Arms (20 tres, 60 s): flamethrower and plasma launcher arms.
+	    - Exosuit Cores (15 tres, 45 s): Thrusters, Ejection Seat and Armor Plating.
+	    - Exosuit Abilities (15 tres, 45 s): support abilities.
+	  - Jetpacks moved to the Advanced Armory: research them there (40 tres, 130 s) and buy them there. A basic Armory marks those items ADVANCED ARMORY ONLY.
+
+	### Exosuits: Build Your Own
+	  - An exosuit is two arms plus optional modules. Price, armor and speed add up from the parts.
+	  - Example: claw + minigun costs 40 pres (vanilla exosuit 55), has 320 armor (440 at Armor 3) and walks as fast as a marine.
+	  - Arms, pres / armor: Claw 15 / 90, Minigun 25 / 90, Railgun 25 / 60, Plasma Launcher 25 / 60, Flamethrower 25 / 60.
+	  - Modules: Thrusters 15 pres, Ejection Seat 10 pres, Armor Plating 15 pres, one support ability 10 pres.
+	  - Base armor 140, +40 per Armor upgrade, 520 at most.
+	  - Arms and Armor Plating slow the suit. Every build is slower than a sprinting marine.
+
+	### Exosuits: Weapons
+	  - Minigun: vanilla damage and heat-up.
+	  - Railgun: 20 damage on a tap, 120 fully charged (kills a skulk). Only one railgun charges at a time. 30 m range.
+	  - Plasma Launcher: lobs a bomb every 2 s. It bursts for 40 damage in 4 m and burns for 3 s. The alien hit directly is electrified.
+	    - Burns do not stack and need line of sight.
+	    - Gorge, crag and hive heals shorten the burn.
+	  - Flamethrower arm: marine flamethrower damage, range and burn, narrower cone. No ground flames, no welding, blocked by bone shield.
+	  - Exosuits can no longer repair each other.
+
+	### Exosuits: Modules and Abilities
+	  - Thrusters: use 3x fuel in the air.
+	  - Ejection Seat: eject in 0.5 s instead of 1 s. When the armor runs low, the seat throws the pilot out, even mid-air. The suit is lost.
+	  - Armor Plating: +80 armor.
+	  - Support ability: press Reload, 120 s cooldown, affects marines within 8 m.
+	    - Nano Shield Field: 1.5 s shield, 20% less damage.
+	    - Catalyst Field: catalyst for nearby marines.
+	    - Regen Field: heals health over time, shown on the health bar like a medpack.
+	    - With no marine in range the charge is kept. The cooldown survives refits and ejecting.
+
+	### Exosuits: Buying, Refitting and Ejecting
+	  - The Prototype Lab opens straight on the exosuit configuration page.
+	    - Stat bars preview the module under the cursor. Every module has a short description.
+	    - Grey or red items say why they cannot be bought: research, pres or an incompatible arm.
+	  - Refit at any built Armory: pay the price difference plus 5 pres. Damage carries over, so a full suit stays full.
+	  - Exosuits can use armories and labs from 2.4 m away.
+	  - Eject by holding the drop key for 1 s. The HUD shows the progress and why ejecting is blocked (combat, airborne, deploying).
+	  - An ejected suit keeps its armor and can be entered again.
+	  - The loadout shows on the suit: idle flame and plasma arms puff, the Ejection Seat blinks orange, Armor Plating glows at the edges.
+	  - Bots buy and use modular exosuits.
+	  - The tech map shows the lab researches, and Jetpack under the Advanced Armory.
+
+	### Exosuits: Fixes
+	  - Railgun target highlight works again, refreshes faster and is TSF blue.
+	  - The classic ammo counter shows plasma launcher shots.
+	  - Fixed exosuit purchases being handled twice on the server.
 	
 	### PvE
 	  - Base alien support structures now all cost 10 tres from 8 (Advanced to 18 tres from 20).
