@@ -157,6 +157,7 @@ function Onos:OnCreate()
     self.altAttack = false
     self.stooping = false
     self.charging = false
+    self.stomping = false
     self.stoopIntensity = 0
     self.timeLastCharge = 0
     self.timeLastChargeEnd = 0
@@ -230,12 +231,12 @@ function Onos:GetIsCharging()
     return self.charging
 end
 
+function Onos:GetCanChangeWeapon()
+    return not self.stomping
+end
 function Onos:GetCanJump()
 
-    local weapon = self:GetActiveWeapon()
-    local stomping = weapon and HasMixin(weapon, "Stomp") and weapon:GetIsStomping()
-
-    return Alien.GetCanJump(self) and not stomping and not self:GetIsBoneShieldActive()
+    return Alien.GetCanJump(self) and not self.stomping and not self:GetIsBoneShieldActive()
     
 end
 
@@ -257,7 +258,7 @@ function Onos:GetPlayFootsteps()
 end
 
 function Onos:GetCanCrouch()
-    return Alien.GetCanCrouch(self) and not self.charging and not self:GetIsBoneShieldActive()
+    return not self.charging and Alien.GetCanCrouch(self) and not self:GetIsBoneShieldActive()
 end
 
 function Onos:GetChargeFraction()
@@ -365,19 +366,21 @@ function Onos:GetCanStampede()
     return self:GetVelocity():GetLengthXZ() > 8.5 and self:GetWeapon(Gore.kMapName)
 end
 
+local kHitStampedeOffset = Vector(1, 0, 1)
+local kUpStampedeOffset = Vector(0, 1, 0)
 function Onos:Stampede()
     if not self:GetCanStampede() then return end
 
     local axis = self:GetViewAngles():GetCoords().zAxis
-    local hitAxis = (axis * Vector(1, 0, 1)):GetUnit()
+    local hitAxis = (axis * kHitStampedeOffset):GetUnit()
     local chargeExtends = Onos.kChargeExtents
 
-    local hitOrigin = self:GetOrigin() + Vector(0, 1, 0) + (hitAxis * chargeExtends.z)
+    local hitOrigin = self:GetOrigin() + kUpStampedeOffset + (hitAxis * chargeExtends.z)
     local stampedables = self:GetNearbyStampedeables(hitOrigin)
 
     if #stampedables < 1 then return end 
 
-    local hitboxCoords = Coords.GetLookIn(hitOrigin, hitAxis, Vector(0, 1, 0))
+    local hitboxCoords = Coords.GetLookIn(hitOrigin, hitAxis, kUpStampedeOffset)
     local invHitboxCoords = hitboxCoords:GetInverse() -- could possibly optimize with Transpose() instead?
     for i = 1, #stampedables do
         local marine = stampedables[i]
@@ -925,6 +928,12 @@ end
 
 function Onos:GetCanCrouchOverride()
     return not self:GetIsBoneShieldActive()
+end
+
+function Onos:GetUseDistanceOverride(useRange)
+    -- Onos is a large entity, needs a larger range to dissolve clogs for instance
+    useRange = useRange * 1.25
+    return useRange
 end
 
 function Onos:ModifyDamageTakenPostRules(damageTable, attacker, doer, damageType, hitPoint)
