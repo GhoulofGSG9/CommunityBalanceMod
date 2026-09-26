@@ -198,13 +198,13 @@ end
 -- NOTE(Salads): BoneShield now only has a energy recharge cooldown.
 function BoneShield:GetCanUseBoneShield(player)
     local now = Shared.GetTime()
-    return
-    (now - self.lastTimeDeactivated) > kBoneShieldActivationCooldown
+    local canUse = (now - self.lastTimeDeactivated) > kBoneShieldActivationCooldown
             and self.hitPoints > (kMaxBoneshieldHitpoints * kBoneShieldMinimumStartHitpointsFactor)
             and player:GetIsOnGround()
-            and not self.secondaryAttacking
+            and not player.stomping
             and not player.charging
-            and not (player.GetIsStomping and player:GetIsStomping())
+    return canUse
+    
 end
 
 function BoneShield:OnPrimaryAttack(player)
@@ -217,10 +217,12 @@ function BoneShield:OnPrimaryAttack(player)
     end
 end
 
-function BoneShield:OnPrimaryAttackEnd()
+function BoneShield:OnPrimaryAttackEnd(player)
     self.primaryAttacking = false
-    self.lastTimeDeactivated = Shared.GetTime()
-    self:UpdateHitpointsRechargeStartTime()
+    if self:GetCanUseBoneShield(player) then
+        self.lastTimeDeactivated = Shared.GetTime()
+        self:UpdateHitpointsRechargeStartTime()
+    end
 end
 
 --Note: POSE 3P params are controlled in Onos.lua
@@ -242,6 +244,7 @@ end
 function BoneShield:OnHolster(player)
     Ability.OnHolster(self, player)
     self.secondaryAttacking = false
+    player.stomping = false
     self:OnPrimaryAttackEnd(player)
     self.holsterTime = Shared.GetTime()
 end
