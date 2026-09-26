@@ -268,17 +268,18 @@ if Server then
 
     -- Room left on a clingable host; nil = no cap (Move/Attack, or a target
     -- that hosts no limited cling room). Callers treat nil as unbounded.
-    local function GetClingSpotsCount(entity)
+    local function GetClingSpotsCount(owner, entity)
         if not entity then return nil end
+
         if entity:isa("Web") then
             return math.max(kWebMaxBabblers - entity:GetNumWebbedBabblers() - GetNumBabblersEnRouteToCling(entity), 0)
-        elseif HasMixin(entity, "BabblerCling") then
+        elseif HasMixin(entity, "BabblerCling") and owner ~= entity then
             return entity:GetNumFreeDonationSpots()
         end
-        return nil
+        return nil -- No restriction
     end
 
-    function BabblerPheromone:ProcessHit(entity, surface, normal, endPoint )
+    function BabblerPheromone:ProcessHit(entity, surface, normal, endPoint)
 
         if self.babblerOrderingDisabled then
             return false
@@ -336,7 +337,7 @@ if Server then
         -- Cap how many babblers can pile onto a target with limited room;
         -- Attack has no such cap.
         DispatchBabblers(CollectBabblers(self), order, entity,
-                endPoint or GetEngagementOrOrigin(entity), GetClingSpotsCount(entity))
+                endPoint or GetEngagementOrOrigin(entity), GetClingSpotsCount(owner, entity))
 
         DestroyEntity(self)
         return true
