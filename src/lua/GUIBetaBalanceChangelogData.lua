@@ -110,6 +110,8 @@ if kCBMaddon then
 	  - Fixed commanders not seeing hit numbers for damage from whips, ARCs, sentries, MACs and drifters.
 	  - Fixed spectators getting stuck on a power node with a broken HUD after the player they watched left.
 	  - Fixed the exosuit skin error spamming the console while an exosuit had no weapon yet.
+	  - Fixed fade, lerk and onos deaths counting as suicides, which added the suicide respawn delay.
+	  - Fixed a script error when an onos with bone shield left the hive.
 	  - Fixed marine bots not being able to target specific structures due to minimap blips.
 	  - Fixed hit sound not working when spectating a player first person.
 	  - Fixed a pilot who died during the eject window never reaching the spectator state.
@@ -754,6 +756,8 @@ else
 	  - Fixed commanders not seeing hit numbers for damage from whips, ARCs, sentries, MACs and drifters.
 	  - Fixed spectators getting stuck on a power node with a broken HUD after the player they watched left.
 	  - Fixed the exosuit skin error spamming the console while an exosuit had no weapon yet.
+	  - Fixed fade, lerk and onos deaths counting as suicides, which added the suicide respawn delay.
+	  - Fixed a script error when an onos with bone shield left the hive.
 	  - Fixed marine bots not being able to target specific structures due to minimap blips.
 	  - Fixed hit sound not working when spectating a player first person.
 	  - Fixed a pilot who died during the eject window never reaching the spectator state.
