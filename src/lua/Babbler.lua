@@ -711,13 +711,8 @@ function Babbler:GetCanBeUsed(entity, useSuccessTable)
         success = false
     end
 
-    if success and HasMixin(entity, "BabblerCling") then
-        if not entity:GetCanAttachBabbler() then
-            success = false
-        end
-        if entity:GetNumClingedBabblers() >= entity:GetMaxClingedBabblers() then
-            success = false
-        end
+    if success and (not HasMixin(entity, "BabblerCling") or entity:GetNumFreeDonationSpots() <= 0) then
+        success = false
     end
 
     useSuccessTable.useSuccess = success
@@ -739,11 +734,19 @@ end
 function Babbler:OnUse(player, elapsedTime, useSuccessTable)
     if Server and not self:GetIsClinged() then
 
-        if self:GetIsOnWeb() then
-            self:DetachFromWeb()
+        -- Re-check right here rather than trusting GetCanBeUsed's earlier answer: once we
+        -- detach from a web there's no undoing it, so if player has no real room (or lost it
+        -- to something else in the meantime), bail out before detaching instead of leaving
+        -- the babbler stranded off the web with nowhere to cling.
+        if HasMixin(player, "BabblerCling") and player:GetNumFreeDonationSpots() > 0 then
+
+            if self:GetIsOnWeb() then
+                self:DetachFromWeb()
+            end
+
+            self:OrderCling(player, GetEngagementOrOrigin(player))
         end
 
-        self:OrderCling(player, GetEngagementOrOrigin(player))
     end
 
     self:TriggerEffects("babbler_jump")
