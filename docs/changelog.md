@@ -68,6 +68,7 @@
   - Has custom cinematics and materials.
   - Applies the pulse effect to aliens (reduces animation speed).
 	- Pulse effect does not apply to structures.
+  - Healing from a gorge, crag or hive cuts 0.5 s off the plasma burn on the healed target.
   - Projectiles spawn on each weapon and are fired towards the crosshair target.
   - Projectiles have dual projectile controller (one for geometry and one for entities) to reduce geo clipping.
 
@@ -94,7 +95,7 @@
   - Researches stay with the team when a protolab is destroyed or recycled; another built protolab sells exosuits again.
 
 ### Jetpack
-  - Researched and bought at the Advanced Armory instead of the Prototype Lab (50 tres, 130 s research).
+  - Researched and bought at the Advanced Armory instead of the Prototype Lab (40 tres, 130 s research).
   - Basic armories label the grenade launcher, flamethrower, heavy machine gun and jetpack tiles ADVANCED ARMORY ONLY.
 
 ### Arc (Robotics) Factory
