@@ -103,6 +103,7 @@ if kCBMaddon then
 	  - Further fixes to collisions and movement.
 	  - Fixed marine bots not being able to target specific structures due to minimap blips.
 	  - Fixed players spawning inside each other in the ready room after a map change, which left them stuck.
+	  - Fixed the biomass progress bar showing only one hive's progress when several hives research or build biomass at once.
 	  - Fixed hit sound not working when spectating a player first person.
 	  - Fixed a pilot who died during the eject window never reaching the spectator state.
 	  - Fixed damage popups and round stats on nano-shielded targets showing inflated numbers.
@@ -739,6 +740,7 @@ else
 	  - Further fixes to collisions and movement.
 	  - Fixed marine bots not being able to target specific structures due to minimap blips.
 	  - Fixed players spawning inside each other in the ready room after a map change, which left them stuck.
+	  - Fixed the biomass progress bar showing only one hive's progress when several hives research or build biomass at once.
 	  - Fixed hit sound not working when spectating a player first person.
 	  - Fixed a pilot who died during the eject window never reaching the spectator state.
 	  - Fixed damage popups and round stats on nano-shielded targets showing inflated numbers.
