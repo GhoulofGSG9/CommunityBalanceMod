@@ -8,7 +8,7 @@ class 'FogOfWarEntity' (ScriptActor)
 FogOfWarEntity.kMapName = "fogOfwarentity"
 
 kFogBlipLifetime = 30
-kFogPlayerBlipLifetime = 1.5 -- player-related fog blips now stay fully visible for 2s (fade-out time is additional, see kFogPlayerBlipFadeTime)
+kFogPlayerBlipLifetime = 1 -- player-related fog blips now stay fully visible for 2s (fade-out time is additional, see kFogPlayerBlipFadeTime)
 kFogPlayerBlipFadeTime = 0.6 -- shortened fade-out
 
 local networkVars =
