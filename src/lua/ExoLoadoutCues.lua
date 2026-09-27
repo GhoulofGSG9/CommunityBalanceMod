@@ -15,6 +15,8 @@ local kPlasmaMuzzleCinematic = PrecacheAsset("models/plasma/muzzle_flash_plasma.
 local kBeaconCinematic = PrecacheAsset("cinematics/marine/mac/siren.cinematic")
 local kPlatingMaterial = PrecacheAsset("cinematics/vfx_materials/exo_plating.material")
 local kPlatingViewMaterial = PrecacheAsset("cinematics/vfx_materials/exo_plating_view.material")
+-- The Battle MAC field decal with its extents set to kExoSupportRadius.
+local kSupportFieldCinematic = PrecacheAsset("cinematics/healing_field/exo_support_field.cinematic")
 
 if Client then
 
@@ -212,6 +214,10 @@ if Client then
         local beaconLit = (now % kBeaconBlinkPeriod) < kBeaconBlinkOnTime
         UpdateCue(exo, "beacon", hasSeat and kBeaconCinematic or nil, nil, visible and beaconLit, kBeaconOffset)
 
+        local ownField = exo:GetIsLocalPlayer() and exo:GetHasSupportAbility()
+        local abilityReady = exo:GetIsAlive() and exo:GetSupportAbilityTimeRemaining() == 0
+        UpdateCue(exo, "supportField", ownField and kSupportFieldCinematic or nil, nil, abilityReady)
+
         local hasPlating = exo.utilityModuleType == kExoModuleTypes.Armor
         UpdatePlating(exo, kPlatingWorld, exo._renderModel, visible and hasPlating)
         UpdatePlating(exo, kPlatingView, GetViewRenderModel(exo), isLocalFirstPerson and hasPlating and exo:GetIsAlive())
@@ -222,6 +228,7 @@ if Client then
 
         if exo.loadoutCues then
             DestroyCue(exo, "beacon")
+            DestroyCue(exo, "supportField")
         end
 
         UpdatePlating(exo, kPlatingWorld, exo._renderModel, false)
