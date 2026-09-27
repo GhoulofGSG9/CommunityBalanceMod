@@ -708,10 +708,6 @@ function LiveMixin:AddHealth(health, playSound, noArmor, hideEffect, healer, use
 
                 self.timeLastHealed = time
 
-                if healer and healer ~= self and (healer:isa("Gorge") or healer:isa("Crag") or healer:isa("Hive")) then
-                    self.plasmaDotHealCut = (self.plasmaDotHealCut or 0) + kPlasmaDOTHealReduction
-                end
-
             end
 
         end
