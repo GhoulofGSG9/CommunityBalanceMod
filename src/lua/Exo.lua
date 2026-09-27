@@ -601,6 +601,10 @@ end
 
 function Exo:OnDestroy()
 
+    if Server and self.timeEjectHoldStart then
+        self:StopSound(kEjectHoldSound)
+    end
+
     Player.OnDestroy(self)
 
     if self.flashlight ~= nil then
@@ -1120,7 +1124,12 @@ if Server then
     function Exo:OnKill(attacker, doer, point, direction)
 
         self.lastExoLayout = { layout = self.layout }
-        
+
+        if self.timeEjectHoldStart then
+            self:StopSound(kEjectHoldSound)
+            self.timeEjectHoldStart = nil
+        end
+
         Player.OnKill(self, attacker, doer, point, direction)
 
         local activeWeapon = self:GetActiveWeapon()
