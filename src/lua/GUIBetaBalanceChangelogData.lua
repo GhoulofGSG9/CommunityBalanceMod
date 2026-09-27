@@ -63,6 +63,7 @@ if kCBMaddon then
 	    - Regen Field: heals health over time, shown on the health bar like a medpack.
 	    - Marines already under a nano shield, or boosted by catalyst in the last 4 s, are skipped, so a commander's drop is never replaced.
 	    - With no marine in range, or none the nano or catalyst field can affect, the charge is kept. The cooldown survives refits and ejecting.
+	    - While the ability is ready, the pilot sees its range as a field on the ground.
 
 	### Exosuits: Buying, Refitting and Ejecting
 	  - The Prototype Lab opens straight on the exosuit configuration page.
@@ -70,7 +71,7 @@ if kCBMaddon then
 	    - Grey or red items say why they cannot be bought: research, pres or an incompatible arm.
 	  - Refit at any built Armory: pay the price difference, at least 5 pres. Damage carries over, so a full suit stays full. Looking at one in an exosuit shows a Refit Exosuit hint.
 	  - Exosuits can use armories and labs from 2.4 m away.
-	  - Eject by holding the drop key for 1 s. The HUD shows the progress and why ejecting is blocked (combat, airborne, deploying).
+	  - Eject by holding the drop key for 1 s. The HUD shows the progress and why ejecting is blocked (combat, airborne, deploying). A warm-up sound plays while the key is held, for the pilot and nearby players.
 	  - An ejected suit keeps its armor and can be entered again.
 	  - The loadout shows on the suit: idle flame and plasma arms puff, the Ejection Seat blinks orange, Armor Plating glows at the edges.
 	  - Bots buy and use modular exosuits.
@@ -727,6 +728,7 @@ else
 	    - Regen Field: heals health over time, shown on the health bar like a medpack.
 	    - Marines already under a nano shield, or boosted by catalyst in the last 4 s, are skipped, so a commander's drop is never replaced.
 	    - With no marine in range, or none the nano or catalyst field can affect, the charge is kept. The cooldown survives refits and ejecting.
+	    - While the ability is ready, the pilot sees its range as a field on the ground.
 
 	### Exosuits: Buying, Refitting and Ejecting
 	  - The Prototype Lab opens straight on the exosuit configuration page.
@@ -734,7 +736,7 @@ else
 	    - Grey or red items say why they cannot be bought: research, pres or an incompatible arm.
 	  - Refit at any built Armory: pay the price difference, at least 5 pres. Damage carries over, so a full suit stays full. Looking at one in an exosuit shows a Refit Exosuit hint.
 	  - Exosuits can use armories and labs from 2.4 m away.
-	  - Eject by holding the drop key for 1 s. The HUD shows the progress and why ejecting is blocked (combat, airborne, deploying).
+	  - Eject by holding the drop key for 1 s. The HUD shows the progress and why ejecting is blocked (combat, airborne, deploying). A warm-up sound plays while the key is held, for the pilot and nearby players.
 	  - An ejected suit keeps its armor and can be entered again.
 	  - The loadout shows on the suit: idle flame and plasma arms puff, the Ejection Seat blinks orange, Armor Plating glows at the edges.
 	  - Bots buy and use modular exosuits.
