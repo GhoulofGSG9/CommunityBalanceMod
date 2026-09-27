@@ -94,12 +94,12 @@ if kCBMaddon then
 else
 	kMarineTechMap =
 	{
-			{ kTechId.CommandStation, 7, 1 }, { kTechId.Extractor, 5, 1 },{ kTechId.InfantryPortal, 9, 1 }, { kTechId.AdvancedMarineSupport, 7, 0 },
+			{ kTechId.CommandStation, 7, 1 }, { kTechId.InfantryPortal, 5, 1 }, { kTechId.Extractor, 9, 1 }, { kTechId.AdvancedMarineSupport, 7, 0 },
 
 			{ kTechId.Observatory, 3.25, 3.0 }, { kTechId.PhaseTech, 3.25, 4.0 }, { kTechId.PhaseGate, 3.25, 5.0 },
 	  
 			{ kTechId.Armory, 5.75, 3.0 }, { kTechId.AdvancedArmory, 5.75, 7.0 },
-			{ kTechId.Welder, 7, 3.0 }, { kTechId.GrenadeTech, 7, 4.0 }, { kTechId.MinesTech, 7, 5.0 }, { kTechId.ShotgunTech, 4.75, 4.0 }, { kTechId.AdvancedWeaponry, 4.75, 7.0 },
+			{ kTechId.Welder, 7, 3.0 }, { kTechId.GrenadeTech, 7, 4.0 }, { kTechId.MinesTech, 7, 5.0 }, { kTechId.ShotgunTech, 7.0, 6.0 }, { kTechId.AdvancedWeaponry, 4.75, 7.0 },
 				
 			{ kTechId.PrototypeLab, 8.25, 7.0 }, { kTechId.JetpackTech, 7.00, 7.0 },
 			{ kTechId.DualMinigunTech, 6.75, 8.5 }, { kTechId.AdvancedExoArmsTech, 7.75, 8.5 }, { kTechId.CoresExosuitTech, 8.75, 8.5 }, { kTechId.ExoAbilitiesTech, 9.75, 8.5 },
@@ -116,22 +116,31 @@ else
 
 	kMarineLines = 
 	{
-		GetLinePositionForTechMap(kMarineTechMap, kTechId.CommandStation, kTechId.Extractor),
-		GetLinePositionForTechMap(kMarineTechMap, kTechId.CommandStation, kTechId.InfantryPortal),
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.CommandStation, kTechId.Extractor, kFreeMarineTechColor),
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.CommandStation, kTechId.InfantryPortal, kFreeMarineTechColor),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.CommandStation, kTechId.AdvancedMarineSupport),
-		GetLinePositionForTechMap(kMarineTechMap, kTechId.CommandStation, kTechId.Observatory),
-		GetLinePositionForTechMap(kMarineTechMap, kTechId.CommandStation, kTechId.Armory),
-		GetLinePositionForTechMap(kMarineTechMap, kTechId.CommandStation, kTechId.RoboticsFactory),
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.CommandStation, kTechId.Armory, kFreeMarineTechColor),
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.CommandStation, kTechId.ArmsLab, kFreeMarineTechColor),
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.CommandStation, kTechId.RoboticsFactory, kFreeMarineTechColor),
+
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.InfantryPortal, kTechId.Observatory, kSpecialMarineTechColor),
 		
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armory, kTechId.Welder, kFreeMarineTechColor),		
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armory, kTechId.GrenadeTech),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armory, kTechId.MinesTech),
-		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armory, kTechId.Welder),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armory, kTechId.ShotgunTech),
-		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armory, kTechId.AdvancedArmory),
-		GetLinePositionForTechMap(kMarineTechMap, kTechId.AdvancedArmory, kTechId.AdvancedWeaponry),
-
-		GetLinePositionForTechMap(kMarineTechMap, kTechId.ArmsLab, kTechId.PrototypeLab),
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armory, kTechId.AdvancedArmory, kUpgradeMarineTechColor),
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.AdvancedArmory, kTechId.AdvancedWeaponry, kFreeMarineTechColor),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.AdvancedArmory, kTechId.JetpackTech),
+
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.ArmsLab, kTechId.Weapons1),
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.Weapons1, kTechId.Weapons2),
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.Weapons2, kTechId.Weapons3),
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.ArmsLab, kTechId.Armor1),
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armor1, kTechId.Armor2),
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armor2, kTechId.Armor3),
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.ArmsLab, kTechId.PrototypeLab, kFreeMarineTechColor),
+
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.PrototypeLab, kTechId.DualMinigunTech),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.PrototypeLab, kTechId.AdvancedExoArmsTech),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.PrototypeLab, kTechId.CoresExosuitTech),
@@ -140,18 +149,12 @@ else
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.Observatory, kTechId.PhaseTech),
 		GetLinePositionForTechMap(kMarineTechMap, kTechId.PhaseTech, kTechId.PhaseGate),
 		
-		GetLinePositionForTechMap(kMarineTechMap, kTechId.ArmsLab, kTechId.Weapons1),
-		GetLinePositionForTechMap(kMarineTechMap, kTechId.Weapons1, kTechId.Weapons2),
-		GetLinePositionForTechMap(kMarineTechMap, kTechId.Weapons2, kTechId.Weapons3),
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.RoboticsFactory, kTechId.Sentry, kFreeMarineTechColor),
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.RoboticsFactory, kTechId.MAC, kFreeMarineTechColor),
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.RoboticsFactory, kTechId.ARCRoboticsFactory, kUpgradeMarineTechColor),
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.ARCRoboticsFactory, kTechId.ARC, kFreeMarineTechColor),
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.ARCRoboticsFactory, kTechId.SentryBattery, kFreeMarineTechColor),
 		
-		GetLinePositionForTechMap(kMarineTechMap, kTechId.ArmsLab, kTechId.Armor1),
-		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armor1, kTechId.Armor2),
-		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armor2, kTechId.Armor3),
-		
-		GetLinePositionForTechMap(kMarineTechMap, kTechId.RoboticsFactory, kTechId.ARCRoboticsFactory),
-		GetLinePositionForTechMap(kMarineTechMap, kTechId.ARCRoboticsFactory, kTechId.SentryBattery),
-		GetLinePositionForTechMap(kMarineTechMap, kTechId.ARCRoboticsFactory, kTechId.ARC),
-		GetLinePositionForTechMap(kMarineTechMap, kTechId.RoboticsFactory, kTechId.MAC),
-		GetLinePositionForTechMap(kMarineTechMap, kTechId.RoboticsFactory, kTechId.Sentry),		
+		GetLinePositionForTechMap(kMarineTechMap, kTechId.Armory, kTechId.Observatory, kFreeMarineTechColor),		
 	}
 end
