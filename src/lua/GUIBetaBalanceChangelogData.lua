@@ -23,19 +23,22 @@ if kCBMaddon then
 	This version enables all content, balance, QoL, performance optimizations, and bugfixes of the CBM suite.	
 	Ping me, @Shifter (project lead) or @NexZone30 (dev lead), in any of the NS2 discords, 
 	or start a conversation in beta-balance-feedback on the official discord to let us know 
-	you think! Below are the changes this mod introduces:
+	you think! v3.6 includes code and balance changes directly from UWE that will reflect the upcoming NS2 BETA. 
+	Below are the changes this mod introduces:
 
-	#TLDR of v3.6 Playtest 4:
+	#TLDR of v3.6:
 	
 	## Balance and QoL Changes
 	### Exosuits: Tech Path
-	  - The Prototype Lab needs an Arms Lab instead of an Advanced Armory. Once built it sells claw + minigun and claw + railgun exosuits, no upgrade needed.
+	  - The Prototype Lab needs an Arms Lab instead of an Advanced Armory. 
+	    - Once built claw-minigun and claw-railgun exosuits can be purchased
 	  - Four optional researches at the Prototype Lab, run in parallel:
 	    - Dual Exosuit Arms (25 tres, 60 s): a weapon on both arms.
 	    - Advanced Exosuit Arms (20 tres, 60 s): flamethrower and plasma launcher arms.
 	    - Exosuit Cores (15 tres, 45 s): Thrusters, Ejection Seat and Armor Plating.
 	    - Exosuit Abilities (15 tres, 45 s): support abilities.
-	  - Jetpacks moved to the Advanced Armory: research them there (40 tres, 130 s) and buy them there. A basic Armory marks those items ADVANCED ARMORY ONLY.
+	  - Jetpacks moved to the Advanced Armory: research them there (40 tres, 130 s) and buy them there. 
+	  - A basic Armory marks advanced armory buyables as ADVANCED ARMORY ONLY.
 
 	### Exosuits: Build Your Own
 	  - An exosuit is two arms plus optional modules. Price, armor and speed add up from the parts.
@@ -48,34 +51,45 @@ if kCBMaddon then
 	### Exosuits: Weapons
 	  - Minigun: vanilla damage and heat-up.
 	  - Railgun: 20 damage on a tap, 120 fully charged (kills a skulk). Only one railgun charges at a time. 30 m range.
-	  - Plasma Launcher: lobs a bomb every 2 s. It bursts for 40 damage in 4 m and burns for 3 s. The alien hit directly is electrified.
+	  - Plasma Launcher: lobs a bomb every 2 s. AoE burst of 40 damage in 4 m and burns for 3 s.
 	    - Burns do not stack and need line of sight.
-	  - Flamethrower arm: marine flamethrower damage, range and burn, narrower cone. No ground flames, no welding, blocked by bone shield.
+		- Electrify is only applied to direct hits.
+	  - Flamethrower arm: marine flamethrower damage, range and burn, narrower cone. 
+	    - No ground flames, does not weld, and is not blocked by bone shield.
 	  - Exosuits can no longer repair each other.
 
 	### Exosuits: Modules and Abilities
 	  - Thrusters: use 3x fuel in the air.
-	  - Ejection Seat: eject in 0.5 s instead of 1 s. When the armor runs low, the seat throws the pilot out, even mid-air. The suit is lost.
+	  - Ejection Seat: eject in 0.5 s instead of 1 s. When the armor runs low, the seat throws the pilot out, even mid-air.
+	    - The suit is always lost on automatic ejection at 0 armor.
 	  - Armor Plating: +80 armor.
 	  - Support ability: press Reload, 90 s cooldown, affects marines within 8 m.
 	    - Nano Shield Field: 1.5 s shield, 20% less damage.
 	    - Catalyst Field: catalyst for nearby marines.
 	    - Regen Field: heals injured marines 12 health a second for 5 s, shown on the health bar like a medpack.
-	    - Marines already under a nano shield, or boosted by catalyst in the last 4 s, are skipped, so a commander's drop is never replaced.
-	    - With no marine in range the field can affect (for Regen Field: no injured marine), the charge is kept. The cooldown survives refits and ejecting.
+	    - Marines already affected by nano shield or catalyst packs in the last 4 s are skipped to prioritize commander drops.
+	    - With no marine in range the field can affect (for Regen Field: no injured marine), the charge is kept. 
+		- The cooldown survives refits and ejecting.
 	    - When the ability is ready, its range pulses on the ground for 3 s, and for 1 s after a press that found nobody.
 	    - The HUD shows how many marines the field would affect, and dims at none.
-	    - Buffed marines see "<field> from <pilot>". The pilot sees boosted marines outlined pink and healing ones green; commanders see the green too.
+	    - Buffed marines see "<field> from <pilot>". 
+		- The pilot sees boosted marines outlined pink and healing ones green; commanders see the green too.
 
 	### Exosuits: Buying, Refitting and Ejecting
 	  - The Prototype Lab opens straight on the exosuit configuration page.
 	    - Stat bars preview the module under the cursor. Every module has a short description.
 	    - Grey or red items say why they cannot be bought: research, pres or an incompatible arm.
-	  - Refit at any built Armory: pay the price difference, at least 5 pres. Damage carries over, so a full suit stays full. Looking at one in an exosuit shows a Refit Exosuit hint.
+	  - Refit at any built Armory: pay the price difference, at least 5 pres. Damage carries over, so a full suit stays full. 
+	    - Looking at an armory in an exosuit shows a Refit Exosuit hint.
 	  - Exosuits can use armories and labs from 2.4 m away.
-	  - Eject by holding the drop key for 1 s. The HUD shows the progress and why ejecting is blocked (combat, airborne, deploying). A warm-up sound plays while the key is held, for the pilot and nearby players.
+	  - Eject by holding the drop key for 1 s.
+	    - A warm-up sound plays while the key is held, for the pilot and nearby players.
+		- The HUD shows the progress and why ejecting is blocked (combat, airborne, deploying).
 	  - An ejected suit keeps its armor and can be entered again.
-	  - The loadout shows on the suit: idle flame and plasma arms puff, the Ejection Seat blinks orange, Armor Plating glows at the edges.
+	  - The loadout shows on the suit.
+	    - Idle Flamer and Plasma arms puff smoke and plasma.
+		- Ejection Seat blinks orange in the front.
+		- Armor Plating has a subtle shielding shader.
 	  - Bots buy and use modular exosuits, including a core module and a support ability.
 	  - The tech map shows the lab researches, and Jetpack under the Advanced Armory.
 
@@ -94,26 +108,37 @@ if kCBMaddon then
 	  - Lerks are no longer able to hit spikes outside relevancy range.
 	  - Clip weapons and exos are no longer able to hit outside of relevancy range.
 
-	### Map / Fog of War / Line of Sight
+	### Map Blips / Line of Sight
 	  - Reworked map and minimap blips to appear quickly and disappear more consistently.
 	  - Fixed new map and minimap blips appearing one GUI update too late when spotted (instant reveal).
-	  - Added 'fog of war' blips that persist for previously revealed entities on the map.
-	    - Player entities icons fade out after 10s.
-	    - Enabled/disabled and adjust opacity / color in otions -> mods -> CBM: Accessibility Options.
+	  - Fixed line of sight being blocked by railings.
 	  - Commanders now instantly see entities revealed by players.
 	  - Commanders can now see clogs revealed by players (must be damaged or collided with).
 
+	### Fog of War
+	  - Added 'fog of war' blips that persist for previously revealed entities on the map.
+	  - Player entity icons fade out after 1s for 0.6s.
+	  - Structure entity icons fade out after 30s for 0.6s.
+	  - Can be enabled/disabled and adjusted (opacity/color) in otions -> mods -> CBM: Accessibility Options.
+
+	### Player Blueprint Placement
+	  - Placing of clogs, webs, hydras, bile mines, and marine mines has been drastically improved.
+	  - Ghost blueprint is always visible and no longer cancels on misclicks or invalid positions.
+	  - Webs can be pre-placed during cooldown
+
 	### Babblers / Babbler Ball
 	  - Unattended babblers can now be picked up by using the 'use' key.
-	  - Up to 4 babblers can be attached to webs (uses personal babbler cap).
+	  - Up to 6 babblers can be attached to webs (uses personal babbler cap).
 	    - Provide auditory warning and initial 'tickle' damage when web is triggered.
 		- Detach when web is destroyed.
 		- Walk across and around the web, but do not cloak with the web.
 		- Aliens can pick up babblers from a web.
+		- Babblers can wiggle and forage when on a web (animations).
 	  - Giving or having babblers picked up can now give score (0.5/6).
 	  - Babblers no longer stutter when changing speed.
 	  - Improved babbler ball projectile behavior and related babbler targetting priorities.
 	  - Babblers will no longer ignore babbler ball when biting PvE.
+	  - Babblers are more responsive and have better movement.
 
 	### Mines
 	  - Strengthened mine placement checks to reduce potential for fully invisible mines.
@@ -121,10 +146,16 @@ if kCBMaddon then
 
 	### Misc
 	  - AMAC given minor rework to lower skill floor and reduce power ceiling.
-	  - Adjusted drifter "snap" range to 2 from 3 m.
+	  - Adjusted drifter "snap" range to 2 from 3 m. Improved command responsiveness.
 	  - Resilience and aura reverted to vanilla.
+	  - Biomass five removed.
 	  - Unstuck (vanilla console command) improved.
 	  - Upgrade buying and switching as a lifeform improved (better egg placement).
+	  - Marine tech path adjusted and given colors to signify different tech progression.
+	    - Blue is research.
+		- Green is a structure upgrade.
+		- Purple is a special unlock.
+		- White is a free unlock.
 	
 	## Misc Bugfixes and Game Performance Optimizations
 	  - Further fixes to collisions and movement.
@@ -134,6 +165,8 @@ if kCBMaddon then
 	  - Fixed the exosuit skin error spamming the console while an exosuit had no weapon yet.
 	  - Fixed fade, lerk and onos deaths counting as suicides, which added the suicide respawn delay.
 	  - Fixed a script error when an onos with bone shield left the hive.
+	  - Fixed issue where boneshield cooldown would be reset if you clicked.
+	  - Fixed issue where boneshield and stomp could become locked when switching or using.
 	  - Fixed marine bots not being able to target specific structures due to minimap blips.
 	  - Fixed players spawning inside each other in the ready room after a map change, which left them stuck.
 	  - Fixed the biomass progress bar showing only one hive's progress when several hives research or build biomass at once.
@@ -142,6 +175,7 @@ if kCBMaddon then
 	  - Fixed damage popups and round stats on nano-shielded targets showing inflated numbers.
 	  - Fixed a crafted buy request handing out a dual-minigun exosuit for 25 pres without the required research.
 	  - Fixed the prototype lab exo hologram staying in the air after the lab was destroyed.
+	  - Fixed issue with sentries and hydras not being able to hit static targets in certain edge cases.
 	  - Improved performance of line of sight functions.
 	  - Improved performance of weapon holder functions.
 	  - Improved performance of cloaking functions.
@@ -156,6 +190,8 @@ if kCBMaddon then
 	  - Improved performance of mine functions.
 	  - Improved performance of babbler / babbler ball functions.
 	  - Improved performance of gorge functions.
+	  - Improved performance of infestation functions.
+	  - Improved performance of projectile functions.
 	  - Lowered game network demand.
 	  
 	### Be sure to thank Katzenfleisch for the performance optimizations!
@@ -243,8 +279,9 @@ if kCBMaddon then
 
 	### Fog of War
 	  - Added 'fog of war' blips that persist for previously revealed entities on the map.
-	  - Player entities icons fade out after 10s.
-	  - Enabled/disabled and adjust opacity / color in otions -> mods -> CBM: Accessibility Options.
+	  - Player entity icons fade out after 1s for 0.6s.
+	  - Structure entity icons fade out after 30s for 0.6s.
+	  - Can be enabled/disabled and adjusted (opacity/color) in otions -> mods -> CBM: Accessibility Options.
 
 	### Vanilla Bugfixes
 	  - Fixed web variant nil value console spam.
@@ -298,6 +335,8 @@ if kCBMaddon then
 	  - Improved performance of mine functions.
 	  - Improved performance of babbler / babbler ball functions.
 	  - Improved performance of gorge functions.
+	  - Improved performance of infestation functions.
+	  - Improved performance of projectile functions.
 	  - Lowered game network demand.
 
 	## MARINE - PLAYER
@@ -693,19 +732,22 @@ else
 	This version enables all content, balance, QoL, performance optimizations, and bugfixes of the CBM suite.	
 	Ping me, @Shifter (project lead) or @NexZone30 (dev lead), in any of the NS2 discords, 
 	or start a conversation in beta-balance-feedback on the official discord to let us know 
-	you think! Below are the changes this mod introduces:
+	you think! v3.6 includes code and balance changes directly from UWE that will reflect the upcoming NS2 BETA. 
+	Below are the changes this mod introduces:
 
 	#TLDR of v3.6 Playtest 4:
 	
 	## Balance and QoL Changes
 	### Exosuits: Tech Path
-	  - The Prototype Lab needs an Arms Lab instead of an Advanced Armory. Once built it sells claw + minigun and claw + railgun exosuits, no upgrade needed.
+	  - The Prototype Lab needs an Arms Lab instead of an Advanced Armory. 
+	    - Once built claw-minigun and claw-railgun exosuits can be purchased
 	  - Four optional researches at the Prototype Lab, run in parallel:
 	    - Dual Exosuit Arms (25 tres, 60 s): a weapon on both arms.
 	    - Advanced Exosuit Arms (20 tres, 60 s): flamethrower and plasma launcher arms.
 	    - Exosuit Cores (15 tres, 45 s): Thrusters, Ejection Seat and Armor Plating.
 	    - Exosuit Abilities (15 tres, 45 s): support abilities.
-	  - Jetpacks moved to the Advanced Armory: research them there (40 tres, 130 s) and buy them there. A basic Armory marks those items ADVANCED ARMORY ONLY.
+	  - Jetpacks moved to the Advanced Armory: research them there (40 tres, 130 s) and buy them there. 
+	  - A basic Armory marks advanced armory buyables as ADVANCED ARMORY ONLY.
 
 	### Exosuits: Build Your Own
 	  - An exosuit is two arms plus optional modules. Price, armor and speed add up from the parts.
@@ -718,34 +760,45 @@ else
 	### Exosuits: Weapons
 	  - Minigun: vanilla damage and heat-up.
 	  - Railgun: 20 damage on a tap, 120 fully charged (kills a skulk). Only one railgun charges at a time. 30 m range.
-	  - Plasma Launcher: lobs a bomb every 2 s. It bursts for 40 damage in 4 m and burns for 3 s. The alien hit directly is electrified.
+	  - Plasma Launcher: lobs a bomb every 2 s. AoE burst of 40 damage in 4 m and burns for 3 s.
 	    - Burns do not stack and need line of sight.
-	  - Flamethrower arm: marine flamethrower damage, range and burn, narrower cone. No ground flames, no welding, blocked by bone shield.
+		- Electrify is only applied to direct hits.
+	  - Flamethrower arm: marine flamethrower damage, range and burn, narrower cone. 
+	    - No ground flames, does not weld, and is not blocked by bone shield.
 	  - Exosuits can no longer repair each other.
 
 	### Exosuits: Modules and Abilities
 	  - Thrusters: use 3x fuel in the air.
-	  - Ejection Seat: eject in 0.5 s instead of 1 s. When the armor runs low, the seat throws the pilot out, even mid-air. The suit is lost.
+	  - Ejection Seat: eject in 0.5 s instead of 1 s. When the armor runs low, the seat throws the pilot out, even mid-air.
+	    - The suit is always lost on automatic ejection at 0 armor.
 	  - Armor Plating: +80 armor.
 	  - Support ability: press Reload, 90 s cooldown, affects marines within 8 m.
 	    - Nano Shield Field: 1.5 s shield, 20% less damage.
 	    - Catalyst Field: catalyst for nearby marines.
 	    - Regen Field: heals injured marines 12 health a second for 5 s, shown on the health bar like a medpack.
-	    - Marines already under a nano shield, or boosted by catalyst in the last 4 s, are skipped, so a commander's drop is never replaced.
-	    - With no marine in range the field can affect (for Regen Field: no injured marine), the charge is kept. The cooldown survives refits and ejecting.
+	    - Marines already affected by nano shield or catalyst packs in the last 4 s are skipped to prioritize commander drops.
+	    - With no marine in range the field can affect (for Regen Field: no injured marine), the charge is kept. 
+		- The cooldown survives refits and ejecting.
 	    - When the ability is ready, its range pulses on the ground for 3 s, and for 1 s after a press that found nobody.
 	    - The HUD shows how many marines the field would affect, and dims at none.
-	    - Buffed marines see "<field> from <pilot>". The pilot sees boosted marines outlined pink and healing ones green; commanders see the green too.
+	    - Buffed marines see "<field> from <pilot>". 
+		- The pilot sees boosted marines outlined pink and healing ones green; commanders see the green too.
 
 	### Exosuits: Buying, Refitting and Ejecting
 	  - The Prototype Lab opens straight on the exosuit configuration page.
 	    - Stat bars preview the module under the cursor. Every module has a short description.
 	    - Grey or red items say why they cannot be bought: research, pres or an incompatible arm.
-	  - Refit at any built Armory: pay the price difference, at least 5 pres. Damage carries over, so a full suit stays full. Looking at one in an exosuit shows a Refit Exosuit hint.
+	  - Refit at any built Armory: pay the price difference, at least 5 pres. Damage carries over, so a full suit stays full. 
+	    - Looking at an armory in an exosuit shows a Refit Exosuit hint.
 	  - Exosuits can use armories and labs from 2.4 m away.
-	  - Eject by holding the drop key for 1 s. The HUD shows the progress and why ejecting is blocked (combat, airborne, deploying). A warm-up sound plays while the key is held, for the pilot and nearby players.
+	  - Eject by holding the drop key for 1 s.
+	    - A warm-up sound plays while the key is held, for the pilot and nearby players.
+		- The HUD shows the progress and why ejecting is blocked (combat, airborne, deploying).
 	  - An ejected suit keeps its armor and can be entered again.
-	  - The loadout shows on the suit: idle flame and plasma arms puff, the Ejection Seat blinks orange, Armor Plating glows at the edges.
+	  - The loadout shows on the suit.
+	    - Idle Flamer and Plasma arms puff smoke and plasma.
+		- Ejection Seat blinks orange in the front.
+		- Armor Plating has a subtle shielding shader.
 	  - Bots buy and use modular exosuits, including a core module and a support ability.
 	  - The tech map shows the lab researches, and Jetpack under the Advanced Armory.
 
@@ -764,26 +817,37 @@ else
 	  - Lerks are no longer able to hit spikes outside relevancy range.
 	  - Clip weapons and exos are no longer able to hit outside of relevancy range.
 
-	### Map / Fog of War / Line of Sight
-	  - Reworked map and minimap blips to appear quickly and disappear more consistently (combat checks + reveal duration minimums).
+	### Map Blips / Line of Sight
+	  - Reworked map and minimap blips to appear quickly and disappear more consistently.
 	  - Fixed new map and minimap blips appearing one GUI update too late when spotted (instant reveal).
-	  - Added 'fog of war' blips that persist for previously revealed entities on the map.
-	    - Player entities icons fade out after 10s.
-	    - Enabled/disabled and adjust opacity / color in otions -> mods -> CBM: Accessibility Options.
+	  - Fixed line of sight being blocked by railings.
 	  - Commanders now instantly see entities revealed by players.
 	  - Commanders can now see clogs revealed by players (must be damaged or collided with).
 
+	### Fog of War
+	  - Added 'fog of war' blips that persist for previously revealed entities on the map.
+	  - Player entity icons fade out after 1s for 0.6s.
+	  - Structure entity icons fade out after 30s for 0.6s.
+	  - Can be enabled/disabled and adjusted (opacity/color) in otions -> mods -> CBM: Accessibility Options.
+
+	### Player Blueprint Placement
+	  - Placing of clogs, webs, hydras, bile mines, and marine mines has been drastically improved.
+	  - Ghost blueprint is always visible and no longer cancels on misclicks or invalid positions.
+	  - Webs can be pre-placed during cooldown
+
 	### Babblers / Babbler Ball
 	  - Unattended babblers can now be picked up by using the 'use' key.
-	  - Up to 4 babblers can be attached to webs (uses personal babbler cap).
+	  - Up to 6 babblers can be attached to webs (uses personal babbler cap).
 	    - Provide auditory warning and initial 'tickle' damage when web is triggered.
 		- Detach when web is destroyed.
 		- Walk across and around the web, but do not cloak with the web.
 		- Aliens can pick up babblers from a web.
+		- Babblers can wiggle and forage when on a web (animations).
 	  - Giving or having babblers picked up can now give score (0.5/6).
 	  - Babblers no longer stutter when changing speed.
 	  - Improved babbler ball projectile behavior and related babbler targetting priorities.
 	  - Babblers will no longer ignore babbler ball when biting PvE.
+	  - Babblers are more responsive and have better movement.
 
 	### Mines
 	  - Strengthened mine placement checks to reduce potential for fully invisible mines.
@@ -791,11 +855,16 @@ else
 
 	### Misc
 	  - AMAC given minor rework to lower skill floor and reduce power ceiling.
-	  - Adjusted drifter "snap" range to 2 from 3 m.
+	  - Adjusted drifter "snap" range to 2 from 3 m. Improved command responsiveness.
 	  - Resilience and aura reverted to vanilla.
 	  - Unstuck (vanilla console command) improved.
 	  - Upgrade buying and switching as a lifeform improved (better egg placement).
-	
+	  - Marine tech path adjusted and given colors to signify different tech progression.
+	    - Blue is research.
+		- Green is a structure upgrade.
+		- Purple is a special unlock.
+		- White is a free unlock.
+		
 	## Misc Bugfixes and Game Performance Optimizations
 	  - Further fixes to collisions and movement.
 	  - Fixed exosuits getting stuck when stepping under low ceilings.
@@ -804,6 +873,8 @@ else
 	  - Fixed the exosuit skin error spamming the console while an exosuit had no weapon yet.
 	  - Fixed fade, lerk and onos deaths counting as suicides, which added the suicide respawn delay.
 	  - Fixed a script error when an onos with bone shield left the hive.
+	  - Fixed issue where boneshield cooldown would be reset if you clicked.
+	  - Fixed issue where boneshield and stomp could become locked when switching or using.
 	  - Fixed marine bots not being able to target specific structures due to minimap blips.
 	  - Fixed players spawning inside each other in the ready room after a map change, which left them stuck.
 	  - Fixed the biomass progress bar showing only one hive's progress when several hives research or build biomass at once.
@@ -812,6 +883,7 @@ else
 	  - Fixed damage popups and round stats on nano-shielded targets showing inflated numbers.
 	  - Fixed a crafted buy request handing out a dual-minigun exosuit for 25 pres without the required research.
 	  - Fixed the prototype lab exo hologram staying in the air after the lab was destroyed.
+	  - Fixed issue with sentries and hydras not being able to hit static targets in certain edge cases.
 	  - Improved performance of line of sight functions.
 	  - Improved performance of weapon holder functions.
 	  - Improved performance of cloaking functions.
@@ -826,6 +898,8 @@ else
 	  - Improved performance of mine functions.
 	  - Improved performance of babbler / babbler ball functions.
 	  - Improved performance of gorge functions.
+	  - Improved performance of infestation functions.
+	  - Improved performance of projectile functions.
 	  - Lowered game network demand.
 	  
 	### Be sure to thank Katzenfleisch for the performance optimizations!
@@ -907,8 +981,9 @@ else
 
 	### Fog of War
 	  - Added 'fog of war' blips that persist for previously revealed entities on the map.
-	  - Player entities icons fade out after 10s.
-	  - Enabled/disabled and adjust opacity / color in otions -> mods -> CBM: Accessibility Options.
+	  - Player entity icons fade out after 1s for 0.6s.
+	  - Structure entity icons fade out after 30s for 0.6s.
+	  - Can be enabled/disabled and adjusted (opacity/color) in otions -> mods -> CBM: Accessibility Options.
 
 	### Vanilla Bugfixes
 	  - Fixed web variant nil value console spam.
@@ -961,7 +1036,8 @@ else
 	  - Improved performance of sleeper functions.
 	  - Improved performance of mine functions.
 	  - Improved performance of babbler / babbler ball functions.
-	  - Improved performance of gorge functions.
+	  - Improved performance of infestation functions.
+	  - Improved performance of projectile functions.
 	  - Lowered game network demand.
 
 	## MARINE - PLAYER
