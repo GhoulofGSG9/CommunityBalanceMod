@@ -24,11 +24,6 @@ local kCaptionGap
 
 local kFontName = Fonts.kAgencyFB_Small
 
--- 2D and local to the pilot on purpose: a positional eject sound would reach aliens and
--- mask marine footsteps.
-local kEjectHoldTickSound = PrecacheAsset("sound/NS2.fev/common/tooltip_on")
-local kEjectHoldTicks = 4
-
 -- Both badges are dimmed while what they trigger is unavailable: the Support Ability
 -- while it recharges, the eject while the exo may not eject. Matches the way unavailable
 -- hints are drawn elsewhere in the marine HUD.
@@ -260,12 +255,6 @@ function GUIExoEject:Update(deltaTime)
 
         local reason = PlayerUI_GetExoEjectBlockedReason()
         local percent = reason and 0 or math.floor(PlayerUI_GetExoEjectHoldFraction() * 100 + 0.5)
-
-        local tick = percent > 0 and math.floor(percent * kEjectHoldTicks / 100) + 1 or 0
-        if tick > (self.lastEjectTick or 0) then
-            StartSoundEffect(kEjectHoldTickSound)
-        end
-        self.lastEjectTick = tick
 
         if reason ~= self.lastEjectReason or percent ~= self.lastEjectPercent then
 
