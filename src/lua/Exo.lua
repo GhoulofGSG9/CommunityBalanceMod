@@ -45,6 +45,7 @@ if Client then
 end
 
 local kExoFirstPersonHitEffectName = PrecacheAsset("cinematics/marine/exo/hit_view.cinematic")
+local kEjectHoldSound = PrecacheAsset("sound/NS2.fev/marine/common/mine_warmup")
 
 class 'Exo'(Player)
 
@@ -1319,6 +1320,19 @@ function Exo:OnTag(tagName)
 
 end
 
+local function SetEjectHoldStart(self, time)
+
+    if (time ~= nil) ~= (self.timeEjectHoldStart ~= nil) then
+        if time then
+            self:PlaySound(kEjectHoldSound)
+        else
+            self:StopSound(kEjectHoldSound)
+        end
+    end
+    self.timeEjectHoldStart = time
+
+end
+
 -- Times the manual eject hold and publishes the progress to the owning client.
 -- Only ever called on the server.
 function Exo:UpdateEjectHold(input)
@@ -1327,7 +1341,7 @@ function Exo:UpdateEjectHold(input)
 
     if not dropHeld then
 
-        self.timeEjectHoldStart = nil
+        SetEjectHoldStart(self, nil)
         self.ejectHoldConsumed = false
         self.ejectHoldFraction = 0
         return
@@ -1342,14 +1356,14 @@ function Exo:UpdateEjectHold(input)
 
     if not self:GetIsPlaying() or self:GetEjectBlockedReason() then
 
-        self.timeEjectHoldStart = nil
+        SetEjectHoldStart(self, nil)
         self.ejectHoldFraction = 0
         return
 
     end
 
     local now = Shared.GetTime()
-    self.timeEjectHoldStart = self.timeEjectHoldStart or now
+    SetEjectHoldStart(self, self.timeEjectHoldStart or now)
 
     local holdTime = self:GetHasEjectionSeat() and kExoEjectionSeatHoldTime or kExoEjectHoldTime
     local heldTime = now - self.timeEjectHoldStart
@@ -1357,7 +1371,7 @@ function Exo:UpdateEjectHold(input)
 
     if heldTime >= holdTime then
 
-        self.timeEjectHoldStart = nil
+        SetEjectHoldStart(self, nil)
         self.ejectHoldConsumed = true
         self.ejectHoldFraction = 0
         self:EjectExo()
