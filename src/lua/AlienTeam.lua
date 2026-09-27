@@ -235,13 +235,32 @@ local kBioMassTechIds =
     kTechId.BioMassTwelve
 }
 
+local pendingBioMassTimes = {}
+local pendingBioMassFractions = {}
+
+local function AddPendingBioMass(count, fraction, duration)
+
+    local remaining = (1 - fraction) * duration
+    local i = count + 1
+    while i > 1 and pendingBioMassTimes[i - 1] > remaining do
+        pendingBioMassTimes[i] = pendingBioMassTimes[i - 1]
+        pendingBioMassFractions[i] = pendingBioMassFractions[i - 1]
+        i = i - 1
+    end
+    pendingBioMassTimes[i] = remaining
+    pendingBioMassFractions[i] = fraction
+
+    return count + 1
+
+end
+
 function AlienTeam:UpdateBioMassLevel()
 
     local newBiomass = 0
     self.bioMassAlertLevel = 0
     self.bioMassFraction = 0
     self.inProgressBiomassLevel = 0
-    local progress = 0
+    local numPending = 0
 
     local hives = GetEntitiesForTeam("Hive", self:GetTeamNumber())
 	
@@ -264,20 +283,18 @@ function AlienTeam:UpdateBioMassLevel()
 
             if bioMassAdd > 0 then
                 self.inProgressBiomassLevel = self.inProgressBiomassLevel + 1
+                numPending = AddPendingBioMass(numPending, bioMassAdd, LookupTechData(entity:GetResearchingId(), kTechDataResearchTimeKey, 0))
             end
 
             if not entity:GetIsBuilt() then
-                bioMassAdd = bioMassAdd + entity:GetBuiltFraction()
+                local builtFraction = entity:GetBuiltFraction()
+                bioMassAdd = bioMassAdd + builtFraction
                 --self.inProgressBiomassLevel = self.inProgressBiomassLevel + 1
 				if smallestResearchFraction > entity.buildFraction then
 					smallestResearchFraction = entity.buildFraction
 				end
-				
+                numPending = AddPendingBioMass(numPending, builtFraction, entity:GetTotalConstructionTime() / kAutoBuildRate)
 			end
-
-            if bioMassAdd > progress then
-                progress = bioMassAdd
-            end
 
             currentBioMass = currentBioMass + bioMassAdd
 
@@ -346,7 +363,8 @@ function AlienTeam:UpdateBioMassLevel()
             local techNode = self.techTree:GetTechNode(techId)
             if techNode then
 
-                local techNodeProgress = i == self.bioMassLevel + 1 and progress or 0
+                local pendingIndex = i - self.bioMassLevel
+                local techNodeProgress = pendingIndex >= 1 and pendingIndex <= numPending and pendingBioMassFractions[pendingIndex] or 0
                 if techNode:GetResearchProgress() ~= techNodeProgress then
                     techNode:SetResearchProgress(techNodeProgress)
                     self.techTree:SetTechNodeChanged(techNode, string.format("researchProgress = %.2f", techNodeProgress))

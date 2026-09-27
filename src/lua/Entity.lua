@@ -700,15 +700,47 @@ function FindNearestEntityId(className, location)
     
 end
 
+local kOutterControllerOffset = 0.22
+
+-- Reads entity origins, not collision objects: a player respawned earlier in the same
+-- tick has its origin set but gets its controller only at the next physics update.
+local function GetSpawnClearance(player, origin, players)
+
+    local height, radius = player:GetControllerSize()
+    local clearance = math.huge
+
+    for i = 1, #players do
+
+        local other = players[i]
+        if other ~= player and HasMixin(other, "Controller") and (not other.GetHasController or other:GetHasController()) then
+
+            local otherHeight, otherRadius = other:GetControllerSize()
+            local otherOrigin = other:GetOrigin()
+
+            if math.abs(otherOrigin.y - origin.y) < math.max(height, otherHeight) then
+                local gap = (otherOrigin - origin):GetLengthXZ() - radius - otherRadius - kOutterControllerOffset
+                clearance = math.min(clearance, gap)
+            end
+
+        end
+
+    end
+
+    return clearance
+
+end
+
 --
 -- Given a list of entities (representing spawn points), returns a randomly chosen
--- one which is unobstructed for the player. If none of them are unobstructed, the
--- method returns nil.
+-- one no other player stands on. If all are taken, returns the least crowded one.
 --
 function GetRandomClearSpawnPoint(player, spawnPoints)
 
     local numSpawnPoints = table.icount(spawnPoints)
-    
+    local players = GetEntities("Player")
+    local bestSpawnPoint
+    local bestClearance = -math.huge
+
     -- Start with random spawn point then move up from there
     local baseSpawnIndex = NetworkRandomInt(1, numSpawnPoints)
 
@@ -717,23 +749,19 @@ function GetRandomClearSpawnPoint(player, spawnPoints)
         local spawnPointIndex = ((baseSpawnIndex + i) % numSpawnPoints) + 1
         local spawnPoint = spawnPoints[spawnPointIndex]
 
-        -- Check to see if the spot is clear to spawn the player.
-        local spawnOrigin = Vector(spawnPoint:GetOrigin())
-        local spawnAngles = Angles(spawnPoint:GetAngles())
-        spawnOrigin.y = spawnOrigin.y + .5
-        
-        spawnAngles.pitch = 0
-        spawnAngles.roll  = 0
-        
-        player:SpaceClearForEntity(spawnOrigin)
-        
-        return spawnPoint
-            
+        local clearance = GetSpawnClearance(player, spawnPoint:GetOrigin(), players)
+        if clearance >= 0 then
+            return spawnPoint
+        end
+
+        if clearance > bestClearance then
+            bestSpawnPoint = spawnPoint
+            bestClearance = clearance
+        end
+
     end
-    
-    Print("GetRandomClearSpawnPoint - No unobstructed spawn point to spawn %s (tried %d)", player:GetName(), numSpawnPoints)
-    
-    return nil
+
+    return bestSpawnPoint
 
 end
 
