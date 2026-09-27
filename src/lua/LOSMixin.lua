@@ -35,10 +35,10 @@ local kUnitLOSDirtyDistance = kUnitMaxLOSDistance + maxEntityMoveSpeed --* 2  --
 -- How often to look for nearby enemies.
 --local kLookForEnemiesRate = 0.5
 
-local kLOSTimeout = 1
+local kLOSTimeout = 0.8
 local kLOSCombatTimeout = kLOSTimeout
 local kLOSPvETimeout = 2
-local kLOSPvPTimeout = 0.35
+local kLOSPvPTimeout = 0.1
 
 local math_floor = math.floor
 
@@ -369,27 +369,18 @@ if Server then
         
     end
     
-    -- Own buffer: LookForEnemies may be part way through kLosScratch when a
-    -- sighting change marks its neighbours dirty.
-    local kLosDirtyScratch = table.array(32)
-
     local function MarkNearbyDirty(self)
     
         self.updateLOS = true
 
-        -- GetEntitiesWithMixinForTeamWithinRange returns a new filtered table and
-        -- leaves the buffer holding the raw query, so filter by team here instead.
-        table.clear(kLosDirtyScratch)
-        Shared.GetEntitiesWithTagInRange("LOS", self:GetOrigin(), kUnitLOSDirtyDistance, nil, kLosDirtyScratch)
+        local orig = self:GetOrigin()
+        local enemyTeam = GetEnemyTeamNumber(self:GetTeamNumber())
+        table.clear(kLosScratch)
+        GetEntitiesWithMixinForTeamWithinRange("LOS", enemyTeam, orig, kUnitLOSDirtyDistance, kLosScratch)
 
-        local enemyTeamNumber = GetEnemyTeamNumber(self:GetTeamNumber())
-        for i = 1, #kLosDirtyScratch do
-            local entity = kLosDirtyScratch[i]
-            if HasMixin(entity, "Team") and entity:GetTeamNumber() == enemyTeamNumber then
-                entity.updateLOS = true
-            end
+        for i = 1, #kLosScratch do
+            kLosScratch[i].updateLOS = true
         end
-        table.clear(kLosDirtyScratch)
 
     end
     
