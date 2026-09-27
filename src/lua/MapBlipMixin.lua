@@ -311,7 +311,8 @@ function MapBlipMixin:UpdateFogEntity(sighted)
 
     f.reentranceOff = true
     f:SetOrigin(orig)
-    f:SetAngles(self:GetAngles())
+    local fowardNormal = self:GetCoords().zAxis
+    f:SetAngles(Angles(0, math.atan2(fowardNormal.x, fowardNormal.z), 0))
 
     if isNewEntity then
         f:OnInitializedMapBlipMixin() -- Need to happen AFTER we set the custom host blips
