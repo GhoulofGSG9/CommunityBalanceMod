@@ -222,6 +222,27 @@ end
 local math_atan2 = math.atan2
 local blipSetAngle = Angles(0, 0, 0) -- prevents GC trashing
 local blipSetOrigin = Vector(0, 0, 0) -- prevents GC trashing
+
+local kRotationExcludedFogBlipTypes =
+{
+    [kMinimapBlipType.PowerPoint] = true,
+    [kMinimapBlipType.DestroyedPowerPoint] = true,
+    [kMinimapBlipType.BlueprintPowerPoint] = true,
+    [kMinimapBlipType.UnsocketedPowerPoint] = true,
+    [kMinimapBlipType.Hive] = true,
+    [kMinimapBlipType.HiveOccupied] = true,
+    [kMinimapBlipType.HiveFresh] = true,
+    [kMinimapBlipType.HiveFreshOccupied] = true,
+    [kMinimapBlipType.HiveMature] = true,
+    [kMinimapBlipType.HiveMatureOccupied] = true,
+    [kMinimapBlipType.HiveFifthBio] = true,
+    [kMinimapBlipType.HiveFreshFifthBio] = true,
+    [kMinimapBlipType.HiveFreshOccupiedFifthBio] = true,
+    [kMinimapBlipType.HiveMatureFifthBio] = true,
+    [kMinimapBlipType.HiveMatureOccupiedFifthBio] = true,
+    [kMinimapBlipType.HiveOccupiedFifthBio] = true,
+}
+
 function MapBlip:Update(owner)
     PROFILE("MapBlip:Update")
 
@@ -236,12 +257,16 @@ function MapBlip:Update(owner)
         local fowardNormal = owner:GetCoords().zAxis
         local yaw = 0
 
-        if isPlayer or not (owner:isa("PowerPoint") or owner:isa("Hive")) then
+        local isExcludedFogType = self.isFogOfWarMapBlip and kRotationExcludedFogBlipTypes[owner.blipType]
+
+        if isPlayer or not (owner:isa("PowerPoint") or owner:isa("Hive") or isExcludedFogType) then
             yaw = math_atan2(fowardNormal.x, fowardNormal.z)
             blipSetAngle.yaw = yaw
-            self:SetAngles(blipSetAngle)
+        else
+            blipSetAngle.yaw = 0
         end
-        
+        self:SetAngles(blipSetAngle)        
+
         local origin
         if owner.GetPositionForMinimap then
             origin = owner:GetPositionForMinimap()
@@ -419,7 +444,11 @@ if Client then
             color.a = fogColor.a * alphaFactor
 
             local viewerTeam = MinimapTeamToTeam(minimap.playerTeam)
-            if not (viewerTeam == kMarineTeamType or viewerTeam == kAlienTeamType) then
+
+            local clientTeam = Client.GetLocalClientTeamNumber()
+            local isClientInPlayingTeams = ( clientTeam == kTeam1Index or clientTeam == kTeam2Index )
+            
+            if not isClientInPlayingTeams or not (viewerTeam == kMarineTeamType or viewerTeam == kAlienTeamType) then
                 color.a = 0
             end
 
@@ -529,7 +558,10 @@ if Client then
         local isMoving = item.prevOrigin ~= origin
         item.prevOrigin = origin
 
-        return self.isFogOfWarMapBlip and kMinimapActivity.Static or
+        local fogFading = self.isFogOfWarMapBlip and MapBlip.kFogFadeoutEnabled and self.fogExpireTime
+                and self.fogExpireTime > 0 and (self.fogExpireTime - Shared.GetTime()) < kFogPlayerBlipFadeTime
+
+        return self.isFogOfWarMapBlip and (fogFading and kMinimapActivity.Medium or kMinimapActivity.Static) or
                 self.isInCombat and self.combatActivity or
                 isMoving and self.movingActivity or
                 self.defaultActivity
