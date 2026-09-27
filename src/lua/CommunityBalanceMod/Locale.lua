@@ -75,7 +75,7 @@ if Client then
     Locale.substitutions["MARINE_WEAPONS2_TOOLTIP"] = "Marine weapons do 20% extra player damage and 40% extra structure damage."
     Locale.substitutions["MARINE_WEAPONS3_TOOLTIP"] = "Marine weapons do 30% extra player damage and 60% extra structure damage."
 	
-	Locale.substitutions["EXOSUIT_TECH_TOOLTIP"] = "Unlocks modular exosuits and exosuit Cores."
+	Locale.substitutions["EXOSUIT_TECH_TOOLTIP"] = "Unlocks modular exosuits."
 	
 	Locale.substitutions["SENTRY_TOOLTIP"] = "AI sentry gun that provides supporting fire. Limited to 1!"
 	
@@ -275,6 +275,12 @@ if Client then
 	Locale.substitutions["EXO_EJECT_REASON_BASE"] = "base"
 	
 	-- Help screen
+	Locale.substitutions["HELP_SCREEN_EXO_EJECT_DESCRIPTION"] = "When you gotta go, you gotta go!  Hold to eject.  Can save your life, or simply allow you to make repairs.  Beware of carjacking marines!  Exosuit unlocks after %{unlockTime}d seconds if you're not back inside!"
+	Locale.substitutions["HELP_SCREEN_EXO_ARMOR"] = "ARMOR PLATING"
+	Locale.substitutions["HELP_SCREEN_EXO_NANOSHIELD_FIELD"] = "NANO SHIELD FIELD"
+	Locale.substitutions["HELP_SCREEN_EXO_CATALYST_FIELD"] = "CATALYST FIELD"
+	Locale.substitutions["HELP_SCREEN_EXO_REGEN_FIELD"] = "REGEN FIELD"
+	Locale.substitutions["TIPVIDEO_1_EXO_EXOSUIT_BOOSTERS"] = "With the Thrusters core module, hold Shift to boost forward, or hold space to hover."
 	Locale.substitutions["HELP_SCREEN_EXO_PLASMA_LAUNCHER"] = "PLASMA LAUNCHER"
 	Locale.substitutions["HELP_SCREEN_EXO_PLASMA_LAUNCHER_DESCRIPTION"] = "Charge up and lob a ball of superheated plasma that detonates on impact, splashing everything nearby and leaving the survivors burning.  Each shot drains the energy cell, so watch the meter before you pick a fight."
 	
