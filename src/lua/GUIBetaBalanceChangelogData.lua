@@ -50,7 +50,6 @@ if kCBMaddon then
 	  - Railgun: 20 damage on a tap, 120 fully charged (kills a skulk). Only one railgun charges at a time. 30 m range.
 	  - Plasma Launcher: lobs a bomb every 2 s. It bursts for 40 damage in 4 m and burns for 3 s. The alien hit directly is electrified.
 	    - Burns do not stack and need line of sight.
-	    - Gorge, crag and hive heals shorten the burn.
 	  - Flamethrower arm: marine flamethrower damage, range and burn, narrower cone. No ground flames, no welding, blocked by bone shield.
 	  - Exosuits can no longer repair each other.
 
@@ -69,7 +68,7 @@ if kCBMaddon then
 	  - The Prototype Lab opens straight on the exosuit configuration page.
 	    - Stat bars preview the module under the cursor. Every module has a short description.
 	    - Grey or red items say why they cannot be bought: research, pres or an incompatible arm.
-	  - Refit at any built Armory: pay the price difference plus 5 pres. Damage carries over, so a full suit stays full. Looking at one in an exosuit shows a Refit Exosuit hint.
+	  - Refit at any built Armory: pay the price difference, at least 5 pres. Damage carries over, so a full suit stays full. Looking at one in an exosuit shows a Refit Exosuit hint.
 	  - Exosuits can use armories and labs from 2.4 m away.
 	  - Eject by holding the drop key for 1 s. The HUD shows the progress and why ejecting is blocked (combat, airborne, deploying).
 	  - An ejected suit keeps its armor and can be entered again.
@@ -715,7 +714,6 @@ else
 	  - Railgun: 20 damage on a tap, 120 fully charged (kills a skulk). Only one railgun charges at a time. 30 m range.
 	  - Plasma Launcher: lobs a bomb every 2 s. It bursts for 40 damage in 4 m and burns for 3 s. The alien hit directly is electrified.
 	    - Burns do not stack and need line of sight.
-	    - Gorge, crag and hive heals shorten the burn.
 	  - Flamethrower arm: marine flamethrower damage, range and burn, narrower cone. No ground flames, no welding, blocked by bone shield.
 	  - Exosuits can no longer repair each other.
 
@@ -734,7 +732,7 @@ else
 	  - The Prototype Lab opens straight on the exosuit configuration page.
 	    - Stat bars preview the module under the cursor. Every module has a short description.
 	    - Grey or red items say why they cannot be bought: research, pres or an incompatible arm.
-	  - Refit at any built Armory: pay the price difference plus 5 pres. Damage carries over, so a full suit stays full. Looking at one in an exosuit shows a Refit Exosuit hint.
+	  - Refit at any built Armory: pay the price difference, at least 5 pres. Damage carries over, so a full suit stays full. Looking at one in an exosuit shows a Refit Exosuit hint.
 	  - Exosuits can use armories and labs from 2.4 m away.
 	  - Eject by holding the drop key for 1 s. The HUD shows the progress and why ejecting is blocked (combat, airborne, deploying).
 	  - An ejected suit keeps its armor and can be entered again.

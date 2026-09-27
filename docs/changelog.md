@@ -69,7 +69,6 @@
   - Applies the pulse effect to aliens (reduces animation speed).
 	- Pulse effect does not apply to structures.
   - Plasma burn lasts 3 s (from 5.5) and no longer stacks: a new bomb replaces the burn on a target. Direct damage 40 (from 35). Blast and burn need line of sight.
-  - Healing from a gorge, crag or hive cuts 0.5 s off the plasma burn on the healed target.
   - Projectiles spawn on each weapon and are fired towards the crosshair target.
   - Projectiles have dual projectile controller (one for geometry and one for entities) to reduce geo clipping.
 
