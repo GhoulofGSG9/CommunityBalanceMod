@@ -196,6 +196,18 @@ local function GetBotExoConfig(teamNumber, weaponModule, forceSingleArm)
     }
 end
 
+-- No Thrusters: exo brains never thrust on purpose (MovementModifier only while retreating).
+local kBotExoCoreModules = { kExoModuleTypes.Armor, kExoModuleTypes.EjectionSeat }
+local kBotExoAbilityModules = { kExoModuleTypes.NanoShield, kExoModuleTypes.CatPack, kExoModuleTypes.NanoRepair }
+
+local function TryAddBotExoModule(exoConfig, slot, moduleType, teamNumber, resources)
+    exoConfig[slot] = moduleType
+    local isValid, _, exoCost = ModularExo_GetIsConfigValid(exoConfig, teamNumber)
+    if not isValid or resources < exoCost then
+        exoConfig[slot] = nil
+    end
+end
+
 local function SwitchToPistol(marine)
     local weapon = marine:GetWeapon( Pistol.kMapName )
     if weapon and weapon:GetAmmo() / weapon:GetMaxAmmo() > 0.0 then
@@ -2306,6 +2318,11 @@ kMarineBrainObjectiveActions =
             end
         end
 
+        bot.exoCoreModule = bot.exoCoreModule or kBotExoCoreModules[math.random(#kBotExoCoreModules)]
+        bot.exoAbilityModule = bot.exoAbilityModule or kBotExoAbilityModules[math.random(#kBotExoAbilityModules)]
+        TryAddBotExoModule(exoConfig, kExoModuleSlots.Utility, bot.exoCoreModule, teamNumber, resources)
+        TryAddBotExoModule(exoConfig, kExoModuleSlots.Ability, bot.exoAbilityModule, teamNumber, resources)
+
         local data = sdb:Get("nearestExoProto")
         local proto = data.proto
         local protoDist = data.distance
@@ -2471,7 +2488,7 @@ kMarineBrainObjectiveActions =
                     -- always try to reserve enough for an exo
                     if bot.wantsExo then
                         local _, _, exoCost = ModularExo_GetIsConfigValid(GetBotExoConfig(marine:GetTeamNumber(), kExoModuleTypes.Minigun, true))
-                        resources = resources - exoCost
+                        resources = resources - (exoCost or 0)
                     end
                     
                     if bot.wantsJetpack then

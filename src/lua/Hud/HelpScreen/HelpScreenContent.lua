@@ -244,6 +244,10 @@ local helpScreenImages =
     railgun             = PrecacheAsset("ui/helpScreen/icons/rail_gun.dds"),
     exoThrusters        = PrecacheAsset("ui/helpScreen/icons/thrusters.dds"),
     exoEject            = PrecacheAsset("ui/helpScreen/icons/exo_eject.dds"),
+    exoArmorPlating     = PrecacheAsset("ui/helpScreen/icons/exo_armor_plating.dds"),
+    exoNanoShieldField  = PrecacheAsset("ui/helpScreen/icons/exo_nano_shield_field.dds"),
+    exoCatalystField    = PrecacheAsset("ui/helpScreen/icons/exo_catalyst_field.dds"),
+    exoRegenField       = PrecacheAsset("ui/helpScreen/icons/exo_regen_field.dds"),
     eggStomp            = PrecacheAsset("ui/helpScreen/icons/egg_stomp.dds"),
     jetpack             = PrecacheAsset("ui/helpScreen/icons/jetpack.dds"),
     bite                = PrecacheAsset("ui/helpScreen/icons/bite.dds"),
@@ -528,7 +532,7 @@ function HelpScreen_InitializeContent()
         title = "HELP_SCREEN_EXO_THRUSTERS",
         -- Only show the card for the module this Exo actually has equipped.
         requirementFunction = function()
-            return PlayerUI_GetHasThrusters() == true, "HELP_SCREEN_EXO_THRUSTERS"
+            return PlayerUI_GetHasThrusters() == true, ""
         end,
         hideIfLocked = true,
         description = "HELP_SCREEN_EXO_THRUSTERS_DESCRIPTION",
@@ -544,17 +548,17 @@ function HelpScreen_InitializeContent()
     -- Exosuit Armor Plating
     HelpScreen_AddContent({
         name = "ExoArmorPlating",
-        title = "EXO_MODULE_ARMOR",
+        title = "HELP_SCREEN_EXO_ARMOR",
         -- Only show the card for the module this Exo actually has equipped.
         requirementFunction = function()
             local player = Client.GetLocalPlayer()
             local hasArmorModule = player ~= nil and player:GetIsPlaying() and player:isa("Exo") and
                                    player.utilityModuleType == kExoModuleTypes.Armor
-            return hasArmorModule == true, "EXO_MODULE_ARMOR"
+            return hasArmorModule == true, ""
         end,
         hideIfLocked = true,
         description = "EXO_MODULE_ARMOR_TOOLTIP",
-        imagePath = helpScreenImages.exoThrusters,
+        imagePath = helpScreenImages.exoArmorPlating,
         actions = {},
         classNames = {"Exo"},
         theme = "marine",
@@ -564,14 +568,14 @@ function HelpScreen_InitializeContent()
     -- Exosuit Support Ability: Nano Shield Field
     HelpScreen_AddContent({
         name = "ExoNanoShieldField",
-        title = "EXO_ABILITY_NANOSHIELD_FIELD",
+        title = "HELP_SCREEN_EXO_NANOSHIELD_FIELD",
         -- Only show the card for the module this Exo actually has equipped.
         requirementFunction = function()
-            return PlayerUI_GetHasNanoShield() == true, "EXO_ABILITY_NANOSHIELD_FIELD"
+            return PlayerUI_GetHasNanoShield() == true, ""
         end,
         hideIfLocked = true,
         description = "EXO_ABILITY_NANOSHIELD_FIELD_TOOLTIP",
-        imagePath = helpScreenImages.exoThrusters,
+        imagePath = helpScreenImages.exoNanoShieldField,
         actions = {
             { "Reload" },
         },
@@ -583,14 +587,14 @@ function HelpScreen_InitializeContent()
     -- Exosuit Support Ability: Catalyst Field
     HelpScreen_AddContent({
         name = "ExoAdrenalineField",
-        title = "EXO_ABILITY_ADRENALINE_FIELD",
+        title = "HELP_SCREEN_EXO_CATALYST_FIELD",
         -- Only show the card for the module this Exo actually has equipped.
         requirementFunction = function()
-            return PlayerUI_GetHasCatPack() == true, "EXO_ABILITY_ADRENALINE_FIELD"
+            return PlayerUI_GetHasCatPack() == true, ""
         end,
         hideIfLocked = true,
         description = "EXO_ABILITY_ADRENALINE_FIELD_TOOLTIP",
-        imagePath = helpScreenImages.exoThrusters,
+        imagePath = helpScreenImages.exoCatalystField,
         actions = {
             { "Reload" },
         },
@@ -602,14 +606,14 @@ function HelpScreen_InitializeContent()
     -- Exosuit Support Ability: Regen Field
     HelpScreen_AddContent({
         name = "ExoRegenField",
-        title = "EXO_ABILITY_REGEN_FIELD",
+        title = "HELP_SCREEN_EXO_REGEN_FIELD",
         -- Only show the card for the module this Exo actually has equipped.
         requirementFunction = function()
-            return PlayerUI_GetHasNanoRepair() == true, "EXO_ABILITY_REGEN_FIELD"
+            return PlayerUI_GetHasNanoRepair() == true, ""
         end,
         hideIfLocked = true,
         description = "EXO_ABILITY_REGEN_FIELD_TOOLTIP",
-        imagePath = helpScreenImages.exoThrusters,
+        imagePath = helpScreenImages.exoRegenField,
         actions = {
             { "Reload" },
         },

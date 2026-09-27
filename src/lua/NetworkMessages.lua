@@ -1426,11 +1426,12 @@ if Server then
             return
         end
 
-        -- The flat fee is what keeps module choice a commitment: refunding the worn suit
-        -- at full value lets two configurations of equal price swap for nothing.
+        -- The fee is a floor, not a surcharge: refunding the worn suit at full value would
+        -- let two configurations of equal price swap for nothing, but an upgrade already
+        -- pays its price difference.
         resCost = math.max(0, (resCost or 0) - discount)
         if discount > 0 then
-            resCost = resCost + kExoRefitCost
+            resCost = math.max(resCost, kExoRefitCost)
         end
 
         -- The host has to be within resupply range, the same rule the buy menu uses to stay

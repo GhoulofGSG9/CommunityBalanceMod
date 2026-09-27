@@ -625,6 +625,10 @@ end
 
 function Drifter:OnEntityChange(oldId, newId)
 
+    if not Server then
+        return
+    end
+
     local currentOrder = self:GetCurrentOrder()
 
     -- Smth happened with our target

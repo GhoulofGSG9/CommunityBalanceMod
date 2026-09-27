@@ -109,7 +109,7 @@ local function _GetAttackInfo(self, damage)
     return attacker, weapon, damageType, currentComm
 end
 
-local function _DealDamage(self, attacker, weapon, damage, damageType, target, direction, point)
+local function _DealDamage(self, attacker, weapon, damage, damageType, target, direction, point, currentComm)
     local doer = self
     local armorUsed = 0
     local healthUsed = 0
@@ -353,7 +353,7 @@ local function _DoHitShot(self, damage, target, point, direction, surface, altMo
     direction = direction or Vector(0, 0, 1)
 
     local attacker, weapon, damageType, currentComm = _GetAttackInfo(self, damage)
-    local killedFromDamage, damageDone, rawDamage = _DealDamage(self, attacker, weapon, damage, damageType, target, direction, point)
+    local killedFromDamage, damageDone, rawDamage = _DealDamage(self, attacker, weapon, damage, damageType, target, direction, point, currentComm)
 
     return attacker, killedFromDamage, weapon, damageDone, rawDamage, damageType
 end

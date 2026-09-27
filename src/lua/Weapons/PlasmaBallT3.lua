@@ -74,6 +74,19 @@ if Server then
         return 0 
     end
 
+    local function GetIsBurnOver(dotMarker, entity)
+
+        local markerId = dotMarker:GetId()
+
+        if dotMarker.dotEndTime > (entity.plasmaDotEndTime or 0) then
+            entity.plasmaDotEndTime = dotMarker.dotEndTime
+            entity.plasmaDotMarkerId = markerId
+        end
+
+        return entity.plasmaDotMarkerId ~= markerId
+
+    end
+
     -- Shared explosion body. A contact hit and the fuse running out must produce the
     -- exact same blast, so both go through here. self.detonated makes a second call a
     -- no-op, so a bomb can never go off twice.
@@ -101,10 +114,16 @@ if Server then
         dotMarker:SetDeathIconIndex(kDeathMessageIcon.EMPBlast)
         dotMarker:SetOwner(owner)
         dotMarker:SetFallOffFunc(NoFalloff)
-        dotMarker:SetLoSCheck(true)
+        dotMarker:SetLoSCheck(false)
+        dotMarker.dotEndTime = Shared.GetTime() + kPlasmaDOTDuration
+        dotMarker.immuneCondition = GetIsBurnOver
 
-        for _, entity in ipairs(hitEntities) do
-            self:DoDamage(shotDamage, entity, position, GetNormalizedVector(entity:GetOrigin() - position), "none")
+        local directHit = targetHit and table.removevalue(hitEntities, targetHit)
+
+        RadiusDamage(hitEntities, center, kPlasmaBombDamageRadius, shotDamage, self, false, NoFalloff)
+
+        if directHit then
+            self:DoDamage(shotDamage, targetHit, position, GetNormalizedVector(targetHit:GetOrigin() - position), "none")
         end
 
         -- The electrify goes to the one alien the bomb physically landed on, not to the

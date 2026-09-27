@@ -15,6 +15,8 @@ local kPlasmaMuzzleCinematic = PrecacheAsset("models/plasma/muzzle_flash_plasma.
 local kBeaconCinematic = PrecacheAsset("cinematics/marine/mac/siren.cinematic")
 local kPlatingMaterial = PrecacheAsset("cinematics/vfx_materials/exo_plating.material")
 local kPlatingViewMaterial = PrecacheAsset("cinematics/vfx_materials/exo_plating_view.material")
+-- The Battle MAC field decal with its extents set to kExoSupportRadius.
+local kSupportFieldCinematic = PrecacheAsset("cinematics/healing_field/exo_support_field.cinematic")
 
 if Client then
 
@@ -35,11 +37,14 @@ if Client then
     local kArmCueIntervalMin = 2.5
     local kArmCueIntervalMax = 4.5
 
-    local kBeaconBlinkPeriod = 1.2
-    local kBeaconBlinkOnTime = 0.3
+    local kBeaconBlinkPeriod = 1.6
+    local kBeaconBlinkOnTime = 0.4
+
+    local kSupportFieldPulseTime = 3
+    local kSupportFieldMissedPulseTime = 1
 
     -- In the suit's own space: no bone sits in the same place on the claw and dual models.
-    local kBeaconOffset = Vector(0, 2.25, -0.35)
+    local kBeaconOffset = Vector(0, 2, 0.6)
 
     local function DestroyCue(exo, slot)
 
@@ -212,6 +217,25 @@ if Client then
         local beaconLit = (now % kBeaconBlinkPeriod) < kBeaconBlinkOnTime
         UpdateCue(exo, "beacon", hasSeat and kBeaconCinematic or nil, nil, visible and beaconLit, kBeaconOffset)
 
+        local isLocalAlive = exo:GetIsLocalPlayer() and exo:GetIsAlive()
+
+        local abilityReady = isLocalAlive and exo:GetSupportAbilityReady()
+        if abilityReady ~= exo.supportFieldReady then
+            exo.supportFieldReady = abilityReady
+            exo.supportFieldPulseEnd = abilityReady and now + kSupportFieldPulseTime or 0
+        end
+
+        local timeMissed = isLocalAlive and exo.timeSupportAbilityMissed
+        if timeMissed and timeMissed ~= 0 and timeMissed ~= exo.lastSeenSupportAbilityMissed then
+            exo.lastSeenSupportAbilityMissed = timeMissed
+            exo.supportFieldPulseEnd = math.max(exo.supportFieldPulseEnd or 0, now + kSupportFieldMissedPulseTime)
+        end
+
+        -- Destroyed, not hidden: SetIsVisible(false) does not hide a decal, it stays drawn
+        -- where it was last rendered.
+        local pulsing = now < exo.supportFieldPulseEnd
+        UpdateCue(exo, "supportField", pulsing and kSupportFieldCinematic or nil, nil, true)
+
         local hasPlating = exo.utilityModuleType == kExoModuleTypes.Armor
         UpdatePlating(exo, kPlatingWorld, exo._renderModel, visible and hasPlating)
         UpdatePlating(exo, kPlatingView, GetViewRenderModel(exo), isLocalFirstPerson and hasPlating and exo:GetIsAlive())
@@ -222,6 +246,7 @@ if Client then
 
         if exo.loadoutCues then
             DestroyCue(exo, "beacon")
+            DestroyCue(exo, "supportField")
         end
 
         UpdatePlating(exo, kPlatingWorld, exo._renderModel, false)

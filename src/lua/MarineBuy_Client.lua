@@ -124,7 +124,7 @@ end
 local kMarineBuyMenuSounds = { Open = "sound/NS2.fev/common/open",
                               Close = "sound/NS2.fev/common/close",
                               Purchase = "sound/NS2.fev/marine/common/comm_spend_metal",
-                              SelectUpgrade = "sound/NS2.fev/common/button_press",
+                              SelectUpgrade = "sound/NS2.fev/common/button_click",
                               SellUpgrade = "sound/NS2.fev/marine/common/comm_spend_metal",
                               Hover = "sound/NS2.fev/common/hovar",
                               SelectWeapon = "sound/NS2.fev/common/hovar",

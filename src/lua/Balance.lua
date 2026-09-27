@@ -129,7 +129,7 @@ kNerveGasCloudRadius = 7
 
 kJetpackCost = 15
 kJetpackDropCost = 15
-kJetpackTechResearchCost = 50
+kJetpackTechResearchCost = 40
 kJetpackFuelTechResearchCost = 15
 kJetpackArmorTechResearchCost = 15
 
@@ -1016,8 +1016,8 @@ kExoThrusterStartFuelUsage = 0.125
 
 -- Exo Support Ability (Ability slot modules)
 kExoSupportRadius = 8 -- Meters
-kExoSupportAbilityCooldown = 120 -- Seconds
-kExoRegenFieldHealPerSecond = 8
+kExoSupportAbilityCooldown = 90 -- Seconds
+kExoRegenFieldHealPerSecond = 12
 kExoRegenFieldDuration = 5 -- Seconds
 kExoNanoShieldFieldDuration = 1.5 -- Seconds
 kExoNanoShieldFieldDamageScalar = 0.8 -- damage taken while under the field's shield
@@ -1047,12 +1047,12 @@ kExoAbilitiesTechResearchTime = 45
 kPlasmaT3LifeTime = kGrenadeLifetime -- same fuse as the grenade launcher
 
 kPlasmaBombSpeed = 15
-kPlasmaBombDamage = 35
+kPlasmaBombDamage = 40
 kPlasmaBombDamageRadius = 4 -- 4 is the pulse damage radius (matches pulse cinematic)
 kPlasmaBombEnergyCost = 0.60
 
 kPlasmaBombDOTDamage = 5 -- DOT applied after direct damage
-kPlasmaDOTDuration = 5.5
+kPlasmaDOTDuration = 3.0
 kPlasmaDOTInterval = 0.5
 
 kPlasmaHitBoxRadiusT3 = 0.495 -- Hitbox radius from center of projectile...

@@ -359,12 +359,20 @@ kGeneralEffectData =
         },
     },
     
-    -- Exosuit Support Ability slot activation (Nano Shield / Adrenaline / Regen field)
+    -- Exosuit Support Ability slot activation (Nano Shield / Catalyst field)
     exo_support_field =
     {
         exoSupportFieldEffects =
         {
             {sound = "sound/NS2.fev/marine/common/catalyst"},
+        },
+    },
+
+    exo_regen_field =
+    {
+        exoRegenFieldEffects =
+        {
+            {sound = "sound/NS2.fev/marine/common/health"},
         },
     },
 

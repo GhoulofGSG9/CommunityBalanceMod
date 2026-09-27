@@ -581,6 +581,41 @@ kExoBrainActions =
 }
 
 ------------------------------------------
+--  Support ability. Called by the exo brains after a full brain update, so
+--  the Reload bit lands in this move only and never in bot.lastcommands:
+--  Exo:UpdateSupportAbility is edge triggered and needs the bit to drop.
+------------------------------------------
+local kExoSupportCheckInterval = 0.5
+
+function PerformExoSupportAbility(bot, brain, exo, move)
+
+    local time = Shared.GetTime()
+    if (brain.nextSupportCheckTime or 0) > time or not exo:GetSupportAbilityReady() then
+        return
+    end
+    brain.nextSupportCheckTime = time + kExoSupportCheckInterval
+
+    local numTargets = exo:GetSupportAbilityTargetCount()
+    if numTargets == 0 then
+        return
+    end
+
+    local inCombat = exo:GetIsInCombat() or brain:GetSenses():Get("biggestThreat") ~= nil
+
+    local shouldUse
+    if exo.abilityModuleType == kExoModuleTypes.NanoShield or exo.abilityModuleType == kExoModuleTypes.CatPack then
+        shouldUse = inCombat
+    else
+        shouldUse = inCombat or numTargets >= 2
+    end
+
+    if shouldUse then
+        move.commands = AddMoveCommand(move.commands, Move.Reload)
+    end
+
+end
+
+------------------------------------------
 --  More urgent == should really attack it ASAP
 ------------------------------------------
 -- GetAttackUrgency runs once per remembered enemy per exo per brain tick and rebuilt both

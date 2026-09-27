@@ -60,7 +60,7 @@
   - Energy based weapon. Energy regens over time (20%/s).
   - Plasma bomb projectile:
 	- Costs 80% energy per bomb.
-	- Direct (35) and DoT Damage (25) in size 4 AoE. 
+	- Direct (40) and DoT Damage (12.5) in size 4 AoE. 
     - Fires one plasma ball in an arc.
 	- Pulse debuff for 5 seconds.
     - Hitbox size of 0.495.
@@ -68,6 +68,7 @@
   - Has custom cinematics and materials.
   - Applies the pulse effect to aliens (reduces animation speed).
 	- Pulse effect does not apply to structures.
+  - Plasma burn lasts 3 s (from 5.5) and no longer stacks: a new bomb replaces the burn on a target. Direct damage 40 (from 35). Blast and burn need line of sight.
   - Projectiles spawn on each weapon and are fired towards the crosshair target.
   - Projectiles have dual projectile controller (one for geometry and one for entities) to reduce geo clipping.
 
@@ -94,7 +95,7 @@
   - Researches stay with the team when a protolab is destroyed or recycled; another built protolab sells exosuits again.
 
 ### Jetpack
-  - Researched and bought at the Advanced Armory instead of the Prototype Lab (50 tres, 130 s research).
+  - Researched and bought at the Advanced Armory instead of the Prototype Lab (40 tres, 130 s research).
   - Basic armories label the grenade launcher, flamethrower, heavy machine gun and jetpack tiles ADVANCED ARMORY ONLY.
 
 ### Arc (Robotics) Factory

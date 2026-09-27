@@ -240,7 +240,6 @@ function Player:OnKill(killer, doer, point, direction)
         if realKiller and realKiller:isa("Player") then
             self.killedBy = killer:GetId()
             killerName = realKiller:GetName()
-            Log("%s: killed by %s", self, self.killedBy)
         end
     end
 

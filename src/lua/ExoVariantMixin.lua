@@ -66,25 +66,6 @@ end
 
 if Client then
 
-    function ExoVariantMixin:GetWeaponLoadoutClass()
-
-        if self:isa("Exosuit") or self:isa("ReadyRoomExo") then
-            local modelName = self:GetModelName()   --hacks
-            if StringEndsWith( modelName, "_mm.model" ) then
-                return "Minigun"
-            elseif StringEndsWith( modelName, "_rr.model" ) then
-                return "Railgun"
-            end
-        else
-            local wep = self:GetActiveWeapon()
-            if wep then
-            --This assumes no mixed weapons are allowed (only sets)
-                return wep:GetLeftSlotWeapon():GetClassName()
-            end
-            return false
-        end
-    end
-
     function ExoVariantMixin:OnExoSkinChanged()
 
         if self.clientExoVariant == self.exoVariant then
@@ -124,85 +105,6 @@ if Client then
 
     end
 
-    function ExoVariantMixin:OnUpdateRender()
-
-        if self.dirtySkinState then
-
-            local weaponClass = self:GetWeaponLoadoutClass()
-            if not weaponClass then
-                Log("ERROR: Exo with invalid weapon class, skin update failure")
-                self.dirtySkinState = false
-                return false
-            end
-
-            --Handle world model
-            local worldModel = self:GetRenderModel()
-            if worldModel and worldModel:GetReadyForOverrideMaterials() then
-
-                if self.exoVariant ~= kDefaultExoVariant then
-
-                    local worldMats = GetPrecachedCosmeticMaterial( weaponClass, self.exoVariant )
-                    assert(worldMats and type(worldMats) == "table")
-
-                    for i = 1, #worldMats do
-                        local worldMaterial = worldMats[i].mat
-                        local worldMatIndex = worldMats[i].idx
-                        assert(worldMaterial)
-                        assert(worldMatIndex)
-                        worldModel:SetOverrideMaterial( worldMatIndex, worldMaterial )
-                    end
-
-                else
-                    worldModel:ClearOverrideMaterials()
-                end
-                
-                self:SetHighlightNeedsUpdate()
-            else
-                return false --delay a frame
-            end
-
-            --only try to update view models for players, not Exosuits
-            if self:isa("Exo") and self:GetIsLocalPlayer() then
-
-                local viewModelEnt = self:GetViewModelEntity()
-                
-                if viewModelEnt then
-
-                    local viewModel = viewModelEnt:GetRenderModel()
-                    if viewModel and viewModel:GetReadyForOverrideMaterials() then
-
-                        if self.exoVariant ~= kDefaultExoVariant then
-
-                            local viewMats = GetPrecachedCosmeticMaterial( weaponClass, self.exoVariant, true )
-                            assert(viewMats and type(viewMats) == "table")
-
-                            if weaponClass == "Minigun" then
-                                assert(#viewMats == 1)
-                                viewModel:SetOverrideMaterial( 0, viewMats[1] )
-                            elseif weaponClass == "Railgun" then
-                                assert(#viewMats == 2)
-                                viewModel:SetOverrideMaterial( 0, viewMats[1] )
-                                viewModel:SetOverrideMaterial( 1, viewMats[2] )
-                            end
-
-                        else
-                            viewModel:ClearOverrideMaterials()
-                        end
-                    else
-                        return false
-                    end
-
-                    viewModelEnt:SetHighlightNeedsUpdate()
-                end
-    
-            end
-
-            self.dirtySkinState = false
-            self.clientExoVariant = self.exoVariant
-        end
-
-    end
-    
     PrecacheCosmeticMaterials("ClawMinigun", kExoVariantsData)
     PrecacheCosmeticMaterials("ClawRailgun", kExoVariantsData)
     
@@ -292,8 +194,6 @@ if Client then
             
             local weaponClass = self:GetWeaponLoadoutClass()
             if not weaponClass then
-                Log("ERROR: Exo with invalid weapon class, skin update failure")
-                self.dirtySkinState = false
                 return false
             end
             --Print(weaponClass)
