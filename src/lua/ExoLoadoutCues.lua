@@ -40,6 +40,9 @@ if Client then
     local kBeaconBlinkPeriod = 1.6
     local kBeaconBlinkOnTime = 0.4
 
+    local kSupportFieldPulseTime = 3
+    local kSupportFieldMissedPulseTime = 1
+
     -- In the suit's own space: no bone sits in the same place on the claw and dual models.
     local kBeaconOffset = Vector(0, 2, 0.6)
 
@@ -214,9 +217,24 @@ if Client then
         local beaconLit = (now % kBeaconBlinkPeriod) < kBeaconBlinkOnTime
         UpdateCue(exo, "beacon", hasSeat and kBeaconCinematic or nil, nil, visible and beaconLit, kBeaconOffset)
 
-        local ownField = exo:GetIsLocalPlayer() and exo:GetHasSupportAbility()
-        local abilityReady = exo:GetIsAlive() and exo:GetSupportAbilityTimeRemaining() == 0
-        UpdateCue(exo, "supportField", ownField and kSupportFieldCinematic or nil, nil, abilityReady)
+        local isLocalAlive = exo:GetIsLocalPlayer() and exo:GetIsAlive()
+
+        local abilityReady = isLocalAlive and exo:GetSupportAbilityReady()
+        if abilityReady ~= exo.supportFieldReady then
+            exo.supportFieldReady = abilityReady
+            exo.supportFieldPulseEnd = abilityReady and now + kSupportFieldPulseTime or 0
+        end
+
+        local timeMissed = isLocalAlive and exo.timeSupportAbilityMissed
+        if timeMissed and timeMissed ~= 0 and timeMissed ~= exo.lastSeenSupportAbilityMissed then
+            exo.lastSeenSupportAbilityMissed = timeMissed
+            exo.supportFieldPulseEnd = math.max(exo.supportFieldPulseEnd or 0, now + kSupportFieldMissedPulseTime)
+        end
+
+        -- Destroyed, not hidden: SetIsVisible(false) does not hide a decal, it stays drawn
+        -- where it was last rendered.
+        local pulsing = now < exo.supportFieldPulseEnd
+        UpdateCue(exo, "supportField", pulsing and kSupportFieldCinematic or nil, nil, true)
 
         local hasPlating = exo.utilityModuleType == kExoModuleTypes.Armor
         UpdatePlating(exo, kPlatingWorld, exo._renderModel, visible and hasPlating)

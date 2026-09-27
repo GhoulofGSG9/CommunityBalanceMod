@@ -12,12 +12,11 @@ local kTextOffset
 -- The Support Ability hint is the same key badge + caption, sitting to the right of the
 -- eject hint on the same baseline. Each caption is centred under its own badge, so the
 -- badges have to stand far enough apart that the two widest captions cannot meet.
--- 260 unscaled units clears the English worst case ("Eject - deploying" beside
--- "Catalyst Field  120 s") and is the floor; Initialize() widens it when the locale in
+-- 260 unscaled units is the floor; Initialize() widens it when the locale in
 -- use needs more, measured from the real strings (see GetWidestCaptionWidth).
 local kAbilityButtonOffset
 
--- How long the "no marines in range" caption replaces the ability name after a press
+-- How long the "no targets" caption replaces the ability name after a press
 -- that found nobody (the server keeps the charge in that case).
 local kAbilityMissedHintTime = 1.5
 local kCaptionGap
@@ -36,19 +35,19 @@ class 'GUIExoEject' (GUIScript)
 -- Module types without an activated ability (None included) are simply absent.
 local gAbilityLocaleKeys
 
--- How long the "no marines in range" caption replaces the ability name after a press
+-- How long the "no targets" caption replaces the ability name after a press
 -- that found nobody (the server keeps the charge in that case).
 local kAbilityMissedHintTime = 1.5
 
-local function GetSupportAbilityLocaleKey(moduleType)
+local function GetSupportAbilityLocaleKeys(moduleType)
 
     if not gAbilityLocaleKeys then
 
         gAbilityLocaleKeys =
         {
-            [kExoModuleTypes.NanoShield] = "EXO_ABILITY_NANOSHIELD_FIELD",
-            [kExoModuleTypes.CatPack]    = "EXO_ABILITY_ADRENALINE_FIELD",
-            [kExoModuleTypes.NanoRepair] = "EXO_ABILITY_REGEN_FIELD",
+            [kExoModuleTypes.NanoShield] = { name = "EXO_ABILITY_NANOSHIELD_FIELD", targets = "EXO_ABILITY_TARGETS_FORMAT", noTargets = "EXO_ABILITY_NO_TARGETS" },
+            [kExoModuleTypes.CatPack]    = { name = "EXO_ABILITY_ADRENALINE_FIELD", targets = "EXO_ABILITY_TARGETS_FORMAT_CATALYST", noTargets = "EXO_ABILITY_NO_TARGETS_CATALYST" },
+            [kExoModuleTypes.NanoRepair] = { name = "EXO_ABILITY_REGEN_FIELD", targets = "EXO_ABILITY_TARGETS_FORMAT_REGEN", noTargets = "EXO_ABILITY_NO_TARGETS_REGEN" },
         }
 
     end
@@ -84,21 +83,22 @@ local function GetEjectCaptions()
 
 end
 
--- Same for the Support Ability badge: every module name, ready and on cooldown. The
--- longest cooldown in Balance.lua is 120 seconds, so three digits is the worst case.
+-- Same for the Support Ability badge: every module name, ready, on cooldown and after a
+-- press that found nobody. The widest cooldown caption is the full cooldown.
 local function GetAbilityCaptions()
 
     -- Force the lazy table above to exist before walking it.
-    GetSupportAbilityLocaleKey(kExoModuleTypes.None)
+    GetSupportAbilityLocaleKeys(kExoModuleTypes.None)
 
     local cooldownFormat = Locale.ResolveString("EXO_ABILITY_COOLDOWN_FORMAT")
     local captions = {}
 
-    for _, localeKey in pairs(gAbilityLocaleKeys) do
+    for _, localeKeys in pairs(gAbilityLocaleKeys) do
 
-        local name = Locale.ResolveString(localeKey)
-        table.insert(captions, name)
-        table.insert(captions, string.format(cooldownFormat, name, 120))
+        local name = Locale.ResolveString(localeKeys.name)
+        table.insert(captions, string.format(Locale.ResolveString(localeKeys.targets), name, 99))
+        table.insert(captions, string.format(cooldownFormat, name, kExoSupportAbilityCooldown))
+        table.insert(captions, Locale.ResolveString(localeKeys.noTargets))
 
     end
 
@@ -192,6 +192,7 @@ function GUIExoEject:Initialize()
     self.lastAbilityModuleType = nil
     self.lastAbilitySecondsLeft = nil
     self.lastAbilityMissed = nil
+    self.lastAbilityTargetCount = nil
 
     -- false, not nil: nil is a valid "eject is available" reason value.
     self.lastEjectReason = false
@@ -282,36 +283,41 @@ function GUIExoEject:Update(deltaTime)
 
     end
 
-    -- Support Ability: name of the equipped module, plus the seconds left while it is
-    -- recharging. Nothing is drawn when no ability module is equipped.
-    local moduleType, secondsUntilReady, sinceMissed = PlayerUI_GetExoSupportAbility()
-    local localeKey = GetSupportAbilityLocaleKey(moduleType)
+    -- Support Ability: name of the equipped module, plus the marines in range while it is
+    -- ready or the seconds left while it is recharging. Dimmed while a press would do
+    -- nothing. Nothing is drawn when no ability module is equipped.
+    local moduleType, secondsUntilReady, sinceMissed, targetCount = PlayerUI_GetExoSupportAbility()
+    local localeKeys = GetSupportAbilityLocaleKeys(moduleType)
     local secondsLeft = math.ceil(secondsUntilReady or 0)
     local missed = (sinceMissed or math.huge) < kAbilityMissedHintTime
+    targetCount = targetCount or 0
 
-    self.abilityButton:SetIsVisible(localeKey ~= nil and hudVisible and self.visible)
+    self.abilityButton:SetIsVisible(localeKeys ~= nil and hudVisible and self.visible)
 
-    if localeKey and (moduleType ~= self.lastAbilityModuleType or secondsLeft ~= self.lastAbilitySecondsLeft
-            or missed ~= self.lastAbilityMissed) then
+    if localeKeys and (moduleType ~= self.lastAbilityModuleType or secondsLeft ~= self.lastAbilitySecondsLeft
+            or missed ~= self.lastAbilityMissed or targetCount ~= self.lastAbilityTargetCount) then
 
         local ready = secondsLeft <= 0
-        local fontColor = (ready and not missed) and kMarineFontColor or kHintUnavailableColor
+        local usable = ready and not missed and targetCount > 0
+        local fontColor = usable and kMarineFontColor or kHintUnavailableColor
 
-        self.abilityButton:SetColor((ready and not missed) and kHintReadyColor or kHintUnavailableColor)
+        self.abilityButton:SetColor(usable and kHintReadyColor or kHintUnavailableColor)
         self.abilityButtonText:SetColor(fontColor)
         self.abilityText:SetColor(fontColor)
 
-        local name = Locale.ResolveString(localeKey)
+        local name = Locale.ResolveString(localeKeys.name)
         if missed then
-            self.abilityText:SetText(Locale.ResolveString("EXO_ABILITY_NO_TARGETS"))
+            self.abilityText:SetText(Locale.ResolveString(localeKeys.noTargets))
+        elseif ready then
+            self.abilityText:SetText(string.format(Locale.ResolveString(localeKeys.targets), name, targetCount))
         else
-            self.abilityText:SetText(ready and name or
-                    string.format(Locale.ResolveString("EXO_ABILITY_COOLDOWN_FORMAT"), name, secondsLeft))
+            self.abilityText:SetText(string.format(Locale.ResolveString("EXO_ABILITY_COOLDOWN_FORMAT"), name, secondsLeft))
         end
 
         self.lastAbilityModuleType = moduleType
         self.lastAbilitySecondsLeft = secondsLeft
         self.lastAbilityMissed = missed
+        self.lastAbilityTargetCount = targetCount
 
     end
 

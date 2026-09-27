@@ -227,16 +227,22 @@ if Client then
 	
 	-- Exosuit support abilities
 	Locale.substitutions["EXO_ABILITY_NANOSHIELD_FIELD"] = "Nano Shield Field"
-	Locale.substitutions["EXO_ABILITY_NANOSHIELD_FIELD_TOOLTIP"] = "Pulse a light nano shield onto every marine within 8 meters. Marines only, exosuits are not affected. Shield lasts 1.5 seconds and cuts damage by a fifth. 120 second cooldown."
+	Locale.substitutions["EXO_ABILITY_NANOSHIELD_FIELD_TOOLTIP"] = "Pulse a light nano shield onto every marine within 8 meters. Marines only, exosuits are not affected. Shield lasts 1.5 seconds and cuts damage by a fifth. 90 second cooldown."
 	Locale.substitutions["EXO_ABILITY_ADRENALINE_FIELD"] = "Catalyst Field"
-	Locale.substitutions["EXO_ABILITY_ADRENALINE_FIELD_TOOLTIP"] = "Pulse a catalyst boost onto every marine within 8 meters who was not boosted in the last 4 seconds. Marines only, exosuits are not affected. Boost lasts 5 seconds. 120 second cooldown."
+	Locale.substitutions["EXO_ABILITY_ADRENALINE_FIELD_TOOLTIP"] = "Pulse a catalyst boost onto every marine within 8 meters who was not boosted in the last 4 seconds. Marines only, exosuits are not affected. Boost lasts 5 seconds. 90 second cooldown."
 	Locale.substitutions["EXO_ABILITY_REGEN_FIELD"] = "Regen Field"
-	Locale.substitutions["EXO_ABILITY_REGEN_FIELD_TOOLTIP"] = "Heal every marine within 8 meters for 8 health per second over 5 seconds (40 health, no armor). Marines only, exosuits are not affected. 120 second cooldown."
-	Locale.substitutions["EXO_MODULE_NANOSHIELD_DESC"] = "Support ability on the reload key: a light nano shield on every marine within 8 meters for 1.5 seconds, cutting the damage they take by a fifth. Marines only, never exosuits, and a 120 second cooldown. If no marine is in range the press is refused and the charge is kept."
-	Locale.substitutions["EXO_MODULE_CATPACK_DESC"] = "Support ability on the reload key: gives every marine within 8 meters a catalyst boost for 5 seconds, so they move and reload faster. Marines boosted in the last 4 seconds are skipped. Marines only, never exosuits, and a 120 second cooldown. If no marine in range can take the boost the press is refused and the charge is kept."
-	Locale.substitutions["EXO_MODULE_NANOREPAIR_DESC"] = "Support ability on the reload key: heals every marine within 8 meters for 8 health a second over 5 seconds, 40 health in all. Health only, no armor, marines only, and a 120 second cooldown. If no marine is in range the press is refused and the charge is kept."
+	Locale.substitutions["EXO_ABILITY_REGEN_FIELD_TOOLTIP"] = "Heal every marine within 8 meters for 12 health per second over 5 seconds (60 health, no armor). Only injured marines count. Marines only, exosuits are not affected. 90 second cooldown."
+	Locale.substitutions["EXO_MODULE_NANOSHIELD_DESC"] = "Support ability on the reload key: a light nano shield on every marine within 8 meters for 1.5 seconds, cutting the damage they take by a fifth. Marines only, never exosuits, and a 90 second cooldown. If no marine is in range the press is refused and the charge is kept."
+	Locale.substitutions["EXO_MODULE_CATPACK_DESC"] = "Support ability on the reload key: gives every marine within 8 meters a catalyst boost for 5 seconds, so they move and reload faster. Marines boosted in the last 4 seconds are skipped. Marines only, never exosuits, and a 90 second cooldown. If no marine in range can take the boost the press is refused and the charge is kept."
+	Locale.substitutions["EXO_MODULE_NANOREPAIR_DESC"] = "Support ability on the reload key: heals every marine within 8 meters for 12 health a second over 5 seconds, 60 health in all. Health only, no armor, marines only, and a 90 second cooldown. Only injured marines count: if none is in range the press is refused and the charge is kept."
 	Locale.substitutions["EXO_ABILITY_NO_TARGETS"] = "No marines in range"
+	Locale.substitutions["EXO_ABILITY_NO_TARGETS_CATALYST"] = "No marines to boost"
+	Locale.substitutions["EXO_ABILITY_NO_TARGETS_REGEN"] = "No injured marines in range"
 	Locale.substitutions["EXO_ABILITY_COOLDOWN_FORMAT"] = "%s  %d s"
+	Locale.substitutions["EXO_ABILITY_TARGETS_FORMAT"] = "%s  %d in range"
+	Locale.substitutions["EXO_ABILITY_TARGETS_FORMAT_CATALYST"] = "%s  %d to boost"
+	Locale.substitutions["EXO_ABILITY_TARGETS_FORMAT_REGEN"] = "%s  %d injured"
+	Locale.substitutions["EXO_FIELD_BUFFED_BY"] = "%s from %s"
 	
 	-- Exosuit buy menu readouts
 	Locale.substitutions["EXO_DETAILS_ARMOR_BAR"] = "ARMOR:"
@@ -255,9 +261,9 @@ if Client then
 	Locale.substitutions["EXO_MODULE_THRUSTERS_TAGS"] = "MOBILITY | DASH | FUEL"
 	Locale.substitutions["EXO_MODULE_EJECTIONSEAT_TAGS"] = "SURVIVAL | AUTO-EJECT | FAST EJECT"
 	Locale.substitutions["EXO_MODULE_ARMOR_TAGS"] = "DEFENSE | +80 ARMOR"
-	Locale.substitutions["EXO_MODULE_NANOSHIELD_TAGS"] = "SUPPORT | 8 M FIELD | SHIELD | 120 S"
-	Locale.substitutions["EXO_MODULE_CATPACK_TAGS"] = "SUPPORT | 8 M FIELD | SPEED | 120 S"
-	Locale.substitutions["EXO_MODULE_NANOREPAIR_TAGS"] = "SUPPORT | 8 M FIELD | HEAL | 120 S"
+	Locale.substitutions["EXO_MODULE_NANOSHIELD_TAGS"] = "SUPPORT | 8 M FIELD | SHIELD | 90 S"
+	Locale.substitutions["EXO_MODULE_CATPACK_TAGS"] = "SUPPORT | 8 M FIELD | SPEED | 90 S"
+	Locale.substitutions["EXO_MODULE_NANOREPAIR_TAGS"] = "SUPPORT | 8 M FIELD | HEAL | 90 S"
 
 	-- Exosuit hold-to-eject HUD
 	Locale.substitutions["EXO_EJECT_HOLD_HINT"] = "Hold to eject"

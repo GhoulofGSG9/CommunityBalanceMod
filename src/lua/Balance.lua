@@ -1016,8 +1016,8 @@ kExoThrusterStartFuelUsage = 0.125
 
 -- Exo Support Ability (Ability slot modules)
 kExoSupportRadius = 8 -- Meters
-kExoSupportAbilityCooldown = 120 -- Seconds
-kExoRegenFieldHealPerSecond = 8
+kExoSupportAbilityCooldown = 90 -- Seconds
+kExoRegenFieldHealPerSecond = 12
 kExoRegenFieldDuration = 5 -- Seconds
 kExoNanoShieldFieldDuration = 1.5 -- Seconds
 kExoNanoShieldFieldDamageScalar = 0.8 -- damage taken while under the field's shield

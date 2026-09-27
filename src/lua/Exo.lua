@@ -74,6 +74,7 @@ local networkVars = {
     abilityModuleType    = "enum kExoModuleTypes",
     timeSupportAbilityReady = "private time",
     timeSupportAbilityMissed = "private time",
+    timeRegenFieldEnd    = "time",
     hasThrusters         = "boolean",
     --hasPhaseModule       = "boolean",
     hasNanoRepair        = "boolean",
@@ -382,6 +383,7 @@ function Exo:OnInitialized()
 
         self.timeSupportAbilityReady = 0
         self.timeSupportAbilityMissed = 0
+        self.timeRegenFieldEnd = 0
 
         -- This Mixin must be inited inside this OnInitialized() function.
         if not HasMixin(self, "MapBlip") then
@@ -1363,7 +1365,8 @@ function Exo:UpdateEjectHold(input)
         return
     end
 
-    if not self:GetIsPlaying() or self:GetEjectBlockedReason() then
+    -- GetCanEject is redundant with the blocked reason in stock, but mods (bootcamp) override it.
+    if not self:GetIsPlaying() or self:GetEjectBlockedReason() or not self:GetCanEject() then
 
         SetEjectHoldStart(self, nil)
         self.ejectHoldFraction = 0
@@ -2067,6 +2070,48 @@ local function GetSupportAbilityTargets(self)
 
 end
 
+local function GetCanReceiveSupport(moduleType, target)
+
+    if moduleType == kExoModuleTypes.NanoShield then
+        return HasMixin(target, "NanoShieldAble") and target:GetCanBeNanoShielded(true)
+    end
+
+    if moduleType == kExoModuleTypes.CatPack then
+
+        if not HasMixin(target, "CatPack") then
+            return false
+        end
+
+        -- timeCatpackboost is private to its owner, so another client only sees the boost flag.
+        if Client then
+            return not target:GetHasCatPackBoost()
+        end
+
+        return target:GetCanUseCatPack()
+
+    end
+
+    if moduleType == kExoModuleTypes.NanoRepair then
+        return target:GetHealth() < target:GetMaxHealth()
+    end
+
+    return true
+
+end
+
+function Exo:GetSupportAbilityTargetCount()
+
+    local count = 0
+    for _, target in ipairs(GetSupportAbilityTargets(self)) do
+        if GetCanReceiveSupport(self.abilityModuleType, target) then
+            count = count + 1
+        end
+    end
+
+    return count
+
+end
+
 local function RegenFieldTick(self)
 
     local ticksLeft = self.regenFieldTicksLeft or 0
@@ -2089,6 +2134,26 @@ local function RegenFieldTick(self)
     end
 
     return true
+
+end
+
+local function SendSupportFieldMessage(self, target, moduleType)
+
+    local messageName = "ExoRegenField"
+    if moduleType == kExoModuleTypes.NanoShield then
+        messageName = "ExoNanoShieldField"
+    elseif moduleType == kExoModuleTypes.CatPack then
+        messageName = "ExoCatalystField"
+    end
+
+    -- Mods that replace TeamMessenger.lua may carry an older kTeamMessageTypes, and a
+    -- missing enum element raises instead of returning nil.
+    local messageType = rawget(kTeamMessageTypes, messageName)
+    if not messageType then
+        return
+    end
+
+    Server.SendNetworkMessage(target, "TeamMessage", { type = messageType, data = self:GetClientIndex() }, true)
 
 end
 
@@ -2126,8 +2191,9 @@ function Exo:UpdateSupportAbility(input)
 
         for _, target in ipairs(targets) do
 
-            if HasMixin(target, "NanoShieldAble") and target:GetCanBeNanoShielded(true) then
+            if GetCanReceiveSupport(moduleType, target) then
                 target:ActivateNanoShield(true)
+                SendSupportFieldMessage(self, target, moduleType)
                 affected = affected + 1
             end
 
@@ -2137,9 +2203,9 @@ function Exo:UpdateSupportAbility(input)
 
         for _, target in ipairs(targets) do
 
-            if HasMixin(target, "CatPack") and target:GetCanUseCatPack() then
+            if GetCanReceiveSupport(moduleType, target) then
                 target:ApplyCatPack()
-                target:TriggerEffects("catpack_pickup", { effecthostcoords = target:GetCoords() })
+                SendSupportFieldMessage(self, target, moduleType)
                 affected = affected + 1
             end
 
@@ -2147,10 +2213,23 @@ function Exo:UpdateSupportAbility(input)
 
     elseif moduleType == kExoModuleTypes.NanoRepair then
 
-        if self.regenFieldTicksLeft == nil and #targets > 0 then
-            self.regenFieldTicksLeft = kExoRegenFieldDuration
-            self:AddTimedCallback(RegenFieldTick, 1)
-            affected = 1
+        if self.regenFieldTicksLeft == nil then
+
+            for _, target in ipairs(targets) do
+
+                if GetCanReceiveSupport(moduleType, target) then
+                    SendSupportFieldMessage(self, target, moduleType)
+                    affected = affected + 1
+                end
+
+            end
+
+            if affected > 0 then
+                self.regenFieldTicksLeft = kExoRegenFieldDuration
+                self.timeRegenFieldEnd = Shared.GetTime() + kExoRegenFieldDuration
+                self:AddTimedCallback(RegenFieldTick, 1)
+            end
+
         end
 
     end
@@ -2164,7 +2243,7 @@ function Exo:UpdateSupportAbility(input)
     end
 
     self.timeSupportAbilityReady = Shared.GetTime() + kExoSupportAbilityCooldown
-    self:TriggerEffects("exo_support_field")
+    self:TriggerEffects(moduleType == kExoModuleTypes.NanoRepair and "exo_regen_field" or "exo_support_field")
 
 end
 
