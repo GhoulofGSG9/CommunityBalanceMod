@@ -26,7 +26,6 @@ local kLines =
 }
 local kLineColors =
 {
-	[kNeutralTeamType] = Color(0.7, 0.3, 1, 0.5),
     [kMarineTeamType] = Color(0, 0.8, 1, 0.5),
     [kAlienTeamType] = Color(1, 0.4, 0, 0.5),
 }
@@ -96,7 +95,7 @@ local function CreateTechIcon(self, techId, position, teamType, modFunction, tex
 
 end
 
-local function CreateLine(self, startPoint, endPoint, teamType)
+local function CreateLine(self, startPoint, endPoint, teamType, colorOverride)
 
     local lineStartPoint = Vector(startPoint.x * kIconSize.x, startPoint.y * kIconSize.y, 0) + kHalfIconSize
     local lineEndPoint = Vector(endPoint.x * kIconSize.x, endPoint.y * kIconSize.y, 0) + kHalfIconSize
@@ -118,7 +117,11 @@ local function CreateLine(self, startPoint, endPoint, teamType)
     line:SetPosition(lineStartPoint)
     line:SetRotationOffset(Vector(-length, 0, 0))
     line:SetRotation(rotationVec)
-    line:SetColor(kLineColors[teamType])
+	if colorOverride then
+		line:SetColor(colorOverride)
+	else
+		line:SetColor(kLineColors[teamType])
+	end
     line:SetLayer(0) 
     
     self.background:AddChild(line)
@@ -190,11 +193,7 @@ function GUITechMap:Initialize()
         local line = lines[i]
         local startPoint = Vector(line[1], line[2] + offset, 0)
         local endPoint = Vector(line[3], line[4] + offset, 0)
-		if line[5] then
-			table.insert(self.lines, CreateLine(self, startPoint, endPoint, kNeutralTeamType))
-		else
-			table.insert(self.lines, CreateLine(self, startPoint, endPoint, self.teamType))
-		end
+		table.insert(self.lines, CreateLine(self, startPoint, endPoint, self.teamType, line[5]))
     
     end
     
