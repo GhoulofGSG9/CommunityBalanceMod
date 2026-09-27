@@ -37,6 +37,11 @@ local kFogOfWarEnts_hostToFog = {}
 local kFogOfWarEnts_fogToHost = {}
 local kFogOfWarEntsPool = {}
 
+function MapBlipMixin.GetFogEntityHost(fogEntity)
+    local hostId = fogEntity and kFogOfWarEnts_fogToHost[fogEntity:GetId()]
+    return hostId and Shared.GetEntity(hostId)
+end
+
 kFogOfWarEnabled = true
 if Server then
 
@@ -115,6 +120,7 @@ local function MapBlipMixinOnUpdateServer()
         end
     end
 end
+
 
 local function CreateMapBlip(self, blipType, blipTeam, _)
 
@@ -305,7 +311,8 @@ function MapBlipMixin:UpdateFogEntity(sighted)
 
     f.reentranceOff = true
     f:SetOrigin(orig)
-    f:SetAngles(self:GetAngles())
+    local fowardNormal = self:GetCoords().zAxis
+    f:SetAngles(Angles(0, math.atan2(fowardNormal.x, fowardNormal.z), 0))
 
     if isNewEntity then
         f:OnInitializedMapBlipMixin() -- Need to happen AFTER we set the custom host blips
@@ -363,6 +370,7 @@ function MapBlipMixin:StashFogEntity()
     self:SetTeamNumber(kTeamInvalid)
 
     self.lastBlipOrigin = nil
+    self.mapBlipSyncTick = nil
 
     if #kFogOfWarEntsPool > kMaxQueueSize then
         self:AddTimedCallback(DestroyEntity, 0)

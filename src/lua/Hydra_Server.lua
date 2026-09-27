@@ -42,7 +42,11 @@ function Hydra:CreateSpikeProjectile()
     if self.target.GetVelocity then
 
         local targetVelocity = self.target:GetVelocity()
-        engagementPoint = self.target:GetEngagementPoint() - ((targetVelocity:GetLength() * Hydra.kTargetVelocityFactor * theTimeToReachEnemy) * GetNormalizedVector(targetVelocity))
+        local targetSpeed = targetVelocity:GetLength()
+
+        if targetSpeed > 0.001 then
+            engagementPoint = self.target:GetEngagementPoint() - ((targetSpeed * Hydra.kTargetVelocityFactor * theTimeToReachEnemy) * GetNormalizedVector(targetVelocity))
+        end
 
     end
 
@@ -108,8 +112,8 @@ function Hydra:OnUpdate(deltaTime)
     
     ScriptActor.OnUpdate(self, deltaTime)
     
-	self.electrified = self.timeElectrifyEnds > Shared.GetTime()
-	
+    self.electrified = self.timeElectrifyEnds > Shared.GetTime()
+    
     if not self.timeLastUpdate then
         self.timeLastUpdate = Shared.GetTime()
     end

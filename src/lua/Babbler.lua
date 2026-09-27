@@ -73,11 +73,17 @@ local kUpdateAttackInterval = 0.4
 
 local kMinJumpDistance = 5
 local kBabblerRunSpeed = 8.2
-local kBabblerJumpSpeed = 7.75
-local kVerticalJumpForce = 6
-local kMaxJumpForce = 15
-local kMinJumpForce = 5
 local kTurnSpeed = math.pi
+
+
+
+local kMinJumpForce = 5           -- slowest horizontal speed a hop/leap will use
+local kMaxJumpForce = 15          -- fastest horizontal speed a hop/leap will use
+local kMaxVerticalJumpForce = 12  -- vertical speed cap, kept independent of horizontal speed
+
+local kBabblerGravity = 9.7 -- real gravity value measured (to compute flight time)
+local kLegacyGravityAssumption = 6.7 -- what the babbler code was tuned with (higher for stronger jumps)
+local kHeightTuningScale = kLegacyGravityAssumption / kBabblerGravity -- Adjust the forces
 
 -- Natural ground-movement wander: instead of beelining every path segment,
 -- drift a heading offset via a clamped random walk and nudge each tick's
@@ -100,7 +106,8 @@ function GetEngagementOrOrigin(entity)
     if entity:isa("Player") then
         return entity:GetEyePos() -- Like bees, aim for the eyes
     end
-    return HasMixin(entity, "Target") and entity:GetEngagementPoint() or entity:GetOrigin()
+    -- GetEngagementPoint returns TargetMixin's cached vector; writing into it moves the target's aim point for everyone
+    return HasMixin(entity, "Target") and Vector(entity:GetEngagementPoint()) or entity:GetOrigin()
 end
 
 -- Small helpers to avoid allocating temp vectors
@@ -375,6 +382,13 @@ function Babbler:DestroyHitbox()
     end
 end
 
+function Babbler:DestroyPhysicsBody()
+    if self.physicsBody then
+        Shared.DestroyCollisionObject(self.physicsBody)
+        self.physicsBody = nil
+    end
+end
+
 function Babbler:GetIsFlameAble()
     return true
 end
@@ -402,11 +416,7 @@ function Babbler:OnDestroy()
         self:Detach()
     end
 
-    if self.physicsBody then
-        Shared.DestroyCollisionObject(self.physicsBody)
-        self.physicsBody = nil
-    end
-
+    self:DestroyPhysicsBody()
     self:DestroyHitbox()
 
     if Client then
@@ -711,18 +721,19 @@ function Babbler:GetCanBeUsed(entity, useSuccessTable)
         success = false
     end
 
-    if success and HasMixin(entity, "BabblerCling") then
-        if not entity:GetCanAttachBabbler() then
-            success = false
-        end
-        if entity:GetNumClingedBabblers() >= entity:GetMaxClingedBabblers() then
-            success = false
-        end
+    if success and not HasMixin(entity, "BabblerCling") then
+        success = false
+    end
+
+    if success and not HasMixin(entity, "BabblerOwner") and entity:GetNumFreeDonationSpots() <= 0 then
+        success = false
     end
 
     useSuccessTable.useSuccess = success
 
 end
+
+
 
 function Babbler:GetUseAllowedBeforeGameStart()
     return true
@@ -739,11 +750,16 @@ end
 function Babbler:OnUse(player, elapsedTime, useSuccessTable)
     if Server and not self:GetIsClinged() then
 
-        if self:GetIsOnWeb() then
-            self:DetachFromWeb()
+        local isOwner = self:GetOwnerId() == player:GetId()
+        if HasMixin(player, "BabblerCling") and (isOwner or player:GetNumFreeDonationSpots() > 0) then
+
+            if self:GetIsOnWeb() then
+                self:DetachFromWeb()
+            end
+
+            self:OrderCling(player, GetEngagementOrOrigin(player))
         end
 
-        self:OrderCling(player, GetEngagementOrOrigin(player))
     end
 
     self:TriggerEffects("babbler_jump")
@@ -1050,39 +1066,19 @@ if Server then
     end
 
 
-    local kMoveVelocityScratch = Vector(0, 0, 0)
-    function Babbler:GetMoveVelocity(targetPos)
+    -- Returns velocity, flightTime (flightTime is when this arc lands, useful
+    -- for landing-safety checks and for pacing the next jump decision).
+    local kJumpPowerVariance = 0.2   -- +/- fraction of horizontal jump speed, rolled per jump
+    local kJumpHeightVariance = 0.15 -- +/- fraction of jump height, rolled per jump
+    local kArcClearance = 0.75 * kHeightTuningScale       -- padding added above the target's real height
+    local kDefaultMinArcHeight = 1.0 * kHeightTuningScale -- how high a level/downward hop still arcs
 
-        local moveVelocity = VecSub(kMoveVelocityScratch, targetPos, self:GetOrigin())
-        local yDiff = moveVelocity.y
-        local moveSpeedXZ = moveVelocity:GetLengthXZ()
+    local kArcVelocityScratch = Vector(0, 0, 0)
+    function Babbler:GetArcVelocity(targetPos, opts)
 
-        if moveSpeedXZ > kMaxJumpForce then
-            moveVelocity:Scale(kMaxJumpForce / moveSpeedXZ)
-        elseif moveSpeedXZ < kMinJumpForce then
-            moveVelocity:Scale(kMinJumpForce / (moveSpeedXZ + 0.0001))
-        end
+        opts = opts or {}
 
-        -- adjust jump height based on target's elevation
-        if yDiff > 3 then
-            moveVelocity.y = kVerticalJumpForce * 1.7
-        elseif yDiff > 2.2 then
-            moveVelocity.y = kVerticalJumpForce * 1.3
-        elseif yDiff > 1.5 then
-            moveVelocity.y = kVerticalJumpForce
-        else
-            moveVelocity.y = kVerticalJumpForce * 0.7
-        end
-
-        return moveVelocity
-
-    end
-
-    local kLeapVelocityScratch = Vector(0, 0, 0)
-    function Babbler:GetLeapVelocity(targetPos)
-        local babblerJumpGravity = 6.75
-
-        local dirXZ = VecSub(kLeapVelocityScratch, targetPos, self:GetOrigin())
+        local dirXZ = VecSub(kArcVelocityScratch, targetPos, self:GetOrigin())
         local heightDiff = dirXZ.y
         dirXZ.y = 0
 
@@ -1091,23 +1087,45 @@ if Server then
             dirXZ:Scale(1 / horizontalDist)
         end
 
-        local arcHeight = math.max(heightDiff + 0.75, 1)
-        local vY = math.sqrt(2 * babblerJumpGravity * arcHeight)
-        local timeUp = vY / babblerJumpGravity
-        local remainingHeight = arcHeight - heightDiff
-        local timeDown = math.sqrt(2 * remainingHeight / babblerJumpGravity)
+        -- Arc apex must clear the target's real height (heightDiff, never
+        -- scaled - it's level geometry) plus a little tuned padding, with
+        -- per-jump variance so hops at the same range bracket don't all arc
+        -- identically.
+        local arcHeight = math.max(heightDiff + kArcClearance, opts.minArcHeight or kDefaultMinArcHeight)
+        arcHeight = arcHeight * (1 + (math.random() - 0.35) * kJumpHeightVariance)
+
+        local vY = math.sqrt(2 * kBabblerGravity * arcHeight)
+        local timeUp = vY / kBabblerGravity
+        local remainingHeight = math.max(arcHeight - heightDiff, 0)
+        local timeDown = math.sqrt(2 * remainingHeight / kBabblerGravity)
         local totalTime = timeUp + timeDown
 
+        -- Horizontal speed is solved independently from vertical speed and
+        -- clamped on its own axis - it must never scale vY down too, or a
+        -- jump that needs to go both far AND up loses the very velocity that
+        -- gets it up in order to satisfy a horizontal-distance budget.
         local speedXZ = Clamp(horizontalDist / math.max(totalTime, 0.0001), kMinJumpForce, kMaxJumpForce)
+        speedXZ = Clamp(speedXZ * (1 + (math.random() - 0.5) * kJumpPowerVariance), kMinJumpForce, kMaxJumpForce)
+
         dirXZ:Scale(speedXZ)
-        dirXZ.y = vY
-        return dirXZ, totalTime -- caller needs totalTime to know when this arc actually lands
+        dirXZ.y = math.min(vY, kMaxVerticalJumpForce)
+
+        return dirXZ, totalTime
+
     end
 
-    local kJumpHangTimeEstimate = 0.8
-    function Babbler:GetIsSafeJumpVelocity(velocity)
+    function Babbler:GetMoveVelocity(targetPos)
+        return self:GetArcVelocity(targetPos)
+    end
 
-        local landingPos = self:GetOrigin() + Vector(velocity.x, 0, velocity.z) * kJumpHangTimeEstimate
+    function Babbler:GetLeapVelocity(targetPos)
+        return self:GetArcVelocity(targetPos)
+    end
+
+    local kJumpHangTimeEstimate = 0.8 -- fallback only, used when the caller has no computed flight time
+    function Babbler:GetIsSafeJumpVelocity(velocity, flightTime)
+
+        local landingPos = self:GetOrigin() + Vector(velocity.x, 0, velocity.z) * (flightTime or kJumpHangTimeEstimate)
 
         -- must have ground to land on...
         if GetGroundAt(self, landingPos, PhysicsMask.AIMovement) == landingPos then
@@ -1261,8 +1279,11 @@ if Server then
 
         if jumpProbability >= math.random() then
             if NoObstacleInWay(self, targetPos) then
-                self:Jump(self:GetMoveVelocity(targetPos))
-                success = true
+                local velocity, flightTime = self:GetArcVelocity(targetPos)
+                if self:GetIsSafeJumpVelocity(velocity, flightTime) then
+                    self:Jump(velocity)
+                    success = true
+                end
             end
         end
         return success
@@ -1284,19 +1305,17 @@ if Server then
         local deviation = 0.1 + math.random() * 0.2 -- How far they deviate from path when moving (no straight line, more variations)
         local highJumpProb = 0.05
         local targetOrigin = cursorNextPos or targetPos
-        local targetVelocity = Vector(math.random() - 0.5 < 0 and deviation or -deviation,
-                0.2 + deviation * 1.5 + (math.random() < highJumpProb and 1.6 or 0),
+        local sideOffset = Vector(math.random() - 0.5 < 0 and deviation or -deviation,
+                0,
                 math.random() - 0.5 < 0 and deviation or -deviation)
 
-        local moveVel = self:GetMoveVelocity(targetOrigin + targetVelocity)
-        local jumpSpeed = moveVel:GetLength()
+        -- Occasionally arc noticeably higher, for visual variety
+        local minArcHeight = (math.random() < highJumpProb) and (2.6 * kHeightTuningScale) or nil
 
-        if jumpSpeed > kBabblerJumpSpeed then
-            moveVel:Scale(kBabblerJumpSpeed / jumpSpeed)
-        end
+        local velocity, flightTime = self:GetArcVelocity(targetOrigin + sideOffset, { minArcHeight = minArcHeight })
 
-        if self:GetIsSafeJumpVelocity(moveVel) then
-            self:Jump(moveVel)
+        if self:GetIsSafeJumpVelocity(velocity, flightTime) then
+            self:Jump(velocity)
             self:TriggerUncloak()
         end
 
@@ -1361,28 +1380,14 @@ if Server then
             end            
 
             self.targetSelector:AttackerMoved()
-        else
+        else -- Safety net
              if self.doesGroundMove then
-        --         Log("%s Close from target, test ground state", self)
-                 --local ground = GetGroundAt(self, prevOrig, PhysicsMask.AIMovement, nil, true)
+                 local ground = GetGroundAt(self, prevOrig, PhysicsMask.AIMovement, nil, true)
 
-                --if prevOrig.y - ground.y > Babbler.kRadius or targetPos.y - prevOrig.y > Babbler.kRadius then
-                if targetPos.y - prevOrig.y > Babbler.kRadius then
+                if prevOrig.y - ground.y > Babbler.kRadius or targetPos.y - prevOrig.y > Babbler.kRadius then
                      self:SetGroundMoveType(false) -- Trigger falling
-        --             Log("%s LOCK STATE DETECTED (ground-diff: %s, target-diff: %s)",
-        --                 self,
-        --                 prevOrig.y - ground.y,
-        --                 targetPos.y - prevOrig.y
-        --                 )
-        --         else
-        --             Log("%s-%s Everything good (ground-diff: %s, target-diff: %s)",
-        --                 self, prevOrig,
-        --                 prevOrig.y - ground.y,
-        --                 targetPos.y - prevOrig.y
-        --                 )
-
-                 end
-             end
+                end
+            end
         end
 
         -- Errative jump behavior when going from one place to an other
@@ -1496,7 +1501,7 @@ if Server then
             WalkTowardAttachPoint(self, delta, distance, deltaTime)
         else -- Multi-leap upward (or level, or downward) toward targets
 
-            -- TODO: Bandaid fix (until we can figure out why GetGroundAt is not giving us the ground properly)
+            -- Last safeguard to prevent in-the-air stuck babblers (kept just in case)
             if self.doesGroundMove and self.lastOrigin:GetDistanceTo(self:GetOrigin()) < kEpsilon then
                 self:SetGroundMoveType(false)
             end
@@ -1507,7 +1512,7 @@ if Server then
                     leapTarget = orig + GetNormalizedVector(delta) * babblerMaxLeapDistance
                 end
 
-                local moveVelocity, flightTime = self:GetLeapVelocity(leapTarget)
+                local moveVelocity, flightTime = self:GetArcVelocity(leapTarget)
                 -- If target is above a 45/3 degree angle from us, need to jump
                 -- If we havn't jumped for a while (stuck ?) jump anyway
                 -- if (not obstacleInWay and yDiff > -0.5) or now - self.timeLastJump > 3 then
@@ -1678,29 +1683,58 @@ if Server then
     end
 
     local kAimLeadTime = kUpdateAttackInterval
+    local kPlayerAimLeadTime = 0.9  -- players get a longer lead - 0.4s isn't enough to cut off circle-strafing
     local function GetLeadPosition(target)
 
         local aimPos = GetEngagementOrOrigin(target)
+        local isMoving = false
 
         if target.GetVelocity then
             local velocity = target:GetVelocity()
             if velocity:GetLengthSquared() > kEpsilon then
-                VecAddScaled(aimPos, aimPos, velocity, kAimLeadTime)
+                local leadTime = target:isa("Player") and kPlayerAimLeadTime or kAimLeadTime
+                VecAddScaled(aimPos, aimPos, velocity, leadTime)
+                isMoving = true
             end
         end
 
-        return aimPos
+        return aimPos, isMoving
     end
 
     -- Launch-time scatter on top of the lead point, so a swarm doesn't all
-    -- jump at the exact same pixel.
-    local kAimJitterXZ = 1 / 3
-    local kAimJitterY = 1 / 1.8
-    local function GetJumpAimPoint(target)
-        local aimPos = GetLeadPosition(target)
-        aimPos.x = aimPos.x + (math.random() - 0.5) * kAimJitterXZ
-        aimPos.y = aimPos.y + math.random() * kAimJitterY
-        aimPos.z = aimPos.z + (math.random() - 0.5) * kAimJitterXZ
+    -- jump at the exact same pixel - and so no two jumps in the same chase
+    -- look alike, since this is freshly rolled every single jump.
+    local kAimJitterXZ = 1.1
+    local kAimJitterY = 1.0
+
+    local kStaticNudgeMinDist = 0.3
+    local kStaticNudgeMaxDist = 0.6
+    local function GetJumpAimPoint(self, target)
+        local aimPos, isMoving = GetLeadPosition(target)
+
+        if isMoving then
+            aimPos.x = aimPos.x + (math.random() - 0.5) * kAimJitterXZ
+            aimPos.z = aimPos.z + (math.random() - 0.5) * kAimJitterXZ
+        else
+            -- Only apply horizontal scatter for distant/static ground targets
+            local targetHeightDiff = aimPos.y - self:GetOrigin().y
+            
+            if targetHeightDiff <= 0.5 then
+                -- Minimal scatter for ground-level targets (still useful for hitbox coverage)
+                local angle = math.random() * math.pi * 2
+                local dist = 0.2 + math.random() * 0.2
+                aimPos.x = aimPos.x + math.cos(angle) * dist
+                aimPos.z = aimPos.z + math.sin(angle) * dist
+                
+                -- Tight vertical nudge for ground targets
+                aimPos.y = aimPos.y + (math.random() - 0.5) * 0.15
+            else
+                -- No horizontal scatter for elevated targets - preserve vertical momentum
+                -- Vertical scatter remains but centered closer to target height
+                aimPos.y = aimPos.y + (math.random() - 0.5) * 0.4
+            end
+        end
+
         return aimPos
     end
 
@@ -1722,10 +1756,17 @@ if Server then
         end
 
         local current = self:GetVelocity()
-        local desiredDir = (GetLeadPosition(target) - self:GetOrigin()):GetUnit()
-        local desiredVel = desiredDir * math.max(current:GetLength(), kHomingNudgeSpeed)
+        local leadPos = GetLeadPosition(target)
+        local toTargetXZ = Vector(leadPos.x - self:GetOrigin().x, 0, leadPos.z - self:GetOrigin().z)
 
-        self:SetVelocity(current + (desiredVel - current) * kHomingLerpFactor)
+        if toTargetXZ:GetLengthSquared() > kEpsilon then
+            local desiredDirXZ = GetNormalizedVectorXZ(toTargetXZ)
+            local currentSpeedXZ = math.max(current:GetLengthXZ(), kHomingNudgeSpeed)
+
+            current.x = current.x + (desiredDirXZ.x * currentSpeedXZ - current.x) * kHomingLerpFactor
+            current.z = current.z + (desiredDirXZ.z * currentSpeedXZ - current.z) * kHomingLerpFactor
+            self:SetVelocity(current)
+        end
 
         self.kStopImpulseDone = self.kStopImpulseDone + 1
         self.timeLastStopImpulse = now
@@ -1760,22 +1801,16 @@ if Server then
 
             if canReach then
 
-                local aimPos = GetJumpAimPoint(target)
-                local moveVel = self:GetMoveVelocity(aimPos)
+                local aimPos = GetJumpAimPoint(self, target)
 
+                local moveVel = self:GetArcVelocity(aimPos)
                 local distXZ = (aimPos - self:GetOrigin()):GetLengthXZ()
                 local desiredSpeedXZ = distXZ / kUpdateAttackInterval
                 local speedXZ = moveVel:GetLengthXZ()
                 if speedXZ > desiredSpeedXZ then
                     local scale = math.max(desiredSpeedXZ, kEpsilon) / speedXZ
                     moveVel.x = moveVel.x * scale
-                    moveVel.y = moveVel.y * scale
                     moveVel.z = moveVel.z * scale
-                end
-
-                local jumpSpeed = (self:GetVelocity() + moveVel):GetLength()
-                if jumpSpeed > kBabblerJumpSpeed then
-                    moveVel:Scale(kBabblerJumpSpeed / jumpSpeed)
                 end
 
                 self:Jump(moveVel)
@@ -2147,11 +2182,56 @@ if Server then
 
     end
 
+    local kMeasureGravity = false
+    local function MeasureGravity(self, velocity, deltaTime)
+
+        local isOnGround = self:GetIsOnGround()
+
+        -- Landed (or never left): flush and print whatever this flight collected.
+        if isOnGround then
+            if self.gravityMeasureCount and self.gravityMeasureCount > 0 then
+                Print("[gravity measure] %d samples, avg = %.3f, min = %.3f, max = %.3f",
+                        self.gravityMeasureCount,
+                        self.gravityMeasureSum / self.gravityMeasureCount,
+                        self.gravityMeasureMin, self.gravityMeasureMax)
+            end
+            self.gravityMeasureSum, self.gravityMeasureCount = nil, nil
+            self.gravityMeasureMin, self.gravityMeasureMax = nil, nil
+            return
+        end
+
+        -- Skip the tick a jump impulse lands on - that's a discrete velocity
+        -- change from AddImpulse, not gravity integrating over the timestep.
+        local now = Shared.GetTime()
+        local justJumped = self.timeLastJump and (now - self.timeLastJump) <= deltaTime
+
+        if not justJumped and self.lastVelocity and deltaTime > 0 then
+
+            local accelY = (self.lastVelocity.y - velocity.y) / deltaTime -- positive = being pulled down
+
+            -- Sanity bounds reject the occasional bounce/collision tick (which
+            -- shows up as a negative or wildly large "gravity") without us
+            -- having to specifically detect collisions.
+            if accelY > 1 and accelY < 100 then
+                self.gravityMeasureSum = (self.gravityMeasureSum or 0) + accelY
+                self.gravityMeasureCount = (self.gravityMeasureCount or 0) + 1
+                self.gravityMeasureMin = math.min(self.gravityMeasureMin or accelY, accelY)
+                self.gravityMeasureMax = math.max(self.gravityMeasureMax or accelY, accelY)
+            end
+
+        end
+
+    end
+
     function Babbler:UpdateJumpPhysics(deltaTime)
 
         local velocity = self:GetVelocity()  -- Current velocity from physics body
 
         if self.physicsBody and not self.doesGroundMove then
+
+            if kMeasureGravity then
+                MeasureGravity(self, velocity, deltaTime)
+            end
 
             local coords = self.physicsBody:GetCoords()
             local origin = coords.origin  -- Current physics position
@@ -2242,12 +2322,13 @@ if Server then
             self.physicsBody:SetLinearDamping(Babbler.kLinearDampingAtSpawn)
             self.physicsBody:SetRestitution(Babbler.kRestitution)
 
+            self.physicsBody:SetEntity(self)
+
             self:AddTimedCallback(BabblerSetLinearDampingCallback, kFinalDampingAfterDelay)
 
 
-        elseif (isClinged or isOnWeb) and self.physicsBody then
-            Shared.DestroyCollisionObject(self.physicsBody)
-            self.physicsBody = nil
+        elseif (isClinged or isOnWeb) then
+            self:DestroyPhysicsBody()
         end
     end
 

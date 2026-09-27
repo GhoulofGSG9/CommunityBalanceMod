@@ -97,7 +97,7 @@ local networkVars =
     attacking = "boolean",
     hydraParentId = "entityid",
     variant = "enum kHydraVariants",
-	electrified = "boolean"
+    electrified = "boolean"
 }
 
 AddMixinNetworkVars(BaseModelMixin, networkVars)
@@ -148,7 +148,7 @@ function Hydra:OnCreate()
     InitMixin(self, FireMixin)
     InitMixin(self, TeleportMixin)
     InitMixin(self, UmbraMixin)
-	InitMixin(self, DouseMixin)
+    InitMixin(self, DouseMixin)
     InitMixin(self, OrdersMixin, { kMoveOrderCompleteDistance = kAIMoveOrderCompleteDistance })
     InitMixin(self, DissolveMixin)
     InitMixin(self, MaturityMixin)
@@ -165,8 +165,8 @@ function Hydra:OnCreate()
         InitMixin(self, InfestationTrackerMixin)
 
         self:SetUpdates(true, self:GetUpdatesRate())
-		self.electrified = false
-		self.timeElectrifyEnds = 0
+        self.electrified = false
+        self.timeElectrifyEnds = 0
     end
 
 end
@@ -430,7 +430,7 @@ function Hydra:GetEngagementPointOverride()
 end
 
 function Hydra:GetRagdollTextureIndex()
-    if self.variant == kGorgeVariants.toxin then
+    if self.variant == kHydraVariants.Toxin then
         return 1
     end
     
@@ -461,23 +461,23 @@ function Hydra:OnUpdateRender()
         self.decal = nil
     end
 
-	local model = self:GetRenderModel()
-	local electrified = self.electrified
+    local model = self:GetRenderModel()
+    local electrified = self.electrified
 
-	if model then
-		if self.electrifiedClient ~= electrified then
-		
-			if electrified then
-				self.electrifiedMaterial = AddMaterial(model, Alien.kElectrifiedThirdpersonMaterialName)
-				self.electrifiedMaterial:SetParameter("elecAmount",  1.5)
-			else
-				if RemoveMaterial(model, self.electrifiedMaterial) then
-					self.electrifiedMaterial = nil
-				end
-			end
-			self.electrifiedClient = electrified
-		end
-	end
+    if model then
+        if self.electrifiedClient ~= electrified then
+        
+            if electrified then
+                self.electrifiedMaterial = AddMaterial(model, Alien.kElectrifiedThirdpersonMaterialName)
+                self.electrifiedMaterial:SetParameter("elecAmount",  1.5)
+            else
+                if RemoveMaterial(model, self.electrifiedMaterial) then
+                    self.electrifiedMaterial = nil
+                end
+            end
+            self.electrifiedClient = electrified
+        end
+    end
 
     if self.dirtySkinState and not self.delayedSkinUpdate then
         if model then

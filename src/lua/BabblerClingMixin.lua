@@ -221,11 +221,19 @@ if Server then
             self.numBabblers = self.numBabblers + 1
             self.babblerShieldRemaining = self.babblerShieldRemaining + self.babblerShieldPerBabbler
 
-            -- Do not count babblers you attach on yourself
+            -- Only the babbler's original owner (the gorge that hatched it) can ever earn
+            -- donation points for it, and only once - on the first time it's handed off.
+            -- Without gating on hasChangedOwner, passing a babbler back and forth between
+            -- two BabblerCling owners would pay out points on every single hand-off.
             if previousOwner and previousOwner ~= self and not disablePoints
+                    and not babbler.hasChangedOwner
                     and previousOwner.AddContinuousScore then
                 local amountGiven = 1
                 previousOwner:AddContinuousScore("BabblerDonation", amountGiven, BabblerClingMixin.kAmountDonatedForPoints, BabblerClingMixin.kDonationScoreAdded)
+            end
+
+            if previousOwner and previousOwner ~= self then
+                babbler.hasChangedOwner = true
             end
 
             babbler:SetParent(self)

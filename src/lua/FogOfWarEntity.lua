@@ -8,8 +8,8 @@ class 'FogOfWarEntity' (ScriptActor)
 FogOfWarEntity.kMapName = "fogOfwarentity"
 
 kFogBlipLifetime = 30
-kFogPlayerBlipLifetime = 3
-kFogPlayerBlipFadeTime = 2
+kFogPlayerBlipLifetime = 1 -- player-related fog blips now stay fully visible for 2s (fade-out time is additional, see kFogPlayerBlipFadeTime)
+kFogPlayerBlipFadeTime = 0.6 -- shortened fade-out
 
 local networkVars =
 {
@@ -73,7 +73,12 @@ function FogOfWarEntity:OnUpdate()
         if inViewRange and GetIsUnitActive(e) then
             local seen = self:OverrideCheckVisibilty(e)
             if seen then
-                self:SetFogEntMapBlipInfo(false)
+                local host = MapBlipMixin.GetFogEntityHost(self)
+                if host and HasMixin(host, "LOS") then
+                    host:SetIsSighted(true, e)
+                else
+                    self:SetFogEntMapBlipInfo(false)
+                end
                 return
             end
         end
