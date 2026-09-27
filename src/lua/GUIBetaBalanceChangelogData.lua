@@ -69,7 +69,7 @@ if kCBMaddon then
 	  - The Prototype Lab opens straight on the exosuit configuration page.
 	    - Stat bars preview the module under the cursor. Every module has a short description.
 	    - Grey or red items say why they cannot be bought: research, pres or an incompatible arm.
-	  - Refit at any built Armory: pay the price difference plus 5 pres. Damage carries over, so a full suit stays full.
+	  - Refit at any built Armory: pay the price difference plus 5 pres. Damage carries over, so a full suit stays full. Looking at one in an exosuit shows a Refit Exosuit hint.
 	  - Exosuits can use armories and labs from 2.4 m away.
 	  - Eject by holding the drop key for 1 s. The HUD shows the progress and why ejecting is blocked (combat, airborne, deploying).
 	  - An ejected suit keeps its armor and can be entered again.
@@ -734,7 +734,7 @@ else
 	  - The Prototype Lab opens straight on the exosuit configuration page.
 	    - Stat bars preview the module under the cursor. Every module has a short description.
 	    - Grey or red items say why they cannot be bought: research, pres or an incompatible arm.
-	  - Refit at any built Armory: pay the price difference plus 5 pres. Damage carries over, so a full suit stays full.
+	  - Refit at any built Armory: pay the price difference plus 5 pres. Damage carries over, so a full suit stays full. Looking at one in an exosuit shows a Refit Exosuit hint.
 	  - Exosuits can use armories and labs from 2.4 m away.
 	  - Eject by holding the drop key for 1 s. The HUD shows the progress and why ejecting is blocked (combat, airborne, deploying).
 	  - An ejected suit keeps its armor and can be entered again.

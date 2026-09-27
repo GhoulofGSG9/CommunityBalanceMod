@@ -202,6 +202,7 @@ if Client then
 	-- Exosuit configuration page
 	Locale.substitutions["EXOSUIT_MODULAR_TOOLTIP"] = "Configurable heavy armor. Arms, core module and support ability are chosen at the Exosuit Prototype Lab, and a fitted exosuit can be refitted at any Armory."
 	Locale.substitutions["EXOSUIT_MODULAR_BUYDESCRIPTION"] = "Heavy powered armor: a large armor pool at the cost of mobility. Cannot build or command; welders and MACs repair it. Refit at any Armory."
+	Locale.substitutions["EXO_REFIT"] = "Refit Exosuit"
 	Locale.substitutions["EXO_MODULESLOT_LEFT_ARM"] = "Left Arm Weapon"
 	Locale.substitutions["EXO_MODULESLOT_RIGHT_ARM"] = "Right Arm Weapon"
 	Locale.substitutions["EXO_MODULESLOT_UTILITY"] = "Core Module"
