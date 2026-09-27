@@ -57,13 +57,15 @@ if kCBMaddon then
 	  - Thrusters: use 3x fuel in the air.
 	  - Ejection Seat: eject in 0.5 s instead of 1 s. When the armor runs low, the seat throws the pilot out, even mid-air. The suit is lost.
 	  - Armor Plating: +80 armor.
-	  - Support ability: press Reload, 120 s cooldown, affects marines within 8 m.
+	  - Support ability: press Reload, 90 s cooldown, affects marines within 8 m.
 	    - Nano Shield Field: 1.5 s shield, 20% less damage.
 	    - Catalyst Field: catalyst for nearby marines.
-	    - Regen Field: heals health over time, shown on the health bar like a medpack.
+	    - Regen Field: heals injured marines 12 health a second for 5 s, shown on the health bar like a medpack.
 	    - Marines already under a nano shield, or boosted by catalyst in the last 4 s, are skipped, so a commander's drop is never replaced.
-	    - With no marine in range, or none the nano or catalyst field can affect, the charge is kept. The cooldown survives refits and ejecting.
-	    - While the ability is ready, the pilot sees its range as a field on the ground.
+	    - With no marine in range the field can affect (for Regen Field: no injured marine), the charge is kept. The cooldown survives refits and ejecting.
+	    - When the ability is ready, its range pulses on the ground for 3 s, and for 1 s after a press that found nobody.
+	    - The HUD shows how many marines the field would affect, and dims at none.
+	    - Buffed marines see "<field> from <pilot>". The pilot sees boosted marines outlined pink and healing ones green; commanders see the green too.
 
 	### Exosuits: Buying, Refitting and Ejecting
 	  - The Prototype Lab opens straight on the exosuit configuration page.
@@ -74,13 +76,14 @@ if kCBMaddon then
 	  - Eject by holding the drop key for 1 s. The HUD shows the progress and why ejecting is blocked (combat, airborne, deploying). A warm-up sound plays while the key is held, for the pilot and nearby players.
 	  - An ejected suit keeps its armor and can be entered again.
 	  - The loadout shows on the suit: idle flame and plasma arms puff, the Ejection Seat blinks orange, Armor Plating glows at the edges.
-	  - Bots buy and use modular exosuits.
+	  - Bots buy and use modular exosuits, including a core module and a support ability.
 	  - The tech map shows the lab researches, and Jetpack under the Advanced Armory.
 
 	### Exosuits: Fixes
 	  - Railgun target highlight works again, refreshes faster and is TSF blue.
 	  - The classic ammo counter shows plasma launcher shots.
 	  - Fixed exosuit purchases being handled twice on the server.
+	  - Armor Plating and the support fields have their own help screen icons.
 	
 	### PvE
 	  - Base alien support structures now all cost 10 tres from 8 (Advanced to 18 tres from 20).
@@ -722,13 +725,15 @@ else
 	  - Thrusters: use 3x fuel in the air.
 	  - Ejection Seat: eject in 0.5 s instead of 1 s. When the armor runs low, the seat throws the pilot out, even mid-air. The suit is lost.
 	  - Armor Plating: +80 armor.
-	  - Support ability: press Reload, 120 s cooldown, affects marines within 8 m.
+	  - Support ability: press Reload, 90 s cooldown, affects marines within 8 m.
 	    - Nano Shield Field: 1.5 s shield, 20% less damage.
 	    - Catalyst Field: catalyst for nearby marines.
-	    - Regen Field: heals health over time, shown on the health bar like a medpack.
+	    - Regen Field: heals injured marines 12 health a second for 5 s, shown on the health bar like a medpack.
 	    - Marines already under a nano shield, or boosted by catalyst in the last 4 s, are skipped, so a commander's drop is never replaced.
-	    - With no marine in range, or none the nano or catalyst field can affect, the charge is kept. The cooldown survives refits and ejecting.
-	    - While the ability is ready, the pilot sees its range as a field on the ground.
+	    - With no marine in range the field can affect (for Regen Field: no injured marine), the charge is kept. The cooldown survives refits and ejecting.
+	    - When the ability is ready, its range pulses on the ground for 3 s, and for 1 s after a press that found nobody.
+	    - The HUD shows how many marines the field would affect, and dims at none.
+	    - Buffed marines see "<field> from <pilot>". The pilot sees boosted marines outlined pink and healing ones green; commanders see the green too.
 
 	### Exosuits: Buying, Refitting and Ejecting
 	  - The Prototype Lab opens straight on the exosuit configuration page.
@@ -739,13 +744,14 @@ else
 	  - Eject by holding the drop key for 1 s. The HUD shows the progress and why ejecting is blocked (combat, airborne, deploying). A warm-up sound plays while the key is held, for the pilot and nearby players.
 	  - An ejected suit keeps its armor and can be entered again.
 	  - The loadout shows on the suit: idle flame and plasma arms puff, the Ejection Seat blinks orange, Armor Plating glows at the edges.
-	  - Bots buy and use modular exosuits.
+	  - Bots buy and use modular exosuits, including a core module and a support ability.
 	  - The tech map shows the lab researches, and Jetpack under the Advanced Armory.
 
 	### Exosuits: Fixes
 	  - Railgun target highlight works again, refreshes faster and is TSF blue.
 	  - The classic ammo counter shows plasma launcher shots.
 	  - Fixed exosuit purchases being handled twice on the server.
+	  - Armor Plating and the support fields have their own help screen icons.
 	
 	### PvE
 	  - Base alien support structures now all cost 10 tres from 8 (Advanced to 18 tres from 20).
