@@ -561,7 +561,7 @@ if Client then
         local fogFading = self.isFogOfWarMapBlip and MapBlip.kFogFadeoutEnabled and self.fogExpireTime
                 and self.fogExpireTime > 0 and (self.fogExpireTime - Shared.GetTime()) < kFogPlayerBlipFadeTime
 
-        return self.isFogOfWarMapBlip and (fogFading and kMinimapActivity.Medium or kMinimapActivity.Static) or
+        return self.isFogOfWarMapBlip and (fogFading and kMinimapActivity.High or kMinimapActivity.Static) or
                 self.isInCombat and self.combatActivity or
                 isMoving and self.movingActivity or
                 self.defaultActivity
