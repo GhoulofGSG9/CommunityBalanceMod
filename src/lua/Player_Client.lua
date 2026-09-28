@@ -626,6 +626,12 @@ function PlayerUI_GetStatusInfoForUnit(player, unit)
         IsParasited = HasMixin(unit, "ParasiteAble") and unit:GetIsParasited(),
         CommHealthBarsToggle = visibleToPlayer and player:GetCommHealthBarsShown() and not areEnemies and not unit:isa("Weapon"),
         MaturityFraction = maturityFraction,
+        -- cache keys for the fast path above
+        LastHP = hp,
+        LastAP = ap,
+        LastHealthScalar = healthScalar,
+        IsExoLike = isExo,
+        PercentMode = percentMode,
     }
 
     if unit.GetTeamNumber then
@@ -716,12 +722,14 @@ function PlayerUI_GetUnitStatusInfo()
             range = kUnitStatusCommanderDisplayRange
         end
 
+        local count = 0
         for _, unit in ipairs(GetEntitiesWithMixinWithinRange("UnitStatus", eyePos, range)) do
 
             local unitState = PlayerUI_GetStatusInfoForUnit(player, unit)
 
             if unitState then
-                table.insert(unitStates, unitState)
+                count = count + 1
+                unitStates[count] = unitState
             end
 
         end
