@@ -243,7 +243,7 @@ function Flamethrower:ApplyConeDamage(player)
     local eyePos = player:GetEyePos()
     local ents = {}
 
-    local fireDirection = player:GetViewCoords().zAxis
+    local fireDirection = player:GetViewCoordsZAxis()
     local extents = Vector(self.kConeWidth, self.kConeWidth, self.kConeWidth)
     local range = self:GetRange()
 
