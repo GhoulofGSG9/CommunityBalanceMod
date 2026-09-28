@@ -886,6 +886,10 @@ function HelpScreen_InitializeContent()
         name = "AdvancedSwipe",
         title = "HELP_SCREEN_ADVANCED_SWIPE",
         requirementFunction = function()
+            local player = Client.GetLocalPlayer()
+            if player and player.GetHasAdvancedSwipe and player:GetHasAdvancedSwipe() then
+                return true
+            end
             local result, msg = EvaluateTechAvailability(kTechId.AdvancedSwipe, "HELP_SCREEN_ADVANCED_SWIPE_REQUIREMENT")
             return result, msg
         end,

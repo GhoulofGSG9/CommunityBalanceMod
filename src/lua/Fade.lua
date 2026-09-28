@@ -117,6 +117,8 @@ local networkVars =
     
     timeOfLastPhase = "time",
 
+    advancedSwipe = "private boolean",
+
 }
 
 AddMixinNetworkVars(BaseMoveMixin, networkVars)
@@ -168,6 +170,7 @@ function Fade:OnCreate()
     self.etherealEndTime = 0
     self.ethereal = false
     self.landedAfterBlink = true
+    self.advancedSwipe = false
 
 end
 
@@ -517,6 +520,10 @@ function Fade:GetCanMetabolizeHealth()
     return self:GetHasTwoHives()
 end
 
+function Fade:GetHasAdvancedSwipe()
+    return self.advancedSwipe
+end
+
 function Fade:OverrideInput(input)
 
     Alien.OverrideInput(self, input)
@@ -540,6 +547,10 @@ function Fade:OnProcessMove(input)
 
         if self.isScanned and self.timeLastScan + kFadeScanDuration < Shared.GetTime() then
             self.isScanned = false
+        end
+
+        if not self.advancedSwipe and (GetGamerules():GetAllTech() or GetHasTech(self, kTechId.AdvancedSwipe, true)) then
+            self.advancedSwipe = true
         end
 
     end

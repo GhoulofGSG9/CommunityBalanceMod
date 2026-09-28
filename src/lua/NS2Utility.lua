@@ -3208,8 +3208,11 @@ function GetTexCoordsForTechId(techId)
 
     end
 
-    if techId == kTechId.Swipe and Client and GetHasTech(nil, kTechId.AdvancedSwipe, true) then
-        techId = kTechId.AdvancedSwipe
+    if techId == kTechId.Swipe and Client then
+        local player = Client.GetLocalPlayer()
+        if player and player.GetHasAdvancedSwipe and player:GetHasAdvancedSwipe() then
+            techId = kTechId.AdvancedSwipe
+        end
     end
 
     local position = gTechIdPosition[techId]

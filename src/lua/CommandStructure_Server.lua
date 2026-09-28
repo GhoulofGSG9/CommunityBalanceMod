@@ -202,7 +202,9 @@ function CommandStructure:LoginPlayer(player,forced)
     
     -- Create Commander player
     local className = self:GetCommanderClassName()
+    local advancedSwipe = player.advancedSwipe
     local commanderPlayer = player:Replace(className, player:GetTeamNumber(), true, commanderStartOrigin)
+    commanderPlayer.advancedSwipe = advancedSwipe
     if not commanderPlayer:GetIsVirtual() then
     --When a Bot commander is logged in, and a CC is destroyed, they switch so fast, they do not become "Commander"
     --it's safe in this context, due to how Bot commanders are handled (i.e. don't 'lock' CC/Hive), so allow it.
@@ -398,6 +400,7 @@ function CommandStructure:Logout()
         returnPlayer.oneHive = commander.oneHive
         returnPlayer.twoHives = commander.twoHives
         returnPlayer.threeHives = commander.threeHives
+        returnPlayer.advancedSwipe = commander.advancedSwipe
         
         -- TODO: trigger client side in OnTag
         self:TriggerEffects(self:isa("Hive") and "hive_logout" or "commandstation_logout")

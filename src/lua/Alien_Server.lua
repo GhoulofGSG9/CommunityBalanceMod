@@ -25,6 +25,7 @@ function Alien:Reset()
         self.oneHive = false
         self.twoHives = false
         self.threeHives = false
+        self.advancedSwipe = false
     end
     
 end
@@ -243,6 +244,7 @@ function Alien:ProcessBuyAction(techIds)
                     newPlayer.oneHive = false
                     newPlayer.twoHives = false
                     newPlayer.threeHives = false
+                    newPlayer.advancedSwipe = false
                 end
                 
                 success = true
@@ -280,6 +282,7 @@ function Alien:OnKill(attacker, doer, point, direction)
     self.oneHive = false
     self.twoHives = false
     self.threeHives = false
+    self.advancedSwipe = false
     
     if self.isHallucination then
         self:TriggerEffects("death_hallucination")
@@ -336,6 +339,7 @@ function Alien:CopyPlayerDataFrom(player)
         self.oneHive = player.oneHive
         self.twoHives = player.twoHives
         self.threeHives = player.threeHives
+        self.advancedSwipe = player.advancedSwipe
         
     end
     
