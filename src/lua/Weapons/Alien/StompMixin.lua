@@ -67,7 +67,7 @@ function StompMixin:PerformStomp(player)
 
     if Server then
 
-        local direction = GetNormalizedVectorXZ(player:GetViewCoords().zAxis)
+        local direction = GetNormalizedVectorXZ(player:GetViewCoordsZAxis())
         local shockwaveOrigin = stompOrigin + Vector.yAxis * 0.2 + direction * 0.4
 
         local shockwave = CreateEntity(Shockwave.kMapName, shockwaveOrigin, self:GetTeamNumber())
