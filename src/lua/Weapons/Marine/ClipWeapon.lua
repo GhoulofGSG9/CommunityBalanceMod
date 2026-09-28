@@ -627,10 +627,17 @@ function ClipWeapon:GetMaxAllowedDelaySinceAttackRequest()
     return 0.1
 end
 
-function ClipWeapon:GetIsAllowedToShoot(player)
+-- Only returns the parent if we are allowed to shoot
+function ClipWeapon:GetIsAllowedToShoot()
     local timeSinceAttackKeyReleased = Shared.GetTime() - self.attackLastRequested
     -- Log("%s: player %s, clip %s, tsakr %s, allowed %s", self, player, self.clip, timeSinceAttackKeyReleased, self:GetMaxAllowedDelaySinceAttackRequest())
-    return player and self.clip > 0 and timeSinceAttackKeyReleased < self:GetMaxAllowedDelaySinceAttackRequest()
+    if self.clip > 0 and timeSinceAttackKeyReleased < self:GetMaxAllowedDelaySinceAttackRequest() then
+        local parent = self:GetParent()
+        if parent then
+            return true, parent
+        end
+    end
+    return false, nil
 end
 
 function ClipWeapon:OnTag(tagName)
@@ -638,26 +645,24 @@ function ClipWeapon:OnTag(tagName)
     PROFILE("ClipWeapon:OnTag")
 
     if tagName == "shoot" then
-    
-        local player = self:GetParent()
         
         -- We can get a shoot tag even when the clip is empty if the frame rate is low
         -- and the animation loops before we have time to change the state.
         -- we can also get tag from other weapons whose animation is running, so make sure that we are actually
         -- attacking before we act on the shoot.
-        if self:GetIsAllowedToShoot(player) then
+        local isAllowed, parent = self:GetIsAllowedToShoot()
+        if isAllowed then
         
-            self:FirePrimary(player)
+            self:FirePrimary(parent)
             
             -- Don't decrement ammo in Darwin mode
-            if not player or not player:GetDarwinMode() then
+            if not parent:GetDarwinMode() then
                 self.clip = self.clip - 1
             end
             
-            self:CreatePrimaryAttackEffect(player)
+            self:CreatePrimaryAttackEffect(parent)
             
             self.timeAttackFired = Shared.GetTime()
-            
             self.shooting = true
             
             --DebugFireRate(self)
@@ -666,7 +671,10 @@ function ClipWeapon:OnTag(tagName)
         
         -- If we fired the last bullet, reload immediatly
         if self.clip == 0 and self.ammo > 0 then
-            player:Reload()
+            parent = self:GetParent()
+            if parent then
+                parent:Reload()
+            end
         end
            
     elseif tagName == "reload" then

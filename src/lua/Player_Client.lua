@@ -50,6 +50,9 @@ local kAlienPingSound = PrecacheAsset("sound/NS2.fev/alien/commander/ping")
 
 local kDefaultFirstPersonEffectName = PrecacheAsset("cinematics/marine/hit_1p.cinematic")
 
+local math_ceil = math.ceil
+local math_max = math.max
+
 Client.PrecacheLocalSound(kDefaultPingSound)
 Client.PrecacheLocalSound(kMarinePingSound)
 Client.PrecacheLocalSound(kAlienPingSound)
@@ -419,224 +422,285 @@ function PlayerUI_ShowsUnitStatusInfo(player, unit)
     return UnitIsSelectedByLocalCommander(player, unit) or unit == player:GetCrossHairTarget() or player:GetHasMarkedTarget(unit)
 end
 
+local function formatInt(a)
+    return tostring(math_max(1, math_ceil(a)))
+end
+
+-- Precomputed "health/armor" strings for a full-health marine at each armor upgrade level
+local kMarinesFullStatusHpAp = {}
+for level = 0, 3 do
+    local ap = kMarineArmor + kArmorPerUpgradeLevel * level
+    kMarinesFullStatusHpAp[ap] = tostring(kMarineHealth) .. "/" .. tostring(math_ceil(ap))
+end
+
+local function formatIntSlash(hp, ap)
+    return (hp == kMarineHealth and kMarinesFullStatusHpAp[ap])
+        or (tostring(math_max(1, math_ceil(hp))) .. "/" .. tostring(math_ceil(ap)))
+end
+
+local function formatPercent(a)
+    return a == 1 and "100%" or (tostring(math_max(1, math_ceil(a * 100))) .. "%")
+end
+
+local PERCENT_NEVER, PERCENT_ALWAYS, PERCENT_IF_ENEMY_EMBRYO = 0, 1, 2
+
 function PlayerUI_GetStatusInfoForUnit(player, unit)
 
     PROFILE("PlayerUI_GetStatusInfoForUnit")
 
-    -- checks here if the model was rendered previous frame as well
-    if unit:GetShowUnitStatusFor(player) then
+    if not unit:GetShowUnitStatusFor(player) then
+        return nil
+    end
 
-        -- Get direction to blip. If off-screen, don't render. Bad values are generated if
-        -- Client.WorldToScreen is called on a point behind the camera.
-        local dotProduct, origin, worldOrigin, distance, healthBarOrigin = PlayerUI_GetPositionalInfo(player, unit)
+    local dotProduct, origin, worldOrigin, distance, healthBarOrigin = PlayerUI_GetPositionalInfo(player, unit)
+    if dotProduct <= 0 then
+        return nil
+    end
 
-        if dotProduct > 0 then
+    local unitState = unit:GetUnitState(player)
 
-            local unitState = unit:GetUnitState(player)
+    -- Static per-unit facts: computed once, then read from the cached state
+    local isExo, percentMode, isTechPointOrRT
+    if unitState then
+        isExo = unitState.IsExoLike
+        percentMode = unitState.PercentMode
+    end
 
-            -- we always want to update the most important unit status informations (hp)
-            local health = 0
-            local armor = 0
-            local regen = 0
-            local healthArmorString
-            local percentageString
+    if isExo == nil or percentMode == nil then
+        local mapName = unit:GetMapName()
+        isTechPointOrRT = (mapName == TechPoint.kMapName or mapName == ResourcePoint.kPointMapName)
+        isExo = unit:isa("Exo") or unit:isa("Exosuit")
 
-            if HasMixin(unit, "Live") and (not unit.GetShowHealthFor or unit:GetShowHealthFor(player)) then
-
-                health = unit:GetHealthFraction()
-                armor = unit:GetArmorScalar()
-
-                if HasMixin(unit, "Regeneration") then
-                    regen = unit:GetRegenerationFraction()
-                end
-
-                if unit:isa("Exo") or unit:isa("Exosuit") then
-                    healthArmorString = string.format("%d",math.max(1, math.ceil(unit:GetArmor())))
-                else
-                    healthArmorString = string.format("%d/%d", math.max(1, math.ceil(unit:GetHealth())), math.ceil(unit:GetArmor()))
-                end
-
-                if (unit:GetMapName() ~= TechPoint.kMapName and unit:GetMapName() ~= ResourcePoint.kPointMapName) then
-
-                    if not unit:isa("Player") or (unit:isa("Embryo") and GetAreEnemies(player, unit)) then
-
-                        percentageString = string.format("%d%%", math.max(1, math.ceil(unit:GetHealthScalar()*100)))
-                    end
-                end
-
-            end
-
-            local losSighted = true
-            if HasMixin(unit, "LOS") then
-                losSighted = unit:GetIsSighted()
-            end
-
-            -- use cached unit state
-            if unitState then
-                -- update position
-                unitState.Position = origin
-                unitState.WorldOrigin = worldOrigin
-                unitState.HealthBarPosition = healthBarOrigin
-
-                --update most important information
-                unitState.HealthFraction = health
-                unitState.RegenFraction = regen
-                unitState.ArmorFraction = armor
-                unitState.HealthAndArmorFraction = healthArmorString
-                unitState.HealthAndArmorPercentage = percentageString
-                unitState.LOSSighted = losSighted or unitState.IsFriend
-
-                return unitState
-            end
-
-            local statusFraction = unit:GetUnitStatusFraction(player)
-            local description = unit:GetUnitName(player)
-            local action = unit:GetActionName(player)
-            local hint = unit:GetUnitHint2(player)
-
-            local visibleToPlayer = true
-            local isPlayer = unit:isa("Player") and not unit:isa("Embryo")
-            local areEnemies = GetAreEnemies(player, unit)
-        
-            if HasMixin(unit, "Cloakable") and areEnemies then
-
-                if unit:GetIsCloaked() or (isPlayer and unit:GetCloakFraction() > 0.2) then
-                    visibleToPlayer = false
-                end
-
-            end
-
-            local showsUnitStatusInfo = PlayerUI_ShowsUnitStatusInfo(player, unit)
-            if not showsUnitStatusInfo then
-                description = ""
-                action = ""
-                hint = ""
-            end
-
-            -- Don't show tech points or nozzles if they are attached
-            if visibleToPlayer and (unit:GetMapName() == TechPoint.kMapName or unit:GetMapName() == ResourcePoint.kPointMapName) and unit.GetAttached and (unit:GetAttached() ~= nil) then
-                visibleToPlayer = false
-            end
-
-            local badgeTextures = {}
-
-            if isPlayer then
-                if not unit.GetShowBadgeOverride or unit:GetShowBadgeOverride() then
-                    badgeTextures = Badges_GetBadgeTextures(unit:GetClientIndex(), "unitstatus") or {}
-                end
-            end
-
-            local hasWelder = false
-            if distance < 10 then
-                hasWelder = unit:GetHasWelder(player)
-            end
-
-            local abilityFraction = 0
-            if player:isa("Commander") then
-                abilityFraction = unit:GetAbilityFraction(player)
-            end
-            
-            local maturityFraction = -1
-            if HasMixin(unit, "Maturity") and not areEnemies then
-                maturityFraction = unit:GetMaturityFraction()
-            end
-
-            local crossHairTarget = visibleToPlayer and showsUnitStatusInfo
-
-            local status = unit:GetUnitStatus(player)
-            unitState =
-            {
-                UnitId = unit:GetId(),
-                Position = origin,
-                WorldOrigin = worldOrigin,
-                HealthBarPosition = healthBarOrigin,
-                Status = status,
-                Name = description,
-                Action = action,
-                Hint = hint,
-                StatusFraction = statusFraction,
-                HealthFraction = health,
-                RegenFraction = regen,
-                ArmorFraction = armor,
-                HealthAndArmorFraction = healthArmorString,
-                HealthAndArmorPercentage = percentageString,
-                IsCrossHairTarget = crossHairTarget,
-                TeamType = kNeutralTeamType,
-                ForceName = isPlayer and not areEnemies,
-                BadgeTextures = badgeTextures,
-                HasWelder = hasWelder,
-                IsPlayer = isPlayer,
-                IsSteamFriend = isPlayer and unit:GetIsSteamFriend() or false,
-                AbilityFraction = abilityFraction,
-                IsParasited = HasMixin(unit, "ParasiteAble") and unit:GetIsParasited(),
-                CommHealthBarsToggle = visibleToPlayer and player:GetCommHealthBarsShown() and not areEnemies and not unit:isa("Weapon"),
-                MaturityFraction = maturityFraction,
-            }
-
-            if unit.GetTeamNumber then
-                unitState.IsFriend = (unit:GetTeamNumber() == player:GetTeamNumber())
-                unitState.LOSSighted = losSighted or unitState.IsFriend
-            else
-                unitState.LOSSighted = true
-            end
-
-            if unit.GetTeamType then
-                unitState.TeamType = unit:GetTeamType()
-            end
-
-            if isPlayer and unit:isa("Marine") and HasMixin(unit, "WeaponOwner") and not areEnemies then
-                local primaryWeapon = unit:GetWeaponInHUDSlot(1)
-                if primaryWeapon and primaryWeapon:isa("ClipWeapon") then
-                    unitState.PrimaryWeapon = primaryWeapon:GetTechId()
-                end
-            end
-
-            if unit:isa("InfantryPortal") and unit.timeSpinStarted then
-                if unit.queuedPlayerId ~= Entity.invalidId then
-                    local playerName = ""
-                    for _, playerInfo in ientitylist(Shared.GetEntitiesWithClassname("PlayerInfoEntity")) do
-                        if playerInfo.playerId == unit.queuedPlayerId then
-                            playerName = playerInfo.playerName
-                            break
-                        end
-                    end
-
-                    unitState.SpawnerName = playerName
-                    unitState.SpawnFraction = Clamp((Shared.GetTime() - unit.timeSpinStarted) / kMarineRespawnTime, 0, 1)
-                end
-            elseif unit:isa("Embryo") then
-                unitState.EvolvePercentage = unit.evolvePercentage / 100
-                unitState.EvolveClass = unit:GetEggTypeDisplayName()
-            elseif unit:isa("Egg") and unit.researchProgress > 0 and unit.researchProgress < 1 then
-                unitState.EvolvePercentage = unit.researchProgress
-            elseif unit.GetDestinationLocationName then
-                unitState.Destination = unit:GetDestinationLocationName()
-            elseif unit:isa("Weapon") then
-                -- Make super sure that we're hiding this
-                unitState.IsCrossHairTarget = false
-                unitState.Name = ""
-                unitState.HealthFraction = 0
-                unitState.ArmorFraction = 0
-                unitState.Hint = ""
-                -- Only show the AbilityFraction for Marine Commanders
-                if player:isa("MarineCommander") and unit.weaponWorldState == true and unit.GetExpireTimeFraction and not unit:isa("Rifle") and not unit:isa("Pistol") then
-                    unitState.IsCrossHairTarget = true
-                    unitState.AbilityFraction = unit:GetExpireTimeFraction()
-                    unitState.IsWorldWeapon = true
-                end
-            end
-
-            if unit.ShowDestinationOverride then
-                unitState.ShowDestination = unit:ShowDestinationOverride()
-            end
-
-            unit:SetUnitState(player, unitState)
-
-            return unitState
+        if isTechPointOrRT then
+            percentMode = PERCENT_NEVER
+        elseif not unit:isa("Player") then
+            percentMode = PERCENT_ALWAYS
+        elseif unit:isa("Embryo") then
+            percentMode = PERCENT_IF_ENEMY_EMBRYO
+        else
+            percentMode = PERCENT_NEVER
         end
     end
 
-    return nil
+    local health, armor, regen = 0, 0, 0
+    local hp, ap, healthScalar
+    local healthArmorString, percentageString
+
+    if (not unit.GetShowHealthFor or unit:GetShowHealthFor(player)) and HasMixin(unit, "Live") then
+
+        health = unit:GetHealthFraction()
+        armor = unit:GetArmorScalar()
+
+        if HasMixin(unit, "Regeneration") then
+            regen = unit:GetRegenerationFraction()
+        end
+
+        -- Only rebuild strings when the underlying numbers changed
+        hp, ap = unit:GetHealth(), unit:GetArmor()
+        if unitState and unitState.HealthAndArmorFraction
+           and unitState.LastHP == hp and unitState.LastAP == ap then
+            healthArmorString = unitState.HealthAndArmorFraction
+        elseif isExo then
+            healthArmorString = formatInt(ap)
+        else
+            healthArmorString = formatIntSlash(hp, ap)
+        end
+
+        if percentMode == PERCENT_ALWAYS
+           or (percentMode == PERCENT_IF_ENEMY_EMBRYO and GetAreEnemies(player, unit)) then
+            healthScalar = unit:GetHealthScalar()
+            if unitState and unitState.HealthAndArmorPercentage and unitState.LastHealthScalar == healthScalar then
+                percentageString = unitState.HealthAndArmorPercentage
+            else
+                percentageString = formatPercent(healthScalar)
+            end
+        end
+    end
+
+    local losSighted = true
+    if HasMixin(unit, "LOS") then
+        losSighted = unit:GetIsSighted()
+    end
+
+    if unitState then
+        unitState.Position = origin
+        unitState.WorldOrigin = worldOrigin
+        unitState.HealthBarPosition = healthBarOrigin
+
+        unitState.HealthFraction = health
+        unitState.RegenFraction = regen
+        unitState.ArmorFraction = armor
+        unitState.HealthAndArmorFraction = healthArmorString
+        unitState.HealthAndArmorPercentage = percentageString
+        unitState.LOSSighted = losSighted or unitState.IsFriend
+
+        -- cache keys (nil when health isn't shown, which invalidates the string cache)
+        unitState.LastHP = hp
+        unitState.LastAP = ap
+        unitState.LastHealthScalar = healthScalar
+        unitState.IsExoLike = isExo
+        unitState.PercentMode = percentMode
+
+        return unitState
+    end
+
+    local statusFraction = unit:GetUnitStatusFraction(player)
+    local description = unit:GetUnitName(player)
+    local action = unit:GetActionName(player)
+    local hint = unit:GetUnitHint2(player)
+
+    local visibleToPlayer = true
+    local isPlayer = unit:isa("Player") and not unit:isa("Embryo")
+    local areEnemies = GetAreEnemies(player, unit)
+
+    if areEnemies and HasMixin(unit, "Cloakable") then
+
+        if unit:GetIsCloaked() or (isPlayer and unit:GetCloakFraction() > 0.2) then
+            visibleToPlayer = false
+        end
+
+    end
+
+    local showsUnitStatusInfo = PlayerUI_ShowsUnitStatusInfo(player, unit)
+    if not showsUnitStatusInfo then
+        description = ""
+        action = ""
+        hint = ""
+    end
+
+    -- Don't show tech points or nozzles if they are attached
+    if visibleToPlayer and isTechPointOrRT and unit.GetAttached and (unit:GetAttached() ~= nil) then
+        visibleToPlayer = false
+    end
+
+    local badgeTextures = {}
+
+    if isPlayer then
+        if not unit.GetShowBadgeOverride or unit:GetShowBadgeOverride() then
+            badgeTextures = Badges_GetBadgeTextures(unit:GetClientIndex(), "unitstatus") or {}
+        end
+    end
+
+    local hasWelder = false
+    if distance < 10 then
+        hasWelder = unit:GetHasWelder(player)
+    end
+
+    local abilityFraction = 0
+    if player:isa("Commander") then
+        abilityFraction = unit:GetAbilityFraction(player)
+    end
+    
+    local maturityFraction = -1
+    if not areEnemies and HasMixin(unit, "Maturity") then
+        maturityFraction = unit:GetMaturityFraction()
+    end
+
+    local crossHairTarget = visibleToPlayer and showsUnitStatusInfo
+
+    local status = unit:GetUnitStatus(player)
+    unitState =
+    {
+        UnitId = unit:GetId(),
+        Position = origin,
+        WorldOrigin = worldOrigin,
+        HealthBarPosition = healthBarOrigin,
+        Status = status,
+        Name = description,
+        Action = action,
+        Hint = hint,
+        StatusFraction = statusFraction,
+        HealthFraction = health,
+        RegenFraction = regen,
+        ArmorFraction = armor,
+        HealthAndArmorFraction = healthArmorString,
+        HealthAndArmorPercentage = percentageString,
+        IsCrossHairTarget = crossHairTarget,
+        TeamType = kNeutralTeamType,
+        ForceName = isPlayer and not areEnemies,
+        BadgeTextures = badgeTextures,
+        HasWelder = hasWelder,
+        IsPlayer = isPlayer,
+        IsSteamFriend = isPlayer and unit:GetIsSteamFriend() or false,
+        AbilityFraction = abilityFraction,
+        IsParasited = HasMixin(unit, "ParasiteAble") and unit:GetIsParasited(),
+        CommHealthBarsToggle = visibleToPlayer and player:GetCommHealthBarsShown() and not areEnemies and not unit:isa("Weapon"),
+        MaturityFraction = maturityFraction,
+        -- cache keys for the fast path above
+        LastHP = hp,
+        LastAP = ap,
+        LastHealthScalar = healthScalar,
+        IsExoLike = isExo,
+        PercentMode = percentMode,
+    }
+
+    if unit.GetTeamNumber then
+        unitState.IsFriend = (unit:GetTeamNumber() == player:GetTeamNumber())
+        unitState.LOSSighted = losSighted or unitState.IsFriend
+    else
+        unitState.LOSSighted = true
+    end
+
+    if unit.GetTeamType then
+        unitState.TeamType = unit:GetTeamType()
+    end
+
+    if isPlayer and not areEnemies and unit:isa("Marine") and HasMixin(unit, "WeaponOwner") then
+        local primaryWeapon = unit:GetWeaponInHUDSlot(1)
+        if primaryWeapon and primaryWeapon:isa("ClipWeapon") then
+            unitState.PrimaryWeapon = primaryWeapon:GetTechId()
+        end
+    end
+
+    if not isPlayer and unit:isa("Weapon") then
+        -- Make super sure that we're hiding this
+        unitState.IsCrossHairTarget = false
+        unitState.Name = ""
+        unitState.HealthFraction = 0
+        unitState.ArmorFraction = 0
+        unitState.Hint = ""
+
+        local showWeaponAbility = unit.weaponWorldState == true
+            and unit.GetExpireTimeFraction 
+            and player:isa("MarineCommander") 
+            and not unit:isa("Rifle") 
+            and not unit:isa("Pistol")
+
+        -- Only show the AbilityFraction for Marine Commanders
+        if showWeaponAbility then
+            unitState.IsCrossHairTarget = true
+            unitState.AbilityFraction = unit:GetExpireTimeFraction()
+            unitState.IsWorldWeapon = true
+        end
+    elseif unit:isa("Egg") and unit.researchProgress > 0 and unit.researchProgress < 1 then
+        unitState.EvolvePercentage = unit.researchProgress
+    elseif not isPlayer and unit:isa("InfantryPortal") and unit.timeSpinStarted then
+        if unit.queuedPlayerId ~= Entity.invalidId then
+            local playerName = ""
+            for _, playerInfo in ientitylist(Shared.GetEntitiesWithClassname("PlayerInfoEntity")) do
+                if playerInfo.playerId == unit.queuedPlayerId then
+                    playerName = playerInfo.playerName
+                    break
+                end
+            end
+
+            unitState.SpawnerName = playerName
+            unitState.SpawnFraction = Clamp((Shared.GetTime() - unit.timeSpinStarted) / kMarineRespawnTime, 0, 1)
+        end
+    elseif unit:isa("Embryo") then
+        unitState.EvolvePercentage = unit.evolvePercentage / 100
+        unitState.EvolveClass = unit:GetEggTypeDisplayName()
+    elseif unit.GetDestinationLocationName then
+        unitState.Destination = unit:GetDestinationLocationName()
+    end
+
+    if unit.ShowDestinationOverride then
+        unitState.ShowDestination = unit:ShowDestinationOverride()
+    end
+
+    unit:SetUnitState(player, unitState)
+
+    return unitState
 end
 
 -- collects unit status info for a single unit
@@ -658,12 +722,14 @@ function PlayerUI_GetUnitStatusInfo()
             range = kUnitStatusCommanderDisplayRange
         end
 
+        local count = 0
         for _, unit in ipairs(GetEntitiesWithMixinWithinRange("UnitStatus", eyePos, range)) do
 
             local unitState = PlayerUI_GetStatusInfoForUnit(player, unit)
 
             if unitState then
-                table.insert(unitStates, unitState)
+                count = count + 1
+                unitStates[count] = unitState
             end
 
         end
@@ -1091,53 +1157,53 @@ function PlayerUI_GetObjectiveInfo()
             end
 
         end
-		
-		local TeamInfo = GetTeamInfoEntity(player:GetTeamNumber())
-		if TeamInfo then
-			if TeamInfo.PurificationFraction > 0 then
-			
-				player.showingObjective = true
-				local PurificationFraction = math.max(0.01, TeamInfo.PurificationFraction)
-				local text
-				if PurificationFraction < 1 then
-					text = StringReformat(Locale.ResolveString("OBJECTIVE_PROGRESS"),
-						{	location = "Charging",
-							name = "Purification",
-							health = math.ceil(PurificationFraction * 100) })
-				else	
-					text = StringReformat(Locale.ResolveString("OBJECTIVE_PROGRESS"),
-						{	location = "Purification",
-							name = "Protocol Active",
-							health = math.ceil(PurificationFraction * 100)})
-				end
+        
+        local TeamInfo = GetTeamInfoEntity(player:GetTeamNumber())
+        if TeamInfo then
+            if TeamInfo.PurificationFraction > 0 then
+            
+                player.showingObjective = true
+                local PurificationFraction = math.max(0.01, TeamInfo.PurificationFraction)
+                local text
+                if PurificationFraction < 1 then
+                    text = StringReformat(Locale.ResolveString("OBJECTIVE_PROGRESS"),
+                        {   location = "Charging",
+                            name = "Purification",
+                            health = math.ceil(PurificationFraction * 100) })
+                else    
+                    text = StringReformat(Locale.ResolveString("OBJECTIVE_PROGRESS"),
+                        {   location = "Purification",
+                            name = "Protocol Active",
+                            health = math.ceil(PurificationFraction * 100)})
+                end
 
-				return PurificationFraction, text, player:GetTeamType()
-			
-			end
-		end
+                return PurificationFraction, text, player:GetTeamType()
+            
+            end
+        end
 
-		--[[if TeamInfo then
-			if TeamInfo.PurificationFraction > 0 then
-			
-				player.showingObjective = true
-				local PurificationFraction = math.max(0.01, TeamInfo.PurificationFraction)
-				local text
-				if PurificationFraction < 1 then
-					text = StringReformat(Locale.ResolveString("OBJECTIVE_PROGRESS"),
-						{	location = "Evolving",
-							name = "Biomass",
-							health = math.ceil(PurificationFraction * 100) })
-				else	
-					text = StringReformat(Locale.ResolveString("OBJECTIVE_PROGRESS"),
-						{	location = "Biomass",
-							name = "Evolved",
-							health = math.ceil(PurificationFraction * 100)})
-				end
+        --[[if TeamInfo then
+            if TeamInfo.PurificationFraction > 0 then
+            
+                player.showingObjective = true
+                local PurificationFraction = math.max(0.01, TeamInfo.PurificationFraction)
+                local text
+                if PurificationFraction < 1 then
+                    text = StringReformat(Locale.ResolveString("OBJECTIVE_PROGRESS"),
+                        {   location = "Evolving",
+                            name = "Biomass",
+                            health = math.ceil(PurificationFraction * 100) })
+                else    
+                    text = StringReformat(Locale.ResolveString("OBJECTIVE_PROGRESS"),
+                        {   location = "Biomass",
+                            name = "Evolved",
+                            health = math.ceil(PurificationFraction * 100)})
+                end
 
-				return PurificationFraction, text, player:GetTeamType()
-			
-			end
-		end]]--
+                return PurificationFraction, text, player:GetTeamType()
+            
+            end
+        end]]--
 
         player.showingObjective = false
 
@@ -3263,7 +3329,7 @@ local kGrenades =
     kTechId.ClusterGrenade,
     kTechId.GasGrenade,
     kTechId.PulseGrenade,
-	kTechId.ScanGrenade
+    kTechId.ScanGrenade
 }
 
 function PlayerUI_GetIsTechMapVisible()
