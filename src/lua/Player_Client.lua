@@ -419,12 +419,26 @@ function PlayerUI_ShowsUnitStatusInfo(player, unit)
     return UnitIsSelectedByLocalCommander(player, unit) or unit == player:GetCrossHairTarget() or player:GetHasMarkedTarget(unit)
 end
 
+-- string.format("%d", a) -> manual conversion
+local function formatInt(a)
+    return tostring(math.max(1, math.ceil(a)))
+end
+-- string.format("%d/%d", a, b) -> manual conversion
+local function formatIntSlash(a, b)
+    return tostring(math.max(1, math.ceil(a))) .. "/" .. tostring(math.ceil(b))
+end
+-- string.format("%d%%", a) -> manual conversion
+local function formatPercent(a)
+    return tostring(math.max(1, math.ceil(a * 100))) .. "%"
+end
+
 function PlayerUI_GetStatusInfoForUnit(player, unit)
 
     PROFILE("PlayerUI_GetStatusInfoForUnit")
 
     if not unit:GetShowUnitStatusFor(player) then
         return nil
+    end
 
     -- checks here if the model was rendered previous frame as well
     -- Get direction to blip. If off-screen, don't render. Bad values are generated if
@@ -454,16 +468,14 @@ function PlayerUI_GetStatusInfoForUnit(player, unit)
         end
 
         if unit:isa("Exo") or unit:isa("Exosuit") then
-            healthArmorString = string.format("%d",math.max(1, math.ceil(unit:GetArmor())))
+            healthArmorString = formatInt(unit:GetArmor())
         else
-            healthArmorString = string.format("%d/%d", math.max(1, math.ceil(unit:GetHealth())), math.ceil(unit:GetArmor()))
+            healthArmorString = formatIntSlash(unit:GetHealth(), unit:GetArmor())
         end
 
         if (unit:GetMapName() ~= TechPoint.kMapName and unit:GetMapName() ~= ResourcePoint.kPointMapName) then
-
             if not unit:isa("Player") or (unit:isa("Embryo") and GetAreEnemies(player, unit)) then
-
-                percentageString = string.format("%d%%", math.max(1, math.ceil(unit:GetHealthScalar()*100)))
+                percentageString = formatPercent(unit:GetHealthScalar())
             end
         end
 
@@ -621,8 +633,15 @@ function PlayerUI_GetStatusInfoForUnit(player, unit)
         unitState.HealthFraction = 0
         unitState.ArmorFraction = 0
         unitState.Hint = ""
+
+        local showWeaponAbility = unit.weaponWorldState == true
+            and unit.GetExpireTimeFraction 
+            and player:isa("MarineCommander") 
+            and not unit:isa("Rifle") 
+            and not unit:isa("Pistol")
+
         -- Only show the AbilityFraction for Marine Commanders
-        if player:isa("MarineCommander") and unit.weaponWorldState == true and unit.GetExpireTimeFraction and not unit:isa("Rifle") and not unit:isa("Pistol") then
+        if showWeaponAbility then
             unitState.IsCrossHairTarget = true
             unitState.AbilityFraction = unit:GetExpireTimeFraction()
             unitState.IsWorldWeapon = true
