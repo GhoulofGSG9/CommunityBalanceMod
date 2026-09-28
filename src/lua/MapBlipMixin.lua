@@ -260,7 +260,7 @@ function MapBlipMixin:OnPreBeacon()
     mapBlipMixinDirtyTable:Insert(self:GetId())
 end
 
-function MapBlipMixin:UpdateFogEntity(sighted)
+function MapBlipMixin:UpdateFogEntity(sighted, lastBlipX, lastBlipZ, lastBlipYaw)
 
     if not kFogOfWarEnabled or not HasMixin(self, "Team") or self.reentranceOff then
         return nil
@@ -303,6 +303,10 @@ function MapBlipMixin:UpdateFogEntity(sighted)
     f:SetFogEntMapBlipInfo(true, blipType, teamNumber, GetIsUnitActive(self), self:isa("Player"))
 
     local orig = Vector(self.GetPositionForMinimap and self:GetPositionForMinimap() or self:GetOrigin())
+    if lastBlipX then
+        orig.x = lastBlipX
+        orig.z = lastBlipZ
+    end
     if self:isa("Player") then
         orig.y = self:GetModelOrigin().y -- Model middle, better for LOS check
     elseif not self:isa("PowerPoint") then -- Elevate a bit off the ground anything but powernode (their orig is good)
@@ -311,8 +315,12 @@ function MapBlipMixin:UpdateFogEntity(sighted)
 
     f.reentranceOff = true
     f:SetOrigin(orig)
-    local fowardNormal = self:GetCoords().zAxis
-    f:SetAngles(Angles(0, math.atan2(fowardNormal.x, fowardNormal.z), 0))
+    local yaw = lastBlipYaw
+    if not yaw then
+        local fowardNormal = self:GetCoords().zAxis
+        yaw = math.atan2(fowardNormal.x, fowardNormal.z)
+    end
+    f:SetAngles(Angles(0, yaw, 0))
 
     if isNewEntity then
         f:OnInitializedMapBlipMixin() -- Need to happen AFTER we set the custom host blips
