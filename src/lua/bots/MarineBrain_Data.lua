@@ -1365,7 +1365,7 @@ local kExecBuyWeapons = function(move, bot, brain, marine, action)
     -- will be slightly larger, which can get bots stuck.
     -- Instead we use origin to avoid bloating the distance returned.
     local touchDist = GetDistanceToTouch( marine, targetArmory )
-    if touchDist >= targetArmory:GetUseMaxRange() then
+    if touchDist >= targetArmory:GetUseMaxRange() and marine:GetOrigin():GetDistance(targetArmory:GetOrigin()) >= Armory.kResupplyUseRange then
 
         if brain.debug then 
             DebugPrint("going towards armory at %s", ToString(targetArmory:GetEngagementPoint())) 
