@@ -50,6 +50,9 @@ local kAlienPingSound = PrecacheAsset("sound/NS2.fev/alien/commander/ping")
 
 local kDefaultFirstPersonEffectName = PrecacheAsset("cinematics/marine/hit_1p.cinematic")
 
+local math_ceil = math.ceil
+local math_max = math.max
+
 Client.PrecacheLocalSound(kDefaultPingSound)
 Client.PrecacheLocalSound(kMarinePingSound)
 Client.PrecacheLocalSound(kAlienPingSound)
@@ -419,27 +422,27 @@ function PlayerUI_ShowsUnitStatusInfo(player, unit)
     return UnitIsSelectedByLocalCommander(player, unit) or unit == player:GetCrossHairTarget() or player:GetHasMarkedTarget(unit)
 end
 
--- string.format("%d", a) -> manual conversion
 local function formatInt(a)
-    return tostring(math.max(1, math.ceil(a)))
+    return tostring(math_max(1, math_ceil(a)))
 end
 
-local kMarinesFullStatusHpAp = {
-    [kMarineArmor + kArmorPerUpgradeLevel * 0] = tostring(kMarineHealth) .. "/" .. tostring(math.ceil(kMarineArmor + kArmorPerUpgradeLevel * 0)),
-    [kMarineArmor + kArmorPerUpgradeLevel * 1] = tostring(kMarineHealth) .. "/" .. tostring(math.ceil(kMarineArmor + kArmorPerUpgradeLevel * 1)),
-    [kMarineArmor + kArmorPerUpgradeLevel * 2] = tostring(kMarineHealth) .. "/" .. tostring(math.ceil(kMarineArmor + kArmorPerUpgradeLevel * 2)),
-    [kMarineArmor + kArmorPerUpgradeLevel * 3] = tostring(kMarineHealth) .. "/" .. tostring(math.ceil(kMarineArmor + kArmorPerUpgradeLevel * 3))
-}
+-- Precomputed "health/armor" strings for a full-health marine at each armor upgrade level
+local kMarinesFullStatusHpAp = {}
+for level = 0, 3 do
+    local ap = kMarineArmor + kArmorPerUpgradeLevel * level
+    kMarinesFullStatusHpAp[ap] = tostring(kMarineHealth) .. "/" .. tostring(math_ceil(ap))
+end
 
--- string.format("%d/%d", a, b) -> manual conversion
 local function formatIntSlash(hp, ap)
-    local rval = (hp == kMarineHealth and kMarinesFullStatusHpAp[ap]) -- No computation for marines full eHPs
-    return rval or tostring(math.max(1, math.ceil(hp))) .. "/" .. tostring(math.ceil(ap))
+    return (hp == kMarineHealth and kMarinesFullStatusHpAp[ap])
+        or (tostring(math_max(1, math_ceil(hp))) .. "/" .. tostring(math_ceil(ap)))
 end
--- string.format("%d%%", a) -> manual conversion
+
 local function formatPercent(a)
-    return a == 1 and "100" or (tostring(math.max(1, math.ceil(a * 100))) .. "%")
+    return a == 1 and "100" or (tostring(math_max(1, math_ceil(a * 100))) .. "%")
 end
+
+local PERCENT_NEVER, PERCENT_ALWAYS, PERCENT_IF_ENEMY_EMBRYO = 0, 1, 2
 
 function PlayerUI_GetStatusInfoForUnit(player, unit)
 
@@ -449,29 +452,41 @@ function PlayerUI_GetStatusInfoForUnit(player, unit)
         return nil
     end
 
-    -- checks here if the model was rendered previous frame as well
-    -- Get direction to blip. If off-screen, don't render. Bad values are generated if
-    -- Client.WorldToScreen is called on a point behind the camera.
     local dotProduct, origin, worldOrigin, distance, healthBarOrigin = PlayerUI_GetPositionalInfo(player, unit)
-
     if dotProduct <= 0 then
         return nil
     end
 
     local unitState = unit:GetUnitState(player)
 
-    -- we always want to update the most important unit status informations (hp)
-    local health = 0
-    local armor = 0
-    local regen = 0
-    local healthArmorString
-    local percentageString
+    -- Static per-unit facts: computed once, then read from the cached state
+    local isExo, percentMode, isTechPointOrRT
+    if unitState then
+        isExo = unitState.IsExoLike
+        percentMode = unitState.PercentMode
+    end
 
-    local unitMapName = unit:GetMapName()
-    local isTechPointOrRT = (unitMapName == TechPoint.kMapName or unitMapName == ResourcePoint.kPointMapName)
+    if isExo == nil or percentMode == nil then
+        local mapName = unit:GetMapName()
+        isTechPointOrRT = (mapName == TechPoint.kMapName or mapName == ResourcePoint.kPointMapName)
+        isExo = unit:isa("Exo") or unit:isa("Exosuit")
 
-    local canShowHealth = (not unit.GetShowHealthFor or unit:GetShowHealthFor(player))
-    if HasMixin(unit, "Live") and canShowHealth then
+        if isTechPointOrRT then
+            percentMode = PERCENT_NEVER
+        elseif not unit:isa("Player") then
+            percentMode = PERCENT_ALWAYS
+        elseif unit:isa("Embryo") then
+            percentMode = PERCENT_IF_ENEMY_EMBRYO
+        else
+            percentMode = PERCENT_NEVER
+        end
+    end
+
+    local health, armor, regen = 0, 0, 0
+    local hp, ap, healthScalar
+    local healthArmorString, percentageString
+
+    if (not unit.GetShowHealthFor or unit:GetShowHealthFor(player)) and HasMixin(unit, "Live") then
 
         health = unit:GetHealthFraction()
         armor = unit:GetArmorScalar()
@@ -480,18 +495,26 @@ function PlayerUI_GetStatusInfoForUnit(player, unit)
             regen = unit:GetRegenerationFraction()
         end
 
-        if unit:isa("Exo") or unit:isa("Exosuit") then
-            healthArmorString = formatInt(unit:GetArmor())
+        -- Only rebuild strings when the underlying numbers changed
+        hp, ap = unit:GetHealth(), unit:GetArmor()
+        if unitState and unitState.HealthAndArmorFraction
+           and unitState.LastHP == hp and unitState.LastAP == ap then
+            healthArmorString = unitState.HealthAndArmorFraction
+        elseif isExo then
+            healthArmorString = formatInt(ap)
         else
-            healthArmorString = formatIntSlash(unit:GetHealth(), unit:GetArmor())
+            healthArmorString = formatIntSlash(hp, ap)
         end
 
-        if not isTechPointOrRT then
-            if not unit:isa("Player") or (unit:isa("Embryo") and GetAreEnemies(player, unit)) then
-                percentageString = formatPercent(unit:GetHealthScalar())
+        if percentMode == PERCENT_ALWAYS
+           or (percentMode == PERCENT_IF_ENEMY_EMBRYO and GetAreEnemies(player, unit)) then
+            healthScalar = unit:GetHealthScalar()
+            if unitState and unitState.HealthAndArmorPercentage and unitState.LastHealthScalar == healthScalar then
+                percentageString = unitState.HealthAndArmorPercentage
+            else
+                percentageString = formatPercent(healthScalar)
             end
         end
-
     end
 
     local losSighted = true
@@ -499,20 +522,24 @@ function PlayerUI_GetStatusInfoForUnit(player, unit)
         losSighted = unit:GetIsSighted()
     end
 
-    -- use cached unit state
     if unitState then
-        -- update position
         unitState.Position = origin
         unitState.WorldOrigin = worldOrigin
         unitState.HealthBarPosition = healthBarOrigin
 
-        --update most important information
         unitState.HealthFraction = health
         unitState.RegenFraction = regen
         unitState.ArmorFraction = armor
         unitState.HealthAndArmorFraction = healthArmorString
         unitState.HealthAndArmorPercentage = percentageString
         unitState.LOSSighted = losSighted or unitState.IsFriend
+
+        -- cache keys (nil when health isn't shown, which invalidates the string cache)
+        unitState.LastHP = hp
+        unitState.LastAP = ap
+        unitState.LastHealthScalar = healthScalar
+        unitState.IsExoLike = isExo
+        unitState.PercentMode = percentMode
 
         return unitState
     end
