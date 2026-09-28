@@ -843,6 +843,8 @@ function GUIMinimap:UpdateBlipActivityForEntity(entity)
             if icon.resetMinimapItem then
                 entity:InitMinimapItem(self, icon)
                 self:UpdateBlipPosition(icon, entity:GetMapBlipOrigin())
+
+                entity:UpdateMinimapItem(self, icon)
                 icon:SetIsVisible(self.visible)
             end
         else

@@ -122,7 +122,9 @@ function MapBlip:UpdateRelevancy(owner, isSighted)
     if owner and not owner:isa("FogOfWarEntity") and self.lastSetRelevancyMask ~= mask then
         if not kExcludedBlipsForFog[self:GetMapBlipType()] then
             if self.lastSetRelevancyMask == kMaskRelevantToBothTeam then
-                owner:UpdateFogEntity(false) -- Create fog entity
+                -- The fog ghost takes over where this blip last *was* relevant to
+                -- the enemy, i.e. its state before this update.
+                owner:UpdateFogEntity(false, self.prevBlipX, self.prevBlipZ, self.prevBlipYaw) -- Create fog entity
             else
                 owner:UpdateFogEntity(true) -- Clear fog entity if any
             end
@@ -251,6 +253,11 @@ function MapBlip:Update(owner)
     end
 
     if owner then
+        local now = Shared.GetTime()
+        if self.blipStateTime ~= now then
+            self.prevBlipX, self.prevBlipZ, self.prevBlipYaw = self.blipX, self.blipZ, self.blipYaw
+            self.blipStateTime = now
+        end
         
         -- Anything that has those can potentially move
         local isPlayer = owner:isa("Player")
@@ -281,6 +288,8 @@ function MapBlip:Update(owner)
             blipSetOrigin.y = 0
             blipSetOrigin.z = origin.z
             self:SetOrigin(blipSetOrigin)
+            self.blipX = blipSetOrigin.x
+            self.blipZ = blipSetOrigin.z
             
             self:UpdateRelevancy(owner)
 
