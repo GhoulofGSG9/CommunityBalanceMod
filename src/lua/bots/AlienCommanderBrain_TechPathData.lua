@@ -41,8 +41,8 @@ local kAlienCommanderTechPath =
     {
         kTechId.Stomp, -- Bio 8
         kTechId.AdvancedSwipe, -- Bio 7
+        kTechId.Stab, -- Bio 8
         kTechId.Xenocide, -- Bio 9
-        kTechId.Stab, -- Bio 9
     },
 
     -- Tier 4

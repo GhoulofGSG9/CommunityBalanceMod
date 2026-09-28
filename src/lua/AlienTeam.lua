@@ -1227,7 +1227,7 @@ function AlienTeam:InitTechTree()
     self.techTree:AddResearchNode(kTechId.MetabolizeEnergy,        kTechId.BioMassThree, kTechId.None, kTechId.AllAliens)
     self.techTree:AddResearchNode(kTechId.MetabolizeHealth,        kTechId.BioMassFive, kTechId.MetabolizeEnergy, kTechId.AllAliens)
     self.techTree:AddResearchNode(kTechId.AdvancedSwipe,     kTechId.BioMassSeven, kTechId.None, kTechId.AllAliens)
-    self.techTree:AddResearchNode(kTechId.Stab,              kTechId.BioMassNine, kTechId.None, kTechId.AllAliens)
+    self.techTree:AddResearchNode(kTechId.Stab,              kTechId.BioMassEight, kTechId.None, kTechId.AllAliens)
 
     -- onos researches
     self.techTree:AddPassive(kTechId.Charge)
