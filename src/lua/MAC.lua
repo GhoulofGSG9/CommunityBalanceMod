@@ -233,9 +233,7 @@ function MAC:IsUsingShortLeash()
 end
 
 function MAC:SetLeashPos(newPosition)
-    --Log("MAC -- New leash point set")
     self.leashedPosition = newPosition or self:GetOrigin() -- nil pos resets leash to current pos
-    --CreateEntity(EMPBlast.kMapName, self.leashedPosition, self:GetTeamNumber()) -- For direct visual on where/when the leash is set
 end
 
 function MAC:GetLeashPos()
@@ -259,6 +257,7 @@ function MAC:GetOrderScanRadius() -- Automatically accounts for leash restrictio
     range = math.max(range, MAC.kSearchRangeShortLeash) -- At least this distance, or the MAC will not do anything
     return range
 end
+
 function MAC:UpdateOrderScanRadius()
     self.orderScanRadius = self:GetOrderScanRadius()
 end
@@ -452,6 +451,22 @@ function MAC:FindFollowAndWeldTarget()
     return newTarget
 end
 
+function MAC:FindNextTargetToFollow()
+
+    local newTarget = nil
+    -- Go follow the closest allies in range so we don't stand still after
+    -- the player we followed died.
+    local players = GetEntitiesForTeamWithinXZRange("Player", self:GetTeamNumber(), self:GetOrigin(), self:GetOrderScanRadius())
+    Shared.SortEntitiesByDistance(self:GetOrigin(), players)
+    for _, p in ipairs(players) do
+        if p:GetIsAlive() then
+            newTarget = p
+            break
+        end
+    end
+    return newTarget
+end
+
 function MAC:OnEntityChange(oldId, newId)
 
     if oldId == nil then
@@ -464,22 +479,28 @@ function MAC:OnEntityChange(oldId, newId)
     if currentOrder and oldId == currentOrder:GetParam() then
 
         if currentOrder and currentOrder:GetType() == kTechId.FollowAndWeld then
-            --Log("%s -- EntityChange detected -- followAndWeld readjust", self)
-            --DebugPrint("MAC follow Target changed "..ToString(currentOrder:GetParam()))
             local newTarget = newId and Shared.GetEntity(newId)
             
+            local isValidNewTarget = newTarget and HasMixin(newTarget, "Live") and newTarget:GetIsAlive() and HasMixin(newTarget, "Weldable")
+
+            if not isValidNewTarget then
+                newTarget = self:FindNextTargetToFollow()
+                if newTarget then
+                    newId = newTarget:GetId()
+                    isValidNewTarget = true
+                end
+            end
+
             -- continue follow the new entity which we were following
-            if newTarget and HasMixin(newTarget, "Live") and newTarget:GetIsAlive() and HasMixin(newTarget, "Weldable") then
+            if isValidNewTarget then
                 -- Only case where we self-issue an order (ex: moving in/out of exo, buying JPs)
-                self:GiveOrder(kTechId.FollowAndWeld, newId, newTarget:GetOrigin(), nil, false, false)
+                self:GiveOrder(kTechId.FollowAndWeld, newTarget:GetId(), newTarget:GetOrigin(), nil, false, false)
             else
                 self:ClearCurrentOrder()
                 self.targetId = Entity.invalidId
-                --Log("%s -- Target cleared (because dead)", self)
             end
         else
             -- Clear any kind of order we had if target changed and it's not a follow
-            --Log("%s -- EntityChange detected -- clearing current order", self)
             self:ClearCurrentOrder()
             self.targetId = Entity.invalidId
         end
@@ -615,7 +636,6 @@ function MAC:OnOverrideOrder(order)
         order:SetLocation(nearestPlayer:GetOrigin())
         order:SetType(kTechId.FollowAndWeld)
         orderTarget = nearestPlayer
-        --Log("%s -- Snapping on nearby Player to follow", self)
     end
 
     
@@ -821,7 +841,6 @@ function MAC:ProcessWeldOrder(deltaTime, orderTarget, orderLocation, autoWeld)
 
         if autoWeld and self:IsBeyondLeash() then --(tooFarFromLeash or distanceToTarget > self:GetOrderScanRadius()) then
             orderStatus = kOrderStatus.Cancelled
-            --Log("MAC -- Autoweld target went out of leash, resuming former order")
         elseif not canBeWeldedNow then
             orderStatus = kOrderStatus.Completed
         else
@@ -860,8 +879,6 @@ function MAC:ProcessWeldOrder(deltaTime, orderTarget, orderLocation, autoWeld)
                 if (self:CheckMultiWeldRestriction(orderTarget) and not self:GetIsRecycling()) then
                     orderTarget:OnWeld(self, MAC.kWeldRate)
                     self.timeOfLastWeld = time
-                --else
-                    --Log("MAC -- Already being welding and we have restriction")
                 end
                 self.timeOfLastCanWeldCheck = time
             end
@@ -1060,17 +1077,14 @@ function MAC:CheckMultiWeldRestriction(target)
     if target and HasMixin(target, "Live") and target:GetIsAlive() then
         if (isAlreadyBeingWelded and isDirectWeldOrder) then -- Checks for multi weld restrictions
             if target:isa("Player") and not MAC.CanMultipleWeldPlayers then
-                --Log("MAC -- Player already welded by other MAC, invalidating")
                 return false
             end
             if (HasMixin(target, "Weldable") or HasMixin(target, "Construct")) and not MAC.CanMultipleWeldPvE then
-                --Log("MAC -- PvE already welded by other MAC, invalidating")
                 return false
             end
         end
 
         if target:isa("MAC") then
-            --Log("MAC -- Cannot weld other macs, invalidating")
             return false
         end
     end
@@ -1080,7 +1094,6 @@ end
 function MAC:OnOrderGiven(newOrder)
 
 
-    --Log("MAC: Setting new leash location (new order given)")
     -- Leash is position of last order given (not GetCurrentOrderTarget()) (unless it's an autoweld order, so we do not leave our leash spot)
     if (newOrder:GetType() ~= kTechId.AutoWeld) then
         self:SetLeashPos(newOrder:GetLocation())
@@ -1090,7 +1103,6 @@ function MAC:OnOrderGiven(newOrder)
         -- QoL: If we have move orders, just discard them and go straight for the target
         -- (because ns2 is autochaining a move and THEN a follow order, which is not a nice detour)
         self:ClearCurrentOrder()
-        --Log("MAC -- Clearing current move order and moving straight to target")
     end
 
     -- Clear the QoL hold order whenever a new different order is given (it will be reissued once done)
@@ -1119,11 +1131,9 @@ function MAC:UpdateCurrentOrder(deltaTime, currentOrder)
     -- ------- Process current order (follow, weld, move, hold, build)
 
     if hasFollowOrder then
-       --Log("MAC -- Follow and weld order")
         orderStatus = self:ProcessWeldOrder(deltaTime, orderTarget, orderLocation, orderType == kTechId.AutoWeld)
         if (orderTarget and orderTarget:GetIsAlive()) then -- and orderStatus == kOrderStatus.InProgress) then
             self:SetLeashPos(orderTarget:GetOrigin())
-            --Log("MAC -- Follow and weld order -- leash update (in progress status)")
         end
     elseif hasMoveOrder or hasPatrolOrder then
         local closeEnough = self:GetHoverHeight() + kAIMoveOrderCompleteDistance
@@ -1134,7 +1144,6 @@ function MAC:UpdateCurrentOrder(deltaTime, currentOrder)
             currentTargetNeedsWelding = orderTarget:GetWeldPercentage() < 1
         end
 
-        --Log("MAC -- Updating patrol or move order")
         if (currentTargetNeedsWelding) then
             orderStatus = self:ProcessWeldOrder(deltaTime, orderTarget, orderLocation, false)
         else
@@ -1164,7 +1173,7 @@ function MAC:UpdateCurrentOrder(deltaTime, currentOrder)
         self:ClearCurrentOrder()
     elseif orderStatus == kOrderStatus.Completed or orderStatus == kOrderStatus.None then
         self:CompletedCurrentOrder()
-        --Log("MAC -- Order completed")
+
     end
 
     return orderStatus
@@ -1235,20 +1244,15 @@ function MAC:DecisionMakingRoutine_SideQuests(deltaTime, currentOrder, currentOr
         newOrderTarget = currentOrderTarget -- We are assigned to it, even if we don't actively weld it we are ready
     end
 
-    --Log("MAC -- Beyond leash ? " .. (self:IsBeyondLeash() and "yes" or "no"))
-
     if (not self:IsBeyondLeash() and nearestPlayerNeedingWeld) then -- THEN weld closest PLAYERs to leash point (so it doesn't get stuck on an infested powernode during a hive push)
         self:ProcessWeldOrder(deltaTime, nearestPlayerNeedingWeld, nearestPlayerNeedingWeld:GetOrigin())
         newOrderTarget = nearestPlayerNeedingWeld -- closestMarine, sorted by distance
-        --Log("MAC -- Welding nearby players")
     elseif (not self:IsBeyondLeash() and nearestPvENeedingWeld) then
         self:ProcessWeldOrder(deltaTime, nearestPvENeedingWeld, nearestPvENeedingWeld:GetOrigin())
         newOrderTarget = nearestPvENeedingWeld -- closest PvE to weld/construct, sorted by distance
-        --Log("MAC -- Welding nearby PVE")
     elseif (not self:IsBeyondLeash() and nearestConstructablePvE) then
         self:ProcessConstruct(deltaTime, nearestConstructablePvE, nearestConstructablePvE:GetOrigin())
         newOrderTarget = nearestConstructablePvE -- closest PvE to weld/construct, sorted by distance
-        --Log("MAC -- Building nearby PVE")
     else
         local status = nil
         if (currentOrderType and currentOrderType == kTechId.Patrol) then
@@ -1287,8 +1291,15 @@ function MAC:DecisionMakingRoutine(deltaTime)
     -- Don't follow marines through phase gates to who-knows-where
     -- Instead, move to our last set leashPos (which is the entry gate position, so we are not in the middle of nowhere)
     local targetJustPhased = currentOrderTarget and currentOrderTarget.timeOfLastPhase and Shared.GetTime() < currentOrderTarget.timeOfLastPhase + 0.5
-    if (targetJustPhased) then
-        --Log("-- MAC Target just phased, discarding follow order (so we don't cross the entire map and die)")
+    local targetDied = currentOrderTarget and HasMixin(currentOrderTarget, "Live") and not currentOrderTarget:GetIsAlive()
+    if (targetJustPhased or targetDied) then
+        if currentOrderType == kTechId.FollowAndWeld then
+            local newTarget = self:FindNextTargetToFollow()
+            if newTarget then
+                self:GiveOrder(kTechId.FollowAndWeld, newTarget:GetId(), newTarget:GetOrigin(), nil, true, false)
+                return newTarget
+            end
+        end
         self:ClearCurrentOrder()
         return nil
     end
@@ -1296,7 +1307,6 @@ function MAC:DecisionMakingRoutine(deltaTime)
     if (currentTargetNeedsWelding or hasMoveOrder) then -- Do what coms say TOP priority (like welding exo or building PvE)
         local orderStatus = self:UpdateCurrentOrder(deltaTime, currentOrder)
         newOrderTarget = currentOrderTarget
-        --Log("MAC -- Following current order")
     else -- MAC side/idle quests (off orders, but do not discard current one)
         newOrderTarget = self:DecisionMakingRoutine_SideQuests(deltaTime, currentOrder, currentOrderType, currentOrderTarget)
     end
@@ -1307,6 +1317,8 @@ end
 function MAC:OnUpdate(deltaTime)
 
     ScriptActor.OnUpdate(self, deltaTime)
+
+    local now = Shared.GetTime()
     if Server and self:GetIsAlive() then
 
         -- Main logic
@@ -1314,8 +1326,8 @@ function MAC:OnUpdate(deltaTime)
         self.targetId = orderTarget and orderTarget:GetId() or nil
 
         -- Some variable to update so we trigger animations on the client side 
-        self.constructing = Shared.GetTime() - self.timeOfLastConstruct < 0.5
-        self.welding = Shared.GetTime() - self.timeOfLastWeld < 0.5
+        self.constructing = now - self.timeOfLastConstruct < 0.5
+        self.welding = now - self.timeOfLastWeld < 0.5
 
         if self.moving and not self.jetsSound:GetIsPlaying() then
             self.jetsSound:Start()
@@ -1330,10 +1342,10 @@ function MAC:OnUpdate(deltaTime)
         
         if self.constructing then
         
-            if not self.timeLastConstructEffect or self.timeLastConstructEffect + MAC.kConstructRate < Shared.GetTime()  then
+            if not self.timeLastConstructEffect or self.timeLastConstructEffect + MAC.kConstructRate < now  then
             
                 self:TriggerEffects("mac_construct")
-                self.timeLastConstructEffect = Shared.GetTime()
+                self.timeLastConstructEffect = now
                 
             end
             
@@ -1341,10 +1353,10 @@ function MAC:OnUpdate(deltaTime)
         
         if self.welding then
         
-            if not self.timeLastWeldEffect or self.timeLastWeldEffect + MAC.kWeldRate < Shared.GetTime()  then
+            if not self.timeLastWeldEffect or self.timeLastWeldEffect + MAC.kWeldRate < now  then
             
                 self:TriggerEffects("mac_weld")
-                self.timeLastWeldEffect = Shared.GetTime()
+                self.timeLastWeldEffect = now
                 
             end
             
@@ -1380,7 +1392,6 @@ function MAC:ProcessRallyOrder(originatingEntity)
     local tailOrder = self:GetHasOrder() and self:GetLastOrder() or nil
     if (tailOrder) then
         self:SetLeashPos(tailOrder:GetLocation())
-        --Log("MAC -- Setting leash manually upon rally order")
     end
 end
 
@@ -1405,9 +1416,6 @@ end
 
 function MAC:OnOrderComplete(currentOrder)
     local tailOrder = self:GetLastOrder()
-    --if self.autoReturning and order:GetType() == kTechId.Move then
-
-    --Log("MAC -- OnOrderComplete()")
 
     -- Orders can be classic, repeating (weld/autoweld), or cycling (patrol).
     -- We only re-adjust leash on cycling ones:
@@ -1416,13 +1424,11 @@ function MAC:OnOrderComplete(currentOrder)
         -- Patrol orders dest change once you reach the position (adjust, so it can do side quests on each loop points)
         if GetIsOrderCyclingType(currentOrder) then
             self:SetLeashPos(self:GetCurrentOrderTarget())
-            --Log("MAC -- Looping order done, such as patrol (update leash to new patrol position)")
         end
         -- For repeating (like follow), we have to reset to tail order position (it was overwritten by the followed position)
 
         if GetIsOrderRepeatingType(currentOrder) and not GetIsOrderLoopingType(tailOrder) then
             self:SetLeashPos(tailOrder:GetLocation())
-            --Log("MAC -- Cycling order done (such as follow), use tail order as new leash instead of followed entity")
         end
     end
 
@@ -1453,11 +1459,10 @@ function MAC:PerformAction(techNode, position)
 
         if (self:IsUsingShortLeash()) then
             self:SetLongLeash()
-            --Log("MAC -- Using long leash now")
         else
             _issueQoLHoldOrder(self)
             self:SetShortLeash()
-            --Log("MAC -- Using short leash now")
+
         end
         
         return true
