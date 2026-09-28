@@ -288,13 +288,13 @@ end
 
 function Welder:PerformWeld(player)
 
-    local attackDirection = player:GetViewCoords().zAxis
+    local viewAngles = player:GetViewAngles()
+    local viewCoords = viewAngles:GetCoords()
+    local attackDirection = viewCoords.zAxis
     local success = false
     -- prioritize friendlies
     local didHit, target, endPoint, direction, surface
 
-    local viewAngles = player:GetViewAngles()
-    local viewCoords = viewAngles:GetCoords()
     local startPoint = player:GetEyePos()
     local endPoint = startPoint + viewCoords.zAxis * self:GetRange()
 
