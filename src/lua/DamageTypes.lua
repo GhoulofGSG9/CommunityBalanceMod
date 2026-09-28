@@ -147,7 +147,10 @@ function NS2Gamerules_GetUpgradedDamage(attacker, doer, damage, _, _, target)
 
 end
 
-function GetIsBehindTarget(target, attacker)
+function GetIsExoOpenToStab(target, attacker)
+    if not target:isa("Exo") or (target.GetIsNanoShielded and target:GetIsNanoShielded()) then
+        return false
+    end
     local toAttacker = attacker:GetOrigin() - target:GetOrigin()
     toAttacker.y = 0
     return toAttacker:GetLengthSquared() > 0.01 and target:GetViewCoords().zAxis:DotProduct(toAttacker) < 0
@@ -218,7 +221,7 @@ function NS2Gamerules_GetUpgradedAlienDamage( target, attacker, doer, damage, ar
         damage = damage * kAdvancedSwipeDamageScalar
     end
 
-    if doer:isa("StabBlink") and target:isa("Exo") and GetIsBehindTarget(target, attacker) then
+    if doer:isa("StabBlink") and GetIsExoOpenToStab(target, attacker) then
         damage = damage * kStabExoRearDamageScalar
     end
 

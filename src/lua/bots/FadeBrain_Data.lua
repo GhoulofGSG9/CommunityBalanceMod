@@ -218,7 +218,7 @@ local function SelectAttackWeapon( fade, target, brain )
         return
     end
 
-    local wanted = (stab and target:isa("Exo") and GetIsBehindTarget(target, fade)) and StabBlink.kMapName or SwipeBlink.kMapName
+    local wanted = (stab and GetIsExoOpenToStab(target, fade)) and StabBlink.kMapName or SwipeBlink.kMapName
     local activeWeapon = fade:GetActiveWeapon()
     if activeWeapon and activeWeapon:GetMapName() ~= wanted then
         fade:SetActiveWeapon(wanted, true)

@@ -350,7 +350,7 @@
   - Advanced Swipe: new bio 7 research (20 tres). Swipe deals 10% more damage, except against exosuits.
   - Stab: late game exosuit counter.
     - Moved from bio 7 to bio 9, research cost stays 25 tres.
-    - Deals 2.25x damage (270) when it hits an exosuit from behind.
+    - Deals 2.25x damage (270) when it hits an exosuit from behind. Nano shield cancels the bonus.
     - Energy cost reduced from 30 to 20.
     - No longer affected by Focus.
  
