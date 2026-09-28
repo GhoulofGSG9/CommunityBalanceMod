@@ -271,6 +271,16 @@ function ScriptActor:GetViewCoords()
 
 end
 
+function ScriptActor:GetViewCoordsXAxis()
+    return self:GetViewAngles():GetCoords().xAxis
+end
+function ScriptActor:GetViewCoordsYAxis()
+    return self:GetViewAngles():GetCoords().yAxis
+end
+function ScriptActor:GetViewCoordsZAxis()
+    return self:GetViewAngles():GetCoords().zAxis
+end
+
 function ScriptActor:GetCanBeUsed(player, useSuccessTable)
 
     if player:isa("Exo") then
