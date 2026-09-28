@@ -290,6 +290,8 @@ kTechId = enum {
 	
 	'AdvancedExoArmsTech', 'ExoAbilitiesTech',
 
+	'AdvancedSwipe',
+
 	'Max', -- Unused, for legacy reasons, do NOT use!
 }
 

@@ -170,6 +170,15 @@ if Client then
 	Locale.substitutions["ADVANCED_EXO_ARMS_TECH_TOOLTIP"] = "Unlocks the flame and plasma arms."
 	Locale.substitutions["EXO_ABILITIES_TECH"] = "Exosuit Abilities"
 	Locale.substitutions["EXO_ABILITIES_TECH_TOOLTIP"] = "Unlocks the exosuit support abilities: Nano Shield Field, Catalyst Field and Regen Field."
+
+	Locale.substitutions["ADVANCED_SWIPE"] = "Advanced Swipe"
+	Locale.substitutions["ADVANCED_SWIPE_TOOLTIP"] = "Swipe deals 10% more damage, except against Exosuits."
+	Locale.substitutions["HELP_SCREEN_ADVANCED_SWIPE"] = "ADVANCED SWIPE"
+	Locale.substitutions["HELP_SCREEN_ADVANCED_SWIPE_DESCRIPTION"] = "Your Swipe deals 10% more damage to everything except Exosuits."
+	Locale.substitutions["HELP_SCREEN_ADVANCED_SWIPE_REQUIREMENT"] = "Requires Advanced Swipe research"
+	Locale.substitutions["BOT_RESEARCH_START_ADVANCEDSWIPE"] = "Starting research: Advanced Swipe"
+	Locale.substitutions["STAB_EXO_TOOLTIP"] = "A slow, heavy strike. Deals more than double damage when it hits an Exosuit from behind."
+	Locale.substitutions["HELP_SCREEN_STAB_EXO_DESCRIPTION"] = "A slow, heavy strike. Hit an Exosuit from behind for more than double damage. Also strong against structures."
 	
 	Locale.substitutions["RESEARCH_DUAL_EXOS"] = "Research Dual Exosuit Tech"
 	Locale.substitutions["RESEARCH_DUAL_EXOS_TITLE"] = "Dual Exosuits"

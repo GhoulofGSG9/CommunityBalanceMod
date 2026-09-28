@@ -314,6 +314,7 @@ local function GetIsResearchRelevant(techId)
         relevantResearchIds[kTechId.Leap] = 1
         relevantResearchIds[kTechId.BileBomb] = 1
         relevantResearchIds[kTechId.Spores] = 1
+        relevantResearchIds[kTechId.AdvancedSwipe] = 1
         relevantResearchIds[kTechId.Stab] = 1
         relevantResearchIds[kTechId.Stomp] = 1
 

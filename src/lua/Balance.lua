@@ -502,11 +502,13 @@ kSporesDustCloudLifetime = 4
 kSwipeDamageType = kDamageType.Puncture
 kSwipeDamage = 37.5
 kSwipeEnergyCost = 7
+kAdvancedSwipeDamageScalar = 1.1
 kMetabolizeEnergyCost = 10
 
 kStabDamage = 120
 kStabDamageType = kDamageType.Structural
-kStabEnergyCost = 25
+kStabEnergyCost = 20
+kStabExoRearDamageScalar = 2.25
 
 kStartBlinkEnergyCost = 12
 kBlinkEnergyCost = 32
@@ -710,8 +712,10 @@ kSporesResearchCost = 20
 kSporesResearchTime = 60
 kStompResearchCost = 35
 kStompResearchTime = 90
-kStabResearchCost = 20
+kStabResearchCost = 25
 kStabResearchTime = 60
+kAdvancedSwipeResearchCost = 20
+kAdvancedSwipeResearchTime = 60
 kMetabolizeEnergyResearchCost = 20
 kMetabolizeEnergyResearchTime = 40
 kMetabolizeHealthResearchCost = 20

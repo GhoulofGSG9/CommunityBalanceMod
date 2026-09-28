@@ -2328,8 +2328,18 @@ function BuildTechData()
             [kTechDataResearchTimeKey] = kStabResearchTime,
             [kTechDataDamageType] = kStabDamageType,
             [kTechDataDisplayName] = "STAB_BLINK",
-            [kTechDataTooltipInfo] = "STAB_TOOLTIP",
+            [kTechDataTooltipInfo] = "STAB_EXO_TOOLTIP",
             [kTechDataResearchName] = "STAB_BLINK",
+        },
+
+        {
+            [kTechDataId] = kTechId.AdvancedSwipe,
+            [kTechDataCategory] = kTechId.Fade,
+            [kTechDataCostKey] = kAdvancedSwipeResearchCost,
+            [kTechDataResearchTimeKey] = kAdvancedSwipeResearchTime,
+            [kTechDataDisplayName] = "ADVANCED_SWIPE",
+            [kTechDataTooltipInfo] = "ADVANCED_SWIPE_TOOLTIP",
+            [kTechDataResearchName] = "ADVANCED_SWIPE",
         },
 
         {

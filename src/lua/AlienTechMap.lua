@@ -86,9 +86,9 @@ if kCBMaddon then
 		{ kTechId.BioMassFour, 5.5, 7, nil, "4" }, {kTechId.Leap, 5.5, 8},
 		{ kTechId.BioMassFive, 6.5, 7, nil, "5" }, {kTechId.MetabolizeHealth, 6.5, 8},
 		{ kTechId.BioMassSix, 7.5, 7, nil, "6" }, {kTechId.Umbra, 7.5, 8}, {kTechId.BoneShield, 7.5, 9}, {kTechId.Spores, 7.5, 10},
-		{ kTechId.BioMassSeven, 8.5, 7, nil, "7" }, {kTechId.Stab, 8.5, 8}, { kTechId.BabblerBombAbility, 8.5, 9 },
+		{ kTechId.BioMassSeven, 8.5, 7, nil, "7" }, {kTechId.AdvancedSwipe, 8.5, 8}, { kTechId.BabblerBombAbility, 8.5, 9 },
 		{ kTechId.BioMassEight, 9.5, 7, nil, "8" }, {kTechId.Stomp, 9.5, 8},
-		{ kTechId.BioMassNine, 10.5, 7, nil, "9" }, {kTechId.Xenocide, 10.5, 8},
+		{ kTechId.BioMassNine, 10.5, 7, nil, "9" }, {kTechId.Xenocide, 10.5, 8}, {kTechId.Stab, 10.5, 9},
 		{ kTechId.BioMassTwelve, 11.5, 7, nil, "12" }, {kTechId.Contamination, 11.5, 8},
 		{ kTechId.FortressWhip, 5.5, -0.5 }, { kTechId.FortressShift, 6.5, -0.5 }, { kTechId.FortressShade, 7.5, -0.5 }, { kTechId.FortressCrag, 8.5, -0.5 }
 	}
@@ -167,9 +167,9 @@ else
 		{ kTechId.BioMassFour, 5.5, 7, nil, "4" }, {kTechId.Leap, 5.5, 8},
 		{ kTechId.BioMassFive, 6.5, 7, nil, "5" }, {kTechId.MetabolizeHealth, 6.5, 8},
 		{ kTechId.BioMassSix, 7.5, 7, nil, "6" }, {kTechId.Umbra, 7.5, 8}, {kTechId.BoneShield, 7.5, 9}, {kTechId.Spores, 7.5, 10},
-		{ kTechId.BioMassSeven, 8.5, 7, nil, "7" }, {kTechId.Stab, 8.5, 8},
+		{ kTechId.BioMassSeven, 8.5, 7, nil, "7" }, {kTechId.AdvancedSwipe, 8.5, 8},
 		{ kTechId.BioMassEight, 9.5, 7, nil, "8" }, {kTechId.Stomp, 9.5, 8},
-		{ kTechId.BioMassNine, 10.5, 7, nil, "9" }, {kTechId.Xenocide, 10.5, 8},
+		{ kTechId.BioMassNine, 10.5, 7, nil, "9" }, {kTechId.Xenocide, 10.5, 8}, {kTechId.Stab, 10.5, 9},
 		{ kTechId.BioMassTwelve, 11.5, 7, nil, "12" }, {kTechId.Contamination, 11.5, 8},
 	}
 

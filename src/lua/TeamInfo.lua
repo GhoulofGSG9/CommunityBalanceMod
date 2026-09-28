@@ -139,6 +139,7 @@ TeamInfo.kRelevantTechIdsAlien =
     kTechId.Spores,
     kTechId.MetabolizeEnergy,
     kTechId.MetabolizeHealth,
+    kTechId.AdvancedSwipe,
     kTechId.Stab,
     kTechId.Charge,
     kTechId.BoneShield,
