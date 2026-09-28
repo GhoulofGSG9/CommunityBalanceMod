@@ -439,7 +439,7 @@ local function formatIntSlash(hp, ap)
 end
 
 local function formatPercent(a)
-    return a == 1 and "100" or (tostring(math_max(1, math_ceil(a * 100))) .. "%")
+    return a == 1 and "100%" or (tostring(math_max(1, math_ceil(a * 100))) .. "%")
 end
 
 local PERCENT_NEVER, PERCENT_ALWAYS, PERCENT_IF_ENEMY_EMBRYO = 0, 1, 2
