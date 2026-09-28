@@ -224,7 +224,7 @@ function DropStructureAbility:PerformPrimaryAttack(player)
             local cost = GetCostForTech(self:GetActiveStructure().GetDropStructureId())
             if player:GetResources() >= cost and not self:GetHasDropCooldown() then
 
-                local message = BuildGorgeDropStructureMessage(player:GetEyePos(), player:GetViewCoords().zAxis, self.activeStructure, self.lastClickedPosition, self.lastClickedPositionNormal, coords.origin, normal)
+                local message = BuildGorgeDropStructureMessage(player:GetEyePos(), player:GetViewCoordsZAxis(), self.activeStructure, self.lastClickedPosition, self.lastClickedPositionNormal, coords.origin, normal)
                 Client.SendNetworkMessage("GorgeBuildStructure", message, true)
                 self.timeLastDrop = Shared.GetTime()
                 success = true
@@ -629,11 +629,14 @@ if Client then
 
     function DropStructureAbility:OnProcessIntermediate(input)
 
+        if not self.activeStructure then
+            return
+        end
+
         local player = self:GetParent()
-        local viewDirection = player:GetViewCoords().zAxis
+        if player then
 
-        if player and self.activeStructure then
-
+            local viewDirection = player:GetViewCoordsZAxis()
             self.ghostCoords, self.placementValid, self.ghostEntity, self.ghostNormal = self:GetPositionForStructure(player:GetEyePos(), viewDirection, self:GetActiveStructure(), self.lastClickedPosition, self.lastClickedPositionNormal)
 
             if player:GetResources() < LookupTechData(self:GetActiveStructure():GetDropStructureId(), kTechDataCostKey) then
