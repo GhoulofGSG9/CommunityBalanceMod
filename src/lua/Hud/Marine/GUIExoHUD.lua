@@ -208,7 +208,7 @@ local function UpdateTargets(self)
     
         local trackEntity = trackEntities[t]
         local player = Client.GetLocalPlayer()
-        local inFront = player:GetViewCoords().zAxis:DotProduct(GetNormalizedVector(trackEntity:GetModelOrigin() - player:GetEyePos())) > 0
+        local inFront = player:GetViewCoordsZAxis():DotProduct(GetNormalizedVector(trackEntity:GetModelOrigin() - player:GetEyePos())) > 0
         -- Only really looks good on Skulks currently.
         if inFront and trackEntity:GetIsAlive() and trackEntity:isa("Skulk") and not trackEntity:GetIsCloaked() then
         
