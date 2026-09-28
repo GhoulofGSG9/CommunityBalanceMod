@@ -3192,7 +3192,6 @@ function GetTexCoordsForTechId(techId)
         gTechIdPosition[kTechId.Umbra] = kDeathMessageIcon.Umbra
 
         gTechIdPosition[kTechId.Swipe] = kDeathMessageIcon.Swipe
-        gTechIdPosition[kTechId.AdvancedSwipe] = kDeathMessageIcon.AdvancedSwipe
         gTechIdPosition[kTechId.Stab] = kDeathMessageIcon.Stab
         gTechIdPosition[kTechId.Blink] = kDeathMessageIcon.Blink
         gTechIdPosition[kTechId.Vortex] = kDeathMessageIcon.Vortex
@@ -3206,13 +3205,6 @@ function GetTexCoordsForTechId(techId)
         
         --gTechIdPosition[kTechId.GorgeTunnelTech] = kDeathMessageIcon.GorgeTunnel
 
-    end
-
-    if techId == kTechId.Swipe and Client then
-        local player = Client.GetLocalPlayer()
-        if player and player.GetHasAdvancedSwipe and player:GetHasAdvancedSwipe() then
-            techId = kTechId.AdvancedSwipe
-        end
     end
 
     local position = gTechIdPosition[techId]

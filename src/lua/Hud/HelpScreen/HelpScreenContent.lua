@@ -264,7 +264,6 @@ local helpScreenImages =
     umbra               = PrecacheAsset("ui/helpScreen/icons/umbra.dds"),
     spores              = PrecacheAsset("ui/helpScreen/icons/spores.dds"),
     swipe               = PrecacheAsset("ui/helpScreen/icons/swipe.dds"),
-    advancedSwipe       = PrecacheAsset("ui/helpScreen/icons/advanced_swipe.dds"),
     blink               = PrecacheAsset("ui/helpScreen/icons/blink.dds"),
     advancedMetabolize  = PrecacheAsset("ui/helpScreen/icons/advanced_metabolize.dds"),
     metabolize          = PrecacheAsset("ui/helpScreen/icons/metabolize.dds"),
@@ -881,30 +880,6 @@ function HelpScreen_InitializeContent()
         })
     
     -- Fade
-    -- Advanced Swipe
-    HelpScreen_AddContent({
-        name = "AdvancedSwipe",
-        title = "HELP_SCREEN_ADVANCED_SWIPE",
-        requirementFunction = function()
-            local player = Client.GetLocalPlayer()
-            if player and player.GetHasAdvancedSwipe and player:GetHasAdvancedSwipe() then
-                return true
-            end
-            local result, msg = EvaluateTechAvailability(kTechId.AdvancedSwipe, "HELP_SCREEN_ADVANCED_SWIPE_REQUIREMENT")
-            return result, msg
-        end,
-        description = "HELP_SCREEN_ADVANCED_SWIPE_DESCRIPTION",
-        imagePath = helpScreenImages.advancedSwipe,
-        actions = {
-            { "Weapon1", },
-            { "PrimaryAttack", },
-        },
-        classNames = {"Fade"},
-        theme = "alien",
-        hideIfLocked = true,
-        useLocale = true,
-        })
-
     -- Swipe
     HelpScreen_AddContent({
         name = "Swipe",
@@ -917,7 +892,6 @@ function HelpScreen_InitializeContent()
         },
         classNames = {"Fade"},
         theme = "alien",
-        skipCards = {"AdvancedSwipe"},
         useLocale = true,
         })
     

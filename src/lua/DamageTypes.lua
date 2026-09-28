@@ -217,10 +217,6 @@ function NS2Gamerules_GetUpgradedAlienDamage( target, attacker, doer, damage, ar
         damage = damage * (1 + (veilLevel/3) * damageBonus) --1.0, 1.333, 1.666, 2
     end
 
-    if doer:isa("SwipeBlink") and not (target:isa("Exo") or target:isa("Exosuit")) and attacker.GetHasAdvancedSwipe and attacker:GetHasAdvancedSwipe() then
-        damage = damage * kAdvancedSwipeDamageScalar
-    end
-
     if doer:isa("StabBlink") and GetIsExoOpenToStab(target, attacker) then
         damage = damage * kStabExoRearDamageScalar
     end

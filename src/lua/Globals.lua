@@ -207,7 +207,7 @@ kDeathMessageIcon = enum( { 'None',
     'Xenocide', 'Blink', 'Leap', 'Stomp',
     'Consumed', 'GL', 'Recycled', 'Babbler', 'Railgun', 'BabblerAbility', 'GorgeTunnel', 'BoneShield',
     'ClusterGrenade', 'GasGrenade', 'PulseGrenade', 'Stab', 'WhipBomb', 'Metabolize', 'Crush', 'EMPBlast', 'HeavyMachineGun', 'Submachinegun', 'ScanGrenade',
-    'BabblerBombAbility', 'AdvancedSwipe', 
+    'BabblerBombAbility', 
 } )
 
 kMinimapBlipType = enum( { 'Undefined', 'TechPoint', 'ResourcePoint', 'Scan', 'ScanMini', 'EtherealGate', 'HighlightWorld',

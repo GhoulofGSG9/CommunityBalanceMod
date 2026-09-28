@@ -1226,7 +1226,6 @@ function AlienTeam:InitTechTree()
     -- fade researches
     self.techTree:AddResearchNode(kTechId.MetabolizeEnergy,        kTechId.BioMassThree, kTechId.None, kTechId.AllAliens)
     self.techTree:AddResearchNode(kTechId.MetabolizeHealth,        kTechId.BioMassFive, kTechId.MetabolizeEnergy, kTechId.AllAliens)
-    self.techTree:AddResearchNode(kTechId.AdvancedSwipe,     kTechId.BioMassSeven, kTechId.None, kTechId.AllAliens)
     self.techTree:AddResearchNode(kTechId.Stab,              kTechId.BioMassEight, kTechId.None, kTechId.AllAliens)
 
     -- onos researches

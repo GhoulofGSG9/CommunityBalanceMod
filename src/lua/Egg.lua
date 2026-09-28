@@ -373,7 +373,6 @@ local function GestatePlayer(self, player, fromTechId)
     player.oneHive = false
     player.twoHives = false
     player.threeHives = false
-    player.advancedSwipe = false
 
     local playerHealthScalar = player:GetHealthScalar()
     local playerArmorScalar = player:GetArmorScalar()

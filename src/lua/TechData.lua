@@ -2333,16 +2333,6 @@ function BuildTechData()
         },
 
         {
-            [kTechDataId] = kTechId.AdvancedSwipe,
-            [kTechDataCategory] = kTechId.Fade,
-            [kTechDataCostKey] = kAdvancedSwipeResearchCost,
-            [kTechDataResearchTimeKey] = kAdvancedSwipeResearchTime,
-            [kTechDataDisplayName] = "ADVANCED_SWIPE",
-            [kTechDataTooltipInfo] = "ADVANCED_SWIPE_TOOLTIP",
-            [kTechDataResearchName] = "ADVANCED_SWIPE",
-        },
-
-        {
             [kTechDataId] = kTechId.BoneShield,
             [kTechDataCategory] = kTechId.Onos,
             [kTechDataMapName] = BoneShield.kMapName,
