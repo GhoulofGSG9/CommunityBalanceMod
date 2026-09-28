@@ -240,7 +240,7 @@ kTechIdToMaterialOffset[kTechId.TunnelRelocate] = 190
 kTechIdToMaterialOffset[kTechId.TunnelCollapse] = 191
 
 kTechIdToMaterialOffset[kTechId.Stab] = 105
-kTechIdToMaterialOffset[kTechId.AdvancedSwipe] = 160
+kTechIdToMaterialOffset[kTechId.AdvancedSwipe] = 210
 kTechIdToMaterialOffset[kTechId.ShadowStep] = 160
 kTechIdToMaterialOffset[kTechId.MetabolizeEnergy] = 169
 kTechIdToMaterialOffset[kTechId.MetabolizeHealth] = 170

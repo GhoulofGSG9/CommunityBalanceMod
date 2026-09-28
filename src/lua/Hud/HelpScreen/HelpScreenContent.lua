@@ -264,6 +264,7 @@ local helpScreenImages =
     umbra               = PrecacheAsset("ui/helpScreen/icons/umbra.dds"),
     spores              = PrecacheAsset("ui/helpScreen/icons/spores.dds"),
     swipe               = PrecacheAsset("ui/helpScreen/icons/swipe.dds"),
+    advancedSwipe       = PrecacheAsset("ui/helpScreen/icons/advanced_swipe.dds"),
     blink               = PrecacheAsset("ui/helpScreen/icons/blink.dds"),
     advancedMetabolize  = PrecacheAsset("ui/helpScreen/icons/advanced_metabolize.dds"),
     metabolize          = PrecacheAsset("ui/helpScreen/icons/metabolize.dds"),
@@ -956,7 +957,7 @@ function HelpScreen_InitializeContent()
             return result, msg
         end,
         description = "HELP_SCREEN_ADVANCED_SWIPE_DESCRIPTION",
-        imagePath = helpScreenImages.swipe,
+        imagePath = helpScreenImages.advancedSwipe,
         actions = {
             { "Weapon1", },
             { "PrimaryAttack", },
