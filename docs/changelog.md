@@ -343,13 +343,16 @@
   - Added proper check for marine jumping.
  
 ### Focus
-  - Properly affects Stab ability now.
   - Fixed bug which slowed Gore by 57% instead of 33%.
   - Gorges now get a 1.5x damage buff instead of a 1.33x buff.
 
-### Stab
-  - Stab research cost reduced from 25 to 20 tres.
-  - Stab energy cost reduced by 16%.
+### Fade
+  - Advanced Swipe: new bio 7 research (20 tres). Swipe deals 10% more damage, except against exosuits.
+  - Stab: late game exosuit counter.
+    - Moved from bio 7 to bio 9, research cost stays 25 tres.
+    - Deals 2.25x damage (270) when it hits an exosuit from behind.
+    - Energy cost reduced from 30 to 20.
+    - No longer affected by Focus.
  
 ### Swapping Trait Cost
   - Swapping to another trait from the same chamber costs less:  

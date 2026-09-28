@@ -140,6 +140,14 @@ if kCBMaddon then
 	  - Babblers will no longer ignore babbler ball when biting PvE.
 	  - Babblers are more responsive and have better movement.
 
+	### Fade
+	  - Advanced Swipe: new bio 7 research (20 tres). Swipe deals 10% more damage, except against exosuits.
+	  - Stab: late game exosuit counter.
+	    - Moved from bio 7 to bio 9, research cost stays 25 tres.
+	    - Deals 2.25x damage (270) when it hits an exosuit from behind.
+	    - Energy cost reduced from 30 to 20.
+	    - No longer affected by Focus.
+
 	### Mines
 	  - Strengthened mine placement checks to reduce potential for fully invisible mines.
 	  - Added additional damage checks to mines to account for zero damage edge cases.	
@@ -590,7 +598,6 @@ if kCBMaddon then
 	    - Onos are silent when crouching with cloak.
 	    - UI icon only appears when fully cloaked.	
       - Focus:
-	    - Properly affects Stab ability now.
 	    - Fixed bug which slowed Gore by 57% instead of 33%.
 	    - Gorges now get a 1.5x damage buff instead of a 1.33x buff.
 
@@ -632,9 +639,13 @@ if kCBMaddon then
 	    - Now blocks railgun shots from piercing through (still must be facing damage source).
 	    - Now prevents health pool damage of railgun shot when blocking (still must be facing damage source).
 
-	### Stab (fade)
-	  - Stab research cost reduced from 25 to 20 tres.
-	  - Stab energy cost reduced by 16%.
+	### Fade
+	  - Advanced Swipe: new bio 7 research (20 tres). Swipe deals 10% more damage, except against exosuits.
+	  - Stab: late game exosuit counter.
+	    - Moved from bio 7 to bio 9, research cost stays 25 tres.
+	    - Deals 2.25x damage (270) when it hits an exosuit from behind.
+	    - Energy cost reduced from 30 to 20.
+	    - No longer affected by Focus.
 	  
 	### Skulk
 	  - Improved movement on wall and ceilings by making fall checks more forgiving.
@@ -848,6 +859,14 @@ else
 	  - Improved babbler ball projectile behavior and related babbler targetting priorities.
 	  - Babblers will no longer ignore babbler ball when biting PvE.
 	  - Babblers are more responsive and have better movement.
+
+	### Fade
+	  - Advanced Swipe: new bio 7 research (20 tres). Swipe deals 10% more damage, except against exosuits.
+	  - Stab: late game exosuit counter.
+	    - Moved from bio 7 to bio 9, research cost stays 25 tres.
+	    - Deals 2.25x damage (270) when it hits an exosuit from behind.
+	    - Energy cost reduced from 30 to 20.
+	    - No longer affected by Focus.
 
 	### Mines
 	  - Strengthened mine placement checks to reduce potential for fully invisible mines.
@@ -1222,7 +1241,6 @@ else
 	    - Onos are silent when crouching with cloak.
 	    - UI icon only appears when fully cloaked.	
       - Focus:
-	    - Properly affects Stab ability now.
 	    - Fixed bug which slowed Gore by 57% instead of 33%.
 	    - Gorges now get a 1.5x damage buff instead of a 1.33x buff.
 
@@ -1258,9 +1276,13 @@ else
 	    - Now blocks railgun shots from piercing through (still must be facing damage source).
 	    - Now prevents health pool damage of railgun shot when blocking (still must be facing damage source).
 
-	### Stab (fade)
-	  - Stab research cost reduced from 25 to 20 tres.
-	  - Stab energy cost reduced by 16%.
+	### Fade
+	  - Advanced Swipe: new bio 7 research (20 tres). Swipe deals 10% more damage, except against exosuits.
+	  - Stab: late game exosuit counter.
+	    - Moved from bio 7 to bio 9, research cost stays 25 tres.
+	    - Deals 2.25x damage (270) when it hits an exosuit from behind.
+	    - Energy cost reduced from 30 to 20.
+	    - No longer affected by Focus.
 	  
 	### Skulk
 	  - Improved movement on wall and ceilings by making fall checks more forgiving.
