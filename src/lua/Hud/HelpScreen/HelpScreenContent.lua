@@ -881,6 +881,26 @@ function HelpScreen_InitializeContent()
         })
     
     -- Fade
+    -- Advanced Swipe
+    HelpScreen_AddContent({
+        name = "AdvancedSwipe",
+        title = "HELP_SCREEN_ADVANCED_SWIPE",
+        requirementFunction = function()
+            local result, msg = EvaluateTechAvailability(kTechId.AdvancedSwipe, "HELP_SCREEN_ADVANCED_SWIPE_REQUIREMENT")
+            return result, msg
+        end,
+        description = "HELP_SCREEN_ADVANCED_SWIPE_DESCRIPTION",
+        imagePath = helpScreenImages.advancedSwipe,
+        actions = {
+            { "Weapon1", },
+            { "PrimaryAttack", },
+        },
+        classNames = {"Fade"},
+        theme = "alien",
+        hideIfLocked = true,
+        useLocale = true,
+        })
+
     -- Swipe
     HelpScreen_AddContent({
         name = "Swipe",
@@ -893,6 +913,7 @@ function HelpScreen_InitializeContent()
         },
         classNames = {"Fade"},
         theme = "alien",
+        skipCards = {"AdvancedSwipe"},
         useLocale = true,
         })
     
@@ -948,25 +969,6 @@ function HelpScreen_InitializeContent()
         useLocale = true,
         })
     
-    -- Advanced Swipe
-    HelpScreen_AddContent({
-        name = "AdvancedSwipe",
-        title = "HELP_SCREEN_ADVANCED_SWIPE",
-        requirementFunction = function()
-            local result, msg = EvaluateTechAvailability(kTechId.AdvancedSwipe, "HELP_SCREEN_ADVANCED_SWIPE_REQUIREMENT")
-            return result, msg
-        end,
-        description = "HELP_SCREEN_ADVANCED_SWIPE_DESCRIPTION",
-        imagePath = helpScreenImages.advancedSwipe,
-        actions = {
-            { "Weapon1", },
-            { "PrimaryAttack", },
-        },
-        classNames = {"Fade"},
-        theme = "alien",
-        useLocale = true,
-        })
-
     -- Stab
     HelpScreen_AddContent({
         name = "Stab",
