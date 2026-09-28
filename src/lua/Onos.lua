@@ -575,7 +575,7 @@ function Onos:UpdateStooping(deltaTime)
     local topPos = self:GetOrigin() + kStoopPos
     topPos.y = topPos.y + Onos.kYHeadExtents
     
-    local xzDirection = self:GetViewCoords().zAxis
+    local xzDirection = self:GetViewCoordsZAxis()
     xzDirection.y = 0
     xzDirection:Normalize()
     
@@ -879,7 +879,7 @@ function Onos:GetHitsBoneShield(doer, hitPoint)
 
     if self.kBlockDoers[doer:GetClassName()] then
     
-        local viewDirection = GetNormalizedVectorXZ( self:GetViewCoords().zAxis )
+        local viewDirection = GetNormalizedVectorXZ( self:GetViewCoordsZAxis() )
         local zPosition = viewDirection:DotProduct( GetNormalizedVector( hitPoint - self:GetOrigin() ) )
         return zPosition >= 0.34 --approx 115 degree cone of Onos facing
     
