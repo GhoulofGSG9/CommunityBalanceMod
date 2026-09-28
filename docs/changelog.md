@@ -348,7 +348,7 @@
 
 ### Fade
   - Stab: late game exosuit counter.
-    - Moved from bio 7 to bio 8. Research 20 tres, 45 s (vanilla 25 tres, 60 s).
+    - Moved from bio 7 to bio 8. Research 35 tres (vanilla 25), same as Stomp. Research time stays 60 s.
     - Deals 2.25x damage (270) when it hits an exosuit from behind. Nano shield cancels the bonus.
     - Energy cost reduced from 30 to 20.
     - No longer affected by Focus.
