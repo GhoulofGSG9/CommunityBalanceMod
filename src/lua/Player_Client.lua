@@ -458,6 +458,9 @@ function PlayerUI_GetStatusInfoForUnit(player, unit)
     local healthArmorString
     local percentageString
 
+    local unitMapName = unit:GetMapName()
+    local isTechPointOrRT = (unitMapName == TechPoint.kMapName or unitMapName == ResourcePoint.kPointMapName)
+
     if HasMixin(unit, "Live") and (not unit.GetShowHealthFor or unit:GetShowHealthFor(player)) then
 
         health = unit:GetHealthFraction()
@@ -473,7 +476,7 @@ function PlayerUI_GetStatusInfoForUnit(player, unit)
             healthArmorString = formatIntSlash(unit:GetHealth(), unit:GetArmor())
         end
 
-        if (unit:GetMapName() ~= TechPoint.kMapName and unit:GetMapName() ~= ResourcePoint.kPointMapName) then
+        if not isTechPointOrRT then
             if not unit:isa("Player") or (unit:isa("Embryo") and GetAreEnemies(player, unit)) then
                 percentageString = formatPercent(unit:GetHealthScalar())
             end
@@ -529,7 +532,7 @@ function PlayerUI_GetStatusInfoForUnit(player, unit)
     end
 
     -- Don't show tech points or nozzles if they are attached
-    if visibleToPlayer and (unit:GetMapName() == TechPoint.kMapName or unit:GetMapName() == ResourcePoint.kPointMapName) and unit.GetAttached and (unit:GetAttached() ~= nil) then
+    if visibleToPlayer and isTechPointOrRT and unit.GetAttached and (unit:GetAttached() ~= nil) then
         visibleToPlayer = false
     end
 
