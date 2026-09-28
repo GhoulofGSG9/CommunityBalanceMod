@@ -369,7 +369,7 @@ function Fade:ModifyVelocity(input, velocity, deltaTime)
 
     if self:GetIsBlinking() then
 
-        local wishDir = self:GetViewCoords().zAxis
+        local wishDir = self:GetViewCoordsZAxis()
         local maxSpeedTable = { maxSpeed = kBlinkSpeed }
         self:ModifyMaxSpeed(maxSpeedTable, input)
         local prevSpeed = velocity:GetLength()
