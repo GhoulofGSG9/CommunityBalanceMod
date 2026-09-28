@@ -423,13 +423,22 @@ end
 local function formatInt(a)
     return tostring(math.max(1, math.ceil(a)))
 end
+
+local kMarinesFullStatusHpAp = {
+    [kMarineArmor + kArmorPerUpgradeLevel * 0] = tostring(kMarineHealth) .. "/" .. tostring(math.ceil(kMarineArmor + kArmorPerUpgradeLevel * 0)),
+    [kMarineArmor + kArmorPerUpgradeLevel * 1] = tostring(kMarineHealth) .. "/" .. tostring(math.ceil(kMarineArmor + kArmorPerUpgradeLevel * 1)),
+    [kMarineArmor + kArmorPerUpgradeLevel * 2] = tostring(kMarineHealth) .. "/" .. tostring(math.ceil(kMarineArmor + kArmorPerUpgradeLevel * 2)),
+    [kMarineArmor + kArmorPerUpgradeLevel * 3] = tostring(kMarineHealth) .. "/" .. tostring(math.ceil(kMarineArmor + kArmorPerUpgradeLevel * 3))
+}
+
 -- string.format("%d/%d", a, b) -> manual conversion
-local function formatIntSlash(a, b)
-    return tostring(math.max(1, math.ceil(a))) .. "/" .. tostring(math.ceil(b))
+local function formatIntSlash(hp, ap)
+    local rval = (hp == kMarineHealth and kMarinesFullStatusHpAp[ap]) -- No computation for marines full eHPs
+    return rval or tostring(math.max(1, math.ceil(hp))) .. "/" .. tostring(math.ceil(ap))
 end
 -- string.format("%d%%", a) -> manual conversion
 local function formatPercent(a)
-    return tostring(math.max(1, math.ceil(a * 100))) .. "%"
+    return a == 1 and "100" or (tostring(math.max(1, math.ceil(a * 100))) .. "%")
 end
 
 function PlayerUI_GetStatusInfoForUnit(player, unit)
@@ -461,7 +470,8 @@ function PlayerUI_GetStatusInfoForUnit(player, unit)
     local unitMapName = unit:GetMapName()
     local isTechPointOrRT = (unitMapName == TechPoint.kMapName or unitMapName == ResourcePoint.kPointMapName)
 
-    if HasMixin(unit, "Live") and (not unit.GetShowHealthFor or unit:GetShowHealthFor(player)) then
+    local canShowHealth = (not unit.GetShowHealthFor or unit:GetShowHealthFor(player))
+    if HasMixin(unit, "Live") and canShowHealth then
 
         health = unit:GetHealthFraction()
         armor = unit:GetArmorScalar()
