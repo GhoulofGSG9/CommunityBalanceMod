@@ -63,7 +63,7 @@ end
 
 function Axe:GetRange()
     local player = self:GetParent()
-    local floorAim = player and player:GetViewCoords().zAxis.y or 0
+    local floorAim = player and player:GetViewCoordsZAxis().y or 0
     floorAim = floorAim * floorAim
     return Axe.kRange + Clamp(floorAim,0,1) * Axe.kFloorRange
 end

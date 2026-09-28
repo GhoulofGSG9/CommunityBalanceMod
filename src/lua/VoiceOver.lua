@@ -74,7 +74,7 @@ local function PingInViewDirection(player)
     if player and (not player.lastTimePinged or player.lastTimePinged + 60 < Shared.GetTime()) then
     
         local startPoint = player:GetEyePos()
-        local endPoint = startPoint + player:GetViewCoords().zAxis * 40        
+        local endPoint = startPoint + player:GetViewCoordsZAxis() * 40        
         local trace = Shared.TraceRay(startPoint, endPoint,  CollisionRep.Default, PhysicsMask.Bullets, EntityFilterOne(player))   
         
         -- seems due to changes to team mixin you can be assigned to a team which does not implement SetCommanderPing

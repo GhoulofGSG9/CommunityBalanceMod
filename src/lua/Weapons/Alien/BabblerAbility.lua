@@ -101,7 +101,7 @@ end
 
 local function FindTarget(self, player)
 
-    local direction = player:GetViewCoords().zAxis
+    local direction = player:GetViewCoordsZAxis()
 
     local startPoint = player:GetEyePos()
     local endPoint = startPoint + direction * self:GetRange()

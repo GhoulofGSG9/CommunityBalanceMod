@@ -78,7 +78,7 @@ function GUIAuraDisplay:Update(deltaTime)
     local player = Client.GetLocalPlayer()
     if player and GetHasAuraUpgrade(player) then
 
-        local viewDirection = player:GetViewCoords().zAxis
+        local viewDirection = player:GetViewCoordsZAxis()
         local eyePos = player:GetEyePos()
 
         local range = player:GetVeilLevel() * 10

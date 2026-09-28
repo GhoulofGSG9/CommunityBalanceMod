@@ -44,7 +44,7 @@ function ReadyRoomExo:PerformEject()
         
         local marine = self:Replace(self.prevPlayerMapName or Marine.kMapName, nil, nil, self:GetOrigin() + Vector(0, 0.2, 0) )
         marine.onGround = false
-        local initialVelocity = self:GetViewCoords().zAxis
+        local initialVelocity = self:GetViewCoordsZAxis()
         initialVelocity:Scale(4)
         initialVelocity.y = 9
         marine:SetVelocity(initialVelocity)

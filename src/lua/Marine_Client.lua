@@ -194,7 +194,7 @@ function Marine:UpdateClientEffects(deltaTime, isLocal)
                 
                 TriggerSpitHitEffect(angleDirection:GetCoords())
                 
-                local intensity = self.lastSpitDirection:DotProduct(self:GetViewCoords().zAxis)
+                local intensity = self.lastSpitDirection:DotProduct(self:GetViewCoordsZAxis())
                 self.spitEffectIntensity = intensity
                 self.timeLastSpitHitEffect = self.timeLastSpitHit
                 

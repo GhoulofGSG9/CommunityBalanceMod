@@ -278,7 +278,7 @@ function Gorge:GetIsSlidingDesired(input)
            
     else
         
-        local zAxis = self:GetViewCoords().zAxis
+        local zAxis = self:GetViewCoordsZAxis()
         zAxis.y = 0
         zAxis:Normalize()
         
@@ -312,6 +312,7 @@ function Gorge:UpdateGorgeSliding(input)
             if (GetHasSilenceUpgrade(self) and self:GetVeilLevel() == 0) or not GetHasSilenceUpgrade(self) then
                 self.slideLoopSound:Start()
             end
+            --self.slideLoopSound:SetPitch(self:GetVelocity():GetLength())
         end
 
         self:DeductAbilityEnergy(kBellySlideCost)
@@ -429,7 +430,7 @@ function Gorge:ModifyVelocity(input, velocity, deltaTime)
 
         if self:GetIsOnGround() then
 
-            local pushDirection = GetNormalizedVectorXZ(self:GetViewCoords().zAxis)
+            local pushDirection = GetNormalizedVectorXZ(self:GetViewCoordsZAxis())
 
             local currentSpeed = math.max(0, pushDirection:DotProduct(velocity))
 
@@ -483,7 +484,7 @@ function Gorge:GetDesiredAngles()
     
     if self:GetIsBellySliding() then
         desiredAngles.pitch = - self.verticalVelocity / 10 
-        desiredAngles.roll = GetNormalizedVectorXZ(self:GetVelocity()):DotProduct(self:GetViewCoords().xAxis) * kMaxSlideRoll
+        desiredAngles.roll = GetNormalizedVectorXZ(self:GetVelocity()):DotProduct(self:GetViewCoordsXAxis()) * kMaxSlideRoll
     end
     
     return desiredAngles
