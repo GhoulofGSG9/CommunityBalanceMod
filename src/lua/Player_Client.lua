@@ -553,7 +553,7 @@ function PlayerUI_GetStatusInfoForUnit(player, unit)
     local isPlayer = unit:isa("Player") and not unit:isa("Embryo")
     local areEnemies = GetAreEnemies(player, unit)
 
-    if HasMixin(unit, "Cloakable") and areEnemies then
+    if areEnemies and HasMixin(unit, "Cloakable") then
 
         if unit:GetIsCloaked() or (isPlayer and unit:GetCloakFraction() > 0.2) then
             visibleToPlayer = false
@@ -592,7 +592,7 @@ function PlayerUI_GetStatusInfoForUnit(player, unit)
     end
     
     local maturityFraction = -1
-    if HasMixin(unit, "Maturity") and not areEnemies then
+    if not areEnemies and HasMixin(unit, "Maturity") then
         maturityFraction = unit:GetMaturityFraction()
     end
 
@@ -645,34 +645,14 @@ function PlayerUI_GetStatusInfoForUnit(player, unit)
         unitState.TeamType = unit:GetTeamType()
     end
 
-    if isPlayer and unit:isa("Marine") and HasMixin(unit, "WeaponOwner") and not areEnemies then
+    if isPlayer and not areEnemies and unit:isa("Marine") and HasMixin(unit, "WeaponOwner") then
         local primaryWeapon = unit:GetWeaponInHUDSlot(1)
         if primaryWeapon and primaryWeapon:isa("ClipWeapon") then
             unitState.PrimaryWeapon = primaryWeapon:GetTechId()
         end
     end
 
-    if unit:isa("InfantryPortal") and unit.timeSpinStarted then
-        if unit.queuedPlayerId ~= Entity.invalidId then
-            local playerName = ""
-            for _, playerInfo in ientitylist(Shared.GetEntitiesWithClassname("PlayerInfoEntity")) do
-                if playerInfo.playerId == unit.queuedPlayerId then
-                    playerName = playerInfo.playerName
-                    break
-                end
-            end
-
-            unitState.SpawnerName = playerName
-            unitState.SpawnFraction = Clamp((Shared.GetTime() - unit.timeSpinStarted) / kMarineRespawnTime, 0, 1)
-        end
-    elseif unit:isa("Embryo") then
-        unitState.EvolvePercentage = unit.evolvePercentage / 100
-        unitState.EvolveClass = unit:GetEggTypeDisplayName()
-    elseif unit:isa("Egg") and unit.researchProgress > 0 and unit.researchProgress < 1 then
-        unitState.EvolvePercentage = unit.researchProgress
-    elseif unit.GetDestinationLocationName then
-        unitState.Destination = unit:GetDestinationLocationName()
-    elseif unit:isa("Weapon") then
+    if not isPlayer and unit:isa("Weapon") then
         -- Make super sure that we're hiding this
         unitState.IsCrossHairTarget = false
         unitState.Name = ""
@@ -692,6 +672,26 @@ function PlayerUI_GetStatusInfoForUnit(player, unit)
             unitState.AbilityFraction = unit:GetExpireTimeFraction()
             unitState.IsWorldWeapon = true
         end
+    elseif unit:isa("Egg") and unit.researchProgress > 0 and unit.researchProgress < 1 then
+        unitState.EvolvePercentage = unit.researchProgress
+    elseif not isPlayer and unit:isa("InfantryPortal") and unit.timeSpinStarted then
+        if unit.queuedPlayerId ~= Entity.invalidId then
+            local playerName = ""
+            for _, playerInfo in ientitylist(Shared.GetEntitiesWithClassname("PlayerInfoEntity")) do
+                if playerInfo.playerId == unit.queuedPlayerId then
+                    playerName = playerInfo.playerName
+                    break
+                end
+            end
+
+            unitState.SpawnerName = playerName
+            unitState.SpawnFraction = Clamp((Shared.GetTime() - unit.timeSpinStarted) / kMarineRespawnTime, 0, 1)
+        end
+    elseif unit:isa("Embryo") then
+        unitState.EvolvePercentage = unit.evolvePercentage / 100
+        unitState.EvolveClass = unit:GetEggTypeDisplayName()
+    elseif unit.GetDestinationLocationName then
+        unitState.Destination = unit:GetDestinationLocationName()
     end
 
     if unit.ShowDestinationOverride then
