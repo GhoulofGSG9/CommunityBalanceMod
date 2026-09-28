@@ -373,7 +373,7 @@ local function ForwardControl(self, deltaTime, velocity)
 
     if airControl > 0 then
 
-        local wishDir = self:GetViewCoords().zAxis
+        local wishDir = self:GetViewCoordsZAxis()
         wishDir.y = 0
         wishDir:Normalize()
         
