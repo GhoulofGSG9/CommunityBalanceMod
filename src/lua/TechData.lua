@@ -2328,7 +2328,7 @@ function BuildTechData()
             [kTechDataResearchTimeKey] = kStabResearchTime,
             [kTechDataDamageType] = kStabDamageType,
             [kTechDataDisplayName] = "STAB_BLINK",
-            [kTechDataTooltipInfo] = "STAB_TOOLTIP",
+            [kTechDataTooltipInfo] = "STAB_EXO_TOOLTIP",
             [kTechDataResearchName] = "STAB_BLINK",
         },
 

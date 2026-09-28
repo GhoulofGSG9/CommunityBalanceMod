@@ -112,14 +112,6 @@ function StabBlink:GetIsStabbing()
     return self.stabbing == true
 end
 
-function StabBlink:GetIsAffectedByFocus()
-    return true
-end
-
-function StabBlink:GetMaxFocusBonusDamage()
-    return kStabFocusDamageBonusAtMax
-end
-
 function StabBlink:GetAttackAnimationDuration()
     return StabBlink.kAttackDuration * StabBlink.cooldownInfluence
 end

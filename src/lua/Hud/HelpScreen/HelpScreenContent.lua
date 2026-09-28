@@ -955,7 +955,7 @@ function HelpScreen_InitializeContent()
             local result, msg = EvaluateTechAvailability(kTechId.Stab, "HELP_SCREEN_STAB_REQUIREMENT")
             return result, msg
         end,
-        description = "HELP_SCREEN_STAB_DESCRIPTION",
+        description = "HELP_SCREEN_STAB_EXO_DESCRIPTION",
         imagePath = helpScreenImages.stab,
         actions = {
             { "Weapon3", },

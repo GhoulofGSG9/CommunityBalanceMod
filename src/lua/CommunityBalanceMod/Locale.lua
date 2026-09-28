@@ -170,6 +170,9 @@ if Client then
 	Locale.substitutions["ADVANCED_EXO_ARMS_TECH_TOOLTIP"] = "Unlocks the flame and plasma arms."
 	Locale.substitutions["EXO_ABILITIES_TECH"] = "Exosuit Abilities"
 	Locale.substitutions["EXO_ABILITIES_TECH_TOOLTIP"] = "Unlocks the exosuit support abilities: Nano Shield Field, Catalyst Field and Regen Field."
+
+	Locale.substitutions["STAB_EXO_TOOLTIP"] = "A slow, heavy strike. Deals more than double damage when it hits an Exosuit from behind, unless the Exosuit is nano shielded."
+	Locale.substitutions["HELP_SCREEN_STAB_EXO_DESCRIPTION"] = "A slow, heavy strike. Hit an Exosuit from behind for more than double damage, unless it is nano shielded. Also strong against structures."
 	
 	Locale.substitutions["RESEARCH_DUAL_EXOS"] = "Research Dual Exosuit Tech"
 	Locale.substitutions["RESEARCH_DUAL_EXOS_TITLE"] = "Dual Exosuits"

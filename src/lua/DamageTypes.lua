@@ -147,6 +147,15 @@ function NS2Gamerules_GetUpgradedDamage(attacker, doer, damage, _, _, target)
 
 end
 
+function GetIsExoOpenToStab(target, attacker)
+    if not target:isa("Exo") or (target.GetIsNanoShielded and target:GetIsNanoShielded()) then
+        return false
+    end
+    local toAttacker = attacker:GetOrigin() - target:GetOrigin()
+    toAttacker.y = 0
+    return toAttacker:GetLengthSquared() > 0.01 and target:GetViewCoords().zAxis:DotProduct(toAttacker) < 0
+end
+
 --Utility function to apply chamber-upgraded modifications to alien damage
 --Note: this should _always_ be called BEFORE damage-type specific modifications are done (i.e. Light vs Normal vs Structural, etc)
 function NS2Gamerules_GetUpgradedAlienDamage( target, attacker, doer, damage, armorFractionUsed, _, damageType )
@@ -206,6 +215,10 @@ function NS2Gamerules_GetUpgradedAlienDamage( target, attacker, doer, damage, ar
         local veilLevel = attacker:GetVeilLevel()
         local damageBonus = doer:GetMaxFocusBonusDamage()
         damage = damage * (1 + (veilLevel/3) * damageBonus) --1.0, 1.333, 1.666, 2
+    end
+
+    if doer:isa("StabBlink") and GetIsExoOpenToStab(target, attacker) then
+        damage = damage * kStabExoRearDamageScalar
     end
 
     --!!!Note: if more than damage and armor fraction modified, be certain the calling-point of this function is updated
