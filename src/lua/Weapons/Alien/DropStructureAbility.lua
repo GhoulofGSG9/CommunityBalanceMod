@@ -412,6 +412,76 @@ local function FilterBabblersAndTwo(ent1, ent2)
     return function (test) return test == ent1 or test == ent2 or test:isa("Babbler") end
 end
 
+-- Clog bridge assist -------------------------------------------------------
+local function GetBridgeFilter(player, weapon, ignoreClogs)
+    return function(test)
+        return test == player or test == weapon or test:isa("Babbler") or (ignoreClogs and test:isa("Clog"))
+    end
+end
+
+-- Returns the clog to extend from and the new clog's center, or nil.
+local function GetClogBridgeTarget(player, weapon, startPosition, direction, trace)
+    local kBridgeCollisionRep = CollisionRep.Default
+    local kBridgeMask = PhysicsMask.AllButPCsAndRagdollsAndBabblers
+    local kBridgeProbeLength = 3.0 -- min clear distance ahead of us
+    local kBridgeMinLookDown = 0.6 -- view direction y must be below (-0.6  is ~37 deg down)
+    if direction.y > -kBridgeMinLookDown or trace.endPoint:GetDistanceTo(startPosition) < kBridgeProbeLength then
+        return nil
+    end
+
+    -- Horizontal facing, derived from the passed-in direction so client and server agree.
+    local flat = Vector(direction.x, 0, direction.z)
+    if flat:GetLength() < 0.001 then
+        flat = Angles(0, player:GetViewAngles().yaw, 0):GetCoords().zAxis
+    else
+        flat = GetNormalizedVector(flat)
+    end
+
+    local clog = nil
+    local target = nil
+    local clogOrig = nil
+    local center = nil
+    local isPosValid = true
+
+    -- Aimed at ground / air: look for the tip clog under the gorge.
+    -- Go ahead on the horizontal plane, drop down, then trace back toward the gorge.
+    local filter = GetBridgeFilter(player, weapon)
+    local kBridgeProbeAhead = 1.5 -- probe this far ahead on the horizontal plane
+    local ahead = startPosition + flat * kBridgeProbeAhead
+
+    local kBridgeProbeDrops = 1.0
+    local from = ahead - Vector(0, kBridgeProbeDrops, 0)
+    local to = from - flat * kBridgeProbeLength
+    local back = Shared.TraceRay(from, to, kBridgeCollisionRep, kBridgeMask, filter)
+
+    if back.fraction < 1 then
+        if back.entity and back.entity:isa("Clog") then
+            clog = back.entity
+        end
+        if not back.entity then
+            target = back.endPoint
+        end
+    end
+
+    if not (clog or target) then
+        return nil
+    end
+
+    -- Tuned values for clogs bridges to be lined up well and ledges to be good
+    if clog then
+        local yVariation = 0.08 + math.sin(Shared.GetTime() / 4) / 14 -- to give a more uneven look to bridges
+        clogOrig = (clog:GetOrigin() - Vector(0, (Clog.kRadius / 2) - yVariation, 0))
+        target = clogOrig + flat * (Clog.kRadius * (1.65 + math.cos(Shared.GetTime() / 10) / 4))        
+    else
+        clogOrig = target - Vector(0, (Clog.kRadius / 1.8), 0)
+        target = clogOrig + flat * Clog.kRadius
+    end
+
+    center = clogOrig + flat * (Clog.kRadius / 2)
+    return clog, target, isPosValid
+
+end
+
 -- Given a gorge player's position and view angles, return a position and orientation
 -- for structure. Used to preview placement via a ghost structure and then to create it.
 -- Also returns bool if it's a valid position or not.
@@ -459,6 +529,24 @@ function DropStructureAbility:GetPositionForStructure(startPosition, direction, 
         end
 
         displayOrigin = trace.endPoint
+    end
+
+    -- Clog bridge assist (also works when the aim ray hit ground or nothing)
+    if structureAbility.GetDropMapName() == Clog.kMapName and (not trace.entity or trace.entity:isa("Infestation")) then
+
+        local bridgeClog, bridgeTarget, isValid = GetClogBridgeTarget(player, self, startPosition, direction, trace)
+        if bridgeTarget then
+            trace = {
+                fraction = 0,
+                endPoint = bridgeTarget,
+                normal = Vector(0, 1, 0),
+                entity = bridgeClog,
+                surface = ""
+            }
+            displayOrigin = bridgeTarget
+            validPosition = isValid
+        end
+
     end
 
     -- Can only be built on infestation

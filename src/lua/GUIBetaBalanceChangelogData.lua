@@ -125,6 +125,7 @@ if kCBMaddon then
 	  - Placing of clogs, webs, hydras, bile mines, and marine mines has been drastically improved.
 	  - Ghost blueprint is always visible and no longer cancels on misclicks or invalid positions.
 	  - Webs can be pre-placed during cooldown
+	  - Gorges can place clogs beneath them in a line by looking down near an edge with clogs equipped.
 
 	### Babblers / Babbler Ball
 	  - Unattended babblers can now be picked up by using the 'use' key.
@@ -625,6 +626,7 @@ if kCBMaddon then
 		- 1 Bile ~ 5 seconds
 	  - Buffed gorge structure healing by 15% (net neutral with structure eHP changes).
 	  - Improved babbler ball projectile behavior and related babbler targetting priorities.
+	  - Can place clogs beneath them in a line by looking down near an edge with clogs equipped.
 
 	### Onos
 	  - Stomp
@@ -843,6 +845,7 @@ else
 	  - Placing of clogs, webs, hydras, bile mines, and marine mines has been drastically improved.
 	  - Ghost blueprint is always visible and no longer cancels on misclicks or invalid positions.
 	  - Webs can be pre-placed during cooldown
+	  - Gorges can place clogs beneath them in a line by looking down near an edge with clogs equipped.
 
 	### Babblers / Babbler Ball
 	  - Unattended babblers can now be picked up by using the 'use' key.
@@ -1260,6 +1263,7 @@ else
 		- 1 Bile ~ 5 seconds
 	  - Buffed gorge structure healing by 15% (net neutral with structure eHP changes).
 	  - Improved babbler ball projectile behavior and related babbler targetting priorities.
+	  - Can place clogs beneath them in a line by looking down near an edge with clogs equipped.
 
 	### Onos
 	  - Stomp
