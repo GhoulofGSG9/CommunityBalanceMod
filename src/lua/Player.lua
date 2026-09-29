@@ -853,9 +853,10 @@ function Player:PerformUseTrace()
 
     local trace = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.AllButPCsAndRagdolls, EntityFilterOneAndIsa(self, "Weapon"))
 
-    if trace.entity and (trace.entity.GetIsSecondaryUseUnit and trace.entity:GetIsSecondaryUseUnit()) then
+    if trace.entity and trace.entity.GetIsSecondaryUseUnit then
         local trace2 = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.AllButPCsAndRagdollsAndBabblers, EntityFilterOneAndIsa(self, "Weapon"))
-        if trace2.entity then -- if we found something else, ignore the babbler/web
+        -- Check priority if overlap, ignore the babbler/web
+        if trace2.entity and trace.entity:GetIsSecondaryUseUnit(trace2.entity) then
             trace = trace2
         end
     end
@@ -2686,6 +2687,5 @@ function Player:UpdateArmorAmount(armorLevel)
     end
 
 end
-
 
 Shared.LinkClassToMap("Player", Player.kMapName, networkVars, true)
