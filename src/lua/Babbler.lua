@@ -386,6 +386,7 @@ function Babbler:DestroyPhysicsBody()
     if self.physicsBody then
         Shared.DestroyCollisionObject(self.physicsBody)
         self.physicsBody = nil
+        self.collisionObjectType = nil
     end
 end
 
@@ -753,17 +754,24 @@ function Babbler:OnUse(player, elapsedTime, useSuccessTable)
         local isOwner = self:GetOwnerId() == player:GetId()
         if HasMixin(player, "BabblerCling") and (isOwner or player:GetNumFreeDonationSpots() > 0) then
 
-            if self:GetIsOnWeb() then
+            local wasOnWeb = self:GetIsOnWeb()
+            if wasOnWeb then
                 self:DetachFromWeb()
             end
 
-            self:OrderCling(player, GetEngagementOrOrigin(player))
-        end
+            local attachPos = GetEngagementOrOrigin(player)
+            self:OrderCling(player, attachPos)
 
+            if wasOnWeb and not self.webSpawned then
+                local target = player.GetFreeBabblerAttachPointOrigin and player:GetFreeBabblerAttachPointOrigin() or attachPos
+                local velocity, flightTime = self:GetArcVelocity(target)
+                self:Jump(velocity) -- sets timeLastJump, zeroes velocity, adds the impulse
+                self.nextLeapTime = Shared.GetTime() + flightTime / 2
+            end
+        end
     end
 
     self:TriggerEffects("babbler_jump")
-
 end
 
 function Babbler:OnUpdatePhysics()
