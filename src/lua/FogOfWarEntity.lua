@@ -9,6 +9,7 @@ FogOfWarEntity.kMapName = "fogOfwarentity"
 
 kFogBlipLifetime = 30
 kFogPlayerBlipLifetime = 1 -- player-related fog blips now stay fully visible for 2s (fade-out time is additional, see kFogPlayerBlipFadeTime)
+kFogDrifterMACBlipLifetime = kFogPlayerBlipLifetime
 kFogPlayerBlipFadeTime = 0.6 -- shortened fade-out
 
 local networkVars =
@@ -122,7 +123,14 @@ function FogOfWarEntity:SetFogEntMapBlipInfo(visible, blipType, blipTeam, isActi
     end
 
     if visible and not wasVisible then
-        local lifetime = self.isPlayerBlip and kFogPlayerBlipLifetime or kFogBlipLifetime
+        local lifetime
+        if self.blipType == kMinimapBlipType.MAC or self.blipType == kMinimapBlipType.Drifter then
+            lifetime = kFogDrifterMACBlipLifetime
+        elseif self.isPlayerBlip then
+            lifetime = kFogPlayerBlipLifetime
+        else
+            lifetime = kFogBlipLifetime
+        end
         self.fogExpireTime = Shared.GetTime() + lifetime + kFogPlayerBlipFadeTime
     elseif not visible then
         self.fogExpireTime = nil
