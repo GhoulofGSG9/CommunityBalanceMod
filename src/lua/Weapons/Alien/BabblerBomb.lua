@@ -79,18 +79,19 @@ if Server then
                 babbler.babblerBombSpawned = true
                
                 babbler:SetOwner(owner)
-                babbler:SetMoveType(kBabblerMoveType.None)
 
                 lastSuccessfulSpawnPoint = spawnPoint
-                babbler:AddTimedCallback(babbler.MoveRandom, kUpdateMoveInterval)
 
                 local targetPos = (targetHit and targetHit.GetEngagementPoint and targetHit:GetEngagementPoint()) or (targetHit and targetHit:GetOrigin()) or spawnPoint
-                if targetHit and HasMixin(targetHit, "Live") and targetHit:GetIsAlive() then
+                if targetHit and HasMixin(targetHit, "Live") and targetHit:GetIsAlive() and GetAreEnemies(targetHit, self) then
                     babbler:SetMoveType(kBabblerMoveType.Attack, targetHit, targetPos)
                 else
                     babbler:SetMoveType(kBabblerMoveType.Move, nil, spawnPoint)
                 end
 
+                if kBomblerLifeTime > kUpdateMoveInterval then
+                    babbler:AddTimedCallback(babbler.MoveRandom, kUpdateMoveInterval)
+                end
                 babbler:AddTimedCallback(function()
                     if babbler:GetIsAlive() then
                         babbler:Kill()
