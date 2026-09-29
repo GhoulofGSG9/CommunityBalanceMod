@@ -931,7 +931,7 @@ end
 
 function Onos:GetUseDistanceOverride(useRange)
     -- Onos is a large entity, needs a larger range to dissolve clogs for instance
-    useRange = useRange * 1.25
+    useRange = useRange * 1.3
     return useRange
 end
 
