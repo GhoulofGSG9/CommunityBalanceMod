@@ -421,14 +421,11 @@ end
 
 -- Returns the clog to extend from and the new clog's center, or nil.
 local function GetClogBridgeTarget(player, weapon, startPosition, direction, trace)
-    local kBridgeMinLookDown = 0.6      -- view direction y must be below (-0.6  is ~37 deg down)
-    local kBridgeMinNormalY = 0.3       -- when aimed directly at a clog, only its upward-facing part
-    local kBridgeProbeAhead = 1.0       -- probe this far ahead on the horizontal plane
-    local kBridgeProbeDrops = { 1.0, 1.6 }  -- ...then this far below the eye, then trace back
-    local kBridgeProbeLength = 3.0
-    local kBridgeGroundMargin = 0.3    -- aimed ground must be this far below the clog's bottom
-
-    if direction.y > -kBridgeMinLookDown then
+    local kBridgeCollisionRep = CollisionRep.Default
+    local kBridgeMask = PhysicsMask.AllButPCsAndRagdollsAndBabblers
+    local kBridgeProbeLength = 3.0 -- min clear distance ahead of us
+    local kBridgeMinLookDown = 0.6 -- view direction y must be below (-0.6  is ~37 deg down)
+    if direction.y > -kBridgeMinLookDown or trace.endPoint:GetDistanceTo(startPosition) < kBridgeProbeLength then
         return nil
     end
 
@@ -440,51 +437,48 @@ local function GetClogBridgeTarget(player, weapon, startPosition, direction, tra
         flat = GetNormalizedVector(flat)
     end
 
-    local clog
+    local clog = nil
+    local target = nil
+    local clogOrig = nil
+    local center = nil
+    local isPosValid = true
 
     -- Aimed at ground / air: look for the tip clog under the gorge.
     -- Go ahead on the horizontal plane, drop down, then trace back toward the gorge.
     local filter = GetBridgeFilter(player, weapon)
+    local kBridgeProbeAhead = 1.5 -- probe this far ahead on the horizontal plane
     local ahead = startPosition + flat * kBridgeProbeAhead
 
-    for i, drop in ipairs(kBridgeProbeDrops) do
+    local kBridgeProbeDrops = 1.0
+    local from = ahead - Vector(0, kBridgeProbeDrops, 0)
+    local to = from - flat * kBridgeProbeLength
+    local back = Shared.TraceRay(from, to, kBridgeCollisionRep, kBridgeMask, filter)
 
-        local from = ahead - Vector(0, drop, 0)
-        local to = from - flat * kBridgeProbeLength
-        local back = Shared.TraceRay(from, to, CollisionRep.Default, PhysicsMask.AllButPCsAndRagdollsAndBabblers, filter)
-
-        if back.fraction < 1 and back.entity and back.entity:isa("Clog") then
+    if back.fraction < 1 then
+        if back.entity and back.entity:isa("Clog") then
             clog = back.entity
-            break
         end
-
+        if not back.entity then
+            target = back.endPoint
+        end
     end
 
-    if not clog then
+    if not (clog or target) then
         return nil
     end
 
-    -- If the aim ray hit ground, only snap when it is clearly below the bridge
-    -- (aiming into the drop). Otherwise the gorge wants a normal ground placement.
-    if trace.fraction < 1 and trace.endPoint.y > clog:GetOrigin().y - Clog.kRadius - kBridgeGroundMargin then
-        return nil
+    -- Tuned values for clogs bridges to be lined up well and ledges to be good
+    if clog then
+        local yVariation = 0.08 + math.sin(Shared.GetTime() / 4) / 14 -- to give a more uneven look to bridges
+        clogOrig = (clog:GetOrigin() - Vector(0, (Clog.kRadius / 2) - yVariation, 0))
+        target = clogOrig + flat * (Clog.kRadius * (1.65 + math.cos(Shared.GetTime() / 10) / 4))        
+    else
+        clogOrig = target - Vector(0, (Clog.kRadius / 1.8), 0)
+        target = clogOrig + flat * Clog.kRadius
     end
 
-    local yVariation = 0.08 + math.sin(Shared.GetTime() / 4) / 14 -- to give a more uneven look to bridges
-    local clogOrig = clog:GetOrigin() - Vector(0, (Clog.kRadius / 2) - yVariation, 0)
-    local center = clogOrig + flat * (Clog.kRadius / 2)
-    local target = clogOrig + flat * (Clog.kRadius * (1.65 + math.cos(Shared.GetTime() / 10) / 4))
-
-    -- Sweep from the old clog to the new spot; if anything is in the way, fall back to normal placement.
-    local e = Clog.kRadius * 0.6
-    local check = Shared.TraceBox(Vector(e, e, e), center, target,
-        CollisionRep.Default, PhysicsMask.AllButPCsAndRagdollsAndBabblers,
-        GetBridgeFilter(player, weapon, true))
-    if check.fraction < 1 then
-        return nil
-    end
-
-    return clog, target
+    center = clogOrig + flat * (Clog.kRadius / 2)
+    return clog, target, isPosValid
 
 end
 
@@ -538,11 +532,10 @@ function DropStructureAbility:GetPositionForStructure(startPosition, direction, 
     end
 
     -- Clog bridge assist (also works when the aim ray hit ground or nothing)
-    if structureAbility.GetDropMapName() == Clog.kMapName and not trace.entity then
+    if structureAbility.GetDropMapName() == Clog.kMapName and (not trace.entity or trace.entity:isa("Infestation")) then
 
-        local bridgeClog, bridgeTarget = GetClogBridgeTarget(player, self, startPosition, direction, trace)
-        if bridgeClog then
-            -- Later code only reads these fields, so a plain table is enough.
+        local bridgeClog, bridgeTarget, isValid = GetClogBridgeTarget(player, self, startPosition, direction, trace)
+        if bridgeTarget then
             trace = {
                 fraction = 0,
                 endPoint = bridgeTarget,
@@ -551,7 +544,7 @@ function DropStructureAbility:GetPositionForStructure(startPosition, direction, 
                 surface = ""
             }
             displayOrigin = bridgeTarget
-            validPosition = true
+            validPosition = isValid
         end
 
     end
