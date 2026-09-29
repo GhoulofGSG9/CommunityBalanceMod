@@ -452,18 +452,22 @@ function MAC:FindFollowAndWeldTarget()
 end
 
 function MAC:FindNextTargetToFollow()
-
     local newTarget = nil
-    -- Go follow the closest allies in range so we don't stand still after
-    -- the player we followed died.
-    local players = GetEntitiesForTeamWithinXZRange("Player", self:GetTeamNumber(), self:GetOrigin(), self:GetOrderScanRadius())
-    Shared.SortEntitiesByDistance(self:GetOrigin(), players)
-    for _, p in ipairs(players) do
-        if p:GetIsAlive() then
-            newTarget = p
+    local weldables = GetEntitiesWithMixinForTeamWithinXZRange("Weldable", self:GetTeamNumber(), self:GetOrigin(), self:GetOrderScanRadius())
+    Shared.SortEntitiesByDistance(self:GetOrigin(), weldables)
+    for w = 1, #weldables do
+        local weldable = weldables[w]
+        -- Go follow the closest allies in range so we don't stand still after
+        -- the player we followed died.
+        if weldable:isa("Player") and weldable:GetIsAlive() then
+
+            newTarget = weldable
             break
+
         end
+
     end
+
     return newTarget
 end
 
