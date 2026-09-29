@@ -412,6 +412,82 @@ local function FilterBabblersAndTwo(ent1, ent2)
     return function (test) return test == ent1 or test == ent2 or test:isa("Babbler") end
 end
 
+-- Clog bridge assist -------------------------------------------------------
+local function GetBridgeFilter(player, weapon, ignoreClogs)
+    return function(test)
+        return test == player or test == weapon or test:isa("Babbler") or (ignoreClogs and test:isa("Clog"))
+    end
+end
+
+-- Returns the clog to extend from and the new clog's center, or nil.
+local function GetClogBridgeTarget(player, weapon, startPosition, direction, trace)
+    local kBridgeMinLookDown = 0.6      -- view direction y must be below (-0.6  is ~37 deg down)
+    local kBridgeMinNormalY = 0.3       -- when aimed directly at a clog, only its upward-facing part
+    local kBridgeProbeAhead = 1.0       -- probe this far ahead on the horizontal plane
+    local kBridgeProbeDrops = { 1.0, 1.6 }  -- ...then this far below the eye, then trace back
+    local kBridgeProbeLength = 3.0
+    local kBridgeGroundMargin = 0.3    -- aimed ground must be this far below the clog's bottom
+
+    if direction.y > -kBridgeMinLookDown then
+        return nil
+    end
+
+    -- Horizontal facing, derived from the passed-in direction so client and server agree.
+    local flat = Vector(direction.x, 0, direction.z)
+    if flat:GetLength() < 0.001 then
+        flat = Angles(0, player:GetViewAngles().yaw, 0):GetCoords().zAxis
+    else
+        flat = GetNormalizedVector(flat)
+    end
+
+    local clog
+
+    -- Aimed at ground / air: look for the tip clog under the gorge.
+    -- Go ahead on the horizontal plane, drop down, then trace back toward the gorge.
+    local filter = GetBridgeFilter(player, weapon)
+    local ahead = startPosition + flat * kBridgeProbeAhead
+
+    for i, drop in ipairs(kBridgeProbeDrops) do
+
+        local from = ahead - Vector(0, drop, 0)
+        local to = from - flat * kBridgeProbeLength
+        local back = Shared.TraceRay(from, to, CollisionRep.Default, PhysicsMask.AllButPCsAndRagdollsAndBabblers, filter)
+
+        if back.fraction < 1 and back.entity and back.entity:isa("Clog") then
+            clog = back.entity
+            break
+        end
+
+    end
+
+    if not clog then
+        return nil
+    end
+
+    -- If the aim ray hit ground, only snap when it is clearly below the bridge
+    -- (aiming into the drop). Otherwise the gorge wants a normal ground placement.
+    if trace.fraction < 1 and trace.endPoint.y > clog:GetOrigin().y - Clog.kRadius - kBridgeGroundMargin then
+        return nil
+    end
+
+    local yVariation = 0.08 + math.sin(Shared.GetTime() / 4) / 14 -- to give a more uneven look to bridges
+    local clogOrig = clog:GetOrigin() - Vector(0, (Clog.kRadius / 2) - yVariation, 0)
+    local center = clogOrig + flat * (Clog.kRadius / 2)
+    local target = clogOrig + flat * (Clog.kRadius * (1.65 + math.cos(Shared.GetTime() / 10) / 4))
+
+    -- Sweep from the old clog to the new spot; if anything is in the way, fall back to normal placement.
+    local e = Clog.kRadius * 0.6
+    local check = Shared.TraceBox(Vector(e, e, e), center, target,
+        CollisionRep.Default, PhysicsMask.AllButPCsAndRagdollsAndBabblers,
+        GetBridgeFilter(player, weapon, true))
+    if check.fraction < 1 then
+        return nil
+    end
+
+    return clog, target
+
+end
+
 -- Given a gorge player's position and view angles, return a position and orientation
 -- for structure. Used to preview placement via a ghost structure and then to create it.
 -- Also returns bool if it's a valid position or not.
@@ -459,6 +535,25 @@ function DropStructureAbility:GetPositionForStructure(startPosition, direction, 
         end
 
         displayOrigin = trace.endPoint
+    end
+
+    -- Clog bridge assist (also works when the aim ray hit ground or nothing)
+    if structureAbility.GetDropMapName() == Clog.kMapName and not trace.entity then
+
+        local bridgeClog, bridgeTarget = GetClogBridgeTarget(player, self, startPosition, direction, trace)
+        if bridgeClog then
+            -- Later code only reads these fields, so a plain table is enough.
+            trace = {
+                fraction = 0,
+                endPoint = bridgeTarget,
+                normal = Vector(0, 1, 0),
+                entity = bridgeClog,
+                surface = ""
+            }
+            displayOrigin = bridgeTarget
+            validPosition = true
+        end
+
     end
 
     -- Can only be built on infestation
