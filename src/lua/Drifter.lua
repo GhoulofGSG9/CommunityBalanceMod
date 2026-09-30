@@ -481,8 +481,8 @@ function Drifter:OnOverrideOrder(order)
     end
 
     local origin = order:GetLocation()
-    local nearbyPVE = GetEntitiesWithMixinForTeamWithinRange("Construct", self:GetTeamNumber(), origin, kDrifterPVESnapRange)
-    local nearbyAliens = GetEntitiesForTeamWithinRange("Alien", self:GetTeamNumber(), origin, kDrifterAlienSnapRange)
+    local nearbyPVE = GetEntitiesWithMixinForTeamWithinXZRange("Construct", self:GetTeamNumber(), origin, kDrifterPVESnapRange)
+    local nearbyAliens = GetEntitiesForTeamWithinXZRange("Alien", self:GetTeamNumber(), origin, kDrifterAlienSnapRange)
     Shared.SortEntitiesByDistance(origin, nearbyPVE)
     Shared.SortEntitiesByDistance(origin, nearbyAliens)
 
