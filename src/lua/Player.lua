@@ -100,7 +100,9 @@ Player.kLoginBreakingDistance = 150
 local kDownwardUseRange = kPlayerUseRange * 1.25
 Player.kUseHolsterTime = 0.5
 Player.kDefaultBuildTime = .2
-local kUseBoxSize = Vector(0.5, 0.5, 0.5)
+local kUseBoxSize1 = Vector(0.5, 0.5, 0.5)
+local kUseBoxSize2 = Vector(0.2, 0.2, 0.2)
+local kMaxUseLength = (kUseBoxSize2 - -kUseBoxSize2):GetLength()
 
 Player.kCountDownLength = kCountDownLength
 
@@ -380,6 +382,11 @@ function Player:OnCreate()
 
     self.desiredAngles = Angles()
 
+    -- Scratch angles used by Player:AdjustAngles
+    self.anglesAdjustedDest = Angles()
+    self.anglesAdjustedOrig = Angles()
+    self.anglesAdjustedDesired = Angles()
+
 end
 
 local function InitViewModel(self)
@@ -539,9 +546,9 @@ if Client then
 
             -- If this is a player changing classes that we're already following, update the id
             local player = Client.GetLocalPlayer()
-            if player.followId == oldEntityId then
-                Client.SendNetworkMessage("SpectatePlayer", {entityId = newEntityId or Entity.invalidId}, true)
-                player.followId = newEntityId or Entity.invalidId
+            if player and player.followId == oldEntityId then
+                Client.SendNetworkMessage("SpectatePlayer", {entityId = newEntityId}, true)
+                player.followId = newEntityId
             end
 
         end
@@ -787,9 +794,9 @@ function Player:PerformUseTrace()
     -- as we look downwards. This effectively makes use trace in a box shape when looking down.
     local isUsing = self:GetIsUsing()
     local useAngle = -0.5
-    local useBoxSize1 = Vector(0.2, 0.2, 0.2)
-    local useBoxSize2 = kUseBoxSize
-    local maxUseLength = (useBoxSize2 - -useBoxSize2):GetLength()
+    local useBoxSize1 = kUseBoxSize1
+    local useBoxSize2 = kUseBoxSize2
+    local maxUseLength = kMaxUseLength
 
     local useRange = kPlayerUseRange
     local sinAngle = viewCoords.zAxis:GetLengthXZ()
@@ -834,7 +841,7 @@ function Player:PerformUseTrace()
                 for p = 1, #usablePoints do
 
                     local usablePoint = usablePoints[p]
-                    local success = GetIsValidUseOfPoint(self, entity, usablePoint, useRange)
+                    local success = GetIsValidUseOfPoint(self, entity, usablePoint, useRange, startPoint, viewCoords.zAxis)
                     if success then
                         return entity, usablePoint
                     end
@@ -848,7 +855,6 @@ function Player:PerformUseTrace()
     end
 
     -- If failed, do a regular trace with entities that don't have usable points.
-    local viewCoords = self:GetViewAngles():GetCoords()
     local endPoint = startPoint + viewCoords.zAxis * kMaxRelevancyDistance
 
     local trace = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.AllButPCsAndRagdolls, EntityFilterOneAndIsa(self, "Weapon"))
@@ -1266,16 +1272,6 @@ function Player:AdjustAngles(deltaTime)
     local angles = self:GetAngles()
     local desiredAngles = self:GetDesiredAngles(deltaTime)
 
-    if not self.anglesAdjustedDest then
-        self.anglesAdjustedDest = Angles()
-    end
-    if not self.anglesAdjustedOrig then
-        self.anglesAdjustedOrig = Angles()
-    end
-    if not self.anglesAdjustedDesired then
-        self.anglesAdjustedDesired = Angles()
-    end
-
     --
 
     if self.anglesAdjusted == false then
@@ -1401,35 +1397,36 @@ local function UpdateBodyYaw(self, deltaTime, tempInput)
     if self:GetIsUsingBodyYaw() then
 
         local yaw = self:GetAngles().yaw
+        local standing = self.standingBodyYaw
+        local running
 
         -- Reset values when moving.
         if self:GetVelocityLength() > 0.1 then
             -- Take a bit of time to reset value so going into the move animation doesn't skip.
-            self.standingBodyYaw = SlerpRadians(self.standingBodyYaw, yaw, deltaTime * kTurnMoveYawBlendToMovingSpeed)
-            self.standingBodyYaw = Math.Wrap(self.standingBodyYaw, 0, kDoublePI)
-
-            self.runningBodyYaw = SlerpRadians(self.runningBodyYaw, yaw, deltaTime * kTurnRunDelaySpeed)
-            self.runningBodyYaw = Math.Wrap(self.runningBodyYaw, 0, kDoublePI)
+            standing = Math.Wrap(SlerpRadians(standing, yaw, deltaTime * kTurnMoveYawBlendToMovingSpeed), 0, kDoublePI)
+            running = Math.Wrap(SlerpRadians(self.runningBodyYaw, yaw, deltaTime * kTurnRunDelaySpeed), 0, kDoublePI)
 
         else
-            self.runningBodyYaw = yaw
+            running = yaw
 
             local bodyYawTurnThresholdLeft,bodyYawTurnThresholdRight = self:GetBodyYawTurnThreshold()
-            local diff = RadianDiff(self.standingBodyYaw, yaw)
+            local diff = RadianDiff(standing, yaw)
 
             if diff < bodyYawTurnThresholdLeft or bodyYawTurnThresholdRight < diff then
 
                 diff = Clamp(diff, bodyYawTurnThresholdLeft, bodyYawTurnThresholdRight)
-                self.standingBodyYaw = Math.Wrap(diff + yaw, 0, kDoublePI)
+                standing = Math.Wrap(diff + yaw, 0, kDoublePI)
 
             end
 
         end
 
-        self.bodyYawRun = Clamp(RadianDiff(self.runningBodyYaw, yaw), -kHalfPI, kHalfPI)
-        self.runningBodyYaw = Math.Wrap(self.bodyYawRun + yaw, 0, kDoublePI)
+        local bodyYawRun = Clamp(RadianDiff(running, yaw), -kHalfPI, kHalfPI)
+        self.bodyYawRun = bodyYawRun
+        self.runningBodyYaw = Math.Wrap(bodyYawRun + yaw, 0, kDoublePI)
+        self.standingBodyYaw = standing
 
-        local adjustedBodyYaw = RadianDiff(self.standingBodyYaw, yaw)
+        local adjustedBodyYaw = RadianDiff(standing, yaw)
         if adjustedBodyYaw >= 0 then
             self.bodyYaw = adjustedBodyYaw % kHalfPI
         else
@@ -1447,6 +1444,7 @@ local function UpdateBodyYaw(self, deltaTime, tempInput)
     end
 
 end
+
 local function UpdateAnimationInputs(self, input)
 
     -- From WeaponOwnerMixin.
@@ -1464,6 +1462,8 @@ local function UpdateAnimationInputs(self, input)
 
 end
 
+local kCullViewAngles = Angles()
+local kCullLastEffectiveFov, kCullLastScreenW, kCullLastScreenH, kCullLastFovDegrees
 function Player:ConfigurePhysicsCuller()
 
     if GetConcedeSequenceActive() then
@@ -1472,12 +1472,21 @@ function Player:ConfigurePhysicsCuller()
 
     local viewCoords = self:GetCameraViewCoords()
     local viewPoint = viewCoords.origin
-    local viewAngles = Angles()
-    viewAngles:BuildFromCoords(viewCoords)
-    local fovDegrees = Math.Degrees(GetScreenAdjustedFov(Client.GetEffectiveFov(self), 4/3))
+    kCullViewAngles:BuildFromCoords(viewCoords)
+
+    -- The adjusted FOV only changes when the effective FOV or the screen size does.
+    local effectiveFov = Client.GetEffectiveFov(self)
+    local screenW, screenH = Client.GetScreenWidth(), Client.GetScreenHeight()
+    if effectiveFov ~= kCullLastEffectiveFov or screenW ~= kCullLastScreenW or screenH ~= kCullLastScreenH then
+        kCullLastEffectiveFov = effectiveFov
+        kCullLastScreenW = screenW
+        kCullLastScreenH = screenH
+        kCullLastFovDegrees = Math.Degrees(GetScreenAdjustedFov(effectiveFov, 4/3))
+    end
+
     local maxDistOrOff = PlayerUI_IsOverhead() and 0 or Player.kPhysicsCullMax
 
-    Client.ConfigurePhysicsCuller(viewPoint, viewAngles, fovDegrees, Player.kPhysicsCullMin, maxDistOrOff)
+    Client.ConfigurePhysicsCuller(viewPoint, kCullViewAngles, kCullLastFovDegrees, Player.kPhysicsCullMin, maxDistOrOff)
 
 end
 
@@ -1540,6 +1549,7 @@ function Player:OnProcessMove(input)
 
     -- ensure that a player is always moving itself using full precision
     self:SetOrigin(self.fullPrecisionOrigin)
+
     -- Log("%s: TrackVel-0-start : vel=%s", self, self.velocity)
     -- Log("%s: TrackYaw-0-input: input.yaw=%s|input.pitch=%s", self, input.yaw, input.pitch)
     -- Log("%s: TrackYaw-1-start : y=%s|yR=%s|standY=%s|runY=", self, self.bodyYaw, self.bodyYawRun, self.standingBodyYaw, self.runningBodyYaw)
@@ -1773,7 +1783,9 @@ function Player:SetOrigin(origin)
 
     Entity.SetOrigin(self, origin)
 
-    self.fullPrecisionOrigin = Vector(origin)
+    if origin ~= self.fullPrecisionOrigin then
+        self.fullPrecisionOrigin = Vector(origin)
+    end
 
     self:UpdateControllerFromEntity()
 
@@ -2154,14 +2166,13 @@ function Player:GetCanShootSeasonalObject()
 
     -- Only allow in RR and pre-game (not post-game.)
     if self:GetTeamNumber() ~= kTeamReadyRoom then
-        local entityList = Shared.GetEntitiesWithClassname("GameInfo")
-        if entityList:GetSize() == 0 then
+        local gameInfo = GetGameInfoEntity()
+        if not gameInfo then
             return false
         end
 
-        local gameInfo = entityList:GetEntityAtIndex(0)
         local state = gameInfo:GetState()
-        
+
         if state >= kGameState.PreGame then
             return false
         end
@@ -2220,6 +2231,7 @@ function Player:GetIsOverhead()
     return false
 end
 
+
 --[[
     Returns the view model entity.
 ]]
@@ -2230,7 +2242,9 @@ function Player:GetViewModelEntity()
     if not Client or self:GetIsLocalPlayer() then
 
         result = Shared.GetEntity(self.viewModelId)
-        ASSERT(not result or result:isa("ViewModel"), "%s: viewmodel is a %s!", self, result)
+        --if kValidateViewModelType then
+        --    ASSERT(not result or result:isa("ViewModel"), "%s: viewmodel is a %s!", self, result)
+        --end
 
     end
 
@@ -2448,17 +2462,19 @@ kStepTagNames["step_sprint"] = true
 kStepTagNames["step_crouch"] = true
 function Player:OnTag(tagName)
 
+    if not Client or not kStepTagNames[tagName] then
+        return
+    end
+
     PROFILE("Player:OnTag")
-    -- Log("%s: tag %s (%s)", self, tagName, kStepTagNames[tagName])
 
     -- Filter out crouch steps from playing at inappropriate times.
     if tagName == "step_crouch" and not (HasMixin(self, "CrouchMove") and self:GetCrouching()) then
         return
     end
 
-    -- Play footstep when foot hits the ground. Client side only. And only if we
-    --- are close enough to the local player...
-    if Client and kStepTagNames[tagName] and self:GetPlayFootsteps() then
+    -- Play footstep when foot hits the ground, only if we are close enough to the local player...
+    if self:GetPlayFootsteps() then
         self:TriggerFootstep()
     end
 
@@ -2626,13 +2642,43 @@ if Server then
 
 end
 
+-- The minimap asks for both position and direction, so do the Tunnel range query once per frame.
+-- Only plain data (a position and a yaw offset) is cached, never the Tunnel entity or its id.
+-- self.minimapTunnelYawOffset is nil when the player isn't in a tunnel.
+local function UpdateMinimapTunnelCache(self)
+
+    local now = Shared.GetTime()
+    if self.minimapTunnelTime == now then
+        return
+    end
+    self.minimapTunnelTime = now
+
+    local origin = self:GetOrigin()
+    local tunnel = GetEntitiesWithinRange("Tunnel", origin, 30)[1]
+
+    if tunnel then
+
+        local relativePosition = tunnel:GetRelativePosition(origin)
+        if self.minimapTunnelPosition then
+            VectorCopy(relativePosition, self.minimapTunnelPosition)
+        else
+            self.minimapTunnelPosition = Vector(relativePosition)
+        end
+        self.minimapTunnelYawOffset = tunnel:GetMinimapYawOffset()
+
+    else
+        self.minimapTunnelYawOffset = nil
+    end
+
+end
+
 function Player:GetPositionForMinimap()
 
-    local tunnels = GetEntitiesWithinRange("Tunnel", self:GetOrigin(), 30)
-    local isInTunnel = #tunnels > 0
+    UpdateMinimapTunnelCache(self)
 
-    if isInTunnel then
-        return tunnels[1]:GetRelativePosition(self:GetOrigin())
+    if self.minimapTunnelYawOffset then
+        -- Hand out a copy so callers can't modify the cached position.
+        return Vector(self.minimapTunnelPosition)
     else
         return self:GetOrigin()
     end
@@ -2644,11 +2690,10 @@ function Player:GetDirectionForMinimap()
     local zAxis = self:GetViewAngles():GetCoords().zAxis
     local direction = math.atan2(zAxis.x, zAxis.z)
 
-    local tunnels = GetEntitiesWithinRange("Tunnel", self:GetOrigin(), 30)
-    local isInTunnel = #tunnels > 0
+    UpdateMinimapTunnelCache(self)
 
-    if isInTunnel then
-        direction = direction + tunnels[1]:GetMinimapYawOffset()
+    if self.minimapTunnelYawOffset then
+        direction = direction + self.minimapTunnelYawOffset
     end
 
     return direction
