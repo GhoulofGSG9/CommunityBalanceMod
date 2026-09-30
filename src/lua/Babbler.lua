@@ -1264,7 +1264,8 @@ if Server then
                     self.targetId = newId
                 end
             elseif wasClingOrder and targetIsAlive then
-                self:SetMoveType(kBabblerMoveType.Cling, nil, target:GetOrigin(), true)
+                local orderPos = target:isa("AlienCommander") and GetNewAlienCommanderPos(self, target) or target:GetOrigin()
+                self:SetMoveType(kBabblerMoveType.Cling, nil, orderPos, true)
                 self.targetId = newId
             end
         end
