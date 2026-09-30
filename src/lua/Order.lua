@@ -83,7 +83,7 @@ function Order:Initialize(orderType, orderParam, position, orientation)
     end
     
     if position then
-        self.orderLocation = position
+        self.orderLocation = Vector(position)
     end
     
 end
@@ -98,11 +98,11 @@ function Order:OnEntityChange(oldId, newId)
             newId = Entity.invalidId
         else
             local newTarget = Shared.GetEntity(newId)
-            local oldTarget = newTarget and Shared.GetEntity(oldId)
-            local oldTeam = newTarget and newTarget.GetTeamNumber and newTarget:GetTeamNumber()
-            local newTeam = oldTarget and oldTarget.GetTeamNumber and oldTarget:GetTeamNumber()
+            local oldTarget = Shared.GetEntity(oldId)
+            local newTeam = newTarget and newTarget.GetTeamNumber and newTarget:GetTeamNumber()
+            local oldTeam = oldTarget and oldTarget.GetTeamNumber and oldTarget:GetTeamNumber()
 
-            if oldTeam ~= newTeam then
+            if oldTeam and newTeam and oldTeam ~= newTeam then
                 newId = Entity.invalidId
             end
 
@@ -129,6 +129,11 @@ end
 -- When moving to an entity specified here, add in GetHoverHeight() so MACs and Drifters stay off the ground
 function Order:GetParam()
     return self.orderParam
+end
+
+-- Retarget an order in place (keeps its position in the owner's order queue).
+function Order:SetParam(param)
+    self.orderParam = param
 end
 
 local kOrderTypesUseEntityOrigin = { }
@@ -308,6 +313,7 @@ function GetCopyFromOrder(order)
     
     local orderCopy = CreateOrder(order.orderType, order.orderParam, order.orderLocation, order.orderOrientation)
     orderCopy:SetOwner(order:GetOwner())
+    orderCopy.allowLocationAttack = order.allowLocationAttack
     
     return orderCopy
 
@@ -345,7 +351,8 @@ if Client then
     end
     
     function Order:UpdateMinimapActivity(minimap, item)
-        if self.ownerId ~= Client.GetLocalPlayer():GetId() then
+        local localPlayer = Client.GetLocalPlayer()
+        if not localPlayer or self.ownerId ~= localPlayer:GetId() then
             -- other peoples order; we probably won't see them anyhow because they are not relevant to us
             return nil
         end
