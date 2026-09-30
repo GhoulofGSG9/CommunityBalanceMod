@@ -744,11 +744,15 @@ function Babbler:GetCanBeUsedDuringWarmup()
     return true
 end
 
-function Babbler:GetIsSecondaryUseUnit()
+function Babbler:GetIsSecondaryUseUnit(other)
+    if other == nil or other:isa("Web") then
+        return false
+    end
     return true
 end
 
 function Babbler:OnUse(player, elapsedTime, useSuccessTable)
+
     if Server and not self:GetIsClinged() then
 
         local isOwner = self:GetOwnerId() == player:GetId()

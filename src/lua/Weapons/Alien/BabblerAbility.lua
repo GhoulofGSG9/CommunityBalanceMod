@@ -20,6 +20,7 @@ BabblerAbility.kMapName = "babblerability"
 
 local kAnimationGraph = PrecacheAsset("models/alien/gorge/gorge_view.animation_graph")
 local kPheromoneTraceWidth = 0.315
+local kWebAimMaxHorizontalRange = 3.25 -- meters (XZ plane) at which a web can still be aimed at
 
 local networkVars =
 {
@@ -99,19 +100,54 @@ function BabblerAbility:GetRange()
     return 16
 end
 
-local function FindTarget(self, player)
+local function TraceForTarget(self, startPoint, direction, filter)
 
-    local direction = player:GetViewCoordsZAxis()
-
-    local startPoint = player:GetEyePos()
     local endPoint = startPoint + direction * self:GetRange()
-    local filter = EntityFilterOneAndIsa(player, "Babbler")
 
     local trace = Shared.TraceRay(startPoint, endPoint, CollisionRep.Default, PhysicsMask.AllButPCsAndRagdolls, filter)
     if not trace.entity then
         local extents = GetDirectedExtentsForDiameter(direction, kPheromoneTraceWidth)
         endPoint = trace.endPoint
         trace = Shared.TraceBox(extents, startPoint, endPoint, CollisionRep.Default, PhysicsMask.AllButPCsAndRagdolls, filter)
+    end
+
+    return trace
+
+end
+
+-- A web is only a valid aim target within a few meters (horizontally) of the
+-- gorge. Farther away, webs are ignored so the aim passes through them and the
+-- gorge can still give move/attack orders in a hallway full of webs.
+local function IsWebOutOfAimRange(trace, eyePos)
+
+    if not trace.entity or not trace.entity:isa("Web") then
+        return false
+    end
+
+    local dx = trace.endPoint.x - eyePos.x
+    local dz = trace.endPoint.z - eyePos.z
+
+    return dx * dx + dz * dz > kWebAimMaxHorizontalRange * kWebAimMaxHorizontalRange
+
+end
+
+local function FindTarget(self, player)
+
+    local direction = player:GetViewCoordsZAxis()
+
+    local startPoint = player:GetEyePos()
+    local filter = EntityFilterOneAndIsa(player, "Babbler")
+
+    local trace = TraceForTarget(self, startPoint, direction, filter)
+
+    if IsWebOutOfAimRange(trace, startPoint) then
+
+        local ignoreWebsFilter = function(test)
+            return test == player or test:isa("Babbler") or test:isa("Web")
+        end
+
+        trace = TraceForTarget(self, startPoint, direction, ignoreWebsFilter)
+
     end
     
     local targetEntity = trace.entity
@@ -149,7 +185,7 @@ local function CreateBabblerPheromone(self, player)
     then
     
         babblerPheromone:SetOrigin(endPoint)
-        if not babblerPheromone:ProcessHit(target, nil, nil, endPoint) then
+        if not babblerPheromone:ProcessHit(target, nil, nil, endPoint, true) then
             DestroyEntity(babblerPheromone)
         end
     
