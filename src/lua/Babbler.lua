@@ -647,13 +647,21 @@ function Babbler:UpdateBabbler(deltaTime)
         local isEnemy = target and HasMixin(target, "Team")
                 and target:GetTeamNumber() == GetEnemyTeamNumber(self:GetTeamNumber())
 
-        if (self.moveType == kBabblerMoveType.Move or self.moveType == kBabblerMoveType.Cling) and self.timeLastJump + 0.5 < Shared.GetTime() and self:GetIsOnGround() then
-            success, targetReached = self:UpdateMove(target, deltaTime) --> :Move()
-        end
+        -- Host went commander: there is nothing to attach to, so gather at the
+        -- commander's hive and stand still there (see UpdateHoldAtHive)
+        local holdAtHive = self.moveType == kBabblerMoveType.Cling and target and target:isa("AlienCommander")
 
-        -- If reached, try to cling to it
-        if success and self.moveType == kBabblerMoveType.Cling then
-            success = self:UpdateCling(target, deltaTime) --> :Cling()
+        if holdAtHive then
+            success = self:UpdateHoldAtHive(target, deltaTime)
+        else
+            if (self.moveType == kBabblerMoveType.Move or self.moveType == kBabblerMoveType.Cling) and self.timeLastJump + 0.5 < Shared.GetTime() and self:GetIsOnGround() then
+                success, targetReached = self:UpdateMove(target, deltaTime) --> :Move()
+            end
+
+            -- If reached, try to cling to it
+            if success and self.moveType == kBabblerMoveType.Cling then
+                success = self:UpdateCling(target, deltaTime) --> :Cling()
+            end
         end
 
         if not success then
@@ -1180,10 +1188,46 @@ if Server then
         local ents = GetEntitiesForTeam("Hive", self:GetTeamNumber())
         Shared.SortEntitiesByDistance(self:GetOrigin(), ents)
 
-        if #ents > 0 then -- Take closest hive and cling to it until the com leaves
+        if #ents > 0 then -- Take closest hive and stand still in it until the com leaves
             pos = ents[1]:GetOrigin()
         end
         return pos
+    end
+
+    -- Babblers whose host went commander keep the Cling order on the commander (so they
+    -- re-cling to whoever comes out when the com logs out, see OnEntityChange), but they
+    -- can't attach to anything: walk to the hive (self.targetPos), then stand still.
+    -- The hive origin sits inside the hive's collision, so it can't be reached exactly:
+    -- arriving within this XZ radius (or the path ending) counts as being in the hive.
+    local kHiveHoldRadius = 3.5
+    local kHiveHoldRadiusSq = kHiveHoldRadius * kHiveHoldRadius
+
+    function Babbler:UpdateHoldAtHive(target, deltaTime)
+
+        local hivePos = self.targetPos
+        if not hivePos then
+            return false -- nothing to hold at, drop the order
+        end
+
+        if not self.holdingAtHive then
+
+            local orig = self:GetOrigin()
+            local dx, dz = orig.x - hivePos.x, orig.z - hivePos.z
+
+            if dx * dx + dz * dz <= kHiveHoldRadiusSq then
+                self.holdingAtHive = true
+            elseif self.timeLastJump + 0.5 < Shared.GetTime() and self:GetIsOnGround() then
+                local _, targetReached = self:UpdateMove(target, deltaTime) --> :Move()
+                if targetReached then
+                    self.holdingAtHive = true
+                end
+            end
+
+        end
+
+        -- Holding: no movement at all, gravity / jump physics still run in UpdateBabbler
+        return true
+
     end
 
     function Babbler:OnEntityChange(oldId, newId)
@@ -1198,7 +1242,8 @@ if Server then
             end
         end
 
-        -- Keep clinging if current host morphed into an embryo or went commander (drop otherwise)
+        -- Keep clinging if current host morphed into an embryo (drop otherwise).
+        -- If it went commander, gather at the commander's hive and stand still until the com leaves
         if oldId == self.targetId then
             local pos
             local target = newId and Shared.GetEntity(newId)
@@ -2405,6 +2450,7 @@ if Server then
             self.targetPos = position
             self.hungry = false
             self.foraging = false
+            self.holdingAtHive = nil
             if not (moveType == kBabblerMoveType.Move or moveType == kBabblerMoveType.Attack) then
                 self.targetReached = false -- preserve that state when moving from move <-> attack
             end
@@ -2745,8 +2791,8 @@ elseif Client then
             -- PRIORITY 2: Only use target direction if not moving or in attack mode
             local target = self:GetTarget()
             local targetDirection = nil
-            if target and not hasMovement then
-                -- Stationary but has target - face the target
+            if target and not hasMovement and not target:isa("Commander") then
+                -- Stationary but has target - face the target (a commander's origin is just its camera)
                 targetDirection = GetNormalizedVectorXZ(target:GetOrigin() - orig)
             elseif self.moveType == kBabblerMoveType.Attack and hasMovement then
                 -- Attacking AND moving - face target for better hit registration
