@@ -134,7 +134,7 @@ local function UpdateLine(startPoint, endPoint, guiItem, teamType)
 end
 
 local function GetIsOnScreen(position)
-    return position.x >= 0 and position.y >= 0 and position.x <= Client.GetScreenWidth() and position.y <= Client.GetScreenHeigth()
+    return position.x >= 0 and position.y >= 0 and position.x <= Client.GetScreenWidth() and position.y <= Client.GetScreenHeight()
 end
 
 function GUICommanderOrders:Update(deltaTime)
@@ -152,9 +152,20 @@ function GUICommanderOrders:Update(deltaTime)
         local selectedEntities = player:GetSelection()
         local firstEntity = selectedEntities[1]
         
-        if not GetAreEnemies(player, firstEntity) and HasMixin(firstEntity, "Orders") then     
+        if firstEntity and HasMixin(firstEntity, "Orders") and not GetAreEnemies(player, firstEntity) then     
             newOrders = firstEntity:GetOrdersClient()
-            prevScreenPosition = GetClampedScreenPosition(firstEntity:GetOrigin(), -300)
+
+            -- An order entity can be missing on the client for a moment (index gap). Compact the list so
+            -- # and indexing stay valid. (The start position is set below from the first order.)
+            if table.maxn(newOrders) ~= #newOrders then
+                local compacted = {}
+                for i = 1, table.maxn(newOrders) do
+                    if newOrders[i] then
+                        compacted[#compacted + 1] = newOrders[i]
+                    end
+                end
+                newOrders = compacted
+            end
         end
         
         teamType = player:GetTeamType()
