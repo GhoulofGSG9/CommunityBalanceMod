@@ -263,15 +263,9 @@ function MAC:UpdateOrderScanRadius()
 end
 
 function MAC:GetHasWeldingOrder()
-    local hasWeldingOrder = false
-    local currentOrder = mac:GetCurrentOrder()
-
-    if (currentOrder) then
-        hasWeldingOrder = (isWeldingOrder or currentOrder:GetType() == kTechId.FollowAndWeld)
-        hasWeldingOrder = (isWeldingOrder or currentOrder:GetType() == kTechId.Weld)
-        hasWeldingOrder = (isWeldingOrder or currentOrder:GetType() == kTechId.AutoWeld)
-    end
-    return hasWeldingOrder
+    local currentOrder = self:GetCurrentOrder()
+    local orderType = currentOrder and currentOrder:GetType()
+    return orderType == kTechId.FollowAndWeld or orderType == kTechId.Weld or orderType == kTechId.AutoWeld
 end
 
 
@@ -497,8 +491,10 @@ function MAC:OnEntityChange(oldId, newId)
 
             -- continue follow the new entity which we were following
             if isValidNewTarget then
-                -- Only case where we self-issue an order (ex: moving in/out of exo, buying JPs)
-                self:GiveOrder(kTechId.FollowAndWeld, newTarget:GetId(), newTarget:GetOrigin(), nil, false, false)
+                -- (ex: moving in/out of exo, buying JPs)
+                -- Retarget the current order in place
+                currentOrder:SetParam(newTarget:GetId())
+                currentOrder:SetLocation(newTarget:GetOrigin())
             else
                 self:ClearCurrentOrder()
                 self.targetId = Entity.invalidId
@@ -1103,14 +1099,16 @@ function MAC:OnOrderGiven(newOrder)
         self:SetLeashPos(newOrder:GetLocation())
     end
 
-    if (newOrder:GetType() == kTechId.FollowAndWeld and self:GetCurrentOrder():GetType() == kTechId.Move) then
+    local currentOrder = self:GetCurrentOrder()
+    if (currentOrder and newOrder:GetType() == kTechId.FollowAndWeld and currentOrder:GetType() == kTechId.Move) then
         -- QoL: If we have move orders, just discard them and go straight for the target
         -- (because ns2 is autochaining a move and THEN a follow order, which is not a nice detour)
         self:ClearCurrentOrder()
+        currentOrder = self:GetCurrentOrder()
     end
 
     -- Clear the QoL hold order whenever a new different order is given (it will be reissued once done)
-    if (newOrder:GetType() ~= kTechId.HoldPosition and self:GetCurrentOrder():GetType() == kTechId.HoldPosition) then
+    if (currentOrder and newOrder:GetType() ~= kTechId.HoldPosition and currentOrder:GetType() == kTechId.HoldPosition) then
         self:ClearCurrentOrder()
     end
     
@@ -1171,7 +1169,9 @@ function MAC:UpdateCurrentOrder(deltaTime, currentOrder)
 
         if (orderType == kTechId.FollowAndWeld) then
             -- Follow order never complete on their own (infinite), they only get cancelled because target died (so we check for end-of-order here)
-            self:CompletedCurrentOrder() -- Complete first, then clear it (it's a looping kind, it won't auto clear itself on complete)
+            -- Run the completion hook (leash reset), but do NOT call CompletedCurrentOrder(): for a looping order it advances
+            -- to the next queued order, and the ClearCurrentOrder() below would then delete that order instead of the follow.
+            self:OnOrderComplete(currentOrder)
         end
 
         self:ClearCurrentOrder()
