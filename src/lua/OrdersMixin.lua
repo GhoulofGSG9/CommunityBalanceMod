@@ -71,7 +71,10 @@ local function OrderChanged(self)
     if self:GetHasOrder() then
         -- Since this is called whenever an order changes and when orders are transferred ( from a drifter egg to a drifter for example ),
         -- we need to specifically update the current order entity id.
-        self.currentOrderId = self.orders[self:GetCorrectedOrderIndex()]
+        if self.currentOrderIndex > self:GetMaxOrderIndex() then
+            self.currentOrderIndex = 1
+        end
+        self.currentOrderId = self.orders[self:GetCorrectedOrderIndex()] or Entity.invalidId
     else
         self.currentOrderIndex = 1
         self.currentOrderId = Entity.invalidId
@@ -101,6 +104,15 @@ end
 function OrdersMixin:TransferOrders(dest)
     
     table.copy(self.orders, dest.orders)
+
+    -- The orders now belong to dest. Leaving the old owner would make them irrelevant to the
+    -- commander (and unreachable through GetOrdersClient) once the old entity is gone.
+    for _, orderId in ipairs(dest.orders) do
+        local order = Shared.GetEntity(orderId)
+        if order then
+            order:SetOwner(dest)
+        end
+    end
     OrderChanged(dest)
     
     table.clear(self.orders)
@@ -112,10 +124,13 @@ function OrdersMixin:CopyOrdersTo(dest)
     
     for index, orderId in ipairs(self.orders) do
 
-        local orderCopy = GetCopyFromOrder(Shared.GetEntity(orderId))
-        orderCopy:SetOwner(dest)
+        local sourceOrder = Shared.GetEntity(orderId)
+        local orderCopy = sourceOrder and GetCopyFromOrder(sourceOrder)
+        if orderCopy then
+            orderCopy:SetOwner(dest)
         
-        table.insert(dest.orders, orderCopy:GetId())
+            table.insert(dest.orders, orderCopy:GetId())
+        end
         
     end
 
@@ -273,7 +288,7 @@ function OrdersMixin:GiveOrder(orderType, targetId, targetOrigin, orientation, c
 
         -- Clear existing if we are adding a order type that clears itself after completion.
         elseif GetIsOrderLoopingType(order) ~= self:GetIsLoopingOrders() then
-            clearExisting = GetIsOrderLoopingType(currentOrder)
+            clearExisting = clearExisting or GetIsOrderLoopingType(currentOrder)
         end
     end
 
@@ -387,7 +402,8 @@ function OrdersMixin:GetCurrentOrder()
 end
 
 function OrdersMixin:GetLastOrder()
-    return Shared.GetEntity(self.orders[#self.orders])
+    local lastOrderId = self.orders[#self.orders]
+    return lastOrderId and Shared.GetEntity(lastOrderId) or nil
 end
 
 function OrdersMixin:ClearCurrentOrder()
@@ -455,7 +471,7 @@ function OrdersMixin:CompletedCurrentOrder()
                 self.currentOrderIndex = self.currentOrderIndex + 1
             end
 
-            self.currentOrderId = self.orders[self:GetCorrectedOrderIndex()]
+            self.currentOrderId = self.orders[self:GetCorrectedOrderIndex()] or Entity.invalidId
         end
 
     end
@@ -533,7 +549,7 @@ if Server then
                 local orderTarget = Shared.GetEntity(currentOrder:GetParam())
                 
                 if orderTarget == nil or (not orderTarget:GetIsAlive() and not orderTarget:isa("PowerPoint")) or orderTarget.GetIsBuilt == nil then
-                    self:ClearOrders()                    
+                    self:ClearCurrentOrder()                    
                 elseif orderTarget:GetIsBuilt() or ( orderTarget:isa("PowerPoint") and not orderTarget:GetCanConstruct( self ) ) then
                     self:CompletedCurrentOrder()
                     TriggerOrderCompletedAlert(self)
@@ -551,7 +567,7 @@ if Server then
                 local tooFarAway = (orderType == kTechId.AutoWeld or orderType == kTechId.AutoHeal) and orderTarget and self:isa("Player") and (orderTarget:GetOrigin() - self:GetOrigin()):GetLength() > 20
                 
                 if orderTarget == nil or (not orderTarget:isa("PowerPoint") and not orderTarget:GetIsAlive()) or tooFarAway then
-                    self:ClearOrders()
+                    self:ClearCurrentOrder()
                 elseif orderTarget:GetHealthScalar() >= 1 or (orderTarget:isa("Marine") and orderTarget:GetArmor() / orderTarget:GetMaxArmor() >= 1) then
                     self:CompletedCurrentOrder()
                     TriggerOrderCompletedAlert(self)
@@ -589,7 +605,7 @@ if Server then
                     -- AI units needs to be able to attack locations
                     if not currentOrder.allowLocationAttack or not currentOrder:GetLocation() then
                     
-                         self:ClearOrders()
+                         self:ClearCurrentOrder()
                         
                     end
                     
@@ -618,7 +634,7 @@ if Server then
                 if not orderTarget or orderTarget:GetId() == Entity.invalidId or
                    not orderTargetIsLive or not orderTarget:GetIsAlive() then
                 
-                    self:ClearOrders()
+                    self:ClearCurrentOrder()
                     
                 elseif orderTargetIsLive and (Shared.GetTime() - lastDamageTime) > kTimeSinceDamageDefendComplete then
                 
@@ -629,7 +645,7 @@ if Server then
                         self:CompletedCurrentOrder()
                         
                     else
-                        self:ClearOrders()
+                        self:ClearCurrentOrder()
                     end
                     
                 end
