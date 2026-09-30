@@ -279,10 +279,17 @@ if Server then
         return nil -- No restriction
     end
 
-    function BabblerPheromone:ProcessHit(entity, surface, normal, endPoint)
+    -- directAim is true only when BabblerAbility resolved the hit itself from the
+    -- player's crosshair. A ball that ballistically collides with a web is not a
+    -- deliberate cling order, so it's treated as if nothing was hit.
+    function BabblerPheromone:ProcessHit(entity, surface, normal, endPoint, directAim)
 
         if self.babblerOrderingDisabled then
             return false
+        end
+
+        if entity and not directAim and entity:isa("Web") then
+            entity = nil
         end
 
         --self.firstUpdate = true
