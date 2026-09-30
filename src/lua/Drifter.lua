@@ -376,6 +376,7 @@ local function FindTask(self, origin, range)
 
             -- Move back to where we were (because we were idle and khamm didn't asked us to move permanently)
             self:GiveOrder(kTechId.Move, nil, self:GetOrigin(), nil, false, false)
+            self.timeLastOrder = timeLastOrder
             self.isAutomaticOrder = nil
             return true
 
@@ -426,7 +427,9 @@ function Drifter:OnOrderGiven(newOrder)
             --Log("Drifter -- Reconstructing cyst chain")
             self.reconstructingChain = true -- Prevents GiveOrder() to re-enter that loop
             self:ReConstructCystChain(cysts, cystChain, orderTarget, 0)
-            for _, c in ipairs(cystChain) do
+            -- cystChain[1] is the cyst that was just ordered, it already has its grow order
+            for i = 2, #cystChain do
+                local c = cystChain[i]
                 --Log("Drifter -- Issuing grow orders to %s (new total: %d)", c, self:GetNumOrders()+1)
                 self.timeLastOrder = 0 -- GiveOrder() has a time check to prevent spam we need to avoid
                 local rval = self:GiveOrder(kTechId.Grow, c:GetId(), c:GetOrigin(), nil, false, false)
@@ -484,7 +487,8 @@ function Drifter:OnOverrideOrder(order)
     Shared.SortEntitiesByDistance(origin, nearbyAliens)
 
     -- Autosnap on nearby PvE for a grow order
-    if (order:GetType() == kTechId.Move or order:GetType() == kTechId.Default) then
+    -- (never for our own automatic orders, e.g. the "move back where we were" order)
+    if (not self.isAutomaticOrder and (order:GetType() == kTechId.Move or order:GetType() == kTechId.Default)) then
         for _, pve in ipairs(nearbyPVE) do
             if not pve:GetIsBuilt() and GetAreFriends(self, pve) and not IsBeingGrown(self, pve) and (not pve.GetCanAutoBuild or pve:GetCanAutoBuild()) then
                 order.orderParam = pve:GetId()
@@ -499,7 +503,7 @@ function Drifter:OnOverrideOrder(order)
 
     -- Autosnap on nearby aliens for a follow order
     local nearestAlien = (#nearbyAliens > 0 and nearbyAliens[1]:GetIsAlive()) and nearbyAliens[1] or nil
-    if ((order:GetType() == kTechId.Move or order:GetType() == kTechId.Default) and nearestAlien) then
+    if (not self.isAutomaticOrder and (order:GetType() == kTechId.Move or order:GetType() == kTechId.Default) and nearestAlien) then
         order.orderParam = nearestAlien:GetId()
         order:SetLocation(nearestAlien:GetOrigin())
         order:SetType(kTechId.Follow)
@@ -515,7 +519,9 @@ function Drifter:OnOverrideOrder(order)
         order.orderParam = -1
     end
 
-    PlayOrderedSounds(self)
+    if not self.isAutomaticOrder then
+        PlayOrderedSounds(self)
+    end
 
 end
 
@@ -625,10 +631,6 @@ end
 
 function Drifter:OnEntityChange(oldId, newId)
 
-    if not Server then
-        return
-    end
-
     local currentOrder = self:GetCurrentOrder()
 
     -- Smth happened with our target
@@ -640,7 +642,9 @@ function Drifter:OnEntityChange(oldId, newId)
             
             -- continue follow the new entity which we were following
             if newTarget and HasMixin(newTarget, "Live") and newTarget:GetIsAlive() then
-                self:GiveOrder(kTechId.Follow, newId, newTarget:GetOrigin(), nil, false, false)
+                -- Retarget in place
+                currentOrder:SetParam(newId)
+                currentOrder:SetLocation(newTarget:GetOrigin())
             else
                 self:ClearCurrentOrder()
                 self.targetId = Entity.invalidId
@@ -1252,7 +1256,9 @@ function Drifter:PerformActivation(techId, position, normal, commander)
             -- At most 10s, will get replaced by an other with the right duration upon casting the cloud
             self:DropPheromone(techId, position, 10)
             if (not self:GetHasOrder()) then
+                self.isAutomaticOrder = true -- Keeps OnOverrideOrder from turning this into a follow/grow order
                 self:GiveOrder(kTechId.Move, nil, self:GetOrigin(), nil, false, false) -- Move back where we were hidden before once we done
+                self.isAutomaticOrder = nil
             end
 
             -- Detour secondary order, valid even during patrols and don't disturbs them
