@@ -94,6 +94,10 @@ function OrderSelfMixin:FindBuildOrder(structuresNearby)
 
     end
 
+    if not closestStructure then
+        return false
+    end
+
     -- if closest structure needs power, build power source first
     if HasMixin( closestStructure, "PowerConsumer" ) then
 
@@ -207,7 +211,8 @@ function OrderSelfMixin:_UpdateOrderSelf()
         return true
     end
 
-    if self:GetClient():GetIsVirtual() then
+    local client = self:GetClient()
+    if client and client:GetIsVirtual() then
     --Bots do not require the self/auto-orders, stop updating for them
         return false --halt further updates, thus this is one-shot expense
     end
