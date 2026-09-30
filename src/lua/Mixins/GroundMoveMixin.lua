@@ -32,6 +32,11 @@ local kMaxAirVeer = 1.3
 local kTracesAmount = 7
 local kPvPTracesAmount = 10
 
+-- Scratch objects (copied by their consumers, never stored)
+local kMaxSpeedTable = { maxSpeed = 0 }
+local kGravityTable = { gravity = 0 }
+local kStepScratch = Vector(0, 0, 0)
+
 GroundMoveMixin.networkVars =
 {
     onGround = "compensated boolean",
@@ -74,6 +79,10 @@ function GroundMoveMixin:__initmixin()
     self.timeAheadCollision = 0
     self.performedDownTraceLastMove = false
     self.stepSkipOrigin = Vector()
+    self.stepSkipHeight = 0
+    self.prevOrigin = Vector()
+    self.storedNormalVec = Vector() -- owned storage for OnWorldCollision (PerformMovement returns a shared vector)
+    self.wishMoveScratch = Vector()
     self.lastGroundCheck = {
         distance = 0, -- How far from the ground we checked we were
         origin = Vector(0, 0, 0), -- Position of the test, written in place
@@ -257,8 +266,10 @@ local function GetWishDir_moveAdjust(self, viewCoords, move, simpleAcceleration,
 
         end
     end
-    move:Normalize()
-    return move
+    local normed = self.wishMoveScratch
+    VectorCopy(move, normed)
+    normed:Normalize()
+    return normed
 end
 
 local function GetWishDir(self, move, simpleAcceleration, velocity, maxSpeed)
@@ -394,8 +405,6 @@ end
 local function Accelerate_onGround(self, wishDir, input, velocity, maxSpeed, deltaTime)
     PROFILE("GroundMoveMixin:Accelerate_onGround")
 
-    local prevXZSpeed = velocity:GetLengthXZ()
-    
     local wishSpeed = maxSpeed
     local currentSpeed = math.min(velocity:GetLength(), velocity:DotProduct(wishDir))
     local addSpeed = wishSpeed - currentSpeed
@@ -417,8 +426,6 @@ local function Accelerate_inTheAir(self, wishDir, input, useFallAccel, velocity,
     
     PROFILE("GroundMoveMixin:Accelerate_inTheAir")
 
-    local groundFraction = 0
- 
     local wishSpeed = kMaxAirVeer
     local currentSpeed = math.min(velocity:GetLength(), velocity:DotProduct(wishDir))
     local addSpeed = wishSpeed - currentSpeed
@@ -489,12 +496,12 @@ local function ApplyGravity(self, input, velocity, deltaTime)
 
     PROFILE("GroundMoveMixin:ApplyGravity")
 
-    local gravityTable = { gravity = self:GetGravityForce(input) }
+    kGravityTable.gravity = self:GetGravityForce(input)
     if self.ModifyGravityForce then
-        self:ModifyGravityForce(gravityTable)
+        self:ModifyGravityForce(kGravityTable)
     end
 
-    velocity.y = velocity.y + gravityTable.gravity * deltaTime
+    velocity.y = velocity.y + kGravityTable.gravity * deltaTime
 
 end
 
@@ -502,35 +509,31 @@ function GroundMoveMixin:GetFriction(input, velocity)
 
     PROFILE("GroundMoveMixin:GetFriction")
 
-    if velocity:GetLength() == 0 then
+    local fullLength = velocity:GetLength()
+    if fullLength == 0 then
         return Vector(0,0,0)
     end
 
-    local friction = GetNormalizedVector(-velocity)
-    local velocityLength = 0
-    local frictionScalar = 1
+    -- direction opposite to the velocity (one allocation)
+    local invLength = -1 / fullLength
+    local friction = Vector(velocity.x * invLength, velocity.y * invLength, velocity.z * invLength) -- inline normalized (less vector allocations compared to GetNormalizedVector())
+    local velocityLength = fullLength
     
     local isOnGround = self:GetIsOnGround()
     
-    if isOnGround then
-        velocityLength = velocity:GetLength()
-    else
-        if self:GetPerformsVerticalMove() then
-            velocityLength = velocity:GetLength()
-        else
-            velocityLength = velocity:GetLengthXZ()
-            friction.y = 0
-        end
+    if not isOnGround and not self:GetPerformsVerticalMove() then
+        velocityLength = velocity:GetLengthXZ()
+        friction.y = 0
     end
 
     local groundFriction = self:GetGroundFriction()
     local airFriction = self:GetAirFriction()
     
     local onGroundFraction = GetOnGroundFraction(self)
-    frictionScalar = velocityLength * (onGroundFraction * groundFriction + (1 - onGroundFraction) * airFriction)
+    local frictionScalar = velocityLength * (onGroundFraction * groundFriction + (1 - onGroundFraction) * airFriction)
     
     -- use minimum friction when on ground
-    if isOnGround and input.move:GetLength() == 0 and velocity:GetLength() < kStopSpeed then
+    if isOnGround and input.move:GetLengthSquared() == 0 and fullLength < kStopSpeed then
         frictionScalar = math.max(kStopFriction, frictionScalar)
     end
     
@@ -568,7 +571,7 @@ end
 
 function GroundMoveMixin:PreUpdateMove()
 
-    self.prevOrigin = Vector(self:GetOrigin())
+    VectorCopy(self:GetOrigin(), self.prevOrigin)
     
 end
 
@@ -583,18 +586,26 @@ local function DoStepMove(self, _, velocity, deltaTime)
     local stepAmount = 0
     local slowDownFraction = self.GetCollisionSlowdownFraction and self:GetCollisionSlowdownFraction() or 1
     local deflectMove = self.GetDeflectMove and self:GetDeflectMove() or false
+    local crouching = self.GetCrouching and self:GetCrouching()
 
-    local onGround, normal
-    
-    local canSkipUpCheck = not (self.GetCrouching and self:GetCrouching()) and self.performedDownTraceLastMove
-            and self.stepSkipOrigin == oldOrigin
-    if canSkipUpCheck then
-        self:SetOrigin(oldOrigin + kUpVector)
-        stepAmount = kUpVector.y
-    else
-        -- step up at first
+    -- Step up. If the previous move's step-down proved that the column above this exact
+    -- origin is free, we can skip the up trace and just teleport up by the proven height.
+    local skippedUpCheck = false
+    if self.performedDownTraceLastMove and not crouching
+            and self.stepSkipOrigin == oldOrigin then
+
+        local skipHeight = self.stepSkipHeight
+        VectorCopy(oldOrigin, kStepScratch)
+        kStepScratch.y = kStepScratch.y + skipHeight
+        self:SetOrigin(kStepScratch)
+        skippedUpCheck = true
+        stepAmount = skipHeight
+
+    end
+
+    if not skippedUpCheck then
         _PerformMovement(self, kUpVector, 1)
-        stepAmount = self:GetOrigin().y - oldOrigin.y        
+        stepAmount = self:GetOrigin().y - oldOrigin.y
     end
     self.performedDownTraceLastMove = false
     
@@ -612,15 +623,25 @@ local function DoStepMove(self, _, velocity, deltaTime)
 
         if not (averageSurfaceNormal and averageSurfaceNormal.y >= 0.5) then
             downDistance = 0.15
-            onGround, averageSurfaceNormal, hitEntities, surfaceMaterial = GetIsCloseToGround(self, downDistance) 
+            _, averageSurfaceNormal, hitEntities, surfaceMaterial = GetIsCloseToGround(self, downDistance) 
         else
             downDistance = 0 -- We reached the ground
         end
 
         if (averageSurfaceNormal and averageSurfaceNormal.y >= 0.5) then
+
+            -- Fraction of kStepHeight the previous step-down has to have travelled to count as proof
+            local kStepUpSkipProofFraction = 0.99
+
+            -- The column above the final origin is proven free up to the distance we just fell.
             local downDistTravelled = forwardEndY - self:GetOrigin().y
-            self.performedDownTraceLastMove = (downDistTravelled - (kUpVector.y * 0.99)) >= 0 and not (self.GetCrouching and self:GetCrouching())
-            VectorCopy(self:GetOrigin(), self.stepSkipOrigin)
+            local canReuse = downDistTravelled >= kStepHeight * kStepUpSkipProofFraction and not crouching
+            self.performedDownTraceLastMove = canReuse
+            if canReuse then
+                self.stepSkipHeight = math.min(downDistTravelled, kStepHeight)
+                VectorCopy(self:GetOrigin(), self.stepSkipOrigin)
+            end
+
             _SetGroundCheckCache(self, downDistance, hitEntities, averageSurfaceNormal, surfaceMaterial)
             success = true
         end
@@ -632,7 +653,10 @@ local function DoStepMove(self, _, velocity, deltaTime)
     
         self:SetOrigin(oldOrigin)
         VectorCopy(oldVelocity, velocity)
-        _PerformMovement(self, velocity * deltaTime, kTracesAmount, velocity, true, slowDownFraction, deflectMove, nil, deltaTime)
+
+        self.storedNormal = nil
+        self.storedImpactForce = nil
+        local fallbackCompleted = _PerformMovement(self, velocity * deltaTime, kTracesAmount, velocity, true, slowDownFraction, deflectMove, nil, deltaTime)
         
     end
 
@@ -732,10 +756,10 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
         local enemyPlayerHit = false
     
         -- check if we are allowed to step:
-        if Predict or (stepAllowed and self:GetShouldDoStepOverCheck()) then
+        if stepAllowed and (Predict or self:GetShouldDoStepOverCheck()) then
             local _, hitEntities = self:PerformMovement(velocity * 0.1, 1, nil, false)
 
-            if stepAllowed and hitEntities then
+            if hitEntities then
             
                 for i = 1, #hitEntities do
                     if hitEntities[i]:isa("Player") then
@@ -849,13 +873,14 @@ function GroundMoveMixin:UpdateMove(input)
     end
     ApplyGravity(self, input, velocity, deltaTime)
 
-    local maxSpeedTable = { maxSpeed = self:GetMaxSpeed() }
-    self:ModifyMaxSpeed(maxSpeedTable, input) -- modifies the maxSpeed if crouching/webbed for instance
-    if input.move:GetLengthSquared() > 0 then
-        Accelerate(self, input, velocity, maxSpeedTable.maxSpeed, deltaTime)
+    kMaxSpeedTable.maxSpeed = self:GetMaxSpeed()
+    self:ModifyMaxSpeed(kMaxSpeedTable, input) -- modifies the maxSpeed if crouching/webbed for instance
+    local moveSq = input.move:GetLengthSquared()
+
+    if moveSq > 0 or not self.onGround then
+        Accelerate(self, input, velocity, kMaxSpeedTable.maxSpeed, deltaTime)
     end
 
-    local moveSq = input.move:GetLengthSquared()
     if speedSq > 0 or moveSq > 0 or velocity:GetLengthSquared() > 0 then
         self:UpdatePosition(input, velocity, deltaTime)
     end
@@ -870,7 +895,9 @@ function GroundMoveMixin:OnWorldCollision(normal, impactForce)
     if normal then
 
         if not self.storedNormal then
-            self.storedNormal = normal
+            -- 'normal' is a vector shared by PerformMovement, never keep a reference to it
+            VectorCopy(normal, self.storedNormalVec)
+            self.storedNormal = self.storedNormalVec
         else
             self.storedNormal:Add(normal)
             self.storedNormal:Normalize()
