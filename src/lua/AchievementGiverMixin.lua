@@ -34,8 +34,11 @@ if Server then
     end
 
     function AchievementGiverMixin:OnAddHealth()
-        if self.GetClient and self:GetClient() and self:GetHealth() < 2 then
-            Server.SetAchievement(self:GetClient(), "Short_2_4")
+        if self.GetClient and self:GetHealth() < 2 then
+            local client = self:GetClient()
+            if client then
+                Server.SetAchievement(client, "Short_2_4")
+            end
         end
     end
 
@@ -79,7 +82,14 @@ if Server then
     end
 
     function AchievementGiverMixin:OnConstruct(builder, newFraction, oldFraction)
-        if not (self:isa("Hive") or self:isa("Extractor")) then return end
+        -- the class never changes, so only run isa() once per entity
+        local tracksBuildContribution = self.tracksBuildContribution
+        if tracksBuildContribution == nil then
+            tracksBuildContribution = self:isa("Hive") or self:isa("Extractor")
+            self.tracksBuildContribution = tracksBuildContribution
+        end
+
+        if not tracksBuildContribution then return end
 
         if not self.constructContributions then
             self.constructContributions = {}
@@ -131,7 +141,7 @@ if Server then
 
                 -- This is only used for the skulk bite+bite+para achievement.
                 -- It records on the target how it took damage (and upon death reward skulks achievement)
-                if (attacker and attacker:isa("Skulk")) then
+                if attacker:isa("Skulk") then
                     if #self.lastAttacks == 5 then self.lastAttacks[5] = nil end
                     table.insert(self.lastAttacks, 1, {attacker:GetId(), doer and doer.kMapName or ""})
                 end
