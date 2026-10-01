@@ -29,6 +29,9 @@ end
 
 if Server then
 	
+	local kStructureDamageThreshold = 7500
+	local kPlayerDamageThreshold = 4000
+
 	local function RewardAchievement(player, name)
 		if player and player.GetClient and player:GetClient() then
 			Server.SetAchievement(player:GetClient(), name)
@@ -112,7 +115,7 @@ if Server then
 	end
 
 	function AchievementReceiverMixin:CheckStructureDamageDealt()
-		if self.structureDamageDealt >= 7500 then
+		if self.structureDamageDealt >= kStructureDamageThreshold then
 			RewardAchievement(self, "Short_2_1")
 		end
 
@@ -120,7 +123,7 @@ if Server then
 	end
 
 	function AchievementReceiverMixin:CheckPlayerDamageDealt()
-		if self.playerDamageDealt >= 4000 then
+		if self.playerDamageDealt >= kPlayerDamageThreshold then
 			RewardAchievement(self, "Short_2_2")
 		end
 	end
@@ -180,15 +183,25 @@ if Server then
 	end
 
 	function AchievementReceiverMixin:AddStructureDamageDealt(amount)
-		self.structureDamageDealt = self.structureDamageDealt + amount
+		local oldDamage = self.structureDamageDealt
+		local newDamage = oldDamage + amount
+		self.structureDamageDealt = newDamage
 		
-		self:CheckStructureDamageDealt()
+		-- only the hit that crosses the threshold can award it
+		if oldDamage < kStructureDamageThreshold and newDamage >= kStructureDamageThreshold then
+			self:CheckStructureDamageDealt()
+		end
 	end
 
 	function AchievementReceiverMixin:AddPlayerDamageDealt(amount)
-		self.playerDamageDealt = self.playerDamageDealt + amount
+		local oldDamage = self.playerDamageDealt
+		local newDamage = oldDamage + amount
+		self.playerDamageDealt = newDamage
 		
-		self:CheckPlayerDamageDealt()
+		-- only the hit that crosses the threshold can award it
+		if oldDamage < kPlayerDamageThreshold and newDamage >= kPlayerDamageThreshold then
+			self:CheckPlayerDamageDealt()
+		end
 	end
 
 	function AchievementReceiverMixin:AddDestroyedRessources(amount)
@@ -252,15 +265,19 @@ if Client then
 	function AchievementReceiverMixin:OnUpdatePlayer(deltaTime)
 		if self ~= Client.GetLocalPlayer() then return end
 
-		if gDisablePlaytimeAch or Shared.GetCheatsEnabled() or Shared.GetDevMode()
-				or Shared.GetTestsEnabled() or not GetGameInfoEntity():GetIsDedicated() then
+		if gDisablePlaytimeAch then return end
+
+		local gameInfo = GetGameInfoEntity()
+
+		if Shared.GetCheatsEnabled() or Shared.GetDevMode()
+				or Shared.GetTestsEnabled() or not gameInfo:GetIsDedicated() then
 
 			gDisablePlaytimeAch = true
 			return
 
 		end
 
-		if GetGameInfoEntity() and GetGameInfoEntity():GetGameStarted() then
+		if gameInfo and gameInfo:GetGameStarted() then
 
 			if self:GetMaxPlayer() > 24 or GetGamemode() ~= "ns2" then
 
