@@ -53,7 +53,7 @@ function DropPack:OnCreate()
     InitMixin(self, EntityChangeMixin)
     InitMixin(self, LOSMixin)
 
-    self:SetUpdateRate(kRealTimeUpdateRate)
+    self:SetUpdateRate(kUpdateIntervalMedium)
 
     self:SetRelevancyDistance(25)
     
@@ -113,63 +113,37 @@ if Server then
         -- update fall
         
         local weapon = self.weapon and Shared.GetEntity(self.weapon)
-        if weapon == nil and self.onGroundPoint and self.onGroundPoint ~= self:GetOrigin() and self.fallSpeed then
+        local origin = self:GetOrigin()
+
+        if weapon == nil and self.onGroundPoint and self.onGroundPoint ~= origin and self.fallSpeed then
             
             self.fallSpeed = math.min(50, self.fallSpeed + deltaTime * 9.81)
-            self:SetOrigin(SlerpVector(self:GetOrigin(), self.onGroundPoint, deltaTime * self.fallSpeed))
+            self:SetOrigin(SlerpVector(origin, self.onGroundPoint, deltaTime * self.fallSpeed))
             
         elseif weapon ~= nil and weapon.weaponWorldState == true then
-            if self:GetOrigin() ~= weapon:GetOrigin() then
+
+            local weaponOrigin = weapon:GetOrigin()
+            if origin ~= weaponOrigin then
                 self.onGroundPoint = nil
-                self:SetOrigin(weapon:GetOrigin())
+                self:SetOrigin(weaponOrigin)
             end
         
         elseif not self.hitStaticGround and not (weapon ~= nil and weapon.weaponWorldState == true) then -- For med/ammo/etc
 
             -- This trace is only here in the event you drop it on an entity that dies, so they don't stay in the air
 
-            local trace = Shared.TraceRay(self:GetOrigin() + kUpVector * 0.025, self:GetOrigin() - kUpVector * 20, CollisionRep.Move, PhysicsMask.AllButPCs, EntityFilterOneAndIsa(self, "Player"))
-            self:SetOrigin(Vector(trace.endPoint))
+            local trace = Shared.TraceRay(origin + kUpVector * 0.025, origin - kUpVector * 20, CollisionRep.Move, PhysicsMask.AllButPCs, EntityFilterOneAndIsa(self, "Player"))
+
+            if trace.endPoint ~= origin then
+                self:SetOrigin(trace.endPoint)
+            end
+
             if not trace.entity and trace.fraction ~= 1 then
                 self.hitStaticGround = true
             end
 
             self.weapon = nil
-        elseif not self.hitStaticGround then -- For weapons
 
-            if not self.lastOnGroundUpdate or self.lastOnGroundUpdate + 0.1 < Shared.GetTime() then        
-
-                self.lastOnGroundUpdate = Shared.GetTime()
-                
-                local trace = Shared.TraceRay(self:GetOrigin() + kUpVector * 0.025, self:GetOrigin() - kUpVector * 20, CollisionRep.Move, PhysicsMask.AllButPCs, EntityFilterOneAndIsa(self, "Player"))
-                if trace.fraction ~= 1 and self:GetOrigin().y - trace.endPoint.y > 0.025 then
-                    
-                    self.onGroundPoint = Vector(trace.endPoint)
-                    self.fallSpeed = 0
-                    
-                else                
-                    self.onGroundPoint = nil                    
-                end
-                
-                if not trace.entity and trace.fraction ~= 1 then
-                    self.hitStaticGround = true
-                end
-                
-                if trace.fraction ~= 1 then                
-                    
-                    local coords = self:GetCoords()
-                    coords.yAxis = trace.normal                    
-                    coords.xAxis = coords.yAxis:CrossProduct(coords.zAxis)
-                    coords.zAxis = coords.xAxis:CrossProduct(coords.yAxis)
-                    
-                    self.desiredAngles = Angles()
-                    self.desiredAngles:BuildFromCoords(coords)
-                    self.setAngleStartTime = Shared.GetTime()
-                
-                end
-            
-            end
-        
         end
         
         -- set angles when on ground, then disable
@@ -188,19 +162,19 @@ if Server then
         
         end
 
-        -- update pickup checks
+        -- update pickup checks (team filtered query, no table full of enemy players)
 
-        local playersNearby = GetEntitiesWithinXZRange( "Player", self:GetOrigin(), self.pickupRange )
+        origin = self:GetOrigin()
+        local playersNearby = GetEntitiesForTeamWithinXZRange( "Player", self:GetTeamNumber(), origin, self.pickupRange )
         if #playersNearby > 0 then
 
             if self.pickupRange > 1 then -- Don't even bother if range too short, just pick first one in list
-                Shared.SortEntitiesByDistance(self:GetOrigin(), playersNearby)
+                Shared.SortEntitiesByDistance(origin, playersNearby)
             end
 
             for _, player in ipairs(playersNearby) do
             
-                local sameTeam = player:GetTeamNumber() == self:GetTeamNumber()
-                if sameTeam and not player:isa("Commander") and self:GetIsValidRecipient(player) then
+                if not player:isa("Commander") and self:GetIsValidRecipient(player) then
                 
                     self:OnTouch(player)
                     DestroyEntity(self)
