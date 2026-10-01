@@ -21,29 +21,31 @@ end
 
 function TargetMixin:GetEngagementPoint()
 
-    if self.lastEngagementPointOrigin ~= self:GetOrigin() then
-    
+    local origin = self:GetOrigin()
+
+    if self.lastEngagementPointOrigin ~= origin then
+
         if self.GetEngagementPointOverride then
             self.cachedEngagementPoint = self:GetEngagementPointOverride()
         elseif HasMixin(self, "Model") and self:GetHasModel() then
-        
+
             -- update the model coords in case we have moved
             self:UpdateModelCoords()
-            
+
             local success = false
             self.cachedEngagementPoint, success = self:GetAttachPointOrigin("target")
             if not success then
                 self.cachedEngagementPoint = self:GetModelOrigin()
             end
-            
+
         else
-            self.cachedEngagementPoint = self:GetOrigin() + kEngagementPointDefaultOffset
+            self.cachedEngagementPoint = origin + kEngagementPointDefaultOffset
         end
-        
-        self.lastEngagementPointOrigin = self:GetOrigin()
-        
+
+        self.lastEngagementPointOrigin = origin
+
     end
-    
+
     return self.cachedEngagementPoint
-    
+
 end
