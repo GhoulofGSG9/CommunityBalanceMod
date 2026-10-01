@@ -30,23 +30,22 @@ function Hydra:GetDistanceToTarget(target)
 end
 
 -- Spread changes based on target distance.
-function Hydra:CreateSpikeProjectile()
+function Hydra:CreateSpikeProjectile(startPoint)
 
     -- TODO: make hitscan at account for target velocity (more inaccurate at higher speed)
 
-    local startPoint = self:GetBarrelPoint()
-    local directionToTarget = self.target:GetEngagementPoint() - self:GetEyePos()
+    startPoint = startPoint or self:GetBarrelPoint()
+
+    local target = self.target
+    local targetPoint = target:GetEngagementPoint()
+    local directionToTarget = targetPoint - startPoint
     local targetDistance = directionToTarget:GetLength()
     local theTimeToReachEnemy = targetDistance / Hydra.kSpikeSpeed
-    local engagementPoint = self.target:GetEngagementPoint()
-    if self.target.GetVelocity then
+    local engagementPoint = targetPoint
+    if target.GetVelocity then
 
-        local targetVelocity = self.target:GetVelocity()
-        local targetSpeed = targetVelocity:GetLength()
-
-        if targetSpeed > 0.001 then
-            engagementPoint = self.target:GetEngagementPoint() - ((targetSpeed * Hydra.kTargetVelocityFactor * theTimeToReachEnemy) * GetNormalizedVector(targetVelocity))
-        end
+        local targetVelocity = target:GetVelocity()
+        engagementPoint = targetPoint - targetVelocity * (Hydra.kTargetVelocityFactor * theTimeToReachEnemy)
 
     end
 
@@ -85,11 +84,11 @@ function Hydra:GetRateOfFire()
 end
 
 -- No changes (incorporating a change to a local function).
-function Hydra:AttackTarget()
+function Hydra:AttackTarget(barrelPoint)
 
     self:TriggerUncloak()
 
-    self:CreateSpikeProjectile()
+    self:CreateSpikeProjectile(barrelPoint)
     self:TriggerEffects("hydra_attack")
 
 
@@ -112,32 +111,40 @@ function Hydra:OnUpdate(deltaTime)
     
     ScriptActor.OnUpdate(self, deltaTime)
     
-    self.electrified = self.timeElectrifyEnds > Shared.GetTime()
+    local now = Shared.GetTime()
+
+    self.electrified = self.timeElectrifyEnds > now
     
     if not self.timeLastUpdate then
-        self.timeLastUpdate = Shared.GetTime()
+        self.timeLastUpdate = now
     end
     
-    if self.timeLastUpdate + Hydra.kUpdateInterval < Shared.GetTime() then
+    if self.timeLastUpdate + Hydra.kUpdateInterval < now then
     
         if GetIsUnitActive(self) and not (self:GetIsOnFire() or self.electrified) then
             self.target = self.targetSelector:AcquireTarget()
 
             -- Check for obstacles between the origin and barrel point of the hydra so it doesn't shoot while sticking through walls
-            self.attacking = self.target and not GetWallBetween(self:GetBarrelPoint(), self:GetOrigin(), self) and not GetIsPointInsideClogs(self:GetBarrelPoint())
+            local barrelPoint
+            if self.target then
+                barrelPoint = self:GetBarrelPoint()
+                self.attacking = not GetWallBetween(barrelPoint, self:GetOrigin(), self) and not GetIsPointInsideClogs(barrelPoint)
+            else
+                self.attacking = false
+            end
 
-            if self.attacking and (not self.timeOfNextFire or Shared.GetTime() > self.timeOfNextFire) then
-                self:AttackTarget()
+            if self.attacking and (not self.timeOfNextFire or now > self.timeOfNextFire) then
+                self:AttackTarget(barrelPoint)
             elseif not self.target then
                 -- Play alert animation if marines nearby and we're not targeting (ARCs?)
-                if not self.timeLastAlertCheck or Shared.GetTime() > self.timeLastAlertCheck + Hydra.kAlertCheckInterval then
+                if not self.timeLastAlertCheck or now > self.timeLastAlertCheck + Hydra.kAlertCheckInterval then
                 
                     self.alerting = false
                     
                     if self:GetIsEnemyNearby() then
                     
                         self.alerting = true
-                        self.timeLastAlertCheck = Shared.GetTime()
+                        self.timeLastAlertCheck = now
                         
                     end
                     
@@ -148,7 +155,7 @@ function Hydra:OnUpdate(deltaTime)
             self.attacking = false
         end
         
-        self.timeLastUpdate = Shared.GetTime()
+        self.timeLastUpdate = now
         
     end
     
@@ -156,19 +163,23 @@ end
 
 function Hydra:GetIsEnemyNearby()
 
-    local enemyPlayers = GetEntitiesForTeam("Player", GetEnemyTeamNumber(self:GetTeamNumber()))
+    local range = Hydra.kRange
+    local rangeSq = range * range
+    local origin = self:GetModelOrigin()
+    local kEngagementMargin = 2
+
+    -- Native range query instead of building a list of every enemy player on the map
+    local enemyPlayers = GetEntitiesForTeamWithinRange("Player", GetEnemyTeamNumber(self:GetTeamNumber()), origin, range + kEngagementMargin)
     
-    for _, player in ipairs(enemyPlayers) do
+    for i = 1, #enemyPlayers do
     
-        if player:GetIsVisible() and not player:isa("Commander") then
-        
-            local dist = self:GetDistanceToTarget(player)
-            if dist < Hydra.kRange then
-                return true
-            end
-            
+        local player = enemyPlayers[i]
+
+        if player:GetIsVisible() and not player:isa("Commander")
+           and (player:GetEngagementPoint() - origin):GetLengthSquared() < rangeSq then
+            return true
         end
-        
+            
     end
     
     return false
