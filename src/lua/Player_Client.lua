@@ -115,6 +115,9 @@ function PlayerUI_GetWorldMessages()
 
     if player then
 
+        local playerOrigin = player:GetOrigin()
+        local viewCoords = player:GetViewCoords()
+
         for _, worldMessage in ipairs(Client.GetWorldMessages()) do
 
             local tableEntry = {}
@@ -124,12 +127,11 @@ function PlayerUI_GetWorldMessages()
             tableEntry.previousNumber = worldMessage.previousNumber
             tableEntry.text = worldMessage.message
             tableEntry.animationFraction = worldMessage.animationFraction
-            tableEntry.distance = (worldMessage.position - player:GetOrigin()):GetLength()
+            tableEntry.distance = (worldMessage.position - playerOrigin):GetLength()
             tableEntry.minimumAnimationFraction = worldMessage.minimumAnimationFraction
             tableEntry.entityId = worldMessage.entityId
 
-            local direction = GetNormalizedVector(worldMessage.position - player:GetViewCoords().origin)
-            tableEntry.inFront = player:GetViewCoords().zAxis:DotProduct(direction) > 0
+            tableEntry.inFront = GetDotTowardPoint(viewCoords.zAxis, viewCoords.origin, worldMessage.position) > 0
 
             table.insert(messageTable, tableEntry)
 
@@ -392,14 +394,14 @@ function PlayerUI_GetPositionalInfo(player, unit)
     local getEngagementPoint = unit.GetEngagementPoint
     local origin = getEngagementPoint and getEngagementPoint(unit) or unit:GetOrigin()
 
-    local normToEntityVec = GetNormalizedVector(origin - eyePos)
     local normViewVec = player:GetViewAngles():GetCoords().zAxis
 
-    local dotProduct = normToEntityVec:DotProduct(normViewVec)
+    -- cosine to the unit + distance in one pass, no temporary Vectors
+    local dotProduct, entityDistance = GetDotTowardPoint(normViewVec, eyePos, origin)
 
     if dotProduct > 0 then
 
-        distance = (origin - eyePos):GetLength()
+        distance = entityDistance
 
         local healthBarOffset = kDefaultHealthOffset
 
@@ -753,8 +755,7 @@ local function AddObjectives(player, objectives, className, yOffset, limit)
         if objective.showObjective and objective.occupiedTeam ~= teamNumber then
 
             local origin = objective:GetOrigin()
-            local toPosition = GetNormalizedVector(cameraCoords.origin - origin)
-            local dotProduct = cameraCoords.zAxis:DotProduct(toPosition)
+            local dotProduct, cameraDistance = GetDotTowardPoint(cameraCoords.zAxis, origin, cameraCoords.origin)
 
             if dotProduct < -0.3 then
 
@@ -762,7 +763,7 @@ local function AddObjectives(player, objectives, className, yOffset, limit)
                 local screenPosition = Vector(0,0,0)
                 VectorCopy(Client.WorldToScreen(origin + Vector(0, yOffset or 0, 0)), screenPosition)
 
-                local distance = cameraCoords.origin:GetDistanceSquared(origin)
+                local distance = cameraDistance * cameraDistance
                 local sortFactor = distance * (1.5 + dotProduct) -- Pioritize objective the player directly looks at
                 table.insert(out, { Position = screenPosition, TechId = objective:GetTechId(), DistanceSquared = distance, SortFactor = sortFactor })
             end
@@ -874,8 +875,9 @@ function PlayerUI_GetFinalWaypointInScreenspace()
         return nil
     end
 
-    local playerEyePos = Vector(player:GetCameraViewCoords().origin)
-    local playerForwardNorm = Vector(player:GetCameraViewCoords().zAxis)
+    local cameraViewCoords = player:GetCameraViewCoords()
+    local playerEyePos = Vector(cameraViewCoords.origin)
+    local playerForwardNorm = Vector(cameraViewCoords.zAxis)
 
     -- This method needs to use the previous updates player info.
     if player.lastPlayerEyePos == nil then
@@ -899,13 +901,14 @@ function PlayerUI_GetFinalWaypointInScreenspace()
     local screenPos = Client.WorldToScreen(orderWayPoint)
 
     local isInScreenSpace = false
-    local nextWPDir = orderWayPoint - player.lastPlayerEyePos
-    local normToEntityVec = GetNormalizedVectorXZ(nextWPDir)
-    local normViewVec = GetNormalizedVectorXZ(player.lastPlayerForwardNorm)
-    local dotProduct = Math.DotProduct(normToEntityVec, normViewVec)
+    local lastEyePos, lastForward = player.lastPlayerEyePos, player.lastPlayerForwardNorm
+    local wpDX, wpDY, wpDZ = orderWayPoint.x - lastEyePos.x, orderWayPoint.y - lastEyePos.y, orderWayPoint.z - lastEyePos.z
+    local toWPX, toWPZ = VectorMath.NormalizeXZ(wpDX, wpDZ)
+    local viewX, viewZ = VectorMath.NormalizeXZ(lastForward.x, lastForward.z)
+    local dotProduct = toWPX * viewX + toWPZ * viewZ
 
     -- Distance is used for scaling.
-    local nextWPDist = nextWPDir:GetLength()
+    local nextWPDist = VectorMath.Length3(wpDX, wpDY, wpDZ)
     local nextWPMaxDist = 25
     local nextWPScale = isCommander and 0.3 or math.max(0.5, 1 - (nextWPDist / nextWPMaxDist))
 
@@ -4210,19 +4213,17 @@ function PlayerUI_GetEggDisplayInfo()
     if player then
 
         local eyePos = player:GetEyePos()
-        for index, egg in ipairs(GetEntitiesWithinRange("Egg", player:GetEyePos(), kEggDisplayRange)) do
+        local normViewVec = player:GetViewAngles():GetCoords().zAxis
+        for index, egg in ipairs(GetEntitiesWithinRange("Egg", eyePos, kEggDisplayRange)) do
 
             local techId = egg:GetGestateTechId()
 
             if techId and (techId == kTechId.Gorge or techId == kTechId.Lerk or techId == kTechId.Fade or techId == kTechId.Onos) then
 
-                local normToEntityVec = GetNormalizedVector(egg:GetOrigin() - eyePos)
-                local normViewVec = player:GetViewAngles():GetCoords().zAxis
+                local eggOrigin = egg:GetOrigin()
 
-                local dotProduct = normToEntityVec:DotProduct(normViewVec)
-
-                if dotProduct > 0 then
-                    table.insert(eggDisplay, { Position = Client.WorldToScreen(egg:GetOrigin() + animOffset), TechId = techId } )
+                if GetDotTowardPoint(normViewVec, eyePos, eggOrigin) > 0 then
+                    table.insert(eggDisplay, { Position = Client.WorldToScreen(eggOrigin + animOffset), TechId = techId } )
                 end
 
             end
@@ -4231,17 +4232,14 @@ function PlayerUI_GetEggDisplayInfo()
 
         if PlayerUI_IsOverhead() then
 
-            for index, egg in ipairs(GetEntitiesWithinRange("Embryo", player:GetEyePos(), kEggDisplayRange)) do
+            for index, egg in ipairs(GetEntitiesWithinRange("Embryo", eyePos, kEggDisplayRange)) do
 
                 local techId = egg:GetGestationTechId()
 
-                local normToEntityVec = GetNormalizedVector(egg:GetOrigin() - eyePos)
-                local normViewVec = player:GetViewAngles():GetCoords().zAxis
+                local eggOrigin = egg:GetOrigin()
 
-                local dotProduct = normToEntityVec:DotProduct(normViewVec)
-
-                if dotProduct > 0 then
-                    table.insert(eggDisplay, { Position = Client.WorldToScreen(egg:GetOrigin() + animOffset), TechId = techId } )
+                if GetDotTowardPoint(normViewVec, eyePos, eggOrigin) > 0 then
+                    table.insert(eggDisplay, { Position = Client.WorldToScreen(eggOrigin + animOffset), TechId = techId } )
                 end
 
             end
