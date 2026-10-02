@@ -39,26 +39,53 @@ local Shared_TraceRay = Shared.TraceRay
 local Shared_TraceCapsule = Shared.TraceCapsule
 
 local math_pi = math.pi
+local AddScaled3 = VectorMath.AddScaled3
 
 local kNumTraces = 8
 
-local kTraceCache_flatdisc = {}
-local kTraceCache_diagcone = {}
+local kWallTraceCacheDuration = 0.25
+
+-- The scan order. Index 1..8 is a flat disc around the body, 9 is straight up and 10..17 is a
+-- 45 degree cone between the disc and "up". Never straight down. The first direction that hits
+-- a valid surface wins, so the order matters (walls before ceilings).
+--
+-- Directions are kept as plain numbers (dirX, dirY, dirZ) with a range scale, and the end
+-- point of a trace is built with Vector(AddScaled3(...)): one Vector per trace instead of
+-- two temporaries.
+local kUpIndex = kNumTraces + 1
+local kNumScanTraces = kNumTraces * 2 + 1
+
+local kScanDirX, kScanDirY, kScanDirZ, kScanRangeScale = {}, {}, {}, {}
 
 local function _initTracesTables()
+
     for i = 0, kNumTraces - 1 do
         local angle = ((i * 360/kNumTraces) / 360) * math_pi * 2
-        local directionVector = Vector(math.cos(angle), 0, math.sin(angle))
-        table.insert(kTraceCache_flatdisc, directionVector)
+        kScanDirX[i + 1] = math.cos(angle)
+        kScanDirY[i + 1] = 0
+        kScanDirZ[i + 1] = math.sin(angle)
+        kScanRangeScale[i + 1] = 1
     end
 
-   for i=0, kNumTraces - 1 do
+    kScanDirX[kUpIndex], kScanDirY[kUpIndex], kScanDirZ[kUpIndex] = 0, 1, 0
+    kScanRangeScale[kUpIndex] = 1
+
+    for i = 0, kNumTraces - 1 do
         local theta = (i/kNumTraces) * math_pi * 2
-        local directionVector = Vector(math.cos(theta), 1, math.sin(theta))
-        table.insert(kTraceCache_diagcone, directionVector)
+        local index = kUpIndex + 1 + i
+        kScanDirX[index] = math.cos(theta)
+        kScanDirY[index] = 1
+        kScanDirZ[index] = math.sin(theta)
+        kScanRangeScale[index] = 0.707
     end
+
 end
 _initTracesTables()
+
+-- End point of scan trace 'index' starting at (sx, sy, sz)
+local function GetScanEndPoint(index, sx, sy, sz, range)
+    return Vector(AddScaled3(sx, sy, sz, kScanDirX[index], kScanDirY[index], kScanDirZ[index], range * kScanRangeScale[index]))
+end
 
 function WallMovementMixin:__initmixin()
     
@@ -146,9 +173,9 @@ function WallMovementMixin:ValidWallTrace(trace)
     
 end
 
-function WallMovementMixin:TraceWallNormal(startPoint, endPoint, feelerSize, physicsMask)
+function WallMovementMixin:TraceWallNormal(startPoint, endPoint, feelerSize, physicsMask, filter)
 
-    local theTrace = Shared_TraceCapsule(startPoint, endPoint, feelerSize, 0, CollisionRep.Move, physicsMask, EntityFilterOneAndIsa(self, "Babbler"))
+    local theTrace = Shared_TraceCapsule(startPoint, endPoint, feelerSize, 0, CollisionRep.Move, physicsMask, filter or EntityFilterOneAndIsa(self, "Babbler"))
 
     if self:ValidWallTrace(theTrace) then
         return theTrace.normal
@@ -158,10 +185,18 @@ function WallMovementMixin:TraceWallNormal(startPoint, endPoint, feelerSize, phy
 end
 
 --
--- Returns the average normal within wall-walking range. Perform 8 trace lines in circle around us and 1 above us, but not below.
--- Returns nil if we aren't in range of a valid wall-walking surface.  For any surfaces hit, remember surface normal and average
--- with others hit so we know if we're wall-walking and the normal to orient our model and the direction to jump away from
--- when jumping off a wall.
+-- Returns the normal of the surface we can wall walk on, or nil if we aren't in range of a valid
+-- wall-walking surface. 8 traces in a circle around us, 1 above us and 8 in a 45 degree cone
+-- (see the scan order above), but none below. The first one that hits wins. The normal is used
+-- to orient our model and as the direction to jump away from when jumping off a wall.
+--
+-- We are very likely still on the same surface as at the previous call, so the index of the
+-- trace that hit is remembered and retraced first. When that still hits the other 16 traces
+-- are skipped. A full scan is forced after kWallTraceCacheDuration, and whenever the cached
+-- trace misses (the one that missed is not traced a second time).
+--
+-- The remembered index is kept per physics mask: Skulk calls this with different masks for
+-- wall walking and for the wall jump check, and they must not overwrite each other's entry.
 --
 
 function WallMovementMixin:GetAverageWallWalkingNormal(extraRange, feelerSize, physicsMaskOverride)
@@ -177,64 +212,103 @@ function WallMovementMixin:GetAverageWallWalkingNormal(extraRange, feelerSize, p
 
     local physicsMask = ConditionalValue(physicsMaskOverride ~= nil, physicsMaskOverride, PhysicsMask.AllButPCs)
     
-    local startPoint = Vector(self:GetOrigin())
+    local origin = self:GetOrigin()
     local extents = self:GetExtents()
-    startPoint.y = startPoint.y + extents.y
+    local extentX, extentY = extents.x, extents.y
+    local sx, sy, sz = origin.x, origin.y + extentY, origin.z
+    local startPoint = Vector(sx, sy, sz)
 
     -- Trace range: largest horizontal/vertical extent plus caller-provided extra.
-    local wallWalkingRange = (extents.x > extents.y and extents.x or extents.y) + extraRange
+    local wallWalkingRange = (extentX > extentY and extentX or extentY) + extraRange
+
+    local filter = self.wallTraceFilter
+    if not filter then
+        filter = EntityFilterOneAndIsa(self, "Babbler")
+        self.wallTraceFilter = filter
+    end
 
     local wallNormal = nil
-
-    -- Fast path: retry the last successful direction while it's still fresh.
+    local hitIndex = nil
+    local missedIndex = nil
     local now = Shared.GetTime()
-    if self.lastSuccessfullWallTraceDir and (now - (self.timeLastSuccessfulWallTrace or 0) < 0.5) then
-        wallNormal = self:TraceWallNormal(startPoint, startPoint + self.lastSuccessfullWallTraceDir * wallWalkingRange, feelerSize, physicsMask)
-        if wallNormal then
-            self.timeLastSuccessfulWallTrace = now
-        else
-            self.lastSuccessfullWallTraceDir = nil
-        end
+
+    -- Cached: retrace the direction that hit last time while the cache is still fresh.
+    local caches = self.wallTraceCaches
+    if not caches then
+        caches = {}
+        self.wallTraceCaches = caches
     end
 
-    -- Trace around (flat disc)
-    if not wallNormal then
-        for i = 1, kNumTraces do
-            wallNormal = self:TraceWallNormal(startPoint, startPoint + kTraceCache_flatdisc[i] * wallWalkingRange, feelerSize, physicsMask)
-            if wallNormal then break end
-        end
+    local cache = caches[physicsMask]
+    if not cache then
+        cache = { index = nil, time = 0 }
+        caches[physicsMask] = cache
     end
 
-    -- Trace above too.
-    if not wallNormal then
-        wallNormal = self:TraceWallNormal(startPoint, startPoint + Vector(0, wallWalkingRange, 0), feelerSize, physicsMask)
+    local cachedIndex = cache.index
+    if cachedIndex then
+
+        local age = now - cache.time
+        if age >= 0 and age < kWallTraceCacheDuration then
+
+            wallNormal = self:TraceWallNormal(startPoint, GetScanEndPoint(cachedIndex, sx, sy, sz, wallWalkingRange), feelerSize, physicsMask, filter)
+            if wallNormal then
+                hitIndex = cachedIndex
+            else
+                missedIndex = cachedIndex
+            end
+
+        end
+
     end
 
-    -- Trace in a 45 degree cone, halfway between vertical and the flat disc.
-    if not wallNormal then
-        for i = 1, kNumTraces do
-            wallNormal = self:TraceWallNormal(startPoint, startPoint + kTraceCache_diagcone[i] * wallWalkingRange * 0.707, feelerSize, physicsMask)
-            if wallNormal then break end
+    -- Full scan, in the original order. Skips what was just traced above and missed.
+    local fullScan = not wallNormal
+    if fullScan then
+
+        for i = 1, kNumScanTraces do
+
+            if i ~= missedIndex then
+                wallNormal = self:TraceWallNormal(startPoint, GetScanEndPoint(i, sx, sy, sz, wallWalkingRange), feelerSize, physicsMask, filter)
+                if wallNormal then
+                    hitIndex = i
+                    break
+                end
+            end
+
         end
+
     end
 
     if wallNormal then
 
+        -- Remember the direction that hit. Only a full scan refreshes the timestamp, so the
+        -- cache is always re-validated by a full scan within kWallTraceCacheDuration.
+        if fullScan then
+            cache.index = hitIndex
+            cache.time = now
+        end
+
         -- Check if we are right above a surface we can stand on.
         -- Even if we are in "wall walking mode", we want it to look
         -- like it is standing on a surface if it is right above it.
-        local directionVector = Vector(0, -wallWalkingRange, 0)
-        local groundTrace = Shared_TraceRay(startPoint, startPoint + Vector(0, -wallWalkingRange, 0), CollisionRep.Move, physicsMask, EntityFilterOne(self))
+        local groundFilter = self.wallTraceGroundFilter
+        if not groundFilter then
+            groundFilter = EntityFilterOne(self)
+            self.wallTraceGroundFilter = groundFilter
+        end
+
+        local groundTrace = Shared_TraceRay(startPoint, Vector(sx, sy - wallWalkingRange, sz), CollisionRep.Move, physicsMask, groundFilter)
         if groundTrace.fraction > 0 and groundTrace.fraction < 1 and groundTrace.entity == nil then
             return groundTrace.normal
         end
 
-        self.lastSuccessfullWallTraceDir = wallNormal:Normalize()
-        self.timeLastSuccessfulWallTrace = Shared.GetTime()
         return wallNormal
 
     end
 
+    -- Nothing in range: nothing to retrace next time
+    cache.index = nil
     return nil
     
 end
@@ -252,5 +326,3 @@ function WallMovementMixin:OnAdjustModelCoords(modelCoords)
     return modelCoords
     
 end
-
-
