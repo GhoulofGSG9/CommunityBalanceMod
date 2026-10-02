@@ -232,3 +232,126 @@ function VectorSetLength(vec, newLength)
 
 end
 
+-----------------------------/
+-- Allocation-free vector ops --
+-----------------------------/
+
+-- out = a - b
+function VecSub(out, a, b)
+    out.x, out.y, out.z = a.x - b.x, a.y - b.y, a.z - b.z
+    return out
+end
+
+-- out = a + b
+function VecAdd(out, a, b)
+    out.x, out.y, out.z = a.x + b.x, a.y + b.y, a.z + b.z
+    return out
+end
+
+-- out = a * scale
+function VecScale(out, a, scale)
+    out.x, out.y, out.z = a.x * scale, a.y * scale, a.z * scale
+    return out
+end
+
+-- out = a + b * scale
+function VecAddScaled(out, a, b, scale)
+    out.x, out.y, out.z = a.x + b.x * scale, a.y + b.y * scale, a.z + b.z * scale
+    return out
+end
+
+-------------------------------/
+-- Number-based vector math  --
+-------------------------------/
+
+VectorMath = {}
+
+local math_sqrt = math.sqrt
+local math_sin = math.sin
+local math_cos = math.cos
+
+function VectorMath.LengthSqXZ(x, z)
+    return x * x + z * z
+end
+
+function VectorMath.LengthXZ(x, z)
+    return math_sqrt(x * x + z * z)
+end
+
+function VectorMath.LengthSq3(x, y, z)
+    return x * x + y * y + z * z
+end
+
+function VectorMath.Length3(x, y, z)
+    return math_sqrt(x * x + y * y + z * z)
+end
+
+-- Distance between points a and b
+function VectorMath.DistanceSqXZ(ax, az, bx, bz)
+    local dx, dz = ax - bx, az - bz
+    return dx * dx + dz * dz
+end
+
+function VectorMath.DistanceXZ(ax, az, bx, bz)
+    local dx, dz = ax - bx, az - bz
+    return math_sqrt(dx * dx + dz * dz)
+end
+
+function VectorMath.DistanceSq3(ax, ay, az, bx, by, bz)
+    local dx, dy, dz = ax - bx, ay - by, az - bz
+    return dx * dx + dy * dy + dz * dz
+end
+
+function VectorMath.Distance3(ax, ay, az, bx, by, bz)
+    local dx, dy, dz = ax - bx, ay - by, az - bz
+    return math_sqrt(dx * dx + dy * dy + dz * dz)
+end
+
+function VectorMath.Dot3(ax, ay, az, bx, by, bz)
+    return ax * bx + ay * by + az * bz
+end
+
+-- a x b
+function VectorMath.Cross3(ax, ay, az, bx, by, bz)
+    return ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx
+end
+
+-- a + b * s
+function VectorMath.AddScaled3(ax, ay, az, bx, by, bz, s)
+    return ax + bx * s, ay + by * s, az + bz * s
+end
+
+-- a * sa + b * sb
+function VectorMath.Combine3(ax, ay, az, sa, bx, by, bz, sb)
+    return ax * sa + bx * sb, ay * sa + by * sb, az * sa + bz * sb
+end
+
+-- Unit vector. A zero vector is returned unchanged.
+function VectorMath.Normalize3(x, y, z)
+    local len = math_sqrt(x * x + y * y + z * z)
+    if len > 0 then
+        return x / len, y / len, z / len
+    end
+    return x, y, z
+end
+
+-- Unit vector in the XZ plane. Zero in, zero out.
+function VectorMath.NormalizeXZ(x, z)
+    local lenSq = x * x + z * z
+    if lenSq > 0 then
+        local inv = 1 / math_sqrt(lenSq)
+        return x * inv, z * inv
+    end
+    return 0, 0
+end
+
+-- Rotates (x, z) around Y by angle (radians).
+function VectorMath.RotateXZ(x, z, angle)
+    local sinA, cosA = math_sin(angle), math_cos(angle)
+    return x * cosA - z * sinA, x * sinA + z * cosA
+end
+
+-- Wraps an angle in radians to [-pi, pi).
+function VectorMath.WrapAngle(angle)
+    return (angle + math.pi) % (2 * math.pi) - math.pi
+end
