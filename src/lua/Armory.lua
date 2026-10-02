@@ -82,7 +82,7 @@ local networkVars =
     loggedInSouth    = "boolean",
     loggedInWest     = "boolean",
     deployed         = "boolean",
-	advanced         = "boolean"
+    advanced         = "boolean"
 }
 
 AddMixinNetworkVars(BaseModelMixin, networkVars)
@@ -134,15 +134,14 @@ function Armory:OnCreate()
     InitMixin(self, CombatMixin)
     InitMixin(self, PowerConsumerMixin)
     InitMixin(self, ParasiteMixin)
-	InitMixin(self, BlightMixin)
-	
+    InitMixin(self, BlightMixin)
+    
     if Client then
         InitMixin(self, CommanderGlowMixin)
-		InitMixin(self, BlowtorchTargetMixin)
+        InitMixin(self, BlowtorchTargetMixin)
     end
 
     self:SetUpdates(true, kRealTimeUpdateRate)
-
     self:SetLagCompensated(false)
     self:SetPhysicsType(PhysicsType.Kinematic)
     self:SetPhysicsGroup(PhysicsGroup.BigStructuresGroup)
@@ -159,8 +158,8 @@ function Armory:OnCreate()
     self.timeScannedNorth = 0
     self.timeScannedWest = 0
     self.timeScannedSouth = 0
-	
-	self.advanced = false
+    
+    self.advanced = false
 
     self.deployed = false
 
@@ -266,14 +265,14 @@ end
 function Armory:GetTechButtons(techId)
 
     local techButtons 
-	
-	if kCBMaddon then
-		techButtons = {kTechId.SubmachinegunTech, kTechId.ShotgunTech, kTechId.GrenadeTech, kTechId.MinesTech,
+    
+    if kCBMaddon then
+        techButtons = {kTechId.SubmachinegunTech, kTechId.ShotgunTech, kTechId.GrenadeTech, kTechId.MinesTech,
         kTechId.None, kTechId.None, kTechId.None, kTechId.None}
-	else
-		techButtons = {kTechId.ShotgunTech, kTechId.GrenadeTech, kTechId.MinesTech, kTechId.None,
-        kTechId.None, kTechId.None, kTechId.None, kTechId.None}	
-	end
+    else
+        techButtons = {kTechId.ShotgunTech, kTechId.GrenadeTech, kTechId.MinesTech, kTechId.None,
+        kTechId.None, kTechId.None, kTechId.None, kTechId.None} 
+    end
     
     -- Show button to upgraded to advanced armory
     if self:GetTechId() == kTechId.Armory and self:GetResearchingId() ~= kTechId.AdvancedArmoryUpgrade then
@@ -304,7 +303,7 @@ function Armory:OnUpdatePoseParameters()
 
     PROFILE("Armory:OnUpdatePoseParameters")
 
-    if GetIsUnitActive(self) and self.deployed then
+    if self.deployed and GetIsUnitActive(self) then
 
         if self.loginNorthAmount then
             self:SetPoseParam("log_n", self.loginNorthAmount)
@@ -338,24 +337,26 @@ function Armory:OnUpdatePoseParameters()
 
 end
 
-local function UpdateArmoryAnim(self, extension, loggedIn, scanTime, timePassed)
+local function UpdateArmoryAnim(self, extension, loggedIn, scanTime, timePassed, now)
 
     -- local loggedInName = "log_" .. extension
     local loggedInParamValue = ConditionalValue(loggedIn, 1, 0)
 
-    if extension == "n" then
+    if extension == "n" and self.loginNorthAmount ~= loggedInParamValue then
         self.loginNorthAmount = Clamp(Slerp(self.loginNorthAmount, loggedInParamValue, timePassed * 2), 0, 1)
-    elseif extension == "s" then
+    elseif extension == "s" and self.loginSouthAmount ~= loggedInParamValue then
         self.loginSouthAmount = Clamp(Slerp(self.loginSouthAmount, loggedInParamValue, timePassed * 2), 0, 1)
-    elseif extension == "e" then
+    elseif extension == "e" and self.loginEastAmount ~= loggedInParamValue then
         self.loginEastAmount = Clamp(Slerp(self.loginEastAmount, loggedInParamValue, timePassed * 2), 0, 1)
-    elseif extension == "w" then
+    elseif extension == "w" and  self.loginWestAmount ~= loggedInParamValue then
         self.loginWestAmount = Clamp(Slerp(self.loginWestAmount, loggedInParamValue, timePassed * 2), 0, 1)
     end
 
     -- local scannedName = "scan_" .. extension
-    self.scannedParamValue = self.scannedParamValue or { }
-    self.scannedParamValue[extension] = ConditionalValue(scanTime == 0 or (Shared.GetTime() > scanTime + 3), 0, 1)
+    if self.scannedParamValue == nil then
+        self.scannedParamValue = {}
+    end
+    self.scannedParamValue[extension] = ConditionalValue(scanTime == 0 or (now > scanTime + 3), 0, 1)
 
 end
 
@@ -365,13 +366,15 @@ function Armory:OnUpdate(deltaTime)
         self:UpdateArmoryWarmUp()
     end
 
-    if GetIsUnitActive(self) and self.deployed then
+    if self.deployed and GetIsUnitActive(self) then
+
+        local now = Shared.GetTime()
 
         -- Set pose parameters according to if we're logged in or not
-        UpdateArmoryAnim(self, "e", self.loggedInEast, self.timeScannedEast, deltaTime)
-        UpdateArmoryAnim(self, "n", self.loggedInNorth, self.timeScannedNorth, deltaTime)
-        UpdateArmoryAnim(self, "w", self.loggedInWest, self.timeScannedWest, deltaTime)
-        UpdateArmoryAnim(self, "s", self.loggedInSouth, self.timeScannedSouth, deltaTime)
+        UpdateArmoryAnim(self, "e", self.loggedInEast, self.timeScannedEast, deltaTime, now)
+        UpdateArmoryAnim(self, "n", self.loggedInNorth, self.timeScannedNorth, deltaTime, now)
+        UpdateArmoryAnim(self, "w", self.loggedInWest, self.timeScannedWest, deltaTime, now)
+        UpdateArmoryAnim(self, "s", self.loggedInSouth, self.timeScannedSouth, deltaTime, now)
 
     end
 
