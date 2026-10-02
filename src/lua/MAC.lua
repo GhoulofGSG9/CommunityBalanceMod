@@ -138,6 +138,8 @@ MAC.kRepairHealthPerSecond = 30 -- (used by WeldableMixin, when welding hp of ar
  -- Range at which the MAC is looking for entities to interact with (limited by leash range if shorter)
 MAC.kSearchRangeLongLeash = 12.0
 MAC.kSearchRangeShortLeash = 3.0 -- 2.5
+-- While following a player (FollowAndWeld), non-player weldables/constructables are only searched within this fraction of the scan radius
+MAC.kFollowNonPlayerScanFactor = 0.5
 
 -- Distances at which the MAC can operate from its anchor point (needs to be longer than kSearchRange(long/short)Leash)
 MAC.kDefaultLeashRadius = 14.0 -- Direct distance check for leash
@@ -1197,9 +1199,15 @@ local function _GetNearestWeldablePlayer(self, nearbySortedWeldable)
     return nil
 end
 
-local function _GetNearestWeldablePvE(self, nearbySortedWeldable)
+-- XZ distance check from the scan center (same metric as GetEntitiesWithMixinForTeamWithinXZRange)
+local function _IsWithinScanRangeSq(w, scanPos, rangeSq)
+    local delta = w:GetOrigin() - scanPos
+    return delta.x * delta.x + delta.z * delta.z <= rangeSq
+end
+
+local function _GetNearestWeldablePvE(self, nearbySortedWeldable, scanPos, rangeSq)
     for _, w in ipairs(nearbySortedWeldable) do
-        if not w:isa("Player") then
+        if not w:isa("Player") and (not rangeSq or _IsWithinScanRangeSq(w, scanPos, rangeSq)) then
             local isWeldable = w:GetIsAlive() and w:GetWeldPercentage() < 1
             local isConstructable = w:GetIsAlive() and (HasMixin(w, "Construct") and w:GetCanConstruct(self))
             local isAllowedToWeld = MAC.CanMultipleWeldPvE or not self:GetIsWeldedByOtherMAC(w)
@@ -1212,9 +1220,9 @@ local function _GetNearestWeldablePvE(self, nearbySortedWeldable)
     return nil
 end
 
-local function _GetNearestConstructablePvE(self, nearbySortedWeldable)
+local function _GetNearestConstructablePvE(self, nearbySortedWeldable, scanPos, rangeSq)
     for _, w in ipairs(nearbySortedWeldable) do
-        if not w:isa("Player") then
+        if not w:isa("Player") and (not rangeSq or _IsWithinScanRangeSq(w, scanPos, rangeSq)) then
             local isConstructable = w:GetIsAlive() and (HasMixin(w, "Construct") and w:GetCanConstruct(self))
             local isAllowedToBuild = MAC.CanMultipleWeldPvE or not self:GetIsWeldedByOtherMAC(w)
             if isConstructable and isAllowedToBuild then --  and not self:GetIsWeldedByOtherMAC(w) -- Constructable CAN be build with multiple macs, only welding is restricted
@@ -1233,16 +1241,26 @@ function MAC:DecisionMakingRoutine_SideQuests(deltaTime, currentOrder, currentOr
     end
 
     local newOrderTarget = nil
-    local nearbySortedWeldable = self:IsBeyondLeash() and {} or GetEntitiesWithMixinForTeamWithinXZRange("Weldable", self:GetTeamNumber(), self:GetLeashPos(), self:GetOrderScanRadius())
+    local hasFollowOrder = currentOrderType and currentOrderTarget and (currentOrderType == kTechId.FollowAndWeld)
+
+    local scanPos = self:GetLeashPos()
+    local scanRadius = self:GetOrderScanRadius()
+    local nearbySortedWeldable = self:IsBeyondLeash() and {} or GetEntitiesWithMixinForTeamWithinXZRange("Weldable", self:GetTeamNumber(), scanPos, scanRadius)
     Shared.SortEntitiesByDistance(self:GetOrigin(), nearbySortedWeldable)
 
+    -- While following a player, only look for non-player stuff (PvE welds + constructables) in a reduced radius (players keep the full radius)
+    local pveRangeSq = nil
+    if hasFollowOrder and currentOrderTarget:isa("Player") then
+        local pveRadius = scanRadius * MAC.kFollowNonPlayerScanFactor
+        pveRangeSq = pveRadius * pveRadius
+    end
+
     local nearestPlayerNeedingWeld = _GetNearestWeldablePlayer(self, nearbySortedWeldable) 
-    local nearestPvENeedingWeld = _GetNearestWeldablePvE(self, nearbySortedWeldable)
-    local nearestConstructablePvE = _GetNearestConstructablePvE(self, nearbySortedWeldable)
+    local nearestPvENeedingWeld = _GetNearestWeldablePvE(self, nearbySortedWeldable, scanPos, pveRangeSq)
+    local nearestConstructablePvE = _GetNearestConstructablePvE(self, nearbySortedWeldable, scanPos, pveRangeSq)
 
     -- Followed target doesn't need immediate welding (catched in first condition),
     -- so we just update the leash to follow it and do side quests
-    local hasFollowOrder = currentOrderType and currentOrderTarget and (currentOrderType == kTechId.FollowAndWeld)
     if (hasFollowOrder) then
         self:SetLeashPos(currentOrderTarget:GetOrigin())
         newOrderTarget = currentOrderTarget -- We are assigned to it, even if we don't actively weld it we are ready
