@@ -746,9 +746,9 @@ local function GetIsValidUseOfPoint(self, entity, usablePoint, useRange)
     if GetPlayerCanUseEntity(self, entity) then
 
         local viewCoords = self:GetViewAngles():GetCoords()
-        local toUsePoint = usablePoint - self:GetEyePos()
+        local dotProduct, distance = GetDotTowardPoint(viewCoords.zAxis, self:GetEyePos(), usablePoint)
 
-        return toUsePoint:GetLength() < useRange and viewCoords.zAxis:DotProduct(GetNormalizedVector(toUsePoint)) > 0.8
+        return distance < useRange and dotProduct > 0.8
 
     end
 
