@@ -355,3 +355,18 @@ end
 function VectorMath.WrapAngle(angle)
     return (angle + math.pi) % (2 * math.pi) - math.pi
 end
+
+-- Cosine of the angle between 'forward' (a unit vector) and the direction from 'from' to
+-- 'to', plus the distance from -> to.
+function GetDotTowardPoint(forward, from, to)
+
+    local dx, dy, dz = to.x - from.x, to.y - from.y, to.z - from.z
+    local distance = VectorMath.Length3(dx, dy, dz)
+
+    if distance > 0 then
+        return VectorMath.Dot3(forward.x, forward.y, forward.z, dx, dy, dz) / distance, distance
+    end
+
+    return 0, 0
+
+end
