@@ -21,7 +21,7 @@ Railgun.kMapName = "railgun"
 
 local kChargeTime = 1 -- Changed from vanilla value 2
 -- The Railgun will automatically shoot if it is charged for too long.
-local kChargeForceShootTime = 2.5 --  vanilla value 2.5
+local kChargeForceShootTime = 4 --  vanilla value 2.5
 -- kRailgunRange lives in Balance.lua next to kRelevancyRangeCap.
 local kRailgunSpread = Math.Radians(0)
 local kBulletSize = 0.3
@@ -29,6 +29,7 @@ local kBulletSize = 0.3
 local kRailgunChargeTime = 1 -- Vanilla 1.4
 
 local kChargeSound = PrecacheAsset("sound/NS2.fev/marine/heavy/railgun_charge")
+local kChargeReadySound = PrecacheAsset("sound/NS2.fev/common/checkbox_on")
 
 local precached1 = PrecacheAsset("cinematics/vfx_materials/alien_frag.surface_shader")
 local precached2 = PrecacheAsset("cinematics/vfx_materials/decals/railgun_hole.surface_shader")
@@ -88,6 +89,13 @@ function Railgun:OnDestroy()
     
         Client.DestroyGUIView(self.chargeDisplayUI)
         self.chargeDisplayUI = nil
+
+    end
+
+    if self.chargeLight then
+
+        Client.DestroyRenderLight(self.chargeLight)
+        self.chargeLight = nil
         
     end
     
@@ -122,14 +130,9 @@ function Railgun:PostDoDamage(target, damage)
 
 end
 
--- Only one railgun charges at a time. Two charging together put a near instant burst
--- downrange that no aim commitment paid for; build 320 banned it and the ban held.
 function Railgun:OnPrimaryAttack(player)
-    
-    local exoWeaponHolder = player:GetActiveWeapon()
-    local otherSlotWeapon = self:GetExoWeaponSlot() == ExoWeaponHolder.kSlotNames.Left and exoWeaponHolder:GetRightSlotWeapon() or exoWeaponHolder:GetLeftSlotWeapon()
-    local otherIsCharging = otherSlotWeapon ~= nil and otherSlotWeapon ~= self and otherSlotWeapon:isa("Railgun") and otherSlotWeapon.railgunAttacking
-    if not otherIsCharging and self.timeOfLastShot + kRailgunChargeTime <= Shared.GetTime() then
+
+    if self.timeOfLastShot + kRailgunChargeTime <= Shared.GetTime() then
         
         if not self.railgunAttacking then
             self.timeChargeStarted = Shared.GetTime()
@@ -343,6 +346,7 @@ end
 
 local kActivityInput = ExoWeaponSlotMixin.kActivityInput
 local kChargeAmountKey = ExoWeaponSlotMixin.GetSlotKeyTable("chargeAmount")
+local kChargeHeldKey = ExoWeaponSlotMixin.GetSlotKeyTable("chargeHeld")
 local kTimeSinceLastShotKey = ExoWeaponSlotMixin.GetSlotKeyTable("timeSinceLastShot")
 local kRailgunTextureKey = ExoWeaponSlotMixin.GetSlotKeyTable("*exo_railgun_")
 
@@ -372,13 +376,22 @@ function Railgun:OnUpdateRender()
             chargeDisplayUI:Load("lua/GUI" .. self:GetExoWeaponSlotName():gsub("^%l", string.upper) .. "RailgunDisplay.lua")
             chargeDisplayUI:SetTargetTexture(kRailgunTextureKey[self.exoWeaponSlot])
             chargeDisplayUI:SetGlobal("refireTime", kRailgunChargeTime)
+            chargeDisplayUI:SetGlobal("chargeTime", kChargeTime)
+            chargeDisplayUI:SetGlobal("forceShootTime", kChargeForceShootTime)
             self.chargeDisplayUI = chargeDisplayUI
             
         end
         
         local slot = self.exoWeaponSlot
-        chargeDisplayUI:SetGlobal(kChargeAmountKey[slot], chargeAmount)
-        chargeDisplayUI:SetGlobal(kTimeSinceLastShotKey[slot], Shared.GetTime() - self.timeOfLastShot)
+        local now = Shared.GetTime()
+        chargeDisplayUI:SetGlobal(kChargeHeldKey[slot], self.railgunAttacking and now - self.timeChargeStarted or 0)
+        chargeDisplayUI:SetGlobal(kTimeSinceLastShotKey[slot], now - self.timeOfLastShot)
+
+        local charged = chargeAmount >= 1
+        if charged and not self.chargeReadyCued then
+            StartSoundEffect(kChargeReadySound)
+        end
+        self.chargeReadyCued = charged
         
     else
     
@@ -403,6 +416,8 @@ function Railgun:OnUpdateRender()
         self.chargeSound:SetParameter("charge", chargeAmount, 1)
         
     end
+
+    self:UpdateChargeLight(chargeAmount, parent)
     
 end
 
@@ -455,6 +470,43 @@ if Client then
     local kFirstPersonAttachPoints = { [ExoWeaponHolder.kSlotNames.Left] = "fxnode_l_railgun_muzzle", [ExoWeaponHolder.kSlotNames.Right] = "fxnode_r_railgun_muzzle" }
     local kThirdPersonAttachPoints = { [ExoWeaponHolder.kSlotNames.Left] = "fxnode_lrailgunmuzzle", [ExoWeaponHolder.kSlotNames.Right] = "fxnode_rrailgunmuzzle" }
     local kMuzzleEffectName = PrecacheAsset("cinematics/marine/railgun/muzzle_flash.cinematic")
+    local kChargeLightColor = Color(0.4, 0.75, 1, 1)
+    local kChargeLightRadius = 2.5
+    local kChargeLightIntensity = 10
+
+    function Railgun:UpdateChargeLight(chargeAmount, parent)
+
+        local attachPoint = -1
+        if chargeAmount > 0 and parent and parent:GetIsAlive() and parent:GetIsVisible() and not (parent:GetIsLocalPlayer() and not parent:GetIsThirdPerson()) then
+            attachPoint = parent:GetAttachPointIndex(kThirdPersonAttachPoints[self.exoWeaponSlot])
+        end
+
+        local light = self.chargeLight
+        if attachPoint < 0 then
+
+            if light then
+                light:SetIsVisible(false)
+            end
+            return
+
+        end
+
+        if not light then
+
+            light = Client.CreateRenderLight()
+            light:SetType(RenderLight.Type_Point)
+            light:SetCastsShadows(false)
+            light:SetColor(kChargeLightColor)
+            light:SetRadius(kChargeLightRadius)
+            self.chargeLight = light
+
+        end
+
+        light:SetIntensity(kChargeLightIntensity * chargeAmount)
+        light:SetCoords(parent:GetAttachPointCoords(attachPoint))
+        light:SetIsVisible(true)
+
+    end
 
     function Railgun:OnClientPrimaryAttackEnd()
     

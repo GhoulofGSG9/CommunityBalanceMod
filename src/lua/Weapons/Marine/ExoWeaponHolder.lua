@@ -155,7 +155,6 @@ end
 
 function ExoWeaponHolder:CheckDualFiring()
 	
-	-- No railgun entry: one railgun charges at a time, so a pair never fires together.
 	if self.weaponMapNameLeft == self.weaponMapNameRight then
 		if self.dualminifiring and self.weaponMapNameLeft == "minigun" then
 			return true

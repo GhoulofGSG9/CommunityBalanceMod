@@ -12,9 +12,9 @@ Script.Load("lua/BalanceMisc.lua")
 kCBMaddon = true -- Enables AMAC, SPARC, SMG, Adv Obs, Adv Gate, Bio 5, and Advanced Structures.
 
 kRelevancyRangeCap = 41 -- Relevancy range is 40 m, so 1 m buffer
--- Railgun stays well under relevancy: a longer slug hits aliens whose client has not even
+-- Railgun stays under relevancy: a longer slug hits aliens whose client has not even
 -- received the exo entity, so lerks died to shooters they could not see (vanilla 400).
-kRailgunRange = kMaxRelevancyDistance - 10
+kRailgunRange = kMaxRelevancyDistance - 4
 
 kTransformResourcesTime = 15
 kTransformResourcesCost = 15

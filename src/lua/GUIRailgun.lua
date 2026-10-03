@@ -12,23 +12,44 @@ Script.Load("lua/GUIDial.lua")
 
 local kTexture = "models/marine/exosuit/exosuit_view_panel_rail2.dds"
 
+local kWarnTime = 0.75
+local kChargingColor = Color(1, 1, 1, 1)
+local kReadyColor = Color(0.25, 1, 1, 1)
+local kWarnColor = Color(1, 0, 0, 1)
+
 local chargeCircle
 local shootSquares = { }
 local cooldownSquares = { }
 local time = 0
 
--- Seconds until the railgun can fire again after a shot. Set through SetGlobal by
--- Railgun:OnUpdateRender when it creates this view; the vanilla value is the fallback.
+-- Set through SetGlobal by Railgun:OnUpdateRender when it creates this view;
+-- the vanilla values are the fallback.
 refireTime = refireTime or 1.4
+chargeTime = chargeTime or 2
+forceShootTime = forceShootTime or 2.5
 
-function UpdateCharge(dt, chargeAmount, timeSinceLastShot)
+function UpdateCharge(dt, chargeHeld, timeSinceLastShot)
 
     PROFILE("GUIRailgun:UpdateCharge")
     
-    local pulseAmt = (1 + math.cos(time * 20)) * 0.5
-    local colorAmt = chargeAmount >= 1 and (pulseAmt * 0.5) or 1
-    chargeCircle:GetLeftSide():SetColor(Color(1, colorAmt, colorAmt, 1))
-    chargeCircle:GetRightSide():SetColor(Color(1, colorAmt, colorAmt, 1))
+    local chargeAmount = math.min(1, chargeHeld / chargeTime)
+    local color = kChargingColor
+    if chargeAmount >= 1 then
+
+        if chargeHeld >= forceShootTime - kWarnTime then
+
+            local pulseAmt = (1 + math.cos(time * 20)) * 0.25
+            kWarnColor.g = pulseAmt
+            kWarnColor.b = pulseAmt
+            color = kWarnColor
+
+        else
+            color = kReadyColor
+        end
+
+    end
+    chargeCircle:GetLeftSide():SetColor(color)
+    chargeCircle:GetRightSide():SetColor(color)
     
     for s = 1, #cooldownSquares do
         cooldownSquares[s]:SetIsVisible(timeSinceLastShot < (s * refireTime / 4))
