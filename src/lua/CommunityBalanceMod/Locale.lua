@@ -167,7 +167,7 @@ if Client then
 	Locale.substitutions["RESEARCH_CORES_EXOSUIT_TITLE"] = "Exosuit Cores"
 	Locale.substitutions["CORES_EXOSUIT_TECH_TOOLTIP"] = "Unlocks the exosuit core modules: Thrusters, Ejection Seat and Armor Plating."
 	Locale.substitutions["ADVANCED_EXO_ARMS_TECH"] = "Advanced Exosuit Arms"
-	Locale.substitutions["ADVANCED_EXO_ARMS_TECH_TOOLTIP"] = "Unlocks the flame and plasma arms."
+	Locale.substitutions["ADVANCED_EXO_ARMS_TECH_TOOLTIP"] = "Unlocks the Ion Torch and Plasma Launcher arms."
 	Locale.substitutions["EXO_ABILITIES_TECH"] = "Exosuit Abilities"
 	Locale.substitutions["EXO_ABILITIES_TECH_TOOLTIP"] = "Unlocks the exosuit support abilities: Nano Shield Field, Catalyst Field and Regen Field."
 

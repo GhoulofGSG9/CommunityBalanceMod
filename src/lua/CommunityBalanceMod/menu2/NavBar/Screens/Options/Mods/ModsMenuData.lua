@@ -115,7 +115,7 @@ local menu =
 			
 				properties =
 				{
-					{"Label", "Dual Flamethrower Firing Sync"},
+					{"Label", "Dual Ion Torch Firing Sync"},
 				},
 			},
 			{

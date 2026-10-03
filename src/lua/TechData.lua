@@ -1677,6 +1677,7 @@ function BuildTechData()
         {
             [kTechDataId] = kTechId.ExoFlamer,
             [kTechDataMapName] = ExoFlamer.kMapName,
+            [kTechDataDisplayName] = "EXO_MODULE_IONTORCH",
 			[kTechDataDamageType] = kExoFlamerDamageType,
         },
 

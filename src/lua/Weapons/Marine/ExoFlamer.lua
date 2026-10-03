@@ -472,7 +472,7 @@ function ExoFlamer:AddHeat(amount)
 end
 
 function ExoFlamer:GetDeathIconIndex()
-    return kDeathMessageIcon.Flamethrower
+    return kDeathMessageIcon.IonTorch
 end
 
 function ExoFlamer:OnPrimaryAttackEnd(player)
