@@ -55,7 +55,7 @@ if kCBMaddon then
 	  - Plasma Launcher: lobs a bomb every 2 s. AoE burst of 40 damage in 4 m and burns for 3 s.
 	    - Burns do not stack and need line of sight.
 		- Electrify is only applied to direct hits.
-	  - Ion Torch (exo flamethrower arm): 12 damage a tick, 13 m range, and its burn deals 12 damage a second (marine flamethrower: 9, 9 m, 8). Blue-white flame and its own kill feed icon.
+	  - Ion Torch (exo flamethrower arm): 12 damage a tick, 13 m range, and its burn deals 12 damage a second (marine flamethrower: 9, 9 m, 8). Blue-white flame and light, and its own kill feed icon.
 	    - No ground flames, does not weld, and is not blocked by bone shield.
 	  - Exosuits can no longer repair each other.
 
@@ -782,7 +782,7 @@ else
 	  - Plasma Launcher: lobs a bomb every 2 s. AoE burst of 40 damage in 4 m and burns for 3 s.
 	    - Burns do not stack and need line of sight.
 		- Electrify is only applied to direct hits.
-	  - Ion Torch (exo flamethrower arm): 12 damage a tick, 13 m range, and its burn deals 12 damage a second (marine flamethrower: 9, 9 m, 8). Blue-white flame and its own kill feed icon.
+	  - Ion Torch (exo flamethrower arm): 12 damage a tick, 13 m range, and its burn deals 12 damage a second (marine flamethrower: 9, 9 m, 8). Blue-white flame and light, and its own kill feed icon.
 	    - No ground flames, does not weld, and is not blocked by bone shield.
 	  - Exosuits can no longer repair each other.
 

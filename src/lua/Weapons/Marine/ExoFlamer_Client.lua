@@ -11,7 +11,7 @@ local kSmokeEffectRate = 1.5
 local kPilotEffectRate = 0.3
 
 local kFlameImpactCinematic = PrecacheAsset("cinematics/marine/flamethrower/flame_impact3.cinematic")
-local kFlameSmokeCinematic = PrecacheAsset("cinematics/marine/flamethrower/flame_trail_light.cinematic")
+local kFlameSmokeCinematic = PrecacheAsset("cinematics/marine/exo_flamer/flame_trail_light.cinematic")
 local kPilotCinematicName = PrecacheAsset("cinematics/marine/flamethrower/pilot.cinematic")
 
 local kFirstPersonTrailCinematics =
