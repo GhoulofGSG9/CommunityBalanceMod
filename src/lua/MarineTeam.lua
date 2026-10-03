@@ -411,7 +411,6 @@ local kExoRefitUnlocks =
     [kTechId.CoresExosuitTech] = { slotField = "utilityModuleType", messageName = "ExoCoreModulesAvailable" },
     [kTechId.ExoAbilitiesTech] = { slotField = "abilityModuleType", messageName = "ExoAbilitiesAvailable" },
 }
-local kExoRefitReminderDelay = 60
 
 function MarineTeam:OnResearchComplete(structure, researchId)
 
@@ -424,23 +423,9 @@ function MarineTeam:OnResearchComplete(structure, researchId)
         return
     end
 
-    local function SendIfSlotEmpty(exo)
-        if exo:GetIsAlive() and exo[unlock.slotField] == kExoModuleTypes.None then
-            SendPlayersMessage({ exo }, messageType)
-            return true
-        end
-        return false
-    end
-
-    -- A refit or eject replaces the Exo entity, which drops the pending reminder.
-    local function Remind(exo)
-        SendIfSlotEmpty(exo)
-        return false
-    end
-
     for _, exo in ipairs(GetEntitiesForTeam("Exo", self:GetTeamNumber())) do
-        if not exo:GetIsVirtual() and SendIfSlotEmpty(exo) then
-            exo:AddTimedCallback(Remind, kExoRefitReminderDelay)
+        if not exo:GetIsVirtual() and exo:GetIsAlive() and exo[unlock.slotField] == kExoModuleTypes.None then
+            SendPlayersMessage({ exo }, messageType)
         end
     end
 
