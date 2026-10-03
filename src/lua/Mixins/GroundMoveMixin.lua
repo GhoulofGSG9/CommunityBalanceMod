@@ -877,7 +877,7 @@ function GroundMoveMixin:UpdateMove(input)
     self:ModifyMaxSpeed(kMaxSpeedTable, input) -- modifies the maxSpeed if crouching/webbed for instance
     local moveSq = input.move:GetLengthSquared()
 
-    if moveSq > 0 or not self.onGround then
+    if moveSq > 0 then
         Accelerate(self, input, velocity, kMaxSpeedTable.maxSpeed, deltaTime)
     end
 
