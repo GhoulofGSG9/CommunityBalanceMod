@@ -59,13 +59,18 @@ local function GetShouldFireExoWeapon( weapon, dist, target )
 
     if weapon:isa("Railgun") then
 
+        local charge = weapon.GetChargeAmount and weapon:GetChargeAmount() or 0
+        if charge == 0 and dist and dist > kRailgunRange then
+            return false
+        end
+
         -- Railguns charge while the trigger is held and fire on release
         local railgunFireCharge = 0.98
         if dist and dist < 10 and target and target:isa("Player") then
             railgunFireCharge = 0.4 -- fire railgun shots more quickly against close players
         end
 
-        return not weapon.GetChargeAmount or weapon:GetChargeAmount() < railgunFireCharge
+        return charge < railgunFireCharge
 
     end
 
@@ -77,6 +82,10 @@ local function GetShouldFireExoWeapon( weapon, dist, target )
         -- Plasma spends an energy pool instead of charging up a shot
         local energy = weapon.GetChargeAmount and weapon:GetChargeAmount() or 1
         return energy >= (weapon.energyCost or 0)
+    end
+
+    if weapon:isa("ExoFlamer") and dist and dist > kExoFlamerRange then
+        return false
     end
 
     -- Minigun and exo flamer build heat and lock out while overheated.
