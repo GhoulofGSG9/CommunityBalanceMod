@@ -548,7 +548,7 @@ if Client then
             local player = Client.GetLocalPlayer()
             if player and player.followId == oldEntityId then
                 Client.SendNetworkMessage("SpectatePlayer", {entityId = newEntityId or Entity.invalidId}, true)
-                player.followId = newEntityId
+                player.followId = newEntityId or Entity.invalidId
             end
 
         end
