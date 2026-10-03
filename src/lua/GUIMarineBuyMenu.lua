@@ -652,7 +652,7 @@ GUIMarineBuyMenu.kExoModuleData = {
     },
     [kExoModuleTypes.Flamethrower] = {
         label          = "EXO_MODULE_IONTORCH",
-        stats          = { Range = 0.4, LifeFormDamage = 0.6, StructureDamage = 1.0 },
+        stats          = { Range = 0.45, LifeFormDamage = 0.75, StructureDamage = 1.0 },
         image          = kInventoryIconsTexture,
         imageTexCoords = { GetSmallIconPixelCoordinates(kTechId.Flamethrower) },
     },
@@ -710,6 +710,64 @@ GUIMarineBuyMenu.kExoModuleData = {
     },
     
 }
+
+local kExoConfigSlotOrder = { kExoModuleSlots.LeftArm, kExoModuleSlots.RightArm, kExoModuleSlots.Utility, kExoModuleSlots.Ability }
+
+local function ExoPresetConfig(leftArm, rightArm, utility, ability)
+    return {
+        [kExoModuleSlots.LeftArm]  = leftArm,
+        [kExoModuleSlots.RightArm] = rightArm,
+        [kExoModuleSlots.Utility]  = utility or kExoModuleTypes.None,
+        [kExoModuleSlots.Ability]  = ability or kExoModuleTypes.None,
+    }
+end
+
+local function GetIsSameExoConfig(a, b)
+    for _, slotType in ipairs(kExoConfigSlotOrder) do
+        if (a[slotType] or kExoModuleTypes.None) ~= (b[slotType] or kExoModuleTypes.None) then
+            return false
+        end
+    end
+    return true
+end
+
+-- One-click loadouts on the configuration page. They only fill in the page; BUY still buys.
+-- lastBought takes its config from the client option written on the last exo buy request.
+GUIMarineBuyMenu.kExoPresets = {
+    { nameKey = "EXO_PRESET_1", descKey = "EXO_PRESET_1_DESC", config = ExoPresetConfig(kExoModuleTypes.Claw, kExoModuleTypes.Minigun) },
+    { nameKey = "EXO_PRESET_2", descKey = "EXO_PRESET_2_DESC", config = ExoPresetConfig(kExoModuleTypes.Minigun, kExoModuleTypes.Minigun) },
+    { nameKey = "EXO_PRESET_3", descKey = "EXO_PRESET_3_DESC", config = ExoPresetConfig(kExoModuleTypes.Railgun, kExoModuleTypes.Railgun, kExoModuleTypes.Thrusters) },
+    { nameKey = "EXO_PRESET_4", descKey = "EXO_PRESET_4_DESC", config = ExoPresetConfig(kExoModuleTypes.Claw, kExoModuleTypes.Flamethrower, kExoModuleTypes.Armor) },
+    { nameKey = "EXO_PRESET_LAST", descKey = "EXO_PRESET_LAST_DESC", lastBought = true },
+}
+
+local kExoLastConfigOption = "exo/lastConfig"
+
+local function SerializeExoConfig(config)
+    local names = {}
+    for i, slotType in ipairs(kExoConfigSlotOrder) do
+        names[i] = kExoModuleTypes[config[slotType] or kExoModuleTypes.None]
+    end
+    return table.concat(names, ",")
+end
+
+-- The option file is user editable: anything that is not four module names forming a valid
+-- suit is dropped. rawget, since an enum errors on an unknown name.
+local function ParseExoConfig(text)
+    local modules = {}
+    for name in string.gmatch(text or "", "[^,]+") do
+        local moduleType = rawget(kExoModuleTypes, name)
+        if type(moduleType) ~= "number" then
+            return nil
+        end
+        table.insert(modules, moduleType)
+    end
+    if #modules ~= #kExoConfigSlotOrder then
+        return nil
+    end
+    local config = ExoPresetConfig(unpack(modules))
+    return ModularExo_GetIsConfigValid(config) and config or nil
+end
 
 function GUIMarineBuyMenu:_GetPigPicturePixelCoordinatesForTechID(techId)
 
@@ -1815,6 +1873,7 @@ local function HandleItemClicked(self)
             if isValid and lockedTechId == nil and not self:_GetIsExoConfigUnchanged()
             and PlayerUI_GetPlayerResources() >= self:_GetExoConfigPrice(resourceCost) then
                 Client.SendNetworkMessage("ExoModularBuy", ModularExo_ConvertConfigToNetMessage(self.exoConfig))
+                Client.SetOptionString(kExoLastConfigOption, SerializeExoConfig(self.exoConfig))
                 MarineBuy_OnClose()
                 return true, true
             end
@@ -1842,6 +1901,14 @@ local function HandleItemClicked(self)
                     end
                     self:_RefreshExoModularButtons()
                 end
+            end
+        end
+        for _, preset in ipairs(self.exoPresetButtons) do
+            if GetIsMouseOver(self, preset.buttonGraphic) and preset.clickable then
+                for slotType, moduleType in pairs(preset.config) do
+                    self.exoConfig[slotType] = moduleType
+                end
+                self:_RefreshExoModularButtons()
             end
         end
     end
@@ -1910,20 +1977,25 @@ local kEnabledColor = Color(1, 1, 1, 1)
 -- sits at kPrototypeLabRightSidePos. A larger background scales the configuration area (see
 -- GetConfigAreaSize); the details column stays in background pixels.
 --
---  x  0    80                  540                                     1360   1383
+--  x  0    80                  540                                     1313   1383
 --     +-----------------------------------------------------------------------------+ y 0
 --     |  (the frame art is chamfered here, nothing can sit higher on the left)       |
---     |                             LEFT ARM [         ]      RIGHT ARM              | 76
---     |   MODULE NAME             +---------+   [   exo   ]    +---------+          | 200
---     |   COST / CURRENT          | 5 arms  |   [  model  ]    | 4 arms  |          |
---     |   TOTAL                   |         |   [ preview ]    |         |          |
---     |   ---- EXOSUIT ----       +---------+   [         ]    +---------+          |
---     |   five stat bars                                         CORE MODULE        |
---     |   tags                       +-------------------------------------+        | 480
---     |   Description                                          SUPPORT ABILITY      |
---     |                              +-------------------------------------+        | 610
---     |                                   [ price | BUY | armour, speed ]           | 710
+--     |                           how to use the page                     LOADOUTS  | 54
+--     |                           [ preset ][ preset ][ preset ][ preset ][ preset ] | 76
+--     |   MODULE NAME                     LEFT ARM                       RIGHT ARM  | 160
+--     |   COST / CURRENT          +---------+   [   exo   ]    +---------+          |
+--     |   ---- EXOSUIT ----       | 5 arms  |   [  model  ]    | 4 arms  |          |
+--     |   five stat bars          |         |   [ preview ]    +---------+          |
+--     |   tags                    +---------+                    CORE MODULE        |
+--     |   Description             [ core module row, full width             ]       | 530
+--     |                                                        SUPPORT ABILITY      |
+--     |                           [ support ability row, full width         ]       | 636
+--     |                           [ price |          BUY         | armour, speed ]  | 720
 --     +-----------------------------------------------------------------------------+ 811
+--
+-- One top-down stack in reading order: pick a loadout, or build one below, then BUY. The strip,
+-- the rows and BUY span the configuration area and the arm columns sit on its edges, so every
+-- panel lines up. A row not researched yet is hidden and what is below it moves up.
 --
 -- The configuration area is everything right of the module details column.
 -- The area is measured from the background texture at init (GetConfigAreaSize), because
@@ -1958,39 +2030,46 @@ local kModuleStatusFontSize = 20
 local kModuleStatusHeight = 28
 local kModuleStatusPadding = 8
 
-local kArmColumnYp = 0.0494         -- 76, top of both vertical arm columns (the slot tabs
-                                    -- sit above that, clear of the frame's top edge)
-local kUtilityRowYp = 0.574         -- 480, core module row
-local kAbilityRowYp = 0.7429        -- 610, support ability row
-local kBuyButtonYp = 0.8727         -- 710, buy button / cost / armour readout, bottom centre
+-- The stack, top down, in layout units: the vanilla config area is 773 x 770 of them and
+-- layoutScale (the smaller of the measured area's two ratios to it) maps them onto the
+-- background. With every row shown the stack ends at 766.
+local kPageTopY = 42                -- loadout strip; its tab and the hint line sit above it,
+                                    -- clear of the frame's top edge
+local kPanelGapY = 8                -- one panel's bottom to the next panel's tab
 
 -- Same size family as the vanilla weapon buttons (441x114 cells out of buttons.dds), scaled
--- so two columns plus the model preview fit across the config area. The height is as large
--- as an arm column plus two module rows plus the buy row can be inside the frame.
-local kModuleButtonSize = Vector(230, 70, 0)    -- button in a vertical arm column
-local kModuleButtonSpacingY = 8                 -- breathing room between stacked buttons
-local kRowButtonSize = Vector(192, 70, 0)       -- button in a horizontal module row
+-- so two columns plus the model preview fit across the config area.
+local kModuleButtonSize = Vector(230, 60, 0)    -- button in a vertical arm column
+local kModuleButtonSpacingY = 6                 -- breathing room between stacked buttons
+local kRowButtonHeight = 60                     -- row buttons share the row's width out
 local kRowButtonSpacingX = 8
-local kBuyButtonSize = Vector(720, 84, 0)
+local kBuyButtonHeight = 80
 
 -- Inside a module button: the name runs along the top over the full width, the cost and the
 -- team count sit bottom left, the module picture bottom right. Nothing else shares the name's
--- row, so a long label can never land on an icon.
+-- row, so a long label can never land on an icon. Loadout cards use the same layout.
 local kModuleButtonPaddingX = 12
 local kModuleButtonPaddingY = 4
-local kModuleLabelFontSize = 30
-local kModuleStatFontSize = 28
-local kModuleStatIconSize = 22
+local kModuleLabelFontSize = 26
+local kModuleStatFontSize = 24
+local kModuleStatIconSize = 20
 -- resource_icon_lit.dds is 48 wide, 18 of it glow around a 30 wide coin (see _CreateButton).
 local kLitIconGlowScale = 48 / 30
 local kModuleStatTextGap = 4
-local kModuleTeamCountOffsetX = 84  -- team icon, right of the cost icon and its number
-local kWeaponImageSize = Vector(68, 34, 0)  -- 2:1, the shape of an inventory icon cell
-local kUtilityImageSize = Vector(34, 34, 0) -- square, the shape of a build menu icon
+local kModuleTeamCountOffsetX = 72  -- team icon, right of the cost icon and its number
+-- Picture height is at most button height - 2 * kModuleButtonPaddingY - kModuleLabelFontSize.
+local kWeaponImageSize = Vector(52, 26, 0)  -- 2:1, the shape of an inventory icon cell
+local kUtilityImageSize = Vector(26, 26, 0) -- square, the shape of a build menu icon
 
--- Centre column: the exo preview fills whatever the two arm columns leave between them,
--- worked out from the panels themselves once they are built.
+-- The exo preview fills whatever the two arm columns leave between them, worked out from the
+-- panels themselves once they are built.
 local kExoModelPreviewMargin = 10
+local kPresetIconGap = 3
+local kPresetOutlineWidth = 2
+local kPresetMinIconHeight = 16 -- below this a card drops its module icons; hovering it lists them
+local kPageHintFontSize = 24
+local kPageHintColor = Color(0.82, 0.98, 1, 0.6)
+local kPageInstructionFontSize = 28
 
 -- Module details own the left column. Background coordinates.
 -- The details column sits inside the background's left panel frame. On the CBM
@@ -2079,8 +2158,68 @@ local function FitTextToWidth(item, fontFamily, fontSize, maxWidth)
 
 end
 
+-- The armory's labelled group frame: a title tab above the panel's top right corner.
+-- Returns the tab and its width.
+local function AddGroupFrameTab(self, panel, title, layoutScale)
+
+    local panelTitle = self:CreateAnimatedTextItem()
+    panelTitle:SetIsScaling(false)
+    panelTitle:SetFontName(kFont)
+    panelTitle:SetAnchor(GUIItem.Left, GUIItem.Top)
+    panelTitle:SetTextAlignmentX(GUIItem.Align_Min)
+    panelTitle:SetTextAlignmentY(GUIItem.Align_Min)
+    panelTitle:SetPosition(Vector(kGroupFrameTabLabelX * layoutScale, 0, 0))
+    panelTitle:SetOptionFlag(GUIItem.CorrectScaling)
+    panelTitle:SetText(string.upper(title))
+    GUIMakeFontScale(panelTitle, "kAgencyFB", kSlotTitleFontSize * layoutScale)
+
+    local tabCoords = kGroupFrameTabCoords
+    local tabHeight = (tabCoords[4] - tabCoords[2]) * layoutScale
+    local labelWidth = panelTitle:GetTextWidth(panelTitle:GetText()) * panelTitle:GetScale().x
+    local tabWidth = math.max((tabCoords[3] - tabCoords[1]) * layoutScale,
+                              (kGroupFrameTabLabelX + kGroupFrameTabLabelPaddingRight) * layoutScale + labelWidth)
+    local panelTab = self:CreateAnimatedGraphicItem()
+    panelTab:SetIsScaling(false)
+    panelTab:SetAnchor(GUIItem.Right, GUIItem.Top)
+    panelTab:SetSize(Vector(tabWidth, tabHeight, 0))
+    panelTab:SetPosition(Vector(-tabWidth, -tabHeight, 0))
+    panelTab:SetTexture(kButtonGroupFrame_Labeled_x4)
+    panelTab:SetTexturePixelCoordinates(GUIUnpackCoords(tabCoords))
+    panelTab:SetOptionFlag(GUIItem.CorrectScaling)
+    panelTab:AddChild(panelTitle)
+    panel:AddChild(panelTab)
+
+    return panelTab, tabWidth
+
+end
+
+local function AddGroupFrameEdges(self, panel, panelSize, layoutScale, borderWidth)
+
+    local border = (borderWidth or kGroupFrameBorderWidth) * layoutScale
+    local edges =
+    {
+        { Vector(0, 0, 0), Vector(panelSize.x, border, 0) },
+        { Vector(0, panelSize.y - border, 0), Vector(panelSize.x, border, 0) },
+        { Vector(0, border, 0), Vector(border, panelSize.y - border * 2, 0) },
+        { Vector(panelSize.x - border, border, 0), Vector(border, panelSize.y - border * 2, 0) },
+    }
+    local edgeItems = {}
+    for _, edge in ipairs(edges) do
+        local edgeItem = self:CreateAnimatedGraphicItem()
+        edgeItem:SetIsScaling(false)
+        edgeItem:SetPosition(edge[1])
+        edgeItem:SetSize(edge[2])
+        edgeItem:SetColor(kGroupFrameBorderColor)
+        edgeItem:SetOptionFlag(GUIItem.CorrectScaling)
+        panel:AddChild(edgeItem)
+        table.insert(edgeItems, edgeItem)
+    end
+    return edgeItems
+
+end
+
 -- Arm weapons are vertical columns pinned to the left and right edge of the panel with the
--- exo model between them; the two module slots are horizontal rows centred underneath.
+-- exo model between them; the two module slots are full width rows underneath.
 --
 -- moduleOrder is the display order of a slot, listed explicitly instead of falling out of
 -- kExoModuleTypes' declaration order: the claw has to sit at the top of the left column
@@ -2091,7 +2230,6 @@ GUIMarineBuyMenu.kExoSlotData = {
     [kExoModuleSlots.LeftArm]  = {
         label      = "EXO_MODULESLOT_LEFT_ARM",
         xp         = 0.0,
-        yp         = kArmColumnYp,
         anchorX    = GUIItem.Left,
         isRow      = false,
         moduleOrder = {
@@ -2108,7 +2246,6 @@ GUIMarineBuyMenu.kExoSlotData = {
     [kExoModuleSlots.RightArm] = {
         label      = "EXO_MODULESLOT_RIGHT_ARM",
         xp         = 1.0,
-        yp         = kArmColumnYp,
         anchorX    = GUIItem.Right,
         isRow      = false,
         moduleOrder = {
@@ -2125,7 +2262,6 @@ GUIMarineBuyMenu.kExoSlotData = {
     [kExoModuleSlots.Utility]  = {
         label      = "EXO_MODULESLOT_UTILITY",
         xp         = 0.5,
-        yp         = kUtilityRowYp,
         anchorX    = GUIItem.Middle,
         isRow      = true,
         moduleOrder = {
@@ -2141,7 +2277,6 @@ GUIMarineBuyMenu.kExoSlotData = {
     [kExoModuleSlots.Ability]  = {
         label      = "EXO_MODULESLOT_ABILITY",
         xp         = 0.5,
-        yp         = kAbilityRowYp,
         anchorX    = GUIItem.Middle,
         isRow      = true,
         moduleOrder = {
@@ -2162,7 +2297,7 @@ GUIMarineBuyMenu.kExoSlotData = {
 -- the whole suit and what it would take to finish it.
 -- Width and height of the configuration area, in unscaled background pixels: everything
 -- right of the module details column and below the right-side root, minus the margins.
--- Vanilla background: 820 x 770.
+-- Vanilla background: 773 x 770.
 local function GetConfigAreaSize(self)
     local bgSize = self.background:GetSize()
     local width = bgSize.x - (kPrototypeLabRightSidePos.x + kConfigAreaOffsetX) - kConfigAreaRightMargin
@@ -2209,11 +2344,13 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
     self.modularExoConfigActive = false
     self.modularExoGraphicItemsToDestroyList = {}
     self.modularExoModuleButtonList = {}
+    self.exoPresetButtons = {}
+    self.exoSlotShown = {}
     self.exoButtonsPainted = false
     
     local kFontSize = 40
     -------UPGRADE/BUY Button ---
-    local buyButtonSize = kBuyButtonSize * layoutScale
+    local buyButtonSize = Vector(kConfigAreaWidth, kBuyButtonHeight * layoutScale, 0)
     local buyFontSize = kFontSize * layoutScale
     local buyIconSize = kResourceIconWidth * 1.5 * layoutScale
     local bPadding = 0
@@ -2222,7 +2359,6 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
     self.modularExoBuyButtonBackground:SetIsScaling(false)
 
     self.modularExoBuyButtonBackground:SetSize(Vector(buyButtonSize.x + bPadding * 2, buyButtonSize.y + bPadding * 2, 0))
-    self.modularExoBuyButtonBackground:SetPosition(Vector(kConfigAreaOffsetX + kConfigAreaWidth/2.0 - buyButtonSize.x/2.0, kBuyButtonYp * kConfigAreaHeight, 0))
     self.modularExoBuyButtonBackground:SetTexture(kButtonTexture)
     self.modularExoBuyButtonBackground:SetColor(kSlotPanelBackgroundColor)
     self.modularExoBuyButtonBackground:SetOptionFlag(GUIItem.CorrectScaling)
@@ -2402,6 +2538,18 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
     local panelTabs = {}
     local maxTabWidth = 0
     self.exoSlotPanels = {}
+    self.exoSlotPanelItems = {}
+    self.exoSlotPanelRects = panelRects
+
+    local padding = kSlotPanelPadding * layoutScale
+    local rowButtons = 1
+    for _, slotGUIDetails in pairs(slotData) do
+        if slotGUIDetails.isRow then
+            rowButtons = math.max(rowButtons, #slotGUIDetails.moduleOrder)
+        end
+    end
+    self.exoRowButtonSize = Vector((kConfigAreaWidth - padding * 2 - (rowButtons - 1) * kRowButtonSpacingX * layoutScale) / rowButtons,
+                                   kRowButtonHeight * layoutScale, 0)
 
     for slotType, slotGUIDetails in pairs(slotData) do
         local panelBackground = self:CreateAnimatedGraphicItem()
@@ -2412,37 +2560,12 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
         local panelSize
         
         local slotTypeData = kExoModuleSlotsData[slotType]
-        
-        local panelTitle = self:CreateAnimatedTextItem()
-        panelTitle:SetIsScaling(false)
-        panelTitle:SetFontName(kFont)
-        panelTitle:SetAnchor(GUIItem.Left, GUIItem.Top)
-        panelTitle:SetTextAlignmentX(GUIItem.Align_Min)
-        panelTitle:SetTextAlignmentY(GUIItem.Align_Min)
-        panelTitle:SetPosition(Vector(kGroupFrameTabLabelX * layoutScale, 0, 0))
-        panelTitle:SetOptionFlag(GUIItem.CorrectScaling)
-        panelTitle:SetText(string.upper(Locale.ResolveString(slotGUIDetails.label)))
-        GUIMakeFontScale(panelTitle, "kAgencyFB", kSlotTitleFontSize * layoutScale)
 
-        local tabCoords = kGroupFrameTabCoords
-        local tabHeight = (tabCoords[4] - tabCoords[2]) * layoutScale
-        local labelWidth = panelTitle:GetTextWidth(panelTitle:GetText()) * panelTitle:GetScale().x
-        local tabWidth = math.max((tabCoords[3] - tabCoords[1]) * layoutScale,
-                                  (kGroupFrameTabLabelX + kGroupFrameTabLabelPaddingRight) * layoutScale + labelWidth)
-        local panelTab = self:CreateAnimatedGraphicItem()
-        panelTab:SetIsScaling(false)
-        panelTab:SetAnchor(GUIItem.Right, GUIItem.Top)
-        panelTab:SetSize(Vector(tabWidth, tabHeight, 0))
-        panelTab:SetPosition(Vector(-tabWidth, -tabHeight, 0))
-        panelTab:SetTexture(kButtonGroupFrame_Labeled_x4)
-        panelTab:SetTexturePixelCoordinates(GUIUnpackCoords(tabCoords))
-        panelTab:SetOptionFlag(GUIItem.CorrectScaling)
-        panelTab:AddChild(panelTitle)
-        panelBackground:AddChild(panelTab)
+        local panelTab, tabWidth = AddGroupFrameTab(self, panelBackground, Locale.ResolveString(slotGUIDetails.label), layoutScale)
         table.insert(panelTabs, panelTab)
         maxTabWidth = math.max(maxTabWidth, tabWidth)
         table.insert(self.exoSlotPanels, panelBackground)
-        local padding = kSlotPanelPadding * layoutScale
+        self.exoSlotPanelItems[slotType] = panelBackground
         local startOffsetX = padding
         local startOffsetY = padding
         local offsetX, offsetY = startOffsetX, startOffsetY
@@ -2472,7 +2595,7 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
         end
         -- The button layout leaves a trailing gap behind the last button; trim it so the
         -- panel hugs its contents, and give an empty slot a one-button sized box.
-        local slotButtonSize = (slotGUIDetails.isRow and kRowButtonSize or kModuleButtonSize) * layoutScale
+        local slotButtonSize = slotGUIDetails.isRow and self.exoRowButtonSize or kModuleButtonSize * layoutScale
         if offsetX > startOffsetX then
             offsetX = offsetX - kRowButtonSpacingX * layoutScale
         else
@@ -2487,69 +2610,20 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
         panelSize = Vector(offsetX + padding, offsetY + padding, 0)
         
         panelBackground:SetSize(panelSize)
-        local border = kGroupFrameBorderWidth * layoutScale
-        local edges =
-        {
-            { Vector(0, 0, 0), Vector(panelSize.x, border, 0) },
-            { Vector(0, panelSize.y - border, 0), Vector(panelSize.x, border, 0) },
-            { Vector(0, border, 0), Vector(border, panelSize.y - border * 2, 0) },
-            { Vector(panelSize.x - border, border, 0), Vector(border, panelSize.y - border * 2, 0) },
-        }
-        for _, edge in ipairs(edges) do
-            local edgeItem = self:CreateAnimatedGraphicItem()
-            edgeItem:SetIsScaling(false)
-            edgeItem:SetPosition(edge[1])
-            edgeItem:SetSize(edge[2])
-            edgeItem:SetColor(kGroupFrameBorderColor)
-            edgeItem:SetOptionFlag(GUIItem.CorrectScaling)
-            panelBackground:AddChild(edgeItem)
-        end
+        AddGroupFrameEdges(self, panelBackground, panelSize, layoutScale)
 
         local panelX = kConfigAreaOffsetX + slotGUIDetails.xp * kConfigAreaWidth
-        local panelY = slotGUIDetails.yp * kConfigAreaHeight
         if slotGUIDetails.anchorX == GUIItem.Right then
             panelX = panelX - panelSize.x
         elseif slotGUIDetails.anchorX == GUIItem.Middle then
             panelX = panelX - panelSize.x / 2
         end
-        
-        panelBackground:SetPosition(Vector(panelX, panelY, 0))
+
         self.rightSideRoot:AddChild(panelBackground)
-        panelRects[slotType] = { x = panelX, y = panelY, size = panelSize }
+        panelRects[slotType] = { x = panelX, size = panelSize }
     end
 
-    -- One tab width for every slot, so the labels read as a set.
-    for _, panelTab in ipairs(panelTabs) do
-        local tabHeight = panelTab:GetSize().y
-        panelTab:SetSize(Vector(maxTabWidth, tabHeight, 0))
-        panelTab:SetPosition(Vector(-maxTabWidth, -tabHeight, 0))
-    end
-
-    -- The exo model preview fills whatever gap the two arm columns leave between them,
-    -- keeping the big picture's own aspect. Derived from the panels instead of hard coded so
-    -- it follows any change to the button sizes above.
-    local leftPanel = panelRects[kExoModuleSlots.LeftArm]
-    local rightPanel = panelRects[kExoModuleSlots.RightArm]
-    if leftPanel and rightPanel and self.bigPictureDefaultSize then
-
-        local previewMargin = kExoModelPreviewMargin * layoutScale
-        local gapX = leftPanel.x + leftPanel.size.x + previewMargin
-        local gapWidth = (rightPanel.x - previewMargin) - gapX
-        local gapHeight = math.max(leftPanel.size.y, rightPanel.size.y)
-        local aspect = self.bigPictureDefaultSize.y / self.bigPictureDefaultSize.x
-
-        local previewWidth = gapWidth
-        local previewHeight = previewWidth * aspect
-        if previewHeight > gapHeight then
-            previewHeight = gapHeight
-            previewWidth = previewHeight / aspect
-        end
-
-        self.exoModelPreviewSize = Vector(previewWidth, previewHeight, 0)
-        self.exoModelPreviewPos = Vector(gapX + (gapWidth - previewWidth) / 2,
-                                         leftPanel.y + (gapHeight - previewHeight) / 2, 0)
-
-    end
+    self:_LayoutExoPageStack(kConfigAreaWidth, panelTabs, maxTabWidth)
 
     -- The details items hang off rightSideRoot, the details box is placed in the background.
     self.exoDetailsBoxPos = kExoDetailsPos - self.rightSideRoot:GetPosition()
@@ -2604,6 +2678,86 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
 
 end
 
+-- Out of _InitializeExoModularButtons to keep its upvalue count well under LuaJIT's 60: past
+-- that the whole file fails to load.
+function GUIMarineBuyMenu:_LayoutExoPageStack(areaWidth, panelTabs, maxTabWidth)
+
+    local layoutScale = self.exoLayoutScale
+    local panelRects = self.exoSlotPanelRects
+    local tabHeight = (kGroupFrameTabCoords[4] - kGroupFrameTabCoords[2]) * layoutScale
+    local gap = kPanelGapY * layoutScale
+    local stripY = kPageTopY * layoutScale
+    local stripHeight, stripTab, stripTabWidth = self:_InitializeExoPresetButtons(kConfigAreaOffsetX, stripY, areaWidth)
+    table.insert(panelTabs, stripTab)
+    maxTabWidth = math.max(maxTabWidth, stripTabWidth)
+
+    -- The core module row's tab sits at its right end, under the shorter right arm column, so
+    -- the row itself only has to clear the left one.
+    local leftPanel = panelRects[kExoModuleSlots.LeftArm]
+    local rightPanel = panelRects[kExoModuleSlots.RightArm]
+    local utilityPanel = panelRects[kExoModuleSlots.Utility]
+    local abilityPanel = panelRects[kExoModuleSlots.Ability]
+    leftPanel.y = stripY + stripHeight + gap + tabHeight
+    rightPanel.y = leftPanel.y
+    local leftBottom = leftPanel.y + leftPanel.size.y
+    local rightBottom = rightPanel.y + rightPanel.size.y
+    utilityPanel.y = math.max(leftBottom + gap, rightBottom + gap + tabHeight)
+    abilityPanel.y = utilityPanel.y + utilityPanel.size.y + gap + tabHeight
+    for slotType, rect in pairs(panelRects) do
+        self.exoSlotPanelItems[slotType]:SetPosition(Vector(rect.x, rect.y, 0))
+    end
+
+    self.exoBuyButtonPos = Vector(kConfigAreaOffsetX, abilityPanel.y + abilityPanel.size.y + gap, 0)
+    self.exoBuyButtonMinY = math.max(leftBottom, rightBottom) + gap
+    self.modularExoBuyButtonBackground:SetPosition(self.exoBuyButtonPos)
+
+    -- One tab width for every panel, so the labels read as a set.
+    for _, panelTab in ipairs(panelTabs) do
+        panelTab:SetSize(Vector(maxTabWidth, tabHeight, 0))
+        panelTab:SetPosition(Vector(-maxTabWidth, -tabHeight, 0))
+    end
+
+    self.exoPageHint = self:CreateAnimatedTextItem()
+    self.exoPageHint:SetIsScaling(false)
+    -- Shares the strip tab's row, so it is centred over the width left of the tab.
+    local hintWidth = areaWidth - maxTabWidth - gap
+    self.exoPageHint:SetFontName(kFont)
+    self.exoPageHint:SetAnchor(GUIItem.Left, GUIItem.Top)
+    self.exoPageHint:SetTextAlignmentX(GUIItem.Align_Center)
+    self.exoPageHint:SetTextAlignmentY(GUIItem.Align_Max)
+    self.exoPageHint:SetPosition(Vector(kConfigAreaOffsetX + hintWidth * 0.5, stripY, 0))
+    self.exoPageHint:SetColor(kTextColor)
+    self.exoPageHint:SetText(Locale.ResolveString("EXO_PAGE_HINT"))
+    self.exoPageHint:SetOptionFlag(GUIItem.CorrectScaling)
+    FitTextToWidth(self.exoPageHint, "kAgencyFBBold", kPageInstructionFontSize * layoutScale, hintWidth)
+    self.rightSideRoot:AddChild(self.exoPageHint)
+
+    -- The exo model preview fills the gap the two arm columns leave between them, keeping the
+    -- big picture's own aspect.
+    local previewMargin = kExoModelPreviewMargin * layoutScale
+    local gapX = leftPanel.x + leftPanel.size.x + previewMargin
+    local gapWidth = (rightPanel.x - previewMargin) - gapX
+    local gapHeight = math.max(leftPanel.size.y, rightPanel.size.y)
+
+    if self.bigPictureDefaultSize then
+
+        local aspect = self.bigPictureDefaultSize.y / self.bigPictureDefaultSize.x
+
+        local previewWidth = gapWidth
+        local previewHeight = previewWidth * aspect
+        if previewHeight > gapHeight then
+            previewHeight = gapHeight
+            previewWidth = previewHeight / aspect
+        end
+
+        self.exoModelPreviewSize = Vector(previewWidth, previewHeight, 0)
+        self.exoModelPreviewPos = Vector(gapX + (gapWidth - previewWidth) / 2,
+                                         leftPanel.y + (gapHeight - previewHeight) / 2, 0)
+
+    end
+
+end
+
 -- isRow: true lays the slot's buttons out left to right (a module row), false stacks them
 -- top to bottom (an arm column). Both use the same content layout so an arm and a core
 -- module read alike; only the button size and the picture shape differ. The name owns the
@@ -2612,7 +2766,7 @@ function GUIMarineBuyMenu:MakeModuleButton(moduleType, moduleTypeData, offsetX, 
 
     local moduleTypeGUIDetails = GUIMarineBuyMenu.kExoModuleData[moduleType]
     local layoutScale = self.exoLayoutScale or 1
-    local buttonSize = (isRow and kRowButtonSize or kModuleButtonSize) * layoutScale
+    local buttonSize = isRow and self.exoRowButtonSize or kModuleButtonSize * layoutScale
     local imageSize = (isRow and kUtilityImageSize or kWeaponImageSize) * layoutScale
     local padX = kModuleButtonPaddingX * layoutScale
     local padY = kModuleButtonPaddingY * layoutScale
@@ -2754,6 +2908,331 @@ function GUIMarineBuyMenu:MakeModuleButton(moduleType, moduleTypeData, offsetX, 
 
 end
 
+-- The loadout strip across the top of the page: one card per preset, laid out like a module
+-- button (name on top, price bottom left, its modules bottom right). The re-issue card is
+-- history, not a loadout: hollow, at the right end, past a divider. Returns the strip height
+-- and its title tab and tab width.
+function GUIMarineBuyMenu:_InitializeExoPresetButtons(x, y, width)
+
+    local layoutScale = self.exoLayoutScale or 1
+    local padding = kSlotPanelPadding * layoutScale
+    local spacing = kRowButtonSpacingX * layoutScale
+    local padX = kModuleButtonPaddingX * layoutScale
+    local padY = kModuleButtonPaddingY * layoutScale
+    local statIconSize = kModuleStatIconSize * layoutScale
+    local litIconSize = statIconSize * kLitIconGlowScale
+    local litIconGlow = (litIconSize - statIconSize) * 0.5
+    local statTextGap = kModuleStatTextGap * layoutScale
+    local iconGap = kPresetIconGap * layoutScale
+    local lastBoughtConfig = ParseExoConfig(Client.GetOptionString(kExoLastConfigOption, ""))
+
+    -- A last buy that is one of the fixed loadouts tags that card instead of repeating it.
+    local lastBoughtMatch
+    for _, preset in ipairs(GUIMarineBuyMenu.kExoPresets) do
+        if lastBoughtConfig and preset.config and GetIsSameExoConfig(preset.config, lastBoughtConfig) then
+            lastBoughtMatch = preset
+            lastBoughtConfig = nil
+        end
+    end
+
+    local slots = #GUIMarineBuyMenu.kExoPresets - (lastBoughtConfig and 0 or 1)
+    local border = kGroupFrameBorderWidth * layoutScale
+    local dividerWidth = lastBoughtConfig and spacing + border or 0
+    local cardSize = Vector((width - padding * 2 - (slots - 1) * spacing - dividerWidth) / slots, kModuleButtonSize.y * layoutScale, 0)
+    local panelSize = Vector(width, cardSize.y + padding * 2, 0)
+    local iconsMaxHeight = kModuleStatFontSize * layoutScale
+    self.exoPresetPadding = padding
+    self.exoPresetCardPitch = cardSize.x + spacing
+
+    local panel = self:CreateAnimatedGraphicItem()
+    table.insert(self.modularExoGraphicItemsToDestroyList, panel)
+    panel:SetIsScaling(false)
+    panel:SetColor(kGroupFrameFillColor)
+    panel:SetOptionFlag(GUIItem.CorrectScaling)
+    panel:SetSize(panelSize)
+    panel:SetPosition(Vector(x, y, 0))
+    self.rightSideRoot:AddChild(panel)
+    table.insert(self.exoSlotPanels, panel)
+    local panelTab, tabWidth = AddGroupFrameTab(self, panel, Locale.ResolveString("EXO_PRESETS_TITLE"), layoutScale)
+
+    for _, preset in ipairs(GUIMarineBuyMenu.kExoPresets) do
+
+        local config = preset.config or lastBoughtConfig
+        if config then
+
+            -- Kept out of modularExoGraphicItemsToDestroyList: the page shows that whole list
+            -- when it lays out, and a card that cannot be picked has to stay hidden.
+            local buttonGraphic = self:CreateAnimatedGraphicItem()
+            buttonGraphic:SetIsScaling(false)
+            buttonGraphic:SetSize(cardSize)
+            buttonGraphic:SetAnchor(GUIItem.Left, GUIItem.Top)
+            buttonGraphic:SetOptionFlag(GUIItem.CorrectScaling)
+            panel:AddChild(buttonGraphic)
+
+            local frames = { buttonGraphic }
+            if preset.lastBought then
+                buttonGraphic:SetColor(Color(0, 0, 0, 0))
+                buttonGraphic:SetPosition(Vector(width - padding - cardSize.x, padding, 0))
+                frames = AddGroupFrameEdges(self, buttonGraphic, cardSize, layoutScale, kPresetOutlineWidth)
+                local divider = self:CreateAnimatedGraphicItem()
+                divider:SetIsScaling(false)
+                divider:SetPosition(Vector(-spacing - border, border - padding, 0))
+                divider:SetSize(Vector(border, panelSize.y - border * 2, 0))
+                divider:SetColor(kGroupFrameBorderColor)
+                divider:SetOptionFlag(GUIItem.CorrectScaling)
+                buttonGraphic:AddChild(divider)
+            else
+                buttonGraphic:SetTexture(kMenuSelectionTexture)
+            end
+
+            local labelWidth = cardSize.x - padX * 2
+            if preset == lastBoughtMatch or preset.lastBought then
+                local lastTag = self:CreateAnimatedTextItem()
+                lastTag:SetIsScaling(false)
+                lastTag:SetFontName(kFont)
+                lastTag:SetAnchor(GUIItem.Right, GUIItem.Top)
+                lastTag:SetTextAlignmentX(GUIItem.Align_Max)
+                lastTag:SetTextAlignmentY(GUIItem.Align_Min)
+                lastTag:SetPosition(Vector(-padX, padY, 0))
+                lastTag:SetColor(kPageHintColor)
+                lastTag:SetText(Locale.ResolveString(preset.lastBought and "EXO_PRESET_LAST_CAPTION" or "EXO_PRESET_LAST_MARK"))
+                lastTag:SetOptionFlag(GUIItem.CorrectScaling)
+                GUIMakeFontScale(lastTag, "kAgencyFB", kMinFittedFontSize * layoutScale)
+                buttonGraphic:AddChild(lastTag)
+                labelWidth = labelWidth - lastTag:GetTextWidth(lastTag:GetText()) * lastTag:GetScale().x - padX
+            end
+
+            local label = self:CreateAnimatedTextItem()
+            label:SetIsScaling(false)
+            label:SetFontName(kFont)
+            label:SetAnchor(GUIItem.Left, GUIItem.Top)
+            label:SetTextAlignmentX(GUIItem.Align_Min)
+            label:SetTextAlignmentY(GUIItem.Align_Min)
+            label:SetPosition(Vector(padX, padY, 0))
+            label:SetColor(kTextColor)
+            label:SetText(Locale.ResolveString(preset.nameKey))
+            label:SetOptionFlag(GUIItem.CorrectScaling)
+            FitTextToWidth(label, "kAgencyFB", kModuleLabelFontSize * layoutScale, labelWidth)
+            buttonGraphic:AddChild(label)
+
+            local costIcon = self:CreateAnimatedGraphicItem()
+            costIcon:SetIsScaling(false)
+            costIcon:SetAnchor(GUIItem.Left, GUIItem.Bottom)
+            costIcon:SetSize(Vector(litIconSize, litIconSize, 0))
+            costIcon:SetPosition(Vector(padX - litIconGlow, -statIconSize - padY - litIconGlow, 0))
+            costIcon:SetTexture(kResourceIcon_Lit)
+            costIcon:SetColor(kTextColor)
+            costIcon:SetOptionFlag(GUIItem.CorrectScaling)
+            buttonGraphic:AddChild(costIcon)
+
+            local costLabel = self:CreateAnimatedTextItem()
+            costLabel:SetIsScaling(false)
+            costLabel:SetFontName(kFont)
+            costLabel:SetAnchor(GUIItem.Left, GUIItem.Bottom)
+            costLabel:SetTextAlignmentX(GUIItem.Align_Min)
+            costLabel:SetTextAlignmentY(GUIItem.Align_Max)
+            costLabel:SetPosition(Vector(padX + statIconSize + statTextGap, -padY, 0))
+            costLabel:SetColor(kTextColor)
+            costLabel:SetOptionFlag(GUIItem.CorrectScaling)
+            GUIMakeFontScale(costLabel, "kAgencyFB", kModuleStatFontSize * layoutScale)
+            buttonGraphic:AddChild(costLabel)
+
+            -- Module icons in slot order, right of the price and shrunk to fit. A refit never
+            -- charges more than the full price, so that is the widest price the card shows.
+            local _, _, fullPrice = ModularExo_GetIsConfigValid(config)
+            local priceWidth = statIconSize + statTextGap + costLabel:GetTextWidth(tostring(fullPrice or 0)) * costLabel:GetScale().x
+            local iconsMaxWidth = cardSize.x - padX * 2 - priceWidth - iconGap
+            local modules = {}
+            local moduleNames = {}
+            local aspectSum = 0
+            for _, slotType in ipairs(kExoConfigSlotOrder) do
+                local moduleType = config[slotType]
+                if moduleType ~= kExoModuleTypes.None then
+                    local moduleGUIDetails = GUIMarineBuyMenu.kExoModuleData[moduleType]
+                    local x1, y1, x2, y2 = unpack(moduleGUIDetails.imageTexCoords)
+                    table.insert(modules, { details = moduleGUIDetails, aspect = (x2 - x1) / (y2 - y1) })
+                    table.insert(moduleNames, Locale.ResolveString(moduleGUIDetails.label))
+                    aspectSum = aspectSum + modules[#modules].aspect
+                end
+            end
+            local gapsWidth = (#modules - 1) * iconGap
+            local iconHeight = math.min(iconsMaxHeight, (iconsMaxWidth - gapsWidth) / aspectSum)
+            local icons = {}
+            if iconHeight >= kPresetMinIconHeight * layoutScale then
+                local iconY = -padY - (iconsMaxHeight + iconHeight) * 0.5
+                local iconX = -padX - aspectSum * iconHeight - gapsWidth
+                for _, entry in ipairs(modules) do
+                    local iconWidth = entry.aspect * iconHeight
+                    local image = self:CreateAnimatedGraphicItem()
+                    image:SetIsScaling(false)
+                    image:SetAnchor(GUIItem.Right, GUIItem.Bottom)
+                    image:SetTexture(entry.details.image)
+                    image:SetTexturePixelCoordinates(unpack(entry.details.imageTexCoords))
+                    image:SetOptionFlag(GUIItem.CorrectScaling)
+                    image:SetSize(Vector(iconWidth, iconHeight, 0))
+                    image:SetPosition(Vector(iconX, iconY, 0))
+                    buttonGraphic:AddChild(image)
+                    table.insert(icons, image)
+                    iconX = iconX + iconWidth + iconGap
+                end
+            end
+
+            table.insert(self.exoPresetButtons, {
+                nameKey       = preset.nameKey,
+                descKey       = preset.descKey,
+                lastBought    = preset == lastBoughtMatch,
+                reissue       = preset.lastBought,
+                composition   = table.concat(moduleNames, " + "),
+                config        = config,
+                buttonGraphic = buttonGraphic,
+                frames        = frames,
+                label         = label,
+                costIcon      = costIcon,
+                costLabel     = costLabel,
+                icons         = icons,
+            })
+
+        end
+
+    end
+
+    -- Takes the first free card slot when a loadout is hidden, wrapped once to a card's width.
+    self.exoPresetMoreText = self:CreateAnimatedTextItem()
+    self.exoPresetMoreText:SetIsScaling(false)
+    self.exoPresetMoreText:SetFontName(kFont)
+    self.exoPresetMoreText:SetAnchor(GUIItem.Left, GUIItem.Center)
+    self.exoPresetMoreText:SetTextAlignmentX(GUIItem.Align_Min)
+    self.exoPresetMoreText:SetTextAlignmentY(GUIItem.Align_Center)
+    self.exoPresetMoreText:SetColor(kPageHintColor)
+    self.exoPresetMoreText:SetOptionFlag(GUIItem.CorrectScaling)
+    self.exoPresetMoreText:SetIsVisible(false)
+    GUIMakeFontScale(self.exoPresetMoreText, "kAgencyFB", kPageHintFontSize * layoutScale)
+    local moreText = WordWrap(self.exoPresetMoreText, Locale.ResolveString("EXO_PRESETS_MORE_WITH_RESEARCH"), 0, cardSize.x - padX * 2, 2)
+    self.exoPresetMoreText:SetText(moreText)
+    panel:AddChild(self.exoPresetMoreText)
+
+    AddGroupFrameEdges(self, panel, panelSize, layoutScale)
+
+    return panelSize.y, panelTab, tabWidth
+
+end
+
+-- Only loadouts that can be picked right now are shown, packed to the left (the re-issue card
+-- keeps the right end); one that is not researched yet (or no longer a valid suit) is hidden
+-- and a single line says more will come. One that only costs too much stays, with a red
+-- price, like the module buttons.
+function GUIMarineBuyMenu:_RefreshExoPresetButtons()
+
+    local playerResources = PlayerUI_GetPlayerResources()
+    local padding = self.exoPresetPadding or 0
+    local column = 0
+    local anyHidden = false
+
+    for _, preset in ipairs(self.exoPresetButtons) do
+
+        local isValid, _, resourceCost = ModularExo_GetIsConfigValid(preset.config)
+        preset.clickable = isValid and ModularExo_GetConfigLockedTechId(preset.config) == nil
+        preset.selected = GetIsSameExoConfig(preset.config, self.exoConfig)
+        preset.col = preset.selected and kEnabledColor or kDisabledColor
+        preset.buttonGraphic:SetIsVisible(preset.clickable)
+
+        if preset.clickable then
+
+            if not preset.reissue then
+                preset.buttonGraphic:SetPosition(Vector(padding + column * self.exoPresetCardPitch, padding, 0))
+                column = column + 1
+            end
+
+            local unchanged = self.exoIsRefit and GetIsSameExoConfig(preset.config, self.activeExoConfig)
+            preset.price = unchanged and 0 or self:_GetExoConfigPrice(resourceCost or 0)
+
+            local canAfford = playerResources >= preset.price
+            local contentColor = canAfford and preset.col or kModuleUnaffordableColor
+            local costColor = canAfford and preset.col or kCannotBuyColor
+            for _, frame in ipairs(preset.frames) do
+                frame:SetColor(preset.col)
+            end
+            preset.label:SetColor(contentColor)
+            preset.costLabel:SetText(tostring(preset.price))
+            preset.costLabel:SetColor(costColor)
+            preset.costIcon:SetColor(costColor)
+            for _, image in ipairs(preset.icons) do
+                image:SetColor(contentColor)
+            end
+
+        else
+            anyHidden = true
+        end
+
+    end
+
+    self.exoPresetMoreText:SetIsVisible(anyHidden)
+    if anyHidden then
+        self.exoPresetMoreText:SetPosition(Vector(padding + column * self.exoPresetCardPitch + kModuleButtonPaddingX * (self.exoLayoutScale or 1), 0, 0))
+    end
+
+end
+
+-- A module row stays hidden until the team has researched something to put in it, unless the
+-- suit being refitted already carries one. A hidden row holds None.
+function GUIMarineBuyMenu:_RefreshExoSlotsShown()
+
+    for slotType, slotGUIDetails in pairs(GUIMarineBuyMenu.kExoSlotData) do
+
+        local slotTypeData = kExoModuleSlotsData[slotType]
+        local shown = slotTypeData.required
+                   or (self.activeExoConfig[slotType] or kExoModuleTypes.None) ~= kExoModuleTypes.None
+
+        if not shown then
+            for _, moduleType in ipairs(slotGUIDetails.moduleOrder) do
+                local moduleTypeData = moduleType ~= kExoModuleTypes.None and kExoModuleTypesData[moduleType]
+                if moduleTypeData and moduleTypeData.category == slotTypeData.category
+                and ModularExo_GetIsTechResearched(moduleTypeData.requiredTechId) then
+                    shown = true
+                    break
+                end
+            end
+        end
+
+        self.exoSlotShown[slotType] = shown
+        if not shown then
+            self.exoConfig[slotType] = kExoModuleTypes.None
+        end
+
+    end
+
+end
+
+-- GUIItemContainsPoint reads only an item's own visibility flag, so the buttons of a hidden
+-- panel are hidden too or they would still take hover and clicks.
+function GUIMarineBuyMenu:_ApplyExoSlotsShown()
+
+    local utilityShown = self.exoSlotShown[kExoModuleSlots.Utility] ~= false
+    local abilityShown = self.exoSlotShown[kExoModuleSlots.Ability] ~= false
+    if self.exoSlotsAppliedUtility == utilityShown and self.exoSlotsAppliedAbility == abilityShown then
+        return
+    end
+    self.exoSlotsAppliedUtility = utilityShown
+    self.exoSlotsAppliedAbility = abilityShown
+
+    for slotType, panel in pairs(self.exoSlotPanelItems) do
+        panel:SetIsVisible(self.exoSlotShown[slotType] ~= false)
+    end
+    for _, buttonData in ipairs(self.modularExoModuleButtonList) do
+        buttonData.buttonGraphic:SetIsVisible(self.exoSlotShown[buttonData.slotType] ~= false)
+    end
+
+    -- The rows that are shown close up under the arm columns and BUY follows them up.
+    local utilityRect = self.exoSlotPanelRects[kExoModuleSlots.Utility]
+    local abilityRect = self.exoSlotPanelRects[kExoModuleSlots.Ability]
+    self.exoSlotPanelItems[kExoModuleSlots.Ability]:SetPosition(Vector(abilityRect.x, utilityShown and abilityRect.y or utilityRect.y, 0))
+
+    local hiddenRows = (utilityShown and 0 or 1) + (abilityShown and 0 or 1)
+    local buyY = math.max(self.exoBuyButtonPos.y - hiddenRows * (abilityRect.y - utilityRect.y), self.exoBuyButtonMinY)
+    self.modularExoBuyButtonBackground:SetPosition(Vector(self.exoBuyButtonPos.x, buyY, 0))
+
+end
+
 -- The prototype lab layout (a lab, or an armory refitting an exo) is the configuration page.
 function GUIMarineBuyMenu:_GetIsExoConfigPageActive()
     return self.modularExoGraphicItemsToDestroyList ~= nil
@@ -2814,12 +3293,19 @@ function GUIMarineBuyMenu:_UpdateExoModularVisibility()
         -- specials as text instead.
         self.specialFrame:SetIsVisible(false)
 
+        self.exoSlotsAppliedUtility = nil
+        self.exoSlotsAppliedAbility = nil
+
     end
 
-    local overview = self.modularExoDetailsModule == false
+    self:_ApplyExoSlotsShown()
+
+    local preset = self.modularExoDetailsPreset
+    local overview = self.modularExoDetailsModule == false and preset == nil
 
     -- Repaint only when what the box shows changes: WordWrap is too costly to run per frame.
     if self.modularExoDetailsModule ~= self.exoDetailsShownModule
+    or preset ~= self.exoDetailsShownPreset
     or self.modularExoDetailsSlot ~= self.exoDetailsShownSlot
     or self.modularExoDetailsLockedTechId ~= self.exoDetailsShownLockedTechId
     or self.modularExoDetailsPairingTechId ~= self.exoDetailsShownPairingTechId
@@ -2828,6 +3314,7 @@ function GUIMarineBuyMenu:_UpdateExoModularVisibility()
     or self.modularExoBuyRefusal ~= self.exoDetailsShownBuyRefusal
     or self.exoConfigLockedTechId ~= self.exoDetailsShownConfigLockedTechId then
         self.exoDetailsShownModule = self.modularExoDetailsModule
+        self.exoDetailsShownPreset = preset
         self.exoDetailsShownSlot = self.modularExoDetailsSlot
         self.exoDetailsShownLockedTechId = self.modularExoDetailsLockedTechId
         self.exoDetailsShownPairingTechId = self.modularExoDetailsPairingTechId
@@ -2835,7 +3322,9 @@ function GUIMarineBuyMenu:_UpdateExoModularVisibility()
         self.exoDetailsShownPrice = self.modularExoDetailsPrice
         self.exoDetailsShownBuyRefusal = self.modularExoBuyRefusal
         self.exoDetailsShownConfigLockedTechId = self.exoConfigLockedTechId
-        if overview then
+        if preset then
+            self:_SetDetailsSectionExoPreset(preset)
+        elseif overview then
             self:_SetDetailsSectionExoOverview()
         else
             self:_SetDetailsSectionExoModule(self.modularExoDetailsModule)
@@ -2846,11 +3335,11 @@ function GUIMarineBuyMenu:_UpdateExoModularVisibility()
     end
 
     local showReason = self.exoDetailsReasonShown == true
-    local descOnOwnRow = overview and not showReason
+    local descOnOwnRow = (overview or preset ~= nil) and not showReason
     self.itemDescription:SetPosition(descOnOwnRow and self.exoDetailsOverviewDescPos or self.exoDetailsDescPos)
-    self.modularExoModuleCostText:SetIsVisible(not overview)
+    self.modularExoModuleCostText:SetIsVisible(not overview and preset == nil)
     self.modularExoDetailStats:SetIsVisible(showReason)
-    self.modularExoDetailTags:SetIsVisible(not overview and not showReason)
+    self.modularExoDetailTags:SetIsVisible(not overview and preset == nil and not showReason)
     local positionIndex = descOnOwnRow and 1 or 2
     for i, item in ipairs(self.exoOverviewSpecialItems) do
         item:SetIsVisible(overview)
@@ -2874,7 +3363,7 @@ local kExoBuyRefusalText =
 function GUIMarineBuyMenu:_RefreshExoReason()
 
     local reason
-    if self.modularExoDetailsModule == false then
+    if self.modularExoDetailsModule == false and self.modularExoDetailsPreset == nil then
         local refusal = self.modularExoBuyRefusal
         if refusal == "locked" and self.exoConfigLockedTechId then
             reason = string.format(Locale.ResolveString("EXO_MODULE_LOCKED_FORMAT"), GetResearchDisplayName(self.exoConfigLockedTechId))
@@ -2908,7 +3397,7 @@ function GUIMarineBuyMenu:_RefreshExoCostRow()
     end
 
     local price
-    if self.modularExoDetailsModule == false then
+    if self.modularExoDetailsModule == false and self.modularExoDetailsPreset == nil then
         price = self:_GetExoConfigPrice()
     else
         price = self.modularExoDetailsPrice
@@ -2951,6 +3440,21 @@ function GUIMarineBuyMenu:_SetDetailsSectionExoModule(moduleType)
     -- errors every frame, so keep only the first return.
     local wrappedDescription = WordWrap(self.itemDescription, description, 0, kExoDetailsBoxWidth, kExoDetailsDescMaxLines)
     self.itemDescription:SetText(wrappedDescription)
+
+end
+
+function GUIMarineBuyMenu:_SetDetailsSectionExoPreset(preset)
+
+    self.itemTitle:SetText(string.upper(Locale.ResolveString(preset.nameKey)))
+    -- WordWrap splits on spaces only, so the two paragraphs are wrapped apart.
+    local composition, _, compositionLines = WordWrap(self.itemDescription, preset.composition, 0, kExoDetailsBoxWidth, kExoDetailsDescMaxLines)
+    local markLines = preset.lastBought and 1 or 0
+    local description = WordWrap(self.itemDescription, Locale.ResolveString(preset.descKey), 0, kExoDetailsBoxWidth, kExoDetailsDescMaxLines - compositionLines - markLines)
+    local text = composition .. "\n" .. description
+    if preset.lastBought then
+        text = text .. "\n" .. Locale.ResolveString("EXO_PRESET_LAST_MATCH")
+    end
+    self.itemDescription:SetText(text)
 
 end
 
@@ -3012,8 +3516,12 @@ function GUIMarineBuyMenu:_RefreshExoStatBars()
     GetExoConfigStatValues(self.exoConfig, armorLevels, self.exoStatsCurrent)
 
     local slot = self.modularExoDetailsModule and self.modularExoDetailsSlot
+    local preset = self.modularExoDetailsPreset
     local values = self.exoStatsCurrent
-    if slot then
+    if preset then
+        GetExoConfigStatValues(preset.config, armorLevels, self.exoStatsShown)
+        values = self.exoStatsShown
+    elseif slot then
         self.exoStatsConfig = self.exoStatsConfig or {}
         local config = self.exoStatsConfig
         for slotType, _ in pairs(kExoModuleSlotsData) do
@@ -3029,7 +3537,7 @@ function GUIMarineBuyMenu:_RefreshExoStatBars()
 
     for i, row in ipairs(self.exoStatRows) do
         self:_UpdateStatBar(row.bar, values[i])
-        local unchanged = slot and math.abs(values[i] - self.exoStatsCurrent[i]) < 0.001
+        local unchanged = (slot or preset) and math.abs(values[i] - self.exoStatsCurrent[i]) < 0.001
         if unchanged then
             local barColor = row.bar:GetColor()
             barColor.a = kExoStatUnchangedAlpha
@@ -3059,15 +3567,7 @@ end
 
 -- An exo looking at the suit it already wears: refitting it would only charge the fee.
 function GUIMarineBuyMenu:_GetIsExoConfigUnchanged()
-    if not self.exoIsRefit then
-        return false
-    end
-    for slotType, _ in pairs(kExoModuleSlotsData) do
-        if (self.exoConfig[slotType] or kExoModuleTypes.None) ~= (self.activeExoConfig[slotType] or kExoModuleTypes.None) then
-            return false
-        end
-    end
-    return true
+    return self.exoIsRefit and GetIsSameExoConfig(self.exoConfig, self.activeExoConfig)
 end
 
 function GUIMarineBuyMenu:_GetIsMouseInExoSlotPanel()
@@ -3150,6 +3650,29 @@ function GUIMarineBuyMenu:_UpdateExoModularButtons()
             end
         end
 
+        local hoveredPreset = nil
+        for _, preset in ipairs(self.exoPresetButtons) do
+            local frameColor = preset.col
+            if GetIsMouseOver(self, preset.buttonGraphic) then
+                hoveredPreset = preset
+                frameColor = preset.selected and preset.col or kModuleButtonHoverColor
+            end
+            for _, frame in ipairs(preset.frames) do
+                frame:SetColor(frameColor)
+            end
+        end
+        if hoveredPreset then
+            self.modularExoDetailsPreset = hoveredPreset
+            self.modularExoDetailsModule = false
+            self.modularExoDetailsLockedTechId = nil
+            self.modularExoDetailsPairingTechId = nil
+            self.modularExoDetailsIncompatible = false
+            self.modularExoDetailsPrice = hoveredPreset.price
+            self.modularExoDetailsSlot = nil
+            self.modularExoDetailsForceDual = false
+            return
+        end
+
         -- In the gap between two buttons of a panel keep the module just left, rather than
         -- flashing the overview; outside the panels the box shows the exosuit overview.
         if not hoveredButton and self:_GetIsMouseInExoSlotPanel() then
@@ -3158,6 +3681,7 @@ function GUIMarineBuyMenu:_UpdateExoModularButtons()
 
         -- The lock travels with the button, not the module: the same module can be free in
         -- one slot and locked in the other.
+        self.modularExoDetailsPreset = nil
         self.modularExoDetailsModule = hoveredModuleType or false
         self.modularExoDetailsLockedTechId = hoveredLockedTechId
         self.modularExoDetailsPairingTechId = hoveredButton and hoveredButton.pairingLockedTechId
@@ -3246,8 +3770,9 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
     self.exoButtonsPaintedArmorLevels = armorLevels
     self.exoButtonsPaintedRightArm = rightArm
     self.exoButtonsPaintedLeftArm = leftArm
-    self.exoButtonsPaintedUtility = utility
-    self.exoButtonsPaintedAbility = ability
+    self:_RefreshExoSlotsShown()
+    self.exoButtonsPaintedUtility = self.exoConfig[kExoModuleSlots.Utility]
+    self.exoButtonsPaintedAbility = self.exoConfig[kExoModuleSlots.Ability]
     self.exoButtonsPaintedCoresTech = hasCoresTech
     self.exoButtonsPaintedDualArmsTech = hasDualArmsTech
     self.exoButtonsPaintedAdvArmsTech = hasAdvArmsTech
@@ -3265,6 +3790,7 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
     local currentConfigPrice = self:_GetExoConfigPrice()
     self:_RefreshExoCostRow()
     self:_RefreshExoStatBars()
+    self:_RefreshExoPresetButtons()
 
     self.modularExoCostText:SetText(tostring(currentConfigPrice))
     if self.modularExoArmorText then

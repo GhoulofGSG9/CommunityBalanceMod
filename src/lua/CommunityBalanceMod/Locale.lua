@@ -300,5 +300,23 @@ if Client then
 	-- Ion Torch
 	Locale.substitutions["EXO_MODULE_IONTORCH"] = "Ion Torch"
 	
+	-- Exosuit buy menu loadouts
+	Locale.substitutions["EXO_PRESETS_TITLE"] = "LOADOUTS"
+	Locale.substitutions["EXO_PRESET_1"] = "Charter Issue"
+	Locale.substitutions["EXO_PRESET_1_DESC"] = "The standard Frontiersmen exosuit, issued under the Charter. Needs no research beyond the suit itself."
+	Locale.substitutions["EXO_PRESET_2"] = "Enforcer"
+	Locale.substitutions["EXO_PRESET_2_DESC"] = "Sustained heavy fire that holds a line, built for the TSF's police actions."
+	Locale.substitutions["EXO_PRESET_3"] = "Responder"
+	Locale.substitutions["EXO_PRESET_3_DESC"] = "Picks off lerks and fades at range, then repositions, like the rapid-response teams of the Ariadne Arm."
+	Locale.substitutions["EXO_PRESET_4"] = "Quarantine"
+	Locale.substitutions["EXO_PRESET_4_DESC"] = "Burns out infested rooms: sets structures on fire and clears spores and umbra."
+	Locale.substitutions["EXO_PRESET_LAST"] = "Re-issue"
+	Locale.substitutions["EXO_PRESET_LAST_DESC"] = "The exosuit configuration you last requested."
+	Locale.substitutions["EXO_PRESET_LAST_MARK"] = "LAST"
+	Locale.substitutions["EXO_PRESET_LAST_CAPTION"] = "LAST"
+	Locale.substitutions["EXO_PRESET_LAST_MATCH"] = "Your last exosuit."
+	Locale.substitutions["EXO_PRESETS_MORE_WITH_RESEARCH"] = "More loadouts with research"
+	Locale.substitutions["EXO_PAGE_HINT"] = "Pick a loadout or build your own below, then press BUY"
+	
 end
 
