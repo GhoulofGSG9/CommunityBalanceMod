@@ -651,7 +651,7 @@ GUIMarineBuyMenu.kExoModuleData = {
         imageTexCoords = { GetSmallIconPixelCoordinates(kTechId.Exosuit) },
     },
     [kExoModuleTypes.Flamethrower] = {
-        label          = "FLAMETHROWER",
+        label          = "EXO_MODULE_IONTORCH",
         stats          = { Range = 0.4, LifeFormDamage = 0.6, StructureDamage = 1.0 },
         image          = kInventoryIconsTexture,
         imageTexCoords = { GetSmallIconPixelCoordinates(kTechId.Flamethrower) },

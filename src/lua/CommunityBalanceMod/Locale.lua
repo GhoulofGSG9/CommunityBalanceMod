@@ -219,7 +219,7 @@ if Client then
 	Locale.substitutions["EXO_MODULE_RAILGUN_DESC"] = "Long range shot: charge for a second to take it from 20 to 120 structural damage, and the slug pierces every target in its line out to 36 meters. Two railguns can charge together for a 240 damage volley or alternate for steady fire. Thin plating, so it wants to fight from the back."
 	Locale.substitutions["EXO_MODULE_PLASMALAUNCHER"] = "Plasma Launcher"
 	Locale.substitutions["EXO_MODULE_PLASMALAUNCHER_DESC"] = "Lobbed plasma charge: 40 damage in a 4 meter blast plus a lingering DoT. A direct hit electrifies the alien it lands on for 3.5 seconds, stripping mucous and enzyme and slowing its attacks. Swarm control, not a siege weapon. One bomb from a full cell, then one every 2 seconds."
-	Locale.substitutions["EXO_MODULE_FLAMETHROWER_DESC"] = "Has a wider cone than the marine flamethrower's, 9 damage a tick out to 9 meters, setting aliens and structures on fire and burning away spores and umbra; bile bombs fly through it. It cannot weld and overheats after 10 seconds."
+	Locale.substitutions["EXO_MODULE_FLAMETHROWER_DESC"] = "Burns hotter than the marine flamethrower: 12 damage a tick in a wide cone out to 13 meters, and its burn deals 12 damage a second instead of 8. Burning aliens heal at half rate, a burning hive heals no one and burning structures stop working. Burns away spores and umbra; bile bombs fly through it. Leaves no burning ground. It cannot weld and overheats after 10 seconds."
 	Locale.substitutions["EXO_MODULE_THRUSTERS"] = "Thrusters"
 	Locale.substitutions["EXO_MODULE_THRUSTERS_DESC"] = "Core module: a ground dash worth 2.5 extra speed on demand, burning 4 energy a second out of the fuel cell. Good for closing on a target or breaking a chase; it gives no lift."
 	Locale.substitutions["EXO_MODULE_EJECTIONSEAT"] = "Ejection Seat"
@@ -260,7 +260,7 @@ if Client then
 	Locale.substitutions["EXO_MODULE_MINIGUN_TAGS"] = "MID RANGE | HEAVY | 6 DMG A ROUND"
 	Locale.substitutions["EXO_MODULE_RAILGUN_TAGS"] = "LONG RANGE | STRUCTURAL | 20-120 | PIERCE"
 	Locale.substitutions["EXO_MODULE_PLASMALAUNCHER_TAGS"] = "MID RANGE | NORMAL | 40 + DOT | AOE | SHOCK"
-	Locale.substitutions["EXO_MODULE_FLAMETHROWER_TAGS"] = "SHORT RANGE | FLAME | 9 A TICK | CONE | BURN"
+	Locale.substitutions["EXO_MODULE_FLAMETHROWER_TAGS"] = "SHORT RANGE | FLAME | 12 A TICK | CONE | HOT BURN"
 	Locale.substitutions["EXO_MODULE_THRUSTERS_TAGS"] = "MOBILITY | DASH | FUEL"
 	Locale.substitutions["EXO_MODULE_EJECTIONSEAT_TAGS"] = "SURVIVAL | AUTO-EJECT | FAST EJECT"
 	Locale.substitutions["EXO_MODULE_ARMOR_TAGS"] = "DEFENSE | +80 ARMOR"
@@ -296,6 +296,9 @@ if Client then
 	Locale.substitutions["EXO_BUY_REFUSED_HOST"] = "Needs a built Exosuit Prototype Lab"
 	Locale.substitutions["EXO_BUY_REFUSED_UNCHANGED"] = "This is the suit you are wearing"
 	Locale.substitutions["EXO_BUY_REFUSED_FUNDS"] = "Not enough resources"
+	
+	-- Ion Torch
+	Locale.substitutions["EXO_MODULE_IONTORCH"] = "Ion Torch"
 	
 end
 

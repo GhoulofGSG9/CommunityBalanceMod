@@ -103,6 +103,7 @@ function FireMixin:SetOnFire(attacker, doer)
             return
         end
         
+        local wasOnFire = self.isOnFire
         self.isOnFire = true
         self:SetGameEffectMask(kGameEffect.OnFire, self.isOnFire)
         
@@ -114,6 +115,8 @@ function FireMixin:SetOnFire(attacker, doer)
         if doer then
             self.fireDoerId = doer:GetId()
         end
+        local burnPerSecond = doer and doer.GetBurnDamagePerSecond and doer:GetBurnDamagePerSecond() or kBurnDamagePerSecond
+        self.fireBurnDamagePerSecond = wasOnFire and math.max(self.fireBurnDamagePerSecond or kBurnDamagePerSecond, burnPerSecond) or burnPerSecond
         
         local time = Shared.GetTime()
 
@@ -187,7 +190,7 @@ function FireMixin:UpdateFireState()
                 doer = Shared.GetEntity(self.fireDoerId)
             end
 
-            local damageOverTime = kBurnUpdateRate * kBurnDamagePerSecond
+            local damageOverTime = kBurnUpdateRate * (self.fireBurnDamagePerSecond or kBurnDamagePerSecond)
 
             -- Upgrade damage based on marine weapons upgrades if we are on that team.
             local scalar = 1

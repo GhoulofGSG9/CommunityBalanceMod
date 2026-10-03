@@ -1069,8 +1069,9 @@ kExoFlamerConeWidth = 1
 kExoFlamerCoolDownRate = 0.20
 kExoFlamerHeatUpRate = 0.10
 kExoFlamerFireRate = 1 / 3
-kExoFlamerExoFlamerDamage = kFlamethrowerDamage
-kExoFlamerRange = kFlamethrowerRange
+kExoFlamerExoFlamerDamage = 12
+kExoFlamerBurnDamagePerSecond = 12
+kExoFlamerRange = 13
 kExoFlamerTrailLength = kExoFlamerRange + 0.5
 
 kExoFlamerDamageType = kFlamethrowerDamageType
