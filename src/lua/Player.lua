@@ -547,7 +547,7 @@ if Client then
             -- If this is a player changing classes that we're already following, update the id
             local player = Client.GetLocalPlayer()
             if player and player.followId == oldEntityId then
-                Client.SendNetworkMessage("SpectatePlayer", {entityId = newEntityId}, true)
+                Client.SendNetworkMessage("SpectatePlayer", {entityId = newEntityId or Entity.invalidId}, true)
                 player.followId = newEntityId
             end
 
