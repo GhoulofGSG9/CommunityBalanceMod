@@ -15,20 +15,61 @@ end
 
 local kDeployTime = 5.5
 
+-- Power loss aborts research (ResearchMixin:OnPowerOff), so restart it once powered again.
+-- A commander cancel holds it instead: while researching, Cancel takes the Recycle button's slot.
+local function UpdateExoLabUpgrade(self)
+
+    if self:GetTechId() ~= kTechId.PrototypeLab then
+        return false
+    end
+
+    if self:GetResearchingId() == kTechId.None and not self.exoUpgradeHeld and GetIsUnitActive(self) then
+
+        local team = self:GetTeam()
+        local techTree = team:GetTechTree()
+        local techNode = techTree:GetTechNode(kTechId.UpgradeToExoPrototypeLab)
+        self:SetResearching(techNode, team:GetCommander() or self)
+        techNode:SetResearching()
+        techTree:SetTechNodeChanged(techNode, "researching")
+
+    end
+
+    return true
+
+end
+
 function PrototypeLab:OnConstructionComplete()
 
     self:AddTimedCallback(OnDeploy, kDeployTime)
 
-    if self:GetTechId() ~= kTechId.ExoPrototypeLab then
-        self:SetTechId(kTechId.ExoPrototypeLab)
-        if HasMixin(self, "MapBlip") then
-            self:MarkBlipDirty()
-        end
+    if self:GetTechId() == kTechId.PrototypeLab then
+        UpdateExoLabUpgrade(self)
+        self:AddTimedCallback(UpdateExoLabUpgrade, 1)
     end
 
-    local team = self:GetTeam()
-    local techTree = team and team.GetTechTree and team:GetTechTree()
-    local exosuitNode = techTree and techTree:GetTechNode(kTechId.ExosuitTech)
+end
+
+function PrototypeLab:OnResearchCancel(researchId)
+
+    if researchId == kTechId.UpgradeToExoPrototypeLab then
+        self.exoUpgradeHeld = self:GetIsPowered()
+    end
+
+end
+
+function PrototypeLab:OnResearchComplete(researchId)
+
+    if researchId ~= kTechId.UpgradeToExoPrototypeLab then
+        return
+    end
+
+    self:SetTechId(kTechId.ExoPrototypeLab)
+    if HasMixin(self, "MapBlip") then
+        self:MarkBlipDirty()
+    end
+
+    local techTree = self:GetTeam():GetTechTree()
+    local exosuitNode = techTree:GetTechNode(kTechId.ExosuitTech)
     if exosuitNode and not exosuitNode:GetResearched() then
         exosuitNode:SetResearchProgress(1)
         techTree:SetTechNodeChanged(exosuitNode, string.format("researchProgress = %.2f", 1))

@@ -180,6 +180,12 @@ end
 
 function PrototypeLab:GetTechButtons(techId)
 
+    if self:GetTechId() == kTechId.PrototypeLab then
+        return
+        { kTechId.UpgradeToExoPrototypeLab, kTechId.None, kTechId.None, kTechId.None,
+          kTechId.None, kTechId.None, kTechId.None, kTechId.None }
+    end
+
     return
     { kTechId.DualMinigunTech, kTechId.AdvancedExoArmsTech, kTechId.CoresExosuitTech, kTechId.ExoAbilitiesTech,
       kTechId.None, kTechId.None, kTechId.None, kTechId.None }
@@ -323,9 +329,9 @@ if Client then
         end
         
         local powered = self:GetIsPowered()
-        local researching = self:GetIsResearching()
-        self.haloCinematicResearch:SetIsVisible(researching and powered)
-        self.haloCinematicFinished:SetIsVisible(not researching and powered and self:GetTechId() == kTechId.ExoPrototypeLab)
+        local upgrading = self:GetResearchingId() == kTechId.UpgradeToExoPrototypeLab and self:GetIsResearching()
+        self.haloCinematicResearch:SetIsVisible(upgrading and powered)
+        self.haloCinematicFinished:SetIsVisible(powered and self:GetTechId() == kTechId.ExoPrototypeLab)
     end
 end
 

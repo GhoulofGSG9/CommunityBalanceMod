@@ -740,6 +740,7 @@ function MarineTeam:InitTechTree()
     -- Marine tier 3
     self.techTree:AddBuildNode(kTechId.PrototypeLab,          kTechId.ArmsLab,                     kTechId.None)
 
+    self.techTree:AddUpgradeNode(kTechId.UpgradeToExoPrototypeLab,  kTechId.PrototypeLab)
     self.techTree:AddBuildNode(kTechId.ExoPrototypeLab,             kTechId.PrototypeLab,    kTechId.None)
     self.techTree:AddResearchNode(kTechId.ExosuitTech,              kTechId.ExoPrototypeLab, kTechId.None)
     self.techTree:AddBuyNode(kTechId.DualMinigunExosuit,            kTechId.ExoPrototypeLab)

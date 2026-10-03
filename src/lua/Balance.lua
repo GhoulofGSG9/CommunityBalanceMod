@@ -612,7 +612,7 @@ kTechMACSpeedResearchTime = 15
 kJetpackTechResearchTime = 130
 kJetpackFuelTechResearchTime = 60
 kJetpackArmorTechResearchTime = 60
-kExosuitTechResearchTime = 110
+kExosuitTechResearchTime = 90
 kExosuitLockdownTechResearchTime = 60
 kExosuitUpgradeTechResearchTime = 60
 
@@ -970,8 +970,8 @@ kBabblerBombResearchTime = kBileBombResearchTime
 kBabblerBombResearchCost = 15
 
 -- ExoProtolab
-kExoPrototypeLabResearchTime = kExosuitTechResearchTime -- 110
-kExoPrototypeLabUpgradeCost = kExosuitTechResearchCost -- 25
+kExoPrototypeLabResearchTime = kExosuitTechResearchTime
+kExoPrototypeLabUpgradeCost = 0
 kExoPrototypeLabHealth = kPrototypeLabHealth  -- 3000
 kExoPrototypeLabArmor = kPrototypeLabArmor -- 500   
 kExoPrototypeLabPointValue = kPrototypeLabPointValue -- 20

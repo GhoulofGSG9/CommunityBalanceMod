@@ -1058,6 +1058,16 @@ function GUIMarineBuyMenu:_GetHostCanSellExoConfig()
         or (self.hostStructure:GetTechId() == kTechId.ExoPrototypeLab and self.hostStructure:GetIsBuilt())
 end
 
+-- Seconds until a lab still running its exosuit upgrade sells suits, or nil.
+function GUIMarineBuyMenu:_GetHostExoReadySeconds()
+    local host = self.hostStructure
+    if host:isa("PrototypeLab") and host:GetResearchingId() == kTechId.UpgradeToExoPrototypeLab then
+        local researchTime = LookupTechData(kTechId.UpgradeToExoPrototypeLab, kTechDataResearchTimeKey, 0)
+        return math.ceil((1 - host:GetResearchProgress()) * researchTime)
+    end
+    return nil
+end
+
 function GUIMarineBuyMenu:CreatePrototypeLabUI()
     
     self.defaultTechId = kTechId.DualMinigunExosuit
@@ -3312,6 +3322,7 @@ function GUIMarineBuyMenu:_UpdateExoModularVisibility()
     or self.modularExoDetailsIncompatible ~= self.exoDetailsShownIncompatible
     or self.modularExoDetailsPrice ~= self.exoDetailsShownPrice
     or self.modularExoBuyRefusal ~= self.exoDetailsShownBuyRefusal
+    or self.exoHostReadySeconds ~= self.exoDetailsShownReadySeconds
     or self.exoConfigLockedTechId ~= self.exoDetailsShownConfigLockedTechId then
         self.exoDetailsShownModule = self.modularExoDetailsModule
         self.exoDetailsShownPreset = preset
@@ -3321,6 +3332,7 @@ function GUIMarineBuyMenu:_UpdateExoModularVisibility()
         self.exoDetailsShownIncompatible = self.modularExoDetailsIncompatible
         self.exoDetailsShownPrice = self.modularExoDetailsPrice
         self.exoDetailsShownBuyRefusal = self.modularExoBuyRefusal
+        self.exoDetailsShownReadySeconds = self.exoHostReadySeconds
         self.exoDetailsShownConfigLockedTechId = self.exoConfigLockedTechId
         if preset then
             self:_SetDetailsSectionExoPreset(preset)
@@ -3367,6 +3379,8 @@ function GUIMarineBuyMenu:_RefreshExoReason()
         local refusal = self.modularExoBuyRefusal
         if refusal == "locked" and self.exoConfigLockedTechId then
             reason = string.format(Locale.ResolveString("EXO_MODULE_LOCKED_FORMAT"), GetResearchDisplayName(self.exoConfigLockedTechId))
+        elseif refusal == "preparing" and self.exoHostReadySeconds then
+            reason = string.format(Locale.ResolveString("EXO_BUY_REFUSED_PREPARING_FORMAT"), self.exoHostReadySeconds)
         elseif refusal and kExoBuyRefusalText[refusal] then
             reason = Locale.ResolveString(kExoBuyRefusalText[refusal])
         end
@@ -3589,8 +3603,11 @@ function GUIMarineBuyMenu:_UpdateExoModularButtons()
         -- local researched = self:_GetResearchInfo(kTechId.DualMinigunExosuit)
 		local researched = self:_GetHostCanSellExoConfig()
         local buyHovered = GetIsMouseOver(self, self.modularExoBuyButton)
+        self.exoHostReadySeconds = not researched and self:_GetHostExoReadySeconds() or nil
         local refusal = nil
-        if not researched then
+        if self.exoHostReadySeconds then
+            refusal = "preparing"
+        elseif not researched then
             refusal = "host"
         elseif self.exoConfigLockedTechId ~= nil then
             refusal = "locked"

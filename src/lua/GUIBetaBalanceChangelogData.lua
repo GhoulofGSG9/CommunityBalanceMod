@@ -31,7 +31,7 @@ if kCBMaddon then
 	## Balance and QoL Changes
 	### Exosuits: Tech Path
 	  - The Prototype Lab needs an Arms Lab instead of an Advanced Armory. 
-	    - Once built claw-minigun and claw-railgun exosuits can be purchased
+	    - Each lab first upgrades itself (free, 90 s), then claw-minigun and claw-railgun exosuits can be purchased
 	  - Four optional researches at the Prototype Lab, run in parallel:
 	    - Dual Exosuit Arms (25 tres, 60 s): a weapon on both arms.
 	    - Advanced Exosuit Arms (20 tres, 60 s): Ion Torch and plasma launcher arms.
@@ -471,10 +471,11 @@ if kCBMaddon then
 
 	## MARINE - COMMANDER / STRUCTURES
 	### Prototype Lab
-	  - A prototype lab becomes an exosuit prototype lab when it finishes building; there is no upgrade research.
+	  - A built prototype lab upgrades itself into an exosuit prototype lab (free, 90 s) before it sells exosuits. Every lab runs its own upgrade, so a lab dropped forward cannot sell exosuits the moment it is built.
+	    - Losing power restarts the upgrade once the lab is powered again. Cancelling it lets the commander recycle the lab; the lab's button starts it again.
 	    - Its researches stay with the team when the lab is destroyed or recycled; another built lab sells exosuits again.
-	  - While the exosuit prototype lab is researching, a rotating exo hologram will appear above it.
-	    - Otherwise the hologram is static, and the map icon is purple.
+	  - While a lab upgrades, a rotating hologram appears above it. A lab that sells exosuits shows the static exo hologram, also while it researches, and its map icon is purple.
+	    - At a lab that is still upgrading, the exosuit page shows how many seconds are left.
 	  
 	### ARC (Robotics) Factory
 	  - New skin and is purple on the map.
@@ -757,7 +758,7 @@ else
 	## Balance and QoL Changes
 	### Exosuits: Tech Path
 	  - The Prototype Lab needs an Arms Lab instead of an Advanced Armory. 
-	    - Once built claw-minigun and claw-railgun exosuits can be purchased
+	    - Each lab first upgrades itself (free, 90 s), then claw-minigun and claw-railgun exosuits can be purchased
 	  - Four optional researches at the Prototype Lab, run in parallel:
 	    - Dual Exosuit Arms (25 tres, 60 s): a weapon on both arms.
 	    - Advanced Exosuit Arms (20 tres, 60 s): Ion Torch and plasma launcher arms.
@@ -1174,10 +1175,11 @@ else
 
 	## MARINE - COMMANDER / STRUCTURES
 	### Prototype Lab
-	  - A prototype lab becomes an exosuit prototype lab when it finishes building; there is no upgrade research.
+	  - A built prototype lab upgrades itself into an exosuit prototype lab (free, 90 s) before it sells exosuits. Every lab runs its own upgrade, so a lab dropped forward cannot sell exosuits the moment it is built.
+	    - Losing power restarts the upgrade once the lab is powered again. Cancelling it lets the commander recycle the lab; the lab's button starts it again.
 	    - Its researches stay with the team when the lab is destroyed or recycled; another built lab sells exosuits again.
-	  - While the exosuit prototype lab is researching, a rotating exo hologram will appear above it.
-	    - Otherwise the hologram is static, and the map icon is purple.
+	  - While a lab upgrades, a rotating hologram appears above it. A lab that sells exosuits shows the static exo hologram, also while it researches, and its map icon is purple.
+	    - At a lab that is still upgrading, the exosuit page shows how many seconds are left.
 	  
 	### ARC (Robotics) Factory
 	  - New skin and is purple on the map.
