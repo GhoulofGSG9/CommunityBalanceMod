@@ -76,6 +76,8 @@ end
 --                                              together for this card).  Since they serve the same purpose, we'll
 --                                              group both of these together within the same table.  The will display 
 --                                              separated by a "/" sign.
+--                                              May also be a function returning such a table; it is
+--                                              re-evaluated each time the help screen opens.
 -- classNames               - index table   - list of classes or child classes (eg weapons) that the player must
 --                                              be/have for this card to appear.
 -- theme                    - string        - "marine" or "alien"
@@ -242,6 +244,7 @@ local helpScreenImages =
     gasGrenade          = PrecacheAsset("ui/helpScreen/icons/grenade_gas.dds"),
     minigun             = PrecacheAsset("ui/helpScreen/icons/mini_gun.dds"),
     railgun             = PrecacheAsset("ui/helpScreen/icons/rail_gun.dds"),
+    ionTorch            = PrecacheAsset("ui/helpScreen/icons/ion_torch.dds"),
     exoThrusters        = PrecacheAsset("ui/helpScreen/icons/thrusters.dds"),
     exoEject            = PrecacheAsset("ui/helpScreen/icons/exo_eject.dds"),
     exoArmorPlating     = PrecacheAsset("ui/helpScreen/icons/exo_armor_plating.dds"),
@@ -296,6 +299,23 @@ local function EvaluateTechAvailability(techId, requirementMessage)
         end
     end
     
+end
+
+local function GetExoArmActions(className)
+    return function()
+        local player = Client.GetLocalPlayer()
+        local holder = player and player:isa("Exo") and player:GetWeapon(ExoWeaponHolder.kMapName)
+        local left = holder and holder:GetLeftSlotWeapon()
+        local right = holder and holder:GetRightSlotWeapon()
+        local buttons = {}
+        if left and left:isa(className) then
+            buttons[#buttons+1] = "PrimaryAttack"
+        end
+        if right and right:isa(className) then
+            buttons[#buttons+1] = "SecondaryAttack"
+        end
+        return { buttons }
+    end
 end
 
 -- Populates the content table with all the build in NS2 content.
@@ -504,9 +524,7 @@ function HelpScreen_InitializeContent()
         title = "HELP_SCREEN_EXO_MINIGUN",
         description = "HELP_SCREEN_EXO_MINIGUN_DESCRIPTION",
         imagePath = helpScreenImages.minigun,
-        actions = {
-            {"PrimaryAttack", "SecondaryAttack"},
-        },
+        actions = GetExoArmActions("Minigun"),
         classNames = {"Minigun"},
         theme = "marine",
         useLocale = true,
@@ -518,10 +536,32 @@ function HelpScreen_InitializeContent()
         title = "HELP_SCREEN_EXO_RAILGUN",
         description = "HELP_SCREEN_EXO_RAILGUN_DESCRIPTION",
         imagePath = helpScreenImages.railgun,
-        actions = {
-            {"PrimaryAttack", "SecondaryAttack"},
-        },
+        actions = GetExoArmActions("Railgun"),
         classNames = {"Railgun"},
+        theme = "marine",
+        useLocale = true,
+        })
+
+    -- Exosuit Ion Torch
+    HelpScreen_AddContent({
+        name = "ExoIonTorch",
+        title = "HELP_SCREEN_EXO_ION_TORCH",
+        description = "HELP_SCREEN_EXO_ION_TORCH_DESCRIPTION",
+        imagePath = helpScreenImages.ionTorch,
+        actions = GetExoArmActions("ExoFlamer"),
+        classNames = {"ExoFlamer"},
+        theme = "marine",
+        useLocale = true,
+        })
+
+    -- Exosuit Plasma Launcher
+    HelpScreen_AddContent({
+        name = "ExoPlasmaLauncher",
+        title = "HELP_SCREEN_EXO_PLASMA_LAUNCHER",
+        description = "HELP_SCREEN_EXO_PLASMA_LAUNCHER_DESCRIPTION",
+        imagePath = helpScreenImages.railgun,
+        actions = GetExoArmActions("PlasmaLauncher"),
+        classNames = {"PlasmaLauncher"},
         theme = "marine",
         useLocale = true,
         })

@@ -285,7 +285,7 @@ if Client then
 	Locale.substitutions["HELP_SCREEN_EXO_REGEN_FIELD"] = "REGEN FIELD"
 	Locale.substitutions["TIPVIDEO_1_EXO_EXOSUIT_BOOSTERS"] = "With the Thrusters core module, hold Shift to boost forward, or hold space to hover."
 	Locale.substitutions["HELP_SCREEN_EXO_PLASMA_LAUNCHER"] = "PLASMA LAUNCHER"
-	Locale.substitutions["HELP_SCREEN_EXO_PLASMA_LAUNCHER_DESCRIPTION"] = "Charge up and lob a ball of superheated plasma that detonates on impact, splashing everything nearby and leaving the survivors burning.  Each shot drains the energy cell, so watch the meter before you pick a fight."
+	Locale.substitutions["HELP_SCREEN_EXO_PLASMA_LAUNCHER_DESCRIPTION"] = "Lobs a plasma bomb: 40 damage in a 4 m blast plus damage over time.  A direct hit electrifies the alien for 3.5 s, stripping mucous and enzyme and slowing its attacks.  One bomb every 2 seconds."
 	
 	
 	-- Exosuit research gates and armory refit
@@ -321,6 +321,10 @@ if Client then
 	-- Exosuit refit banner
 	Locale.substitutions["EXO_CORE_MODULES_REFIT"] = "New exosuit modules: refit at an Armory or Prototype Lab"
 	Locale.substitutions["EXO_ABILITIES_REFIT"] = "New exosuit abilities: refit at an Armory or Prototype Lab"
+	
+	-- Help screen: Ion Torch and Plasma Launcher cards
+	Locale.substitutions["HELP_SCREEN_EXO_ION_TORCH"] = "ION TORCH"
+	Locale.substitutions["HELP_SCREEN_EXO_ION_TORCH_DESCRIPTION"] = "Blue flame to 13 m: 12 damage a tick and sets targets alight for 12 a second.  Burning aliens heal at half rate, burning hives heal no one.  Clears spores and umbra, not bile.  Overheats after 10 s."
 	
 end
 
