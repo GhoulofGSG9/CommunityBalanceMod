@@ -247,7 +247,6 @@ function Drifter:OnInitialized()
     self.timeLastFollowPosComputed = 0
     self.fieldCloudDemandedAt = {}
     self.fieldCloudTechId = {}
-    --Log("Drifter -- Init field clouds entries")
 
     if not Predict then
         InitMixin(self, DrifterVariantMixin)
@@ -376,6 +375,7 @@ local function FindTask(self, origin, range)
 
             -- Move back to where we were (because we were idle and khamm didn't asked us to move permanently)
             self:GiveOrder(kTechId.Move, nil, self:GetOrigin(), nil, false, false)
+            self.timeLastOrder = timeLastOrder
             self.isAutomaticOrder = nil
             return true
 
@@ -412,10 +412,8 @@ function Drifter:OnOrderGiven(newOrder)
         -- QoL: If we have move orders, just discard them and go straight for the target
         -- (because ns2 is autochaining a move and THEN a follow order, which is not a nice detour)
         self:ClearCurrentOrder()
-        --Log("Drifter -- Clearing current move order and moving straight to target")
     end
 
-    --Log("%s -- reconstruct %s/currOrderId %s/grow %s/auto %s", self, tostring(self.reconstructingChain), newOrder:GetType(), kTechId.Grow, self.isAutomaticOrder)
     -- Autobuild full cyst chain if we still are on a cyst grow order
     if (self.reconstructingChain == nil and orderTarget and newOrder:GetType() == kTechId.Grow and orderTarget:isa("Cyst")) then
         if not self.isAutomaticOrder then
@@ -423,24 +421,19 @@ function Drifter:OnOrderGiven(newOrder)
             local cysts = GetEntitiesForTeam("Cyst", self:GetTeamNumber())
             local cystChain = {orderTarget}
 
-            --Log("Drifter -- Reconstructing cyst chain")
             self.reconstructingChain = true -- Prevents GiveOrder() to re-enter that loop
             self:ReConstructCystChain(cysts, cystChain, orderTarget, 0)
-            for _, c in ipairs(cystChain) do
-                --Log("Drifter -- Issuing grow orders to %s (new total: %d)", c, self:GetNumOrders()+1)
+            -- cystChain[1] is the cyst that was just ordered, it already has its grow order
+            for i = 2, #cystChain do
+                local c = cystChain[i]
                 self.timeLastOrder = 0 -- GiveOrder() has a time check to prevent spam we need to avoid
                 local rval = self:GiveOrder(kTechId.Grow, c:GetId(), c:GetOrigin(), nil, false, false)
-                --Log("%s -- rval order type given %s (none == %s, total count: %d)", self, rval, kTechId.None, self:GetNumOrders())
             end
             self.reconstructingChain = nil
             self.timeLastOrder = timeLastOrder
-        --else
-        --    Log("%s -- Automatic build order to build cysts, no full cyst chain build", self)
         end
     end
 
-
-    --Log("Drifter -- clearing all side-quest entries")
     if self:GetIsConsuming() then
         self:CancelResearch()
     end
@@ -457,11 +450,9 @@ function Drifter:ReConstructCystChain(cysts, cystChain, currCyst, depth)
     for _, c in ipairs(cysts) do
         local parent = c:GetCystParent()
         if (parent) then
-            --Log("Drifter -- CurrCyst(" .. ToString(currCyst:GetId()) .. "), c(" .. tostring(c:GetId()) .. "), c:parent(" .. tostring(parent:GetId()) .. ")")
             if (not c:GetIsBuilt() and parent and parent == currCyst) then
 
                 table.insert(cystChain, c)
-                --Log("Drifter -- Found cyst n' " .. tostring(depth) .. " at " .. tostring(c:GetOrigin()))
                 return self:ReConstructCystChain(cysts, cystChain, c, depth + 1)
             end
         end
@@ -478,20 +469,30 @@ function Drifter:OnOverrideOrder(order)
     end
 
     local origin = order:GetLocation()
-    local nearbyPVE = GetEntitiesWithMixinForTeamWithinRange("Construct", self:GetTeamNumber(), origin, kDrifterPVESnapRange)
-    local nearbyAliens = GetEntitiesForTeamWithinRange("Alien", self:GetTeamNumber(), origin, kDrifterAlienSnapRange)
+    local nearbyPVE = GetEntitiesWithMixinForTeamWithinXZRange("Construct", self:GetTeamNumber(), origin, kDrifterPVESnapRange)
+    local nearbyAliens = GetEntitiesForTeamWithinXZRange("Alien", self:GetTeamNumber(), origin, kDrifterAlienSnapRange)
+    local nearbyRTPoints = GetEntitiesWithinXZRange("ResourcePoint", origin, kDrifterAlienSnapRange)
+
+    -- Harvesters have an origin point that is further than the RT origin, check the RT origin too.
+    for _, RTPoint in ipairs(nearbyRTPoints) do
+        local attachedRT = RTPoint:GetAttached()
+        if attachedRT and HasMixin(attachedRT, "Construct") then
+            table.insert(nearbyPVE, attachedRT)
+        end
+    end
+
     Shared.SortEntitiesByDistance(origin, nearbyPVE)
     Shared.SortEntitiesByDistance(origin, nearbyAliens)
 
     -- Autosnap on nearby PvE for a grow order
-    if (order:GetType() == kTechId.Move or order:GetType() == kTechId.Default) then
+    -- (never for our own automatic orders, e.g. the "move back where we were" order)
+    if (not self.isAutomaticOrder and (order:GetType() == kTechId.Move or order:GetType() == kTechId.Default)) then
         for _, pve in ipairs(nearbyPVE) do
             if not pve:GetIsBuilt() and GetAreFriends(self, pve) and not IsBeingGrown(self, pve) and (not pve.GetCanAutoBuild or pve:GetCanAutoBuild()) then
                 order.orderParam = pve:GetId()
                 order:SetLocation(pve:GetOrigin())
                 order:SetType(kTechId.Grow)
                 orderTarget = pve
-                --Log("Drifter -- Snapping on nearest unbuilt to construct")
                 break
             end
         end
@@ -499,12 +500,11 @@ function Drifter:OnOverrideOrder(order)
 
     -- Autosnap on nearby aliens for a follow order
     local nearestAlien = (#nearbyAliens > 0 and nearbyAliens[1]:GetIsAlive()) and nearbyAliens[1] or nil
-    if ((order:GetType() == kTechId.Move or order:GetType() == kTechId.Default) and nearestAlien) then
+    if (not self.isAutomaticOrder and (order:GetType() == kTechId.Move or order:GetType() == kTechId.Default) and nearestAlien) then
         order.orderParam = nearestAlien:GetId()
         order:SetLocation(nearestAlien:GetOrigin())
         order:SetType(kTechId.Follow)
         orderTarget = nearestAlien
-        --Log("Drifter -- Snapping on nearby alien to follow")
     end
 
     if order:GetType() == kTechId.Default then
@@ -515,7 +515,9 @@ function Drifter:OnOverrideOrder(order)
         order.orderParam = -1
     end
 
-    PlayOrderedSounds(self)
+    if not self.isAutomaticOrder then
+        PlayOrderedSounds(self)
+    end
 
 end
 
@@ -523,7 +525,7 @@ function Drifter:ResetOrders(resetOrigin, clearOrders)
 
     self.fieldCloudDemandedAt = {}
     self.fieldCloudTechId = {}
-    --Log("Drifter -- clearing all side-quest entries")
+
     if resetOrigin then
 
         if self.oldLocation ~= nil then
@@ -625,30 +627,25 @@ end
 
 function Drifter:OnEntityChange(oldId, newId)
 
-    if not Server then
-        return
-    end
-
     local currentOrder = self:GetCurrentOrder()
 
     -- Smth happened with our target
     if currentOrder and oldId == currentOrder:GetParam() then
 
         if currentOrder and currentOrder:GetType() == kTechId.Follow then
-            --Log("%s -- EntityChange detected -- follow readjust", self)
             local newTarget = newId and Shared.GetEntity(newId)
             
             -- continue follow the new entity which we were following
             if newTarget and HasMixin(newTarget, "Live") and newTarget:GetIsAlive() then
-                self:GiveOrder(kTechId.Follow, newId, newTarget:GetOrigin(), nil, false, false)
+                -- Retarget in place
+                currentOrder:SetParam(newId)
+                currentOrder:SetLocation(newTarget:GetOrigin())
             else
                 self:ClearCurrentOrder()
                 self.targetId = Entity.invalidId
-                --Log("%s -- Target cleared (because dead)", self)
             end
         else
             -- Clear any kind of order we had if target changed and it's not a follow
-            --Log("%s -- EntityChange detected -- clearing current order", self)
             self:ClearCurrentOrder()
             self.targetId = Entity.invalidId
         end
@@ -806,7 +803,6 @@ function Drifter:ProcessEnzymeOrder(moveSpeed, deltaTime)
             local commander = GetCommander(self:GetTeamNumber())
             local cooldown = LookupTechData(techId, kTechDataCooldown, 0)
 
-            --Log("Drifter -- " .. ToString(techId) .. " - " .. ToString(targetPos) .. " - " .. TableToString(self.fieldCloudDemandedAt) .. " - " .. TableToString(self.fieldCloudTechId))
             if commander and cooldown ~= 0 then
 
                 commander:SetTechCooldown(techId, cooldown, Shared.GetTime())
@@ -819,7 +815,6 @@ function Drifter:ProcessEnzymeOrder(moveSpeed, deltaTime)
             if (#self.fieldCloudDemandedAt > 0) then -- In that case do not complete, resume
                 table.remove(self.fieldCloudDemandedAt, 1)
                 table.remove(self.fieldCloudTechId, 1)
-                --Log("Drifter -- removed side-quest first entry")
             else
                 self:CompletedCurrentOrder()
             end
@@ -839,10 +834,8 @@ function Drifter:ProcessEnzymeOrder(moveSpeed, deltaTime)
                     if #self.fieldCloudDemandedAt > 0 then
                         table.remove(self.fieldCloudDemandedAt, 1)
                         table.remove(self.fieldCloudTechId, 1)
-                        --Log("Drifter -- MoveTarget done: removed side-quest first entry")
                     else
                         self:ClearOrders()
-                        --Log("Drifter -- MoveTarget done: clearing order")
                     end
 
                     self.timeCloudBlockedSince = nil
@@ -873,7 +866,6 @@ end
 if Server then
 
     function Drifter:OnOrderComplete(completedOrder)
-        --Log("Drifter -- %s completed", completedOrder)
         self.newOrderFirstUpdate = true -- Keep this valid for all order types
     end
 
@@ -1187,8 +1179,6 @@ function Drifter:SpawnCloudAt(position, techId)
                 self.hallucinations = cloudEntity:GetRegisteredHallucinations()
             end
             team:AddTeamResources(-cost)
-
-            --Log("Drifter -- Lifespan" .. ToString(cloudEntity:GetLifeSpan()))
             self:DropPheromone(techId, position, cloudEntity:GetLifeSpan())
 
         end
@@ -1246,13 +1236,12 @@ function Drifter:PerformActivation(techId, position, normal, commander)
         local cost = GetCostForTech(techId)
         if cost <= team:GetTeamResources() then
 
-            --self:GiveOrder(techId, nil, position + Vector(0, 0.2, 0), nil, not commander.shiftDown, false)
-            --Log("Drifter -- GiveOrder() done, insert first no overwrite")
-
             -- At most 10s, will get replaced by an other with the right duration upon casting the cloud
             self:DropPheromone(techId, position, 10)
             if (not self:GetHasOrder()) then
+                self.isAutomaticOrder = true -- Keeps OnOverrideOrder from turning this into a follow/grow order
                 self:GiveOrder(kTechId.Move, nil, self:GetOrigin(), nil, false, false) -- Move back where we were hidden before once we done
+                self.isAutomaticOrder = nil
             end
 
             -- Detour secondary order, valid even during patrols and don't disturbs them
@@ -1260,7 +1249,6 @@ function Drifter:PerformActivation(techId, position, normal, commander)
             if (exists) then -- Overwrite current cloud to new position
                 table.remove(self.fieldCloudDemandedAt, idx)
                 table.remove(self.fieldCloudTechId, idx)
-                --Log("Drifter -- cloud query already asked, overwritting")
             end
             table.insert(self.fieldCloudDemandedAt, position)
             table.insert(self.fieldCloudTechId, techId)
