@@ -107,6 +107,10 @@ local networkVars =
     wallWalking = "compensated boolean",
     timeLastWallWalkCheck = "private compensated time",
     leaping = "compensated boolean",
+
+    wasOnGround = "private boolean",
+    wasOnWall = "private boolean",
+
     timeOfLeap = "private compensated time",
     timeOfLastJumpLand = "private compensated time",
     timeLastWallJump = "private compensated time",
