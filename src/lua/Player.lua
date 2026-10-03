@@ -100,8 +100,8 @@ Player.kLoginBreakingDistance = 150
 local kDownwardUseRange = kPlayerUseRange * 1.25
 Player.kUseHolsterTime = 0.5
 Player.kDefaultBuildTime = .2
-local kUseBoxSize1 = Vector(0.5, 0.5, 0.5)
-local kUseBoxSize2 = Vector(0.2, 0.2, 0.2)
+local kUseBoxSize1 = Vector(0.2, 0.2, 0.2)
+local kUseBoxSize2 = Vector(0.5, 0.5, 0.5)
 local kMaxUseLength = (kUseBoxSize2 - -kUseBoxSize2):GetLength()
 
 Player.kCountDownLength = kCountDownLength
