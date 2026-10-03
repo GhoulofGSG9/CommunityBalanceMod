@@ -251,13 +251,16 @@ function DropStructureAbility:PerformPrimaryAttack(player)
 end
 
 
-local kGhostPlacementTolerance = 5
+local kGhostPlacementTolerance = 1
+-- origin and ghostOrigin are client-sent; the allowance covers movement during message latency
+local kMaxClientEyeOffsetSq = 2 * 2
 function DropStructureAbility:DropStructure(player, origin, direction, structureAbility, lastClickedPosition, lastClickedPositionNormal, ghostOrigin, ghostNormal)
 
     -- If we have enough resources
     if Server then
 
         local coords, valid, onEntity = self:GetPositionForStructure(origin, direction, structureAbility, lastClickedPosition, lastClickedPositionNormal)
+        valid = valid and (origin - player:GetEyePos()):GetLengthSquared() <= kMaxClientEyeOffsetSq
 
         if valid and ghostOrigin and (ghostOrigin - coords.origin):GetLength() < kGhostPlacementTolerance then
             coords.origin = ghostOrigin

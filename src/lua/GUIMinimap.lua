@@ -28,7 +28,7 @@ GUIMinimap.kUpdateIntervalMultipler = 1
 GUIMinimap.kToggleMap = GetAdvancedOption("minimaptoggle") == 1
 
 GUIMinimap.kFogBlipsOptionKey = "fogofwar_enabled"
-GUIMinimap.kFogBlipsEnabled = GetAdvancedOption(GUIMinimap.kFogBlipsOptionKey) ~= 0
+GUIMinimap.kFogBlipsEnabled = Client.GetOptionBoolean(GUIMinimap.kFogBlipsOptionKey, true)
 
 -- the model that mappers use to configure minimap_extents has extents of +/- this number.
 local kMinimapExtentsModelScaleFactor = 0.239246666431427;
@@ -810,7 +810,7 @@ end
 function GUIMinimap:UpdateBlipActivityForEntity(entity)
     local id = entity:GetId()
     local invalidId = Entity.invalidId
-    local addBlip = id ~= invalidId and self.iconMap ~= nil
+    local addBlip = id ~= invalidId and self.iconMap ~= nil and Client.GetLocalPlayer() ~= nil
 
     if not addBlip then return end
 
@@ -1860,12 +1860,11 @@ local function OnToggleFogBlips(value)
     end
 
     GUIMinimap.kFogBlipsEnabled = (value == "1" or value == "true")
-    Client.SetOptionInteger(GUIMinimap.kFogBlipsOptionKey, GUIMinimap.kFogBlipsEnabled and 1 or 0)
+    Client.SetOptionBoolean(GUIMinimap.kFogBlipsOptionKey, GUIMinimap.kFogBlipsEnabled)
     Shared.Message("Setting client fog-of-war to " .. (GUIMinimap.kFogBlipsEnabled and "1" or "0") .. " (saved to config)")
 
     -- Force a full rebuild so stale fog icons disappear immediately
-    local minimapFrame = ClientUI.GetScript("GUIMinimapFrame")
-    local minimap = minimapFrame and minimapFrame.minimapScript or ClientUI.GetScript("GUIMinimap")
+    local minimap = ClientUI.GetScript("GUIMinimapFrame")
     if minimap then
         minimap:ResetAll()
         minimap.nextActivityUpdateTime = 0
