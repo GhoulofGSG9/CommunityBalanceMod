@@ -1760,11 +1760,11 @@ if Server then
     function Babbler:MoveRandom(now)
         PROFILE("Babbler:MoveRandom")
 
+        now = now or Shared.GetTime()
         if not self.babblerOffMap
             and (self.moveType == kBabblerMoveType.None)
             and self:GetIsOnGround(now) then
 
-            now = now or Shared.GetTime()
             local orig = self:GetOrigin()
             local target = self.targetSelector:AcquireTarget() or self:GetTarget()
             local owner = self:GetOwner()
