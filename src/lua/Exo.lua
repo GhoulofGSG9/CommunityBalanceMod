@@ -42,6 +42,7 @@ Script.Load("lua/BlowtorchTargetMixin.lua")
 
 if Client then
     Script.Load("lua/ExoFlashlight_Client.lua")
+    Script.Load("lua/TeamMessageMixin.lua")
 end
 
 local kExoFirstPersonHitEffectName = PrecacheAsset("cinematics/marine/exo/hit_view.cinematic")
@@ -259,6 +260,7 @@ function Exo:OnCreate()
 
     if Client then
 		InitMixin(self, BlowtorchTargetMixin)
+        InitMixin(self, TeamMessageMixin, { kGUIScriptName = "GUIMarineTeamMessage" })
     end
     
     if Server then

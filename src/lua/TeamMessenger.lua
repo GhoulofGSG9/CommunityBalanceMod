@@ -13,7 +13,8 @@ kTeamMessageTypes = enum({
     'CommandStationUnderAttack', 'IPUnderAttack', 'HiveUnderAttack',
     'PowerPointUnderAttack', 'Beacon', 'NoCommander', 'TeamsUnbalanced',
     'TeamsBalanced', 'GameStartCommanders', 'WarmUpActive', 'ReturnToBase', 
-    'TD_RoundWaitingPlayers', 'ExoNanoShieldField', 'ExoCatalystField', 'ExoRegenField'
+    'TD_RoundWaitingPlayers', 'ExoNanoShieldField', 'ExoCatalystField', 'ExoRegenField',
+    'ExoCoreModulesAvailable', 'ExoAbilitiesAvailable'
 })
 
 local kTeamMessages = { }
@@ -86,6 +87,9 @@ end
 kTeamMessages[kTeamMessageTypes.ExoNanoShieldField] = { text = { [kMarineTeamType] = function(data) return supportFieldStringGen(data, "EXO_ABILITY_NANOSHIELD_FIELD") end } }
 kTeamMessages[kTeamMessageTypes.ExoCatalystField] = { text = { [kMarineTeamType] = function(data) return supportFieldStringGen(data, "EXO_ABILITY_ADRENALINE_FIELD") end } }
 kTeamMessages[kTeamMessageTypes.ExoRegenField] = { text = { [kMarineTeamType] = function(data) return supportFieldStringGen(data, "EXO_ABILITY_REGEN_FIELD") end } }
+
+kTeamMessages[kTeamMessageTypes.ExoCoreModulesAvailable] = { text = { [kMarineTeamType] = "EXO_CORE_MODULES_REFIT" } }
+kTeamMessages[kTeamMessageTypes.ExoAbilitiesAvailable] = { text = { [kMarineTeamType] = "EXO_ABILITIES_REFIT" } }
 
 
 -- Silly name but it fits the convention.
@@ -167,6 +171,14 @@ if Client then
         [kTeamMessageTypes.ExoRegenField] = true,
     }
 
+    local kExoRefitMessageTypes =
+    {
+        [kTeamMessageTypes.ExoCoreModulesAvailable] = true,
+        [kTeamMessageTypes.ExoAbilitiesAvailable] = true,
+    }
+    local kExoRefitSound = "sound/NS2.fev/common/tooltip_on"
+    Client.PrecacheLocalSound(kExoRefitSound)
+
     -- Text fade in + hold + fade out in GUIMarineTeamMessage:SetTeamMessage.
     local kTeamBannerDisplayTime = 3.3
     local lastTeamBannerTime = -math.huge
@@ -197,6 +209,10 @@ if Client then
 
                 assert(type(displayText) == "string")
                 player:SetTeamMessage(string.UTF8Upper(displayText))
+
+                if kExoRefitMessageTypes[messageType] then
+                    StartSoundEffect(kExoRefitSound)
+                end
 
             end
             

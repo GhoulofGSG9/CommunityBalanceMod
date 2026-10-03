@@ -406,6 +406,46 @@ function MarineTeam:AddPlayer(player)
     self:CheckForFreeInfantryPortal()
 end
 
+local kExoRefitUnlocks =
+{
+    [kTechId.CoresExosuitTech] = { slotField = "utilityModuleType", messageName = "ExoCoreModulesAvailable" },
+    [kTechId.ExoAbilitiesTech] = { slotField = "abilityModuleType", messageName = "ExoAbilitiesAvailable" },
+}
+local kExoRefitReminderDelay = 60
+
+function MarineTeam:OnResearchComplete(structure, researchId)
+
+    PlayingTeam.OnResearchComplete(self, structure, researchId)
+
+    local unlock = kExoRefitUnlocks[researchId]
+    -- A mod's older TeamMessenger.lua may lack these enum elements, and a missing one raises.
+    local messageType = unlock and rawget(kTeamMessageTypes, unlock.messageName)
+    if not messageType then
+        return
+    end
+
+    local function SendIfSlotEmpty(exo)
+        if exo:GetIsAlive() and exo[unlock.slotField] == kExoModuleTypes.None then
+            SendPlayersMessage({ exo }, messageType)
+            return true
+        end
+        return false
+    end
+
+    -- A refit or eject replaces the Exo entity, which drops the pending reminder.
+    local function Remind(exo)
+        SendIfSlotEmpty(exo)
+        return false
+    end
+
+    for _, exo in ipairs(GetEntitiesForTeam("Exo", self:GetTeamNumber())) do
+        if not exo:GetIsVirtual() and SendIfSlotEmpty(exo) then
+            exo:AddTimedCallback(Remind, kExoRefitReminderDelay)
+        end
+    end
+
+end
+
 local function GetArmorLevel(self)
 
     local armorLevels = 0

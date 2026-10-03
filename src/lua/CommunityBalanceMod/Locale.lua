@@ -318,5 +318,9 @@ if Client then
 	Locale.substitutions["EXO_PRESETS_MORE_WITH_RESEARCH"] = "More loadouts with research"
 	Locale.substitutions["EXO_PAGE_HINT"] = "Pick a loadout or build your own below, then press BUY"
 	
+	-- Exosuit refit banner
+	Locale.substitutions["EXO_CORE_MODULES_REFIT"] = "New exosuit modules: refit at an Armory or Prototype Lab"
+	Locale.substitutions["EXO_ABILITIES_REFIT"] = "New exosuit abilities: refit at an Armory or Prototype Lab"
+	
 end
 
