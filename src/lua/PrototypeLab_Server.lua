@@ -17,24 +17,41 @@ local kDeployTime = 5.5
 
 -- Power loss aborts research (ResearchMixin:OnPowerOff), so restart it once powered again.
 -- A commander cancel holds it instead: while researching, Cancel takes the Recycle button's slot.
+-- Bot commanders never press the restart button, so only a human in the chair keeps it held.
 local function UpdateExoLabUpgrade(self)
 
     if self:GetTechId() ~= kTechId.PrototypeLab then
         return false
     end
 
-    if self:GetResearchingId() == kTechId.None and not self.exoUpgradeHeld and GetIsUnitActive(self) then
+    local team = self:GetTeam()
+    local commander = team:GetCommander()
+    local held = self.exoUpgradeHeld and commander and not commander:GetIsVirtual()
+    if self:GetResearchingId() == kTechId.None and not held and GetIsUnitActive(self) then
 
-        local team = self:GetTeam()
         local techTree = team:GetTechTree()
         local techNode = techTree:GetTechNode(kTechId.UpgradeToExoPrototypeLab)
-        self:SetResearching(techNode, team:GetCommander() or self)
+        self.exoUpgradeHeld = false
+        self:SetResearching(techNode, commander or self)
         techNode:SetResearching()
         techTree:SetTechNodeChanged(techNode, "researching")
 
     end
 
     return true
+
+end
+
+local function GrantExosuitTech(self)
+
+    local techTree = self:GetTeam():GetTechTree()
+    local exosuitNode = techTree:GetTechNode(kTechId.ExosuitTech)
+    if exosuitNode and not exosuitNode:GetResearched() then
+        exosuitNode:SetResearchProgress(1)
+        techTree:SetTechNodeChanged(exosuitNode, string.format("researchProgress = %.2f", 1))
+        exosuitNode:SetResearched(true)
+        techTree:QueueOnResearchComplete(kTechId.ExosuitTech, self)
+    end
 
 end
 
@@ -45,6 +62,8 @@ function PrototypeLab:OnConstructionComplete()
     if self:GetTechId() == kTechId.PrototypeLab then
         UpdateExoLabUpgrade(self)
         self:AddTimedCallback(UpdateExoLabUpgrade, 1)
+    else
+        GrantExosuitTech(self)
     end
 
 end
@@ -67,15 +86,7 @@ function PrototypeLab:OnResearchComplete(researchId)
     if HasMixin(self, "MapBlip") then
         self:MarkBlipDirty()
     end
-
-    local techTree = self:GetTeam():GetTechTree()
-    local exosuitNode = techTree:GetTechNode(kTechId.ExosuitTech)
-    if exosuitNode and not exosuitNode:GetResearched() then
-        exosuitNode:SetResearchProgress(1)
-        techTree:SetTechNodeChanged(exosuitNode, string.format("researchProgress = %.2f", 1))
-        exosuitNode:SetResearched(true)
-        techTree:QueueOnResearchComplete(kTechId.ExosuitTech, self)
-    end
+    GrantExosuitTech(self)
 
 end
 

@@ -296,7 +296,6 @@ if Client then
 	Locale.substitutions["EXO_BUY_REFUSED_HOST"] = "Needs a built Exosuit Prototype Lab"
 	Locale.substitutions["EXO_BUY_REFUSED_UNCHANGED"] = "This is the suit you are wearing"
 	Locale.substitutions["EXO_BUY_REFUSED_FUNDS"] = "Not enough resources"
-	Locale.substitutions["EXO_BUY_REFUSED_PREPARING_FORMAT"] = "Lab is preparing exosuits: ready in %d s"
 	
 	-- Ion Torch
 	Locale.substitutions["EXO_MODULE_IONTORCH"] = "Ion Torch"

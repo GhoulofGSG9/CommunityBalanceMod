@@ -475,7 +475,7 @@ if kCBMaddon then
 	    - Losing power restarts the upgrade once the lab is powered again. Cancelling it lets the commander recycle the lab; the lab's button starts it again.
 	    - Its researches stay with the team when the lab is destroyed or recycled; another built lab sells exosuits again.
 	  - While a lab upgrades, a rotating hologram appears above it. A lab that sells exosuits shows the static exo hologram, also while it researches, and its map icon is purple.
-	    - At a lab that is still upgrading, the exosuit page shows how many seconds are left.
+	    - A lab that is still upgrading cannot be used; the research ring on it shows how long is left.
 	  
 	### ARC (Robotics) Factory
 	  - New skin and is purple on the map.
@@ -1179,7 +1179,7 @@ else
 	    - Losing power restarts the upgrade once the lab is powered again. Cancelling it lets the commander recycle the lab; the lab's button starts it again.
 	    - Its researches stay with the team when the lab is destroyed or recycled; another built lab sells exosuits again.
 	  - While a lab upgrades, a rotating hologram appears above it. A lab that sells exosuits shows the static exo hologram, also while it researches, and its map icon is purple.
-	    - At a lab that is still upgrading, the exosuit page shows how many seconds are left.
+	    - A lab that is still upgrading cannot be used; the research ring on it shows how long is left.
 	  
 	### ARC (Robotics) Factory
 	  - New skin and is purple on the map.
