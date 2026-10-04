@@ -1199,6 +1199,9 @@ local function _GetNearestWeldablePlayer(self, nearbySortedWeldable)
     return nil
 end
 
+local function _IsDestroyedPowerNode(target)
+    return target ~= nil and target:isa("PowerPoint") and target:GetIsDisabled()
+end
 -- XZ distance check from the scan center (same metric as GetEntitiesWithMixinForTeamWithinXZRange)
 local function _IsWithinScanRangeSq(w, scanPos, rangeSq)
     local delta = w:GetOrigin() - scanPos
@@ -1208,7 +1211,11 @@ end
 local function _GetNearestWeldablePvE(self, nearbySortedWeldable, scanPos, rangeSq)
     for _, w in ipairs(nearbySortedWeldable) do
         if not w:isa("Player") and (not rangeSq or _IsWithinScanRangeSq(w, scanPos, rangeSq)) then
-            local isWeldable = w:GetIsAlive() and w:GetWeldPercentage() < 1
+            local isDeadPowerNode = _IsDestroyedPowerNode(w)
+            local isWeldable = (w:GetIsAlive() or isDeadPowerNode) and w:GetWeldPercentage() < 1
+            if isWeldable and isDeadPowerNode then
+                isWeldable = w:GetCanBeWelded(self)
+            end
             local isConstructable = w:GetIsAlive() and (HasMixin(w, "Construct") and w:GetCanConstruct(self))
             local isAllowedToWeld = MAC.CanMultipleWeldPvE or not self:GetIsWeldedByOtherMAC(w)
             -- local isAlreadyBeingWelded = self:GetIsWeldedByOtherMAC(w)
@@ -1313,7 +1320,8 @@ function MAC:DecisionMakingRoutine(deltaTime)
     -- Don't follow marines through phase gates to who-knows-where
     -- Instead, move to our last set leashPos (which is the entry gate position, so we are not in the middle of nowhere)
     local targetJustPhased = currentOrderTarget and currentOrderTarget.timeOfLastPhase and Shared.GetTime() < currentOrderTarget.timeOfLastPhase + 0.5
-    local targetDied = currentOrderTarget and HasMixin(currentOrderTarget, "Live") and not currentOrderTarget:GetIsAlive()
+    -- Destroyed power nodes are not "gone": welding is how they get rebuilt, so keep the order
+    local targetDied = currentOrderTarget and HasMixin(currentOrderTarget, "Live") and not currentOrderTarget:GetIsAlive() and not _IsDestroyedPowerNode(currentOrderTarget)
     if (targetJustPhased or targetDied) then
         if currentOrderType == kTechId.FollowAndWeld then
             local newTarget = self:FindNextTargetToFollow()
