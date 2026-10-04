@@ -26,7 +26,7 @@ if kCBMaddon then
 	you think! v3.6 includes code and balance changes directly from UWE that will reflect the upcoming NS2 BETA. 
 	Below are the changes this mod introduces:
 
-	#TLDR of v3.6:
+	#TLDR of v3.6 BETA:
 	
 	## Balance and QoL Changes
 	### Exosuits: Tech Path
@@ -51,10 +51,13 @@ if kCBMaddon then
 	### Exosuits: Weapons
 	  - Minigun: vanilla damage and heat-up.
 	  - Railgun: damage scales with charge, 130 fully charged (kills a skulk). 32 m range.
-	    - Dual railguns charge together but fire at least 1.5 s apart, and each arm reloads for 3 s after its own shot. Releasing both fires left, then right 1.5 s later; pressing an arm again holds its shot. A full arm that has to wait turns amber and its dial drains until it may fire.
-	    - Resonance: a fully charged dual-rail hit on a lerk or fade makes the other arm's slug deal 30% more (169) for 3 s: about 84 DPS on one lerk or fade, 65 on anything else. Dual rails kill a carapace lerk in 2 hits and a fade in 3. The crosshair outline turns pink when your next shot will resonate, and a resonant hit pings. A marked alien sees a blue resonance icon among its status icons.
+	    - Dual railguns charge together but fire sequentially over 1.5 s. The left is fired first then the right.
+		- Each arm reloads for 3 s after its own shot and can be held for 3 s.
+	    - Resonance: a fully charged dual-rail hit on a lerk or fade makes the other arm's slug deal 30% more (169) for 3 s: about 84 DPS on one lerk or fade, 65 on anything else. Dual rails kill a carapace lerk in 2 hits and a fade in 3. 
+		- The crosshair outline turns pink when your next shot will resonate, and a resonant hit pings. A marked alien sees a blue resonance icon among its status icons.
 	    - A held full charge shows a glint on the exo's arm that other players can see.
-	    - A full charge holds for 3 s before the railgun fires itself. A click, a cyan dial (pulsing red before the forced shot) and a blue muzzle light show it is ready.
+		- The charge dial signifies when the railgun is charging (cyan), when the shot is about to be force released (pulsing red), and when the arm is waiting to fire (amber - only affects dual railgun).
+		- A blue muzzle light will show when the railgun is ready to fire.
 	  - Plasma Launcher: lobs a bomb every 2 s. AoE burst of 40 damage in 4 m and burns for 3 s.
 	    - Burns do not stack and need line of sight.
 		- Electrify is only applied to direct hits.
@@ -193,6 +196,7 @@ if kCBMaddon then
 	  - Fixed a crafted buy request handing out a dual-minigun exosuit for 25 pres without the required research.
 	  - Fixed the prototype lab exo hologram staying in the air after the lab was destroyed.
 	  - Fixed issue with sentries and hydras not being able to hit static targets in certain edge cases.
+	  - Fixed issue where you would only pick up weapons when trying to build a marine structure.
 	  - Improved performance of line of sight functions.
 	  - Improved performance of weapon holder functions.
 	  - Improved performance of cloaking functions.
@@ -355,6 +359,7 @@ if kCBMaddon then
 	  - Improved performance of gorge functions.
 	  - Improved performance of infestation functions.
 	  - Improved performance of projectile functions.
+	  - Improved performance of achievement giver functions.
 	  - Lowered game network demand.
 
 	## MARINE - PLAYER
@@ -760,7 +765,7 @@ else
 	you think! v3.6 includes code and balance changes directly from UWE that will reflect the upcoming NS2 BETA. 
 	Below are the changes this mod introduces:
 
-	#TLDR of v3.6 Playtest 4:
+	#TLDR of v3.6 BETA:
 	
 	## Balance and QoL Changes
 	### Exosuits: Tech Path
@@ -785,10 +790,13 @@ else
 	### Exosuits: Weapons
 	  - Minigun: vanilla damage and heat-up.
 	  - Railgun: damage scales with charge, 130 fully charged (kills a skulk). 32 m range.
-	    - Dual railguns charge together but fire at least 1.5 s apart, and each arm reloads for 3 s after its own shot. Releasing both fires left, then right 1.5 s later; pressing an arm again holds its shot. A full arm that has to wait turns amber and its dial drains until it may fire.
-	    - Resonance: a fully charged dual-rail hit on a lerk or fade makes the other arm's slug deal 30% more (169) for 3 s: about 84 DPS on one lerk or fade, 65 on anything else. Dual rails kill a carapace lerk in 2 hits and a fade in 3. The crosshair outline turns pink when your next shot will resonate, and a resonant hit pings. A marked alien sees a blue resonance icon among its status icons.
+	    - Dual railguns charge together but fire sequentially over 1.5 s. The left is fired first then the right.
+		- Each arm reloads for 3 s after its own shot and can be held for 3 s.
+	    - Resonance: a fully charged dual-rail hit on a lerk or fade makes the other arm's slug deal 30% more (169) for 3 s: about 84 DPS on one lerk or fade, 65 on anything else. Dual rails kill a carapace lerk in 2 hits and a fade in 3. 
+		- The crosshair outline turns pink when your next shot will resonate, and a resonant hit pings. A marked alien sees a blue resonance icon among its status icons.
 	    - A held full charge shows a glint on the exo's arm that other players can see.
-	    - A full charge holds for 3 s before the railgun fires itself. A click, a cyan dial (pulsing red before the forced shot) and a blue muzzle light show it is ready.
+		- The charge dial signifies when the railgun is charging (cyan), when the shot is about to be force released (pulsing red), and when the arm is waiting to fire (amber - only affects dual railgun).
+		- A blue muzzle light will show when the railgun is ready to fire.
 	  - Plasma Launcher: lobs a bomb every 2 s. AoE burst of 40 damage in 4 m and burns for 3 s.
 	    - Burns do not stack and need line of sight.
 		- Electrify is only applied to direct hits.
@@ -832,7 +840,7 @@ else
 		- Ejection Seat blinks orange in the front.
 		- Armor Plating has a subtle shielding shader.
 	  - Bots buy and use modular exosuits, including a core module and a support ability.
-	    - Bot exos only fire railguns and Ion Torches at targets inside their range.
+	    - Bot exos only fire Railguns and Ion Torches at targets inside their range.
 	  - The tech map shows the lab researches, and Jetpack under the Advanced Armory.
 
 	### Exosuits: Fixes
@@ -899,7 +907,7 @@ else
 	  - AMAC given minor rework to lower skill floor and reduce power ceiling.
 	  - Adjusted drifter "snap" range to 2 from 3 m. Improved command responsiveness.
 	  - Rage reverted to carapace. Aura allows health information when parasited.
-	  - Unstuck (vanilla console command) improved.
+	  - Unstuck (vanilla console command) improved and delay reduced to 3s.
 	  - Upgrade buying and switching as a lifeform improved (better egg placement).
 	  - Marine tech path adjusted and given colors to signify different tech progression.
 	    - Blue is research.
@@ -926,6 +934,7 @@ else
 	  - Fixed a crafted buy request handing out a dual-minigun exosuit for 25 pres without the required research.
 	  - Fixed the prototype lab exo hologram staying in the air after the lab was destroyed.
 	  - Fixed issue with sentries and hydras not being able to hit static targets in certain edge cases.
+	  - Fixed issue where you would only pick up weapons when trying to build a marine structure.
 	  - Improved performance of line of sight functions.
 	  - Improved performance of weapon holder functions.
 	  - Improved performance of cloaking functions.
@@ -942,6 +951,7 @@ else
 	  - Improved performance of gorge functions.
 	  - Improved performance of infestation functions.
 	  - Improved performance of projectile functions.
+	  - Improved performance of achievement giver functions.
 	  - Lowered game network demand.
 	  
 	### Be sure to thank Katzenfleisch for the performance optimizations!
@@ -1005,7 +1015,7 @@ else
 	  - All cloaked structures partially reveal when within 1 m.
 	  - Commanders now instantly see entities revealed by players.
 	  - Commanders can now see clogs revealed by players (must be damaged or collided with).
-	  - Unstuck (vanilla console command) improved.
+	  - Unstuck (vanilla console command) improved and delay reduced to 3s.
 	  - Upgrade buying and switching as a lifeform improved (better egg placement).
 	  
 	### Map / Minimap Updates
