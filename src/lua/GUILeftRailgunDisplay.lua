@@ -9,11 +9,11 @@
 -- ========= For more information, visit us at http://www.unknownworlds.com =====================
 
 -- Global state that can be externally set to adjust the display.
+chargeAmountleft = 0
 chargeHeldleft = 0
-timeSinceLastShotleft = 0
 
 function Update(dt)
-    UpdateCharge(dt, chargeHeldleft, timeSinceLastShotleft)
+    UpdateCharge(dt, chargeAmountleft, chargeHeldleft)
 end
 
 Script.Load("lua/GUIRailgun.lua")

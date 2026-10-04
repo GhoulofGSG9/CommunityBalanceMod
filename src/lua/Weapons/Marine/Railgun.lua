@@ -30,6 +30,7 @@ local kRailgunChargeTime = 1 -- Vanilla 1.4
 
 local kChargeSound = PrecacheAsset("sound/NS2.fev/marine/heavy/railgun_charge")
 local kChargeReadySound = PrecacheAsset("sound/NS2.fev/common/checkbox_on")
+local kQueuedSound = PrecacheAsset("sound/NS2.fev/common/hovar")
 
 local precached1 = PrecacheAsset("cinematics/vfx_materials/alien_frag.surface_shader")
 local precached2 = PrecacheAsset("cinematics/vfx_materials/decals/railgun_hole.surface_shader")
@@ -38,8 +39,8 @@ local networkVars =
 {
     timeChargeStarted = "time",
     railgunAttacking = "boolean",
-    lockCharging = "boolean",
-    timeOfLastShot = "time"
+    timeOfLastShot = "time",
+    railgunQueued = "boolean"
 }
 
 AddMixinNetworkVars(TechMixin, networkVars)
@@ -61,8 +62,8 @@ function Railgun:OnCreate()
     
     self.timeChargeStarted = 0
     self.railgunAttacking = false
-    self.lockCharging = false
     self.timeOfLastShot = 0
+    self.railgunQueued = false
     
     if Client then
     
@@ -130,10 +131,37 @@ function Railgun:PostDoDamage(target, damage)
 
 end
 
+local function GetDualRail(self, player)
+
+    local holder = player and player:GetActiveWeapon()
+    if not holder or not holder.GetHasDualRails or not holder:GetHasDualRails() then
+        return nil
+    end
+    local other = self:GetIsLeftSlot() and holder:GetRightSlotWeapon() or holder:GetLeftSlotWeapon()
+    return other ~= self and other or nil
+
+end
+
+local function GetRefireTime(other)
+    return other and kDualRailRefire or kRailgunChargeTime
+end
+
+-- Dual-rail slugs leave at least kDualRailSpacing apart.
+local function GetFireAllowedTime(other)
+    return other and other.timeOfLastShot + kDualRailSpacing or 0
+end
+
+-- Charging time that counts towards the forced shot: a dual arm only starts the count once it may fire,
+-- but no later than one spacing into the hold, so cycling the other arm cannot hold a charge forever.
+local function GetHoldStart(self, other)
+    return math.min(math.max(self.timeChargeStarted, GetFireAllowedTime(other) - kChargeTime), self.timeChargeStarted + kDualRailSpacing)
+end
+
 function Railgun:OnPrimaryAttack(player)
 
-    if self.timeOfLastShot + kRailgunChargeTime <= Shared.GetTime() then
-        
+    self.railgunQueued = false
+    if self.timeOfLastShot + GetRefireTime(GetDualRail(self, player)) <= Shared.GetTime() then
+
         if not self.railgunAttacking then
             self.timeChargeStarted = Shared.GetTime()
         end
@@ -151,8 +179,21 @@ function Railgun:GetWeight()
     return kRailgunWeight
 end
 
+-- A dual-rail release inside the spacing stays charged and fires once allowed (ProcessMoveOnWeapon). The slug
+-- itself only leaves at the shoot tag a few ticks later, so the spacing is stamped at release.
 function Railgun:OnPrimaryAttackEnd(player)
+
+    if not self.railgunAttacking then
+        return
+    end
+    if Shared.GetTime() < GetFireAllowedTime(GetDualRail(self, player)) then
+        self.railgunQueued = true
+        return
+    end
+    self.railgunQueued = false
+    self.timeOfLastShot = Shared.GetTime()
     self.railgunAttacking = false
+
 end
 
 function Railgun:GetBarrelPoint()
@@ -231,7 +272,8 @@ local function ExecuteShot(self, startPoint, endPoint, player)
     local trace = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.Bullets, EntityFilterAllButIsa("Tunnel"))
     local hitPointOffset = trace.normal * 0.3
     local direction = (endPoint - startPoint):GetUnit()
-    local damage = kRailgunDamage + math.min(1, (Shared.GetTime() - self.timeChargeStarted) / kChargeTime) * kRailgunChargeDamage
+    local charge = math.min(1, (Shared.GetTime() - self.timeChargeStarted) / kChargeTime)
+    local damage = kRailgunDamage + charge * kRailgunChargeDamage
     
     local extents = GetDirectedExtentsForDiameter(direction, kBulletSize)
 
@@ -275,10 +317,6 @@ local function ExecuteShot(self, startPoint, endPoint, player)
 
 end
 
-function Railgun:LockGun()
-    self.timeOfLastShot = Shared.GetTime()
-end
-
 local function Shoot(self, leftSide)
 
     local player = self:GetParent()
@@ -302,9 +340,6 @@ local function Shoot(self, leftSide)
         if Client then
             TriggerSteamEffect(self, player)
         end
-        
-        self:LockGun()
-        self.lockCharging = true
         
     end
     
@@ -336,8 +371,8 @@ function Railgun:ProcessMoveOnWeapon(player, input)
 
     if self.railgunAttacking then
     
-        if (Shared.GetTime() - self.timeChargeStarted) >= kChargeForceShootTime then
-            self.railgunAttacking = false
+        if self.railgunQueued or Shared.GetTime() - GetHoldStart(self, GetDualRail(self, player)) >= kChargeForceShootTime then
+            self:OnPrimaryAttackEnd(player)
         end
         
     end
@@ -375,8 +410,6 @@ function Railgun:OnUpdateRender()
             chargeDisplayUI = Client.CreateGUIView(246, 256)
             chargeDisplayUI:Load("lua/GUI" .. self:GetExoWeaponSlotName():gsub("^%l", string.upper) .. "RailgunDisplay.lua")
             chargeDisplayUI:SetTargetTexture(kRailgunTextureKey[self.exoWeaponSlot])
-            chargeDisplayUI:SetGlobal("refireTime", kRailgunChargeTime)
-            chargeDisplayUI:SetGlobal("chargeTime", kChargeTime)
             chargeDisplayUI:SetGlobal("forceShootTime", kChargeForceShootTime)
             self.chargeDisplayUI = chargeDisplayUI
             
@@ -384,14 +417,30 @@ function Railgun:OnUpdateRender()
         
         local slot = self.exoWeaponSlot
         local now = Shared.GetTime()
-        chargeDisplayUI:SetGlobal(kChargeHeldKey[slot], self.railgunAttacking and now - self.timeChargeStarted or 0)
-        chargeDisplayUI:SetGlobal(kTimeSinceLastShotKey[slot], now - self.timeOfLastShot)
+        chargeDisplayUI:SetGlobal(kChargeAmountKey[slot], chargeAmount)
+        local other = GetDualRail(self, parent)
+        chargeDisplayUI:SetGlobal(kChargeHeldKey[slot], self.railgunAttacking and now - GetHoldStart(self, other) or 0)
 
-        local charged = chargeAmount >= 1
-        if charged and not self.chargeReadyCued then
+        chargeDisplayUI:SetGlobal("reserve", math.min(1, (now - self.timeOfLastShot) / GetRefireTime(other)))
+
+        -- A full arm waiting out the spacing drains from the moment it had to wait.
+        local fireAllowed = GetFireAllowedTime(other)
+        local fuse = 0
+        if chargeAmount >= 1 and now < fireAllowed then
+            fuse = (fireAllowed - now) / (fireAllowed - math.max(self.timeChargeStarted + kChargeTime, other.timeOfLastShot))
+        end
+        chargeDisplayUI:SetGlobal("fuse", fuse)
+
+        local ready = chargeAmount >= 1 and now >= fireAllowed
+        chargeDisplayUI:SetGlobal("ready", ready and 1 or 0)
+        if ready and not self.railgunQueued and not self.chargeReadyCued then
             StartSoundEffect(kChargeReadySound)
         end
-        self.chargeReadyCued = charged
+        self.chargeReadyCued = ready
+        if self.railgunQueued and not self.queueCued then
+            StartSoundEffect(kQueuedSound)
+        end
+        self.queueCued = self.railgunQueued
         
     else
     
@@ -429,16 +478,12 @@ function Railgun:OnTag(tagName)
     
         if tagName == "l_shoot" then
             Shoot(self, true)
-        elseif tagName == "l_shoot_end" then
-            self.lockCharging = false
         end
         
     elseif not self:GetIsLeftSlot() then
     
         if tagName == "r_shoot" then
             Shoot(self, false)
-        elseif tagName == "r_shoot_end" then
-            self.lockCharging = false
         end
         
     end

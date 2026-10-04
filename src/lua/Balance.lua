@@ -341,6 +341,10 @@ kClawDamageType = kDamageType.Structural
 
 kRailgunDamage = 0
 kRailgunChargeDamage = 130
+-- Dual railguns charge together but fire at least the spacing apart, and each arm then reloads, so an
+-- arm fires at most every 4 s. The spacing is the shortest gap a hit lerk gets; the reload sets DPS.
+kDualRailSpacing = 1.5
+kDualRailRefire = 3
 kRailgunDamageType = kDamageType.Structural
 
 kMACAttackDamage = 5

@@ -221,6 +221,10 @@ function ExoWeaponHolder:OnSecondaryAttackEnd(player)
     
 end
 
+function ExoWeaponHolder:GetHasDualRails()
+    return self.weaponMapNameLeft == Railgun.kMapName and self.weaponMapNameRight == Railgun.kMapName
+end
+
 function ExoWeaponHolder:ProcessMoveOnWeapon(player, input)
 
     Weapon.ProcessMoveOnWeapon(self, player, input)
