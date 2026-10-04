@@ -31,6 +31,7 @@ local kRailgunChargeTime = 1 -- Vanilla 1.4
 local kChargeSound = PrecacheAsset("sound/NS2.fev/marine/heavy/railgun_charge")
 local kChargeReadySound = PrecacheAsset("sound/NS2.fev/common/checkbox_on")
 local kQueuedSound = PrecacheAsset("sound/NS2.fev/common/hovar")
+local kResonanceSound = PrecacheAsset("sound/NS2.fev/common/ping")
 
 local precached1 = PrecacheAsset("cinematics/vfx_materials/alien_frag.surface_shader")
 local precached2 = PrecacheAsset("cinematics/vfx_materials/decals/railgun_hole.surface_shader")
@@ -64,6 +65,7 @@ function Railgun:OnCreate()
     self.railgunAttacking = false
     self.timeOfLastShot = 0
     self.railgunQueued = false
+    self.resonanceHits = { }
     
     if Client then
     
@@ -265,6 +267,38 @@ function Railgun:GetIsAffectedByWeaponUpgrades()
     return true
 end
 
+local function GetIsResonant(target)
+    return target:isa("Lerk") or target:isa("Fade")
+end
+
+local function GetResonanceScalar(self, other, target, now, primes)
+
+    if not other or not GetIsResonant(target) then
+        return 1
+    end
+    local id = target:GetId()
+    local otherTime = other.resonanceHits[id]
+    if primes then
+        self.resonanceHits[id] = now
+        if Server then
+            target:SetRailResonance()
+        end
+    end
+    if otherTime and otherTime < now and now - otherTime <= kRailResonanceWindow then
+        return 1 + kRailResonanceBonus
+    end
+    return 1
+
+end
+
+local function GetIsPrimedFor(self, player, target)
+
+    local other = GetDualRail(self, player)
+    local hitTime = other and other.resonanceHits[target:GetId()]
+    return hitTime ~= nil and Shared.GetTime() - hitTime <= kRailResonanceWindow
+
+end
+
 local function ExecuteShot(self, startPoint, endPoint, player)
 
     -- Filter ourself out of the trace so that we don't hit ourselves.
@@ -275,9 +309,18 @@ local function ExecuteShot(self, startPoint, endPoint, player)
     local charge = math.min(1, (Shared.GetTime() - self.timeChargeStarted) / kChargeTime)
     local damage = kRailgunDamage + charge * kRailgunChargeDamage
     
+    local now = Shared.GetTime()
+    local dualRail = GetDualRail(self, player)
+    for id, time in pairs(self.resonanceHits) do
+        if now - time > kRailResonanceWindow then
+            self.resonanceHits[id] = nil
+        end
+    end
+
     local extents = GetDirectedExtentsForDiameter(direction, kBulletSize)
 
     local hitEntities = {}
+    local resonated = false
     for _ = 1, 20 do
 
         local capsuleTrace = Shared.TraceBox(extents, startPoint, trace.endPoint, CollisionRep.Damage, PhysicsMask.Bullets, filter)
@@ -285,7 +328,9 @@ local function ExecuteShot(self, startPoint, endPoint, player)
 
             if not table.find(hitEntities, capsuleTrace.entity) then
                 table.insert(hitEntities, capsuleTrace.entity)
-                self:DoDamage(damage, capsuleTrace.entity, capsuleTrace.endPoint + hitPointOffset, direction, capsuleTrace.surface, false, false)
+                local scalar = GetResonanceScalar(self, dualRail, capsuleTrace.entity, now, charge >= 1)
+                resonated = resonated or scalar > 1
+                self:DoDamage(damage * scalar, capsuleTrace.entity, capsuleTrace.endPoint + hitPointOffset, direction, capsuleTrace.surface, false, false)
 				
 				if capsuleTrace.entity:isa("Onos") then
 					if capsuleTrace.entity:GetIsBoneShieldActive() and capsuleTrace.entity:GetHitsBoneShield(self, capsuleTrace.endPoint + hitPointOffset) then
@@ -302,6 +347,10 @@ local function ExecuteShot(self, startPoint, endPoint, player)
 
         -- use new start point
         startPoint = Vector(capsuleTrace.endPoint) + direction * extents.x * 3
+    end
+
+    if Client and resonated and player == Client.GetLocalPlayer() and not Shared.GetIsRunningPrediction() then
+        StartSoundEffect(kResonanceSound)
     end
 
     local effectFrequency = self:GetTracerEffectFrequency()
@@ -603,7 +652,7 @@ if Client then
             local trace = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.Bullets, kFilterTunnel)
             
             if trace.entity then
-                trace.entity:SetRailgunTarget()
+                trace.entity:SetRailgunTarget(GetIsPrimedFor(self, player, trace.entity))
                 self.railgunTargetId = trace.entity:GetId()
                 return
             end
@@ -621,7 +670,7 @@ if Client then
                 local capsuleTrace = Shared.TraceBox(extents, startPoint, trace.endPoint, CollisionRep.Damage, PhysicsMask.Bullets, filter)
                 -- If we found an entity, leave
                 if capsuleTrace.entity then
-                    capsuleTrace.entity:SetRailgunTarget()
+                    capsuleTrace.entity:SetRailgunTarget(GetIsPrimedFor(self, player, capsuleTrace.entity))
                     self.railgunTargetId = capsuleTrace.entity:GetId()
                     break
                 end

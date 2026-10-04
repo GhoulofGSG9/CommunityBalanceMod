@@ -345,6 +345,10 @@ kRailgunChargeDamage = 130
 -- arm fires at most every 4 s. The spacing is the shortest gap a hit lerk gets; the reload sets DPS.
 kDualRailSpacing = 1.5
 kDualRailRefire = 3
+-- A dual-rail slug deals this much more to a lerk or fade the other arm hit with a full charge within
+-- the window.
+kRailResonanceBonus = 0.3
+kRailResonanceWindow = 3
 kRailgunDamageType = kDamageType.Structural
 
 kMACAttackDamage = 5

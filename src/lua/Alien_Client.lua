@@ -426,6 +426,13 @@ function PlayerUI_GetIsElectrified()
 
 end
 
+function PlayerUI_GetHasRailResonance()
+
+    local player = Client.GetLocalPlayer()
+    return player ~= nil and player.GetHasRailResonance ~= nil and player:GetHasRailResonance()
+
+end
+
 function PlayerUI_GetIsWallWalking()
 
     local player = Client.GetLocalPlayer()
