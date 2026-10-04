@@ -593,12 +593,12 @@ function Marine:HandleButtons(input)
     if self:GetCanControl() then
     
         -- Update sprinting state
+        local now = Shared.GetTime()
         local sprinting = self:UpdateSprintingState(input)
 
         -- search for weapons to auto-pickup nearby.
         if Server and self.ShouldAutopickupWeapons and self:ShouldAutopickupWeapons() then
 
-            local now = Shared.GetTime()
             if (self.timeLastAutopickupCheck + 0.35 < now or self.timeLastAutopickup + 1 > now) then
                 local autopickupWeapon = self:FindNearbyAutoPickupWeapon()
                 if autopickupWeapon then
