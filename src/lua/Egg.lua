@@ -592,8 +592,9 @@ function Egg:GetHealthbarOffset()
     return 0.4
 end
 
+local kUpVect = Vector(0, 0.3, 0)
 function Egg:GetEngagementPointOverride()
-    return self:GetOrigin() + Vector(0, 0.3, 0)
+    return self:GetOrigin() + kUpVect
 end
 
 function Egg:InternalGetCanBeUsed(player)
@@ -615,7 +616,7 @@ end
 if Server then
 
     function Egg:OnTeleportEnd(shift)
-        self:SetOrigin(self:GetOrigin() + Vector(0, 0.2, 0)) 
+        self:SetOrigin(self:GetOrigin() + kUpVect) 
     end
 
     -- delete the egg to avoid invalid ID's and reset the player to spawn queue if one is occupying it
