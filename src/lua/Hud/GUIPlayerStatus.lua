@@ -89,6 +89,7 @@ GUIPlayerStatus.kDetectedTextureCoords = GetTextureCoordinates(0, 5)
 GUIPlayerStatus.kCloakedTextureCoords = GetTextureCoordinates(0, 6)
 GUIPlayerStatus.kCorrodedTextureCoords = GetTextureCoordinates(0, 7)
 GUIPlayerStatus.kElectrifiedTextureCoords = GetTextureCoordinates(0, 3)
+GUIPlayerStatus.kRailResonanceTextureCoords = GetTextureCoordinates(0, 0)
 GUIPlayerStatus.kUmbraTextureCoords = GetTextureCoordinates(0, 11)
 GUIPlayerStatus.kDouseTextureCoords = GetTextureCoordinates(0, 12)
 GUIPlayerStatus.kEnergizeTextureCoords = GetTextureCoordinates(1, 10)
@@ -350,6 +351,18 @@ electrifiedSettings.Simple = true
 electrifiedSettings.EffectIconCoords = GUIPlayerStatus.kArrowDownCoords
 electrifiedSettings.StatusBackgroundCoords = GUIPlayerStatus.kBackgroundRed
 
+local railResonanceSettings = {}
+railResonanceSettings.Name = "RailResonance"
+railResonanceSettings.Texture = PrecacheAsset("ui/rail_resonance_icon.dds")
+railResonanceSettings.TextureCoordinates = GUIPlayerStatus.kRailResonanceTextureCoords
+railResonanceSettings.BackgroundWidth = globalSettings.IconBackgroundWidth
+railResonanceSettings.BackgroundHeight = globalSettings.IconBackgroundHeight
+railResonanceSettings.BackgroundOffset = globalSettings.BackgroundOffset
+railResonanceSettings.Simple = true
+railResonanceSettings.EffectIconCoords = GUIPlayerStatus.kArrowDownCoords
+railResonanceSettings.StatusBackgroundCoords = GUIPlayerStatus.kBackgroundRed
+railResonanceSettings.ShowWithLowHUDDetails = true
+
 local wallWalkingSettings = {}
 wallWalkingSettings.Name = "WallWalking"
 wallWalkingSettings.Texture = kStatusIconsTexture
@@ -476,6 +489,7 @@ statusSettings["Corroded"] = corrodedSettings
 statusSettings["Cloaked"] = cloakedSettings
 statusSettings["OnFire"] = onFireSettings
 statusSettings["Electrified"] = electrifiedSettings
+statusSettings["RailResonance"] = railResonanceSettings
 statusSettings["WallWalking"] = wallWalkingSettings
 statusSettings["Umbra"] = umbraSettings
 statusSettings["Douse"] = douseSettings
@@ -530,7 +544,7 @@ local function CreateStatusIndicator(self, settings)
     local statusEffectIcon
     if settings.EffectIconCoords then
         statusEffectIcon = self.script:CreateAnimatedGraphicItem()
-        statusEffectIcon:SetTexture(settings.Texture)
+        statusEffectIcon:SetTexture(kStatusIconsTexture)
         statusEffectIcon:SetTexturePixelCoordinates(GUIUnpackCoords(settings.EffectIconCoords))
         statusEffectIcon:SetSize(GUIScale(Vector(GUIPlayerStatus.kEffectIconSize, GUIPlayerStatus.kEffectIconSize, 0)))
         statusEffectIcon:SetPosition(Vector(-GUIPlayerStatus.kEffectIconSize , -GUIPlayerStatus.kEffectIconSize, 0))
@@ -599,6 +613,7 @@ function GUIPlayerStatus:Initialize()
         table.insert(self.statusIcons, CreateStatusIndicator(self, cloakedSettings))
         table.insert(self.statusIcons, CreateStatusIndicator(self, onFireSettings))
         table.insert(self.statusIcons, CreateStatusIndicator(self, electrifiedSettings))
+        table.insert(self.statusIcons, CreateStatusIndicator(self, railResonanceSettings))
         --table.insert(self.statusIcons, CreateStatusIndicator(self, wallWalkingSettings)) No icon for this yet
         table.insert(self.statusIcons, CreateStatusIndicator(self, umbraSettings)) -- No icon for this yet
 		table.insert(self.statusIcons, CreateStatusIndicator(self, douseSettings)) -- No icon for this yet

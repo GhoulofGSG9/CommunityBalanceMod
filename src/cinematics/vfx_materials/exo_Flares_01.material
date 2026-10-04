@@ -1,0 +1,2 @@
+shader = "cinematics/vfx_materials/exo_flame.surface_shader"
+emissiveMap = "cinematics/vfx_materials/vfx_Flares_01.dds"

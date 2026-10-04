@@ -167,7 +167,7 @@ if Client then
 	Locale.substitutions["RESEARCH_CORES_EXOSUIT_TITLE"] = "Exosuit Cores"
 	Locale.substitutions["CORES_EXOSUIT_TECH_TOOLTIP"] = "Unlocks the exosuit core modules: Thrusters, Ejection Seat and Armor Plating."
 	Locale.substitutions["ADVANCED_EXO_ARMS_TECH"] = "Advanced Exosuit Arms"
-	Locale.substitutions["ADVANCED_EXO_ARMS_TECH_TOOLTIP"] = "Unlocks the flame and plasma arms."
+	Locale.substitutions["ADVANCED_EXO_ARMS_TECH_TOOLTIP"] = "Unlocks the Ion Torch and Plasma Launcher arms."
 	Locale.substitutions["EXO_ABILITIES_TECH"] = "Exosuit Abilities"
 	Locale.substitutions["EXO_ABILITIES_TECH_TOOLTIP"] = "Unlocks the exosuit support abilities: Nano Shield Field, Catalyst Field and Regen Field."
 
@@ -216,10 +216,10 @@ if Client then
 	Locale.substitutions["EXO_MODULE_CLAW"] = "Claw"
 	Locale.substitutions["EXO_MODULE_CLAW_DESC"] = "Left arm only: a 50 structural damage swing at melee range that never runs dry, and the most armor for the least weight of any arm. It cannot shoot, so the right arm has to do the killing."
 	Locale.substitutions["EXO_MODULE_MINIGUN_DESC"] = "Mid range bullet hose with no ammo to reload: 6 heavy damage a round, the pick against big armored lifeforms. It overheats after 3.5 seconds of held fire and is by far the heaviest arm: two of them make the suit a slow tank."
-	Locale.substitutions["EXO_MODULE_RAILGUN_DESC"] = "Long range shot: charge for a second to take it from 20 to 120 structural damage, and the slug pierces every target in its line out to 30 meters. Thin plating, so it wants to fight from the back."
+	Locale.substitutions["EXO_MODULE_RAILGUN_DESC"] = "Long range shot: charge for a second for up to 130 structural damage, and the slug pierces every target in its line out to 32 meters. Two railguns charge together and fire a one-two at least 1.5 s apart, and a slug that hits a lerk or fade the other arm just hit with a full charge deals 30% more. Thin plating, so it wants to fight from the back."
 	Locale.substitutions["EXO_MODULE_PLASMALAUNCHER"] = "Plasma Launcher"
 	Locale.substitutions["EXO_MODULE_PLASMALAUNCHER_DESC"] = "Lobbed plasma charge: 40 damage in a 4 meter blast plus a lingering DoT. A direct hit electrifies the alien it lands on for 3.5 seconds, stripping mucous and enzyme and slowing its attacks. Swarm control, not a siege weapon. One bomb from a full cell, then one every 2 seconds."
-	Locale.substitutions["EXO_MODULE_FLAMETHROWER_DESC"] = "Has a wider cone than the marine flamethrower's, 9 damage a tick out to 9 meters, setting aliens and structures on fire and burning away spores and umbra; bile bombs fly through it. It cannot weld and overheats after 10 seconds."
+	Locale.substitutions["EXO_MODULE_FLAMETHROWER_DESC"] = "Burns hotter than the marine flamethrower: 12 damage a tick in a wide cone out to 13 meters, and its burn deals 12 damage a second instead of 8. Burning aliens heal at half rate, a burning hive heals no one and burning structures stop working. Burns away spores and umbra; bile bombs fly through it. Leaves no burning ground. It cannot weld and overheats after 10 seconds."
 	Locale.substitutions["EXO_MODULE_THRUSTERS"] = "Thrusters"
 	Locale.substitutions["EXO_MODULE_THRUSTERS_DESC"] = "Core module: a ground dash worth 2.5 extra speed on demand, burning 4 energy a second out of the fuel cell. Good for closing on a target or breaking a chase; it gives no lift."
 	Locale.substitutions["EXO_MODULE_EJECTIONSEAT"] = "Ejection Seat"
@@ -258,9 +258,9 @@ if Client then
 	Locale.substitutions["EXO_BUY_SPEED_BASELINE"] = "marine walk = 100% speed"
 	Locale.substitutions["EXO_MODULE_CLAW_TAGS"] = "MELEE | STRUCTURAL | 50 DMG"
 	Locale.substitutions["EXO_MODULE_MINIGUN_TAGS"] = "MID RANGE | HEAVY | 6 DMG A ROUND"
-	Locale.substitutions["EXO_MODULE_RAILGUN_TAGS"] = "LONG RANGE | STRUCTURAL | 20-120 | PIERCE"
+	Locale.substitutions["EXO_MODULE_RAILGUN_TAGS"] = "LONG RANGE | STRUCTURAL | UP TO 130 | PIERCE"
 	Locale.substitutions["EXO_MODULE_PLASMALAUNCHER_TAGS"] = "MID RANGE | NORMAL | 40 + DOT | AOE | SHOCK"
-	Locale.substitutions["EXO_MODULE_FLAMETHROWER_TAGS"] = "SHORT RANGE | FLAME | 9 A TICK | CONE | BURN"
+	Locale.substitutions["EXO_MODULE_FLAMETHROWER_TAGS"] = "SHORT RANGE | FLAME | 12 A TICK | CONE | HOT BURN"
 	Locale.substitutions["EXO_MODULE_THRUSTERS_TAGS"] = "MOBILITY | DASH | FUEL"
 	Locale.substitutions["EXO_MODULE_EJECTIONSEAT_TAGS"] = "SURVIVAL | AUTO-EJECT | FAST EJECT"
 	Locale.substitutions["EXO_MODULE_ARMOR_TAGS"] = "DEFENSE | +80 ARMOR"
@@ -285,7 +285,7 @@ if Client then
 	Locale.substitutions["HELP_SCREEN_EXO_REGEN_FIELD"] = "REGEN FIELD"
 	Locale.substitutions["TIPVIDEO_1_EXO_EXOSUIT_BOOSTERS"] = "With the Thrusters core module, hold Shift to boost forward, or hold space to hover."
 	Locale.substitutions["HELP_SCREEN_EXO_PLASMA_LAUNCHER"] = "PLASMA LAUNCHER"
-	Locale.substitutions["HELP_SCREEN_EXO_PLASMA_LAUNCHER_DESCRIPTION"] = "Charge up and lob a ball of superheated plasma that detonates on impact, splashing everything nearby and leaving the survivors burning.  Each shot drains the energy cell, so watch the meter before you pick a fight."
+	Locale.substitutions["HELP_SCREEN_EXO_PLASMA_LAUNCHER_DESCRIPTION"] = "Lobs a plasma bomb: 40 damage in a 4 m blast plus damage over time.  A direct hit electrifies the alien for 3.5 s, stripping mucous and enzyme and slowing its attacks.  One bomb every 2 seconds."
 	
 	
 	-- Exosuit research gates and armory refit
@@ -296,6 +296,37 @@ if Client then
 	Locale.substitutions["EXO_BUY_REFUSED_HOST"] = "Needs a built Exosuit Prototype Lab"
 	Locale.substitutions["EXO_BUY_REFUSED_UNCHANGED"] = "This is the suit you are wearing"
 	Locale.substitutions["EXO_BUY_REFUSED_FUNDS"] = "Not enough resources"
+	
+	-- Ion Torch
+	Locale.substitutions["EXO_MODULE_IONTORCH"] = "Ion Torch"
+	
+	-- Exosuit buy menu loadouts
+	Locale.substitutions["EXO_PRESETS_TITLE"] = "LOADOUTS"
+	Locale.substitutions["EXO_PRESET_1"] = "Charter Issue"
+	Locale.substitutions["EXO_PRESET_1_DESC"] = "The standard Frontiersmen exosuit, issued under the Charter. Needs no research beyond the suit itself."
+	Locale.substitutions["EXO_PRESET_2"] = "Enforcer"
+	Locale.substitutions["EXO_PRESET_2_DESC"] = "Sustained heavy fire that holds a line, built for the TSF's police actions."
+	Locale.substitutions["EXO_PRESET_3"] = "Responder"
+	Locale.substitutions["EXO_PRESET_3_DESC"] = "Picks off lerks and fades at range, then repositions, like the rapid-response teams of the Ariadne Arm."
+	Locale.substitutions["EXO_PRESET_4"] = "Quarantine"
+	Locale.substitutions["EXO_PRESET_4_DESC"] = "Burns out infested rooms: sets structures on fire and clears spores and umbra."
+	Locale.substitutions["EXO_PRESET_LAST"] = "Re-issue"
+	Locale.substitutions["EXO_PRESET_LAST_DESC"] = "The exosuit configuration you last requested."
+	Locale.substitutions["EXO_PRESET_LAST_MARK"] = "LAST"
+	Locale.substitutions["EXO_PRESET_LAST_CAPTION"] = "LAST"
+	Locale.substitutions["EXO_PRESET_LAST_MATCH"] = "Your last exosuit."
+	Locale.substitutions["EXO_PRESETS_MORE_WITH_RESEARCH"] = "More loadouts with research"
+	Locale.substitutions["EXO_PAGE_HINT"] = "Pick a loadout or build your own below, then press BUY"
+	
+	-- Exosuit refit banner
+	Locale.substitutions["EXO_CORE_MODULES_REFIT"] = "New exosuit modules: refit at an Armory or Prototype Lab"
+	Locale.substitutions["EXO_ABILITIES_REFIT"] = "New exosuit abilities: refit at an Armory or Prototype Lab"
+	
+	-- Help screen: Ion Torch and Plasma Launcher cards
+	Locale.substitutions["HELP_SCREEN_EXO_ION_TORCH"] = "ION TORCH"
+	Locale.substitutions["HELP_SCREEN_EXO_ION_TORCH_DESCRIPTION"] = "Blue flame to 13 m: 12 damage a tick and sets targets alight for 12 a second.  Burning aliens heal at half rate, burning hives heal no one.  Clears spores and umbra, not bile.  Overheats after 10 s."
+	Locale.substitutions["HELP_SCREEN_EXO_RAILGUN_DESCRIPTION"] = "Hold to charge, release to fire: up to 130 damage, piercing every target in line.  Dual railguns fire at least 1.5 s apart; the second slug fires itself when its amber dial runs out, press again to hold it.  A full-charge hit on a lerk or fade makes the other arm's slug deal 30% more for 3 s (pink outline)."
+	Locale.substitutions["WEAPON_DESC_DUALRAILGUN_EXO"] = "The second slug follows the first."
 	
 end
 

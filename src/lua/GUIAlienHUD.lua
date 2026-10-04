@@ -986,6 +986,7 @@ function GUIAlienHUD:Update(deltaTime)
 
     playerStatusIcons.Cloaked = PlayerUI_GetIsCloaked()
     playerStatusIcons.Detected = PlayerUI_GetIsDetected()
+    playerStatusIcons.RailResonance = PlayerUI_GetHasRailResonance()
     playerStatusIcons.MucousedTime = PlayerUI_GetMucousShieldTimeRemaining()
     self.statusDisplays:Update(deltaTime, playerStatusIcons, fullMode)
 

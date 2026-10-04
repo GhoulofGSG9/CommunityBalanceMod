@@ -12,9 +12,10 @@ Script.Load("lua/BalanceMisc.lua")
 kCBMaddon = true -- Enables AMAC, SPARC, SMG, Adv Obs, Adv Gate, Bio 5, and Advanced Structures.
 
 kRelevancyRangeCap = 41 -- Relevancy range is 40 m, so 1 m buffer
--- Railgun stays well under relevancy: a longer slug hits aliens whose client has not even
+-- Railgun stays under relevancy: a longer slug hits aliens whose client has not even
 -- received the exo entity, so lerks died to shooters they could not see (vanilla 400).
-kRailgunRange = kMaxRelevancyDistance - 10
+-- 32 m leaves a lerk a 32-40 m band at the edge of a hive room.
+kRailgunRange = kMaxRelevancyDistance - 8
 
 kTransformResourcesTime = 15
 kTransformResourcesCost = 15
@@ -326,9 +327,7 @@ kFlamethrowerBurnDuration = 2.1
 kFlamethrowerMaxBurnDuration = 6
 
 
--- Output levers for an exo carrying two gun arms, applied in Exo:ComputeDamageAttackerOverride.
--- All four are 1: the hooks exist so a pair can be tuned without a code change, not because
--- any pair is currently modified. A mixed pair takes the first lever its arms match.
+-- Output levers for an exo carrying two arms of the same gun, applied in Exo:ComputeDamageAttackerOverride.
 kExoDualMinigunModifier = 1
 kExoDualRailgunModifier = 1
 kExoDualPlasmaModifier = 1
@@ -340,8 +339,16 @@ kMinigunDamageType = kDamageType.Heavy
 kClawDamage = 50
 kClawDamageType = kDamageType.Structural
 
-kRailgunDamage = 20
-kRailgunChargeDamage = 100
+kRailgunDamage = 0
+kRailgunChargeDamage = 130
+-- Dual railguns charge together but fire at least the spacing apart, and each arm then reloads, so an
+-- arm fires at most every 4 s. The spacing is the shortest gap a hit lerk gets; the reload sets DPS.
+kDualRailSpacing = 1.5
+kDualRailRefire = 3
+-- A dual-rail slug deals this much more to a lerk or fade the other arm hit with a full charge within
+-- the window.
+kRailResonanceBonus = 0.3
+kRailResonanceWindow = 3
 kRailgunDamageType = kDamageType.Structural
 
 kMACAttackDamage = 5
@@ -612,7 +619,7 @@ kTechMACSpeedResearchTime = 15
 kJetpackTechResearchTime = 130
 kJetpackFuelTechResearchTime = 60
 kJetpackArmorTechResearchTime = 60
-kExosuitTechResearchTime = 110
+kExosuitTechResearchTime = 90
 kExosuitLockdownTechResearchTime = 60
 kExosuitUpgradeTechResearchTime = 60
 
@@ -970,8 +977,8 @@ kBabblerBombResearchTime = kBileBombResearchTime
 kBabblerBombResearchCost = 15
 
 -- ExoProtolab
-kExoPrototypeLabResearchTime = kExosuitTechResearchTime -- 110
-kExoPrototypeLabUpgradeCost = kExosuitTechResearchCost -- 25
+kExoPrototypeLabResearchTime = kExosuitTechResearchTime
+kExoPrototypeLabUpgradeCost = 0
 kExoPrototypeLabHealth = kPrototypeLabHealth  -- 3000
 kExoPrototypeLabArmor = kPrototypeLabArmor -- 500   
 kExoPrototypeLabPointValue = kPrototypeLabPointValue -- 20
@@ -1069,8 +1076,9 @@ kExoFlamerConeWidth = 1
 kExoFlamerCoolDownRate = 0.20
 kExoFlamerHeatUpRate = 0.10
 kExoFlamerFireRate = 1 / 3
-kExoFlamerExoFlamerDamage = kFlamethrowerDamage
-kExoFlamerRange = kFlamethrowerRange
+kExoFlamerExoFlamerDamage = 12
+kExoFlamerBurnDamagePerSecond = 12
+kExoFlamerRange = 13
 kExoFlamerTrailLength = kExoFlamerRange + 0.5
 
 kExoFlamerDamageType = kFlamethrowerDamageType

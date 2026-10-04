@@ -104,6 +104,8 @@ local networkVars =
 
     electrified = "boolean",
 
+    timeRailResonance = "private time",
+
     hatched = "private boolean",
 
     darkVisionSpectatorOn = "private boolean",
@@ -187,6 +189,7 @@ function Alien:OnCreate()
     self.threeHives = false
     self.enzymed = false
     self.stormed = false
+    self.timeRailResonance = 0
 
     if Server then
 
@@ -357,6 +360,14 @@ function Alien:GetElectrified()
 
     return self.electrified
 
+end
+
+function Alien:SetRailResonance()
+    self.timeRailResonance = Shared.GetTime()
+end
+
+function Alien:GetHasRailResonance()
+    return Shared.GetTime() - self.timeRailResonance <= kRailResonanceWindow
 end
 
 if Server then

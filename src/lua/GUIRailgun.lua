@@ -12,31 +12,52 @@ Script.Load("lua/GUIDial.lua")
 
 local kTexture = "models/marine/exosuit/exosuit_view_panel_rail2.dds"
 
+local kWarnTime = 0.75
+local kChargingColor = Color(1, 1, 1, 1)
+local kReadyColor = Color(0.25, 1, 1, 1)
+local kWarnColor = Color(1, 0, 0, 1)
+local kWaitColor = Color(1, 0.6, 0, 1)
+
 local chargeCircle
 local shootSquares = { }
 local cooldownSquares = { }
 local time = 0
 
--- Seconds until the railgun can fire again after a shot. Set through SetGlobal by
--- Railgun:OnUpdateRender when it creates this view; the vanilla value is the fallback.
-refireTime = refireTime or 1.4
+-- Set through SetGlobal by Railgun:OnUpdateRender. The squares count down the reload in `reserve`;
+-- `fuse` is what a full dual arm still waits before it may fire; `ready` is a full charge that may fire now.
+forceShootTime = forceShootTime or 2.5
+reserve = reserve or 1
+fuse = fuse or 0
+ready = ready or 0
 
-function UpdateCharge(dt, chargeAmount, timeSinceLastShot)
+function UpdateCharge(dt, chargeAmount, chargeHeld)
 
     PROFILE("GUIRailgun:UpdateCharge")
-    
-    local pulseAmt = (1 + math.cos(time * 20)) * 0.5
-    local colorAmt = chargeAmount >= 1 and (pulseAmt * 0.5) or 1
-    chargeCircle:GetLeftSide():SetColor(Color(1, colorAmt, colorAmt, 1))
-    chargeCircle:GetRightSide():SetColor(Color(1, colorAmt, colorAmt, 1))
+
+    local color = kChargingColor
+    if chargeHeld >= forceShootTime - kWarnTime then
+
+        local pulseAmt = (1 + math.cos(time * 20)) * 0.25
+        kWarnColor.g = pulseAmt
+        kWarnColor.b = pulseAmt
+        color = kWarnColor
+
+    elseif fuse > 0 then
+        color = kWaitColor
+        chargeAmount = fuse
+    elseif ready == 1 then
+        color = kReadyColor
+    end
+    chargeCircle:GetLeftSide():SetColor(color)
+    chargeCircle:GetRightSide():SetColor(color)
     
     for s = 1, #cooldownSquares do
-        cooldownSquares[s]:SetIsVisible(timeSinceLastShot < (s * refireTime / 4))
+        cooldownSquares[s]:SetIsVisible(reserve < s / #cooldownSquares)
     end
     
     chargeCircle:SetPercentage(chargeAmount)
     chargeCircle:Update(dt)
-    
+
     time = time + dt
     
 end

@@ -45,7 +45,7 @@ if Server then
     local kHitSoundEnabledForWeapon =
     set {
         kTechId.Axe, kTechId.Welder, kTechId.Pistol, kTechId.Rifle, kTechId.Shotgun, kTechId.Flamethrower, kTechId.GrenadeLauncher, kTechId.HeavyMachineGun, kTechId.Submachinegun,
-        kTechId.Claw, kTechId.Minigun, kTechId.Railgun,
+        kTechId.Claw, kTechId.Minigun, kTechId.Railgun, kTechId.ExoFlamer,
         kTechId.Bite, kTechId.Parasite, kTechId.Xenocide,
         kTechId.Spit,
         kTechId.LerkBite, kTechId.Spikes,
@@ -97,7 +97,11 @@ if Server then
         local attacker = Shared.GetEntity(hit.attacker)
         if hit.weapon == kTechId.Railgun then
             -- Railgun hitsound is based on charge amount
-            local chargeAmount = ( ( hit.overkill / NS2Gamerules_GetUpgradedDamageScalar( attacker, hit.weapon ) ) - kRailgunDamage ) / kRailgunChargeDamage
+            local scalar = NS2Gamerules_GetUpgradedDamageScalar( attacker, hit.weapon )
+            if attacker and attacker.GetDualArmDamageScalar then
+                scalar = scalar * attacker:GetDualArmDamageScalar()
+            end
+            local chargeAmount = ( ( hit.overkill / hit.hitcount / scalar ) - kRailgunDamage ) / kRailgunChargeDamage
             if kHitSoundHigh <= chargeAmount then
                 sound = 3
             elseif kHitSoundMid <= chargeAmount then

@@ -132,6 +132,10 @@ function ExoFlamer:GetRange()
     return kExoFlamerRange
 end
 
+function ExoFlamer:GetBurnDamagePerSecond()
+    return kExoFlamerBurnDamagePerSecond
+end
+
 local kBurnStepLength = 2
 local kBurnMaxSteps = 5
 local kSporeCloudTag = "class:SporeCloud"
@@ -468,7 +472,7 @@ function ExoFlamer:AddHeat(amount)
 end
 
 function ExoFlamer:GetDeathIconIndex()
-    return kDeathMessageIcon.Flamethrower
+    return kDeathMessageIcon.IonTorch
 end
 
 function ExoFlamer:OnPrimaryAttackEnd(player)

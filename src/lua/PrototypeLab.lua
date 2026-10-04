@@ -180,6 +180,12 @@ end
 
 function PrototypeLab:GetTechButtons(techId)
 
+    if self:GetTechId() == kTechId.PrototypeLab then
+        return
+        { kTechId.UpgradeToExoPrototypeLab, kTechId.None, kTechId.None, kTechId.None,
+          kTechId.None, kTechId.None, kTechId.None, kTechId.None }
+    end
+
     return
     { kTechId.DualMinigunTech, kTechId.AdvancedExoArmsTech, kTechId.CoresExosuitTech, kTechId.ExoAbilitiesTech,
       kTechId.None, kTechId.None, kTechId.None, kTechId.None }
@@ -203,7 +209,11 @@ function PrototypeLab:GetCanBeUsed(player, useSuccessTable)
     if (not self:GetIsBuilt() and player:isa("Exo")) or (player:isa("Exo") and player:GetHasDualGuns()) then
         useSuccessTable.useSuccess = false
     end
-    
+
+    if self:GetIsBuilt() and self:GetTechId() == kTechId.PrototypeLab then
+        useSuccessTable.useSuccess = false
+    end
+
 end
 
 function PrototypeLab:GetUseMaxRange(player)    --Dictates when BuyMenu use-key appears
@@ -323,9 +333,9 @@ if Client then
         end
         
         local powered = self:GetIsPowered()
-        local researching = self:GetIsResearching()
-        self.haloCinematicResearch:SetIsVisible(researching and powered)
-        self.haloCinematicFinished:SetIsVisible(not researching and powered and self:GetTechId() == kTechId.ExoPrototypeLab)
+        local upgrading = self:GetResearchingId() == kTechId.UpgradeToExoPrototypeLab and self:GetIsResearching()
+        self.haloCinematicResearch:SetIsVisible(upgrading and powered)
+        self.haloCinematicFinished:SetIsVisible(powered and self:GetTechId() == kTechId.ExoPrototypeLab)
     end
 end
 

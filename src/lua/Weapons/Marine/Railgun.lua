@@ -21,7 +21,7 @@ Railgun.kMapName = "railgun"
 
 local kChargeTime = 1 -- Changed from vanilla value 2
 -- The Railgun will automatically shoot if it is charged for too long.
-local kChargeForceShootTime = 2.5 --  vanilla value 2.5
+local kChargeForceShootTime = 4 --  vanilla value 2.5
 -- kRailgunRange lives in Balance.lua next to kRelevancyRangeCap.
 local kRailgunSpread = Math.Radians(0)
 local kBulletSize = 0.3
@@ -29,6 +29,10 @@ local kBulletSize = 0.3
 local kRailgunChargeTime = 1 -- Vanilla 1.4
 
 local kChargeSound = PrecacheAsset("sound/NS2.fev/marine/heavy/railgun_charge")
+local kChargeReadySound = PrecacheAsset("sound/NS2.fev/common/checkbox_on")
+local kQueuedSound = PrecacheAsset("sound/NS2.fev/common/hovar")
+local kChargedGlintCinematic = PrecacheAsset("cinematics/marine/exo/lens_flare.cinematic")
+local kResonanceSound = PrecacheAsset("sound/NS2.fev/common/ping")
 
 local precached1 = PrecacheAsset("cinematics/vfx_materials/alien_frag.surface_shader")
 local precached2 = PrecacheAsset("cinematics/vfx_materials/decals/railgun_hole.surface_shader")
@@ -37,8 +41,8 @@ local networkVars =
 {
     timeChargeStarted = "time",
     railgunAttacking = "boolean",
-    lockCharging = "boolean",
-    timeOfLastShot = "time"
+    timeOfLastShot = "time",
+    railgunQueued = "boolean"
 }
 
 AddMixinNetworkVars(TechMixin, networkVars)
@@ -60,8 +64,9 @@ function Railgun:OnCreate()
     
     self.timeChargeStarted = 0
     self.railgunAttacking = false
-    self.lockCharging = false
     self.timeOfLastShot = 0
+    self.railgunQueued = false
+    self.resonanceHits = { }
     
     if Client then
     
@@ -88,7 +93,21 @@ function Railgun:OnDestroy()
     
         Client.DestroyGUIView(self.chargeDisplayUI)
         self.chargeDisplayUI = nil
+
+    end
+
+    if self.chargeLight then
+
+        Client.DestroyRenderLight(self.chargeLight)
+        self.chargeLight = nil
         
+    end
+
+    if self.chargedGlint then
+
+        Client.DestroyCinematic(self.chargedGlint)
+        self.chargedGlint = nil
+
     end
     
 end
@@ -122,15 +141,37 @@ function Railgun:PostDoDamage(target, damage)
 
 end
 
--- Only one railgun charges at a time. Two charging together put a near instant burst
--- downrange that no aim commitment paid for; build 320 banned it and the ban held.
+local function GetDualRail(self, player)
+
+    local holder = player and player:GetActiveWeapon()
+    if not holder or not holder.GetHasDualRails or not holder:GetHasDualRails() then
+        return nil
+    end
+    local other = self:GetIsLeftSlot() and holder:GetRightSlotWeapon() or holder:GetLeftSlotWeapon()
+    return other ~= self and other or nil
+
+end
+
+local function GetRefireTime(other)
+    return other and kDualRailRefire or kRailgunChargeTime
+end
+
+-- Dual-rail slugs leave at least kDualRailSpacing apart.
+local function GetFireAllowedTime(other)
+    return other and other.timeOfLastShot + kDualRailSpacing or 0
+end
+
+-- Charging time that counts towards the forced shot: a dual arm only starts the count once it may fire,
+-- but no later than one spacing into the hold, so cycling the other arm cannot hold a charge forever.
+local function GetHoldStart(self, other)
+    return math.min(math.max(self.timeChargeStarted, GetFireAllowedTime(other) - kChargeTime), self.timeChargeStarted + kDualRailSpacing)
+end
+
 function Railgun:OnPrimaryAttack(player)
-    
-    local exoWeaponHolder = player:GetActiveWeapon()
-    local otherSlotWeapon = self:GetExoWeaponSlot() == ExoWeaponHolder.kSlotNames.Left and exoWeaponHolder:GetRightSlotWeapon() or exoWeaponHolder:GetLeftSlotWeapon()
-    local otherIsCharging = otherSlotWeapon ~= nil and otherSlotWeapon ~= self and otherSlotWeapon:isa("Railgun") and otherSlotWeapon.railgunAttacking
-    if not otherIsCharging and self.timeOfLastShot + kRailgunChargeTime <= Shared.GetTime() then
-        
+
+    self.railgunQueued = false
+    if self.timeOfLastShot + GetRefireTime(GetDualRail(self, player)) <= Shared.GetTime() then
+
         if not self.railgunAttacking then
             self.timeChargeStarted = Shared.GetTime()
         end
@@ -148,8 +189,21 @@ function Railgun:GetWeight()
     return kRailgunWeight
 end
 
+-- A dual-rail release inside the spacing stays charged and fires once allowed (ProcessMoveOnWeapon). The slug
+-- itself only leaves at the shoot tag a few ticks later, so the spacing is stamped at release.
 function Railgun:OnPrimaryAttackEnd(player)
+
+    if not self.railgunAttacking then
+        return
+    end
+    if Shared.GetTime() < GetFireAllowedTime(GetDualRail(self, player)) then
+        self.railgunQueued = true
+        return
+    end
+    self.railgunQueued = false
+    self.timeOfLastShot = Shared.GetTime()
     self.railgunAttacking = false
+
 end
 
 function Railgun:GetBarrelPoint()
@@ -221,6 +275,38 @@ function Railgun:GetIsAffectedByWeaponUpgrades()
     return true
 end
 
+local function GetIsResonant(target)
+    return target:isa("Lerk") or target:isa("Fade")
+end
+
+local function GetResonanceScalar(self, other, target, now, primes)
+
+    if not other or not GetIsResonant(target) then
+        return 1
+    end
+    local id = target:GetId()
+    local otherTime = other.resonanceHits[id]
+    if primes then
+        self.resonanceHits[id] = now
+        if Server then
+            target:SetRailResonance()
+        end
+    end
+    if otherTime and otherTime < now and now - otherTime <= kRailResonanceWindow then
+        return 1 + kRailResonanceBonus
+    end
+    return 1
+
+end
+
+local function GetIsPrimedFor(self, player, target)
+
+    local other = GetDualRail(self, player)
+    local hitTime = other and other.resonanceHits[target:GetId()]
+    return hitTime ~= nil and Shared.GetTime() - hitTime <= kRailResonanceWindow
+
+end
+
 local function ExecuteShot(self, startPoint, endPoint, player)
 
     -- Filter ourself out of the trace so that we don't hit ourselves.
@@ -228,19 +314,31 @@ local function ExecuteShot(self, startPoint, endPoint, player)
     local trace = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.Bullets, EntityFilterAllButIsa("Tunnel"))
     local hitPointOffset = trace.normal * 0.3
     local direction = (endPoint - startPoint):GetUnit()
-    local damage = kRailgunDamage + math.min(1, (Shared.GetTime() - self.timeChargeStarted) / kChargeTime) * kRailgunChargeDamage
+    local charge = math.min(1, (Shared.GetTime() - self.timeChargeStarted) / kChargeTime)
+    local damage = kRailgunDamage + charge * kRailgunChargeDamage
     
+    local now = Shared.GetTime()
+    local dualRail = GetDualRail(self, player)
+    for id, time in pairs(self.resonanceHits) do
+        if now - time > kRailResonanceWindow then
+            self.resonanceHits[id] = nil
+        end
+    end
+
     local extents = GetDirectedExtentsForDiameter(direction, kBulletSize)
 
     local hitEntities = {}
+    local resonated = false
     for _ = 1, 20 do
 
         local capsuleTrace = Shared.TraceBox(extents, startPoint, trace.endPoint, CollisionRep.Damage, PhysicsMask.Bullets, filter)
-        if capsuleTrace.entity then
+        if capsuleTrace.entity and damage > 0 then
 
             if not table.find(hitEntities, capsuleTrace.entity) then
                 table.insert(hitEntities, capsuleTrace.entity)
-                self:DoDamage(damage, capsuleTrace.entity, capsuleTrace.endPoint + hitPointOffset, direction, capsuleTrace.surface, false, false)
+                local scalar = GetResonanceScalar(self, dualRail, capsuleTrace.entity, now, charge >= 1)
+                resonated = resonated or scalar > 1
+                self:DoDamage(damage * scalar, capsuleTrace.entity, capsuleTrace.endPoint + hitPointOffset, direction, capsuleTrace.surface, false, false)
 				
 				if capsuleTrace.entity:isa("Onos") then
 					if capsuleTrace.entity:GetIsBoneShieldActive() and capsuleTrace.entity:GetHitsBoneShield(self, capsuleTrace.endPoint + hitPointOffset) then
@@ -259,6 +357,10 @@ local function ExecuteShot(self, startPoint, endPoint, player)
         startPoint = Vector(capsuleTrace.endPoint) + direction * extents.x * 3
     end
 
+    if Client and resonated and player == Client.GetLocalPlayer() and not Shared.GetIsRunningPrediction() then
+        StartSoundEffect(kResonanceSound)
+    end
+
     local effectFrequency = self:GetTracerEffectFrequency()
     local showTracer = (math.random() < effectFrequency)
 
@@ -270,10 +372,6 @@ local function ExecuteShot(self, startPoint, endPoint, player)
         TriggerFirstPersonTracer(self, trace.endPoint)
     end
 
-end
-
-function Railgun:LockGun()
-    self.timeOfLastShot = Shared.GetTime()
 end
 
 local function Shoot(self, leftSide)
@@ -299,9 +397,6 @@ local function Shoot(self, leftSide)
         if Client then
             TriggerSteamEffect(self, player)
         end
-        
-        self:LockGun()
-        self.lockCharging = true
         
     end
     
@@ -333,8 +428,8 @@ function Railgun:ProcessMoveOnWeapon(player, input)
 
     if self.railgunAttacking then
     
-        if (Shared.GetTime() - self.timeChargeStarted) >= kChargeForceShootTime then
-            self.railgunAttacking = false
+        if self.railgunQueued or Shared.GetTime() - GetHoldStart(self, GetDualRail(self, player)) >= kChargeForceShootTime then
+            self:OnPrimaryAttackEnd(player)
         end
         
     end
@@ -343,6 +438,7 @@ end
 
 local kActivityInput = ExoWeaponSlotMixin.kActivityInput
 local kChargeAmountKey = ExoWeaponSlotMixin.GetSlotKeyTable("chargeAmount")
+local kChargeHeldKey = ExoWeaponSlotMixin.GetSlotKeyTable("chargeHeld")
 local kTimeSinceLastShotKey = ExoWeaponSlotMixin.GetSlotKeyTable("timeSinceLastShot")
 local kRailgunTextureKey = ExoWeaponSlotMixin.GetSlotKeyTable("*exo_railgun_")
 
@@ -371,14 +467,37 @@ function Railgun:OnUpdateRender()
             chargeDisplayUI = Client.CreateGUIView(246, 256)
             chargeDisplayUI:Load("lua/GUI" .. self:GetExoWeaponSlotName():gsub("^%l", string.upper) .. "RailgunDisplay.lua")
             chargeDisplayUI:SetTargetTexture(kRailgunTextureKey[self.exoWeaponSlot])
-            chargeDisplayUI:SetGlobal("refireTime", kRailgunChargeTime)
+            chargeDisplayUI:SetGlobal("forceShootTime", kChargeForceShootTime)
             self.chargeDisplayUI = chargeDisplayUI
             
         end
         
         local slot = self.exoWeaponSlot
+        local now = Shared.GetTime()
         chargeDisplayUI:SetGlobal(kChargeAmountKey[slot], chargeAmount)
-        chargeDisplayUI:SetGlobal(kTimeSinceLastShotKey[slot], Shared.GetTime() - self.timeOfLastShot)
+        local other = GetDualRail(self, parent)
+        chargeDisplayUI:SetGlobal(kChargeHeldKey[slot], self.railgunAttacking and now - GetHoldStart(self, other) or 0)
+
+        chargeDisplayUI:SetGlobal("reserve", math.min(1, (now - self.timeOfLastShot) / GetRefireTime(other)))
+
+        -- A full arm waiting out the spacing drains from the moment it had to wait.
+        local fireAllowed = GetFireAllowedTime(other)
+        local fuse = 0
+        if chargeAmount >= 1 and now < fireAllowed then
+            fuse = (fireAllowed - now) / (fireAllowed - math.max(self.timeChargeStarted + kChargeTime, other.timeOfLastShot))
+        end
+        chargeDisplayUI:SetGlobal("fuse", fuse)
+
+        local ready = chargeAmount >= 1 and now >= fireAllowed
+        chargeDisplayUI:SetGlobal("ready", ready and 1 or 0)
+        if ready and not self.railgunQueued and not self.chargeReadyCued then
+            StartSoundEffect(kChargeReadySound)
+        end
+        self.chargeReadyCued = ready
+        if self.railgunQueued and not self.queueCued then
+            StartSoundEffect(kQueuedSound)
+        end
+        self.queueCued = self.railgunQueued
         
     else
     
@@ -403,6 +522,8 @@ function Railgun:OnUpdateRender()
         self.chargeSound:SetParameter("charge", chargeAmount, 1)
         
     end
+
+    self:UpdateChargeLight(chargeAmount, parent)
     
 end
 
@@ -414,16 +535,12 @@ function Railgun:OnTag(tagName)
     
         if tagName == "l_shoot" then
             Shoot(self, true)
-        elseif tagName == "l_shoot_end" then
-            self.lockCharging = false
         end
         
     elseif not self:GetIsLeftSlot() then
     
         if tagName == "r_shoot" then
             Shoot(self, false)
-        elseif tagName == "r_shoot_end" then
-            self.lockCharging = false
         end
         
     end
@@ -455,6 +572,67 @@ if Client then
     local kFirstPersonAttachPoints = { [ExoWeaponHolder.kSlotNames.Left] = "fxnode_l_railgun_muzzle", [ExoWeaponHolder.kSlotNames.Right] = "fxnode_r_railgun_muzzle" }
     local kThirdPersonAttachPoints = { [ExoWeaponHolder.kSlotNames.Left] = "fxnode_lrailgunmuzzle", [ExoWeaponHolder.kSlotNames.Right] = "fxnode_rrailgunmuzzle" }
     local kMuzzleEffectName = PrecacheAsset("cinematics/marine/railgun/muzzle_flash.cinematic")
+    local kChargeLightColor = Color(0.4, 0.75, 1, 1)
+    local kChargeLightRadius = 2.5
+    local kChargeLightIntensity = 10
+
+    function Railgun:UpdateChargeLight(chargeAmount, parent)
+
+        local attachPoint = -1
+        if chargeAmount > 0 and parent and parent:GetIsAlive() and parent:GetIsVisible() and not (parent:GetIsLocalPlayer() and not parent:GetIsThirdPerson()) then
+            attachPoint = parent:GetAttachPointIndex(kThirdPersonAttachPoints[self.exoWeaponSlot])
+        end
+
+        local light = self.chargeLight
+        local glint = self.chargedGlint
+        if attachPoint < 0 then
+
+            if light then
+                light:SetIsVisible(false)
+            end
+            if glint then
+                glint:SetIsVisible(false)
+            end
+            return
+
+        end
+
+        local coords = parent:GetAttachPointCoords(attachPoint)
+
+        local charged = chargeAmount >= 1
+        if charged and not glint then
+
+            glint = Client.CreateCinematic(RenderScene.Zone_Default)
+            glint:SetCinematic(kChargedGlintCinematic)
+            glint:SetRepeatStyle(Cinematic.Repeat_Endless)
+            self.chargedGlint = glint
+
+        end
+        if glint then
+
+            if charged then
+                glint:SetCoords(coords)
+            end
+            glint:SetIsVisible(charged)
+
+        end
+
+        if not light then
+
+            light = Client.CreateRenderLight()
+            light:SetType(RenderLight.Type_Point)
+            light:SetCastsShadows(false)
+            light:SetColor(kChargeLightColor)
+            light:SetRadius(kChargeLightRadius)
+            self.chargeLight = light
+
+        end
+
+        light:SetIntensity(kChargeLightIntensity * chargeAmount)
+        light:SetCoords(coords)
+        light:SetIsVisible(true)
+
+    end
 
     function Railgun:OnClientPrimaryAttackEnd()
     
@@ -506,7 +684,7 @@ if Client then
             local trace = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.Bullets, kFilterTunnel)
             
             if trace.entity then
-                trace.entity:SetRailgunTarget()
+                trace.entity:SetRailgunTarget(GetIsPrimedFor(self, player, trace.entity))
                 self.railgunTargetId = trace.entity:GetId()
                 return
             end
@@ -524,7 +702,7 @@ if Client then
                 local capsuleTrace = Shared.TraceBox(extents, startPoint, trace.endPoint, CollisionRep.Damage, PhysicsMask.Bullets, filter)
                 -- If we found an entity, leave
                 if capsuleTrace.entity then
-                    capsuleTrace.entity:SetRailgunTarget()
+                    capsuleTrace.entity:SetRailgunTarget(GetIsPrimedFor(self, player, capsuleTrace.entity))
                     self.railgunTargetId = capsuleTrace.entity:GetId()
                     break
                 end

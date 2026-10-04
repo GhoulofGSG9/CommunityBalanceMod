@@ -11,35 +11,35 @@ local kSmokeEffectRate = 1.5
 local kPilotEffectRate = 0.3
 
 local kFlameImpactCinematic = PrecacheAsset("cinematics/marine/flamethrower/flame_impact3.cinematic")
-local kFlameSmokeCinematic = PrecacheAsset("cinematics/marine/flamethrower/flame_trail_light.cinematic")
+local kFlameSmokeCinematic = PrecacheAsset("cinematics/marine/exo_flamer/flame_trail_light.cinematic")
 local kPilotCinematicName = PrecacheAsset("cinematics/marine/flamethrower/pilot.cinematic")
 
 local kFirstPersonTrailCinematics =
 {
-    PrecacheAsset("cinematics/marine/flamethrower/flame_trail_1p_part1.cinematic"),
-    PrecacheAsset("cinematics/marine/flamethrower/flame_trail_1p_part2.cinematic"),
-    PrecacheAsset("cinematics/marine/flamethrower/flame_trail_1p_part2.cinematic"),
-    PrecacheAsset("cinematics/marine/flamethrower/flame_trail_1p_part2.cinematic"),
-    PrecacheAsset("cinematics/marine/flamethrower/flame_trail_1p_part3.cinematic"),
-    PrecacheAsset("cinematics/marine/flamethrower/flame_trail_1p_part3.cinematic"),
+    PrecacheAsset("cinematics/marine/exo_flamer/flame_trail_1p_part1.cinematic"),
+    PrecacheAsset("cinematics/marine/exo_flamer/flame_trail_1p_part2.cinematic"),
+    PrecacheAsset("cinematics/marine/exo_flamer/flame_trail_1p_part2.cinematic"),
+    PrecacheAsset("cinematics/marine/exo_flamer/flame_trail_1p_part2.cinematic"),
+    PrecacheAsset("cinematics/marine/exo_flamer/flame_trail_1p_part3.cinematic"),
+    PrecacheAsset("cinematics/marine/exo_flamer/flame_trail_1p_part3.cinematic"),
 }
 
 local kTrailCinematics =
 {
-    PrecacheAsset("cinematics/marine/flamethrower/flame_trail_part1.cinematic"),
-    PrecacheAsset("cinematics/marine/flamethrower/flame_trail_part2.cinematic"),
-    PrecacheAsset("cinematics/marine/flamethrower/flame_trail_part2.cinematic"),
-    PrecacheAsset("cinematics/marine/flamethrower/flame_trail_part2.cinematic"),
-    PrecacheAsset("cinematics/marine/flamethrower/flame_trail_part2.cinematic"),
-    PrecacheAsset("cinematics/marine/flamethrower/flame_trail_part2.cinematic"),
-    PrecacheAsset("cinematics/marine/flamethrower/flame_trail_part3.cinematic"),
-    PrecacheAsset("cinematics/marine/flamethrower/flame_trail_part3.cinematic"),
+    PrecacheAsset("cinematics/marine/exo_flamer/flame_trail_part1.cinematic"),
+    PrecacheAsset("cinematics/marine/exo_flamer/flame_trail_part2.cinematic"),
+    PrecacheAsset("cinematics/marine/exo_flamer/flame_trail_part2.cinematic"),
+    PrecacheAsset("cinematics/marine/exo_flamer/flame_trail_part2.cinematic"),
+    PrecacheAsset("cinematics/marine/exo_flamer/flame_trail_part2.cinematic"),
+    PrecacheAsset("cinematics/marine/exo_flamer/flame_trail_part2.cinematic"),
+    PrecacheAsset("cinematics/marine/exo_flamer/flame_trail_part3.cinematic"),
+    PrecacheAsset("cinematics/marine/exo_flamer/flame_trail_part3.cinematic"),
 }
 
 local kFadeOutCinematicNames = {
-    PrecacheAsset("cinematics/marine/flamethrower/flame_residue_1p_part1.cinematic"),
-    PrecacheAsset("cinematics/marine/flamethrower/flame_residue_1p_part2.cinematic"),
-    PrecacheAsset("cinematics/marine/flamethrower/flame_residue_1p_part2.cinematic"),
+    PrecacheAsset("cinematics/marine/exo_flamer/flame_residue_1p_part1.cinematic"),
+    PrecacheAsset("cinematics/marine/exo_flamer/flame_residue_1p_part2.cinematic"),
+    PrecacheAsset("cinematics/marine/exo_flamer/flame_residue_1p_part2.cinematic"),
     PrecacheAsset("cinematics/marine/flamethrower/flame_residue_1p_part3.cinematic"),
     PrecacheAsset("cinematics/marine/flamethrower/flame_residue_1p_part3.cinematic"),
     PrecacheAsset("cinematics/marine/flamethrower/flame_residue_1p_part3.cinematic"),
@@ -212,35 +212,53 @@ function ExoFlamer:OnUpdateRender()
     -- UpdatePilotEffect(self, effectToLoad == kEffectType.FirstPerson and self.clip > 0 and self:GetIsActive())
 end
 
+local kFirstPersonTrailDepth = 1.45
+
+-- The muzzle cinematic renders in the view model zone, which has its own FOV and follows the view
+-- model animation, while the trail renders in the world. Start the trail where the muzzle node
+-- lands on screen so both line up at any FOV setting.
+local function GetFirstPersonTrailCoords(weapon)
+
+    local player = weapon:GetParent()
+    local viewModel = player and player:GetViewModelEntity()
+    if not viewModel or not viewModel:GetRenderModel() then
+        return nil
+    end
+
+    local muzzleNode = weapon:GetIsLeftSlot() and "fxnode_l_railgun_muzzle" or "fxnode_r_railgun_muzzle"
+    if viewModel:GetAttachPointIndex(muzzleNode) < 0 then
+        return nil
+    end
+
+    local muzzle = viewModel:GetAttachPointCoords(muzzleNode).origin
+    if muzzle.z < 0.1 then
+        return nil
+    end
+
+    local scale = kFirstPersonTrailDepth / muzzle.z
+            * math.tan(gRenderCamera:GetFov() * 0.5) / math.tan(Client.GetZoneFov(RenderScene.Zone_ViewModel) * 0.5)
+
+    local coords = player:GetViewCoords()
+    coords.origin = coords:TransformPoint(Vector(muzzle.x * scale, muzzle.y * scale, kFirstPersonTrailDepth))
+    return coords
+
+end
+
 function ExoFlamer:InitTrailCinematic(effectType, player)
     
     self.trailCinematic = Client.CreateTrailCinematic(RenderScene.Zone_Default)
     
+    -- The trail reuses the marine flamethrower cinematics, which are authored for its segment spacing;
+    -- a longer trail with the same segment count shows gaps at the far end.
+    local kTrailSegmentScale = kExoFlamerTrailLength / (kFlamethrowerRange + 0.5)
     local minHardeningValue = 0.5
-    local numFlameSegments = 6
+    local numFlameSegments = math.ceil(6 * kTrailSegmentScale)
     
     if effectType == kEffectType.FirstPerson then
         
         self.trailCinematic:SetCinematicNames(kFirstPersonTrailCinematics)
-        -- set an attach function which returns the player view coords if we are the local player 
-        
-        if self:GetIsRightSlot() then
-            self.trailCinematic:AttachToFunc(self, TRAIL_ALIGN_Z, Vector(-0.7, -0.19, 1.45),
-                                             function(attachedEntity, deltaTime)
-                                                 local player = attachedEntity:GetParent()
-                                                 return player ~= nil and player:GetViewCoords()
-                                             end
-            )
-        
-        elseif self:GetIsLeftSlot() then
-            self.trailCinematic:AttachToFunc(self, TRAIL_ALIGN_Z, Vector(0.7, -0.19, 1.45),
-                                             function(attachedEntity, deltaTime)
-                                                 local player = attachedEntity:GetParent()
-                                                 return player ~= nil and player:GetViewCoords()
-                                             end
-            )
-        end
-    
+        self.trailCinematic:AttachToFunc(self, TRAIL_ALIGN_Z, nil, GetFirstPersonTrailCoords)
+
     elseif effectType == kEffectType.ThirdPerson then
         
         self.trailCinematic:SetCinematicNames(kTrailCinematics)
@@ -248,16 +266,16 @@ function ExoFlamer:InitTrailCinematic(effectType, player)
         if self:GetIsLeftSlot() then
             
             -- attach to third person fx node otherwise with an X offset since we align it along the X-Axis (the attackpoint is oriented in the model like that)
-            self.trailCinematic:AttachTo(player, TRAIL_ALIGN_X, Vector(0.8, 0, 0), player:GetAttachPointIndex("fxnode_lrailgunmuzzle"))
+            self.trailCinematic:AttachTo(player, TRAIL_ALIGN_X, Vector(0.3, 0, 0), player:GetAttachPointIndex("fxnode_lrailgunmuzzle"))
             minHardeningValue = 0.1
-            numFlameSegments = 8
+            numFlameSegments = math.ceil(8 * kTrailSegmentScale)
         
         elseif self:GetIsRightSlot() then
             
             -- attach to third person fx node otherwise with an X offset since we align it along the X-Axis (the attackpoint is oriented in the model like that)
-            self.trailCinematic:AttachTo(player, TRAIL_ALIGN_X, Vector(0.8, 0, 0), player:GetAttachPointIndex("fxnode_rrailgunmuzzle"))
+            self.trailCinematic:AttachTo(player, TRAIL_ALIGN_X, Vector(0.3, 0, 0), player:GetAttachPointIndex("fxnode_rrailgunmuzzle"))
             minHardeningValue = 0.1
-            numFlameSegments = 8
+            numFlameSegments = math.ceil(8 * kTrailSegmentScale)
         end
     
     end

@@ -159,7 +159,7 @@ if Server then
                 
                 self.powerSurge = false
                 
-                if self.OnPowerOff and not self.powerBattery then
+                if self.OnPowerOff and not self.powered and not self.powerBattery then
                     self:OnPowerOff()
                 end
             end

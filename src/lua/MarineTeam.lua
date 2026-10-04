@@ -406,6 +406,31 @@ function MarineTeam:AddPlayer(player)
     self:CheckForFreeInfantryPortal()
 end
 
+local kExoRefitUnlocks =
+{
+    [kTechId.CoresExosuitTech] = { slotField = "utilityModuleType", messageName = "ExoCoreModulesAvailable" },
+    [kTechId.ExoAbilitiesTech] = { slotField = "abilityModuleType", messageName = "ExoAbilitiesAvailable" },
+}
+
+function MarineTeam:OnResearchComplete(structure, researchId)
+
+    PlayingTeam.OnResearchComplete(self, structure, researchId)
+
+    local unlock = kExoRefitUnlocks[researchId]
+    -- A mod's older TeamMessenger.lua may lack these enum elements, and a missing one raises.
+    local messageType = unlock and rawget(kTeamMessageTypes, unlock.messageName)
+    if not messageType then
+        return
+    end
+
+    for _, exo in ipairs(GetEntitiesForTeam("Exo", self:GetTeamNumber())) do
+        if not exo:GetIsVirtual() and exo:GetIsAlive() and exo[unlock.slotField] == kExoModuleTypes.None then
+            SendPlayersMessage({ exo }, messageType)
+        end
+    end
+
+end
+
 local function GetArmorLevel(self)
 
     local armorLevels = 0
@@ -715,6 +740,7 @@ function MarineTeam:InitTechTree()
     -- Marine tier 3
     self.techTree:AddBuildNode(kTechId.PrototypeLab,          kTechId.ArmsLab,                     kTechId.None)
 
+    self.techTree:AddUpgradeNode(kTechId.UpgradeToExoPrototypeLab,  kTechId.PrototypeLab)
     self.techTree:AddBuildNode(kTechId.ExoPrototypeLab,             kTechId.PrototypeLab,    kTechId.None)
     self.techTree:AddResearchNode(kTechId.ExosuitTech,              kTechId.ExoPrototypeLab, kTechId.None)
     self.techTree:AddBuyNode(kTechId.DualMinigunExosuit,            kTechId.ExoPrototypeLab)

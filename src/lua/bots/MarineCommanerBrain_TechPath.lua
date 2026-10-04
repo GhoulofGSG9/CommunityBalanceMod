@@ -74,11 +74,11 @@ local kMarineCommanderTechPath =
     -- Tier 5
     {
         kTechId.JetpackTech,
-        kTechId.DualMinigunTech,
-        kTechId.CoresExosuitTech,
         kTechId.AdvancedMarineSupport, -- Nanoshield, Powersurge, Catpack
         kTechId.Weapons3,
         kTechId.Armor3,
+        kTechId.DualMinigunTech,
+        kTechId.CoresExosuitTech,
     },
 }
 

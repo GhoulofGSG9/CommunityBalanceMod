@@ -15,26 +15,78 @@ end
 
 local kDeployTime = 5.5
 
-function PrototypeLab:OnConstructionComplete()
+-- Power loss aborts research (ResearchMixin:OnPowerOff), so restart it once powered again.
+-- A commander cancel holds it instead: while researching, Cancel takes the Recycle button's slot.
+-- Bot commanders never press the restart button, so only a human in the chair keeps it held.
+local function UpdateExoLabUpgrade(self)
 
-    self:AddTimedCallback(OnDeploy, kDeployTime)
-
-    if self:GetTechId() ~= kTechId.ExoPrototypeLab then
-        self:SetTechId(kTechId.ExoPrototypeLab)
-        if HasMixin(self, "MapBlip") then
-            self:MarkBlipDirty()
-        end
+    if self:GetTechId() ~= kTechId.PrototypeLab then
+        return false
     end
 
     local team = self:GetTeam()
-    local techTree = team and team.GetTechTree and team:GetTechTree()
-    local exosuitNode = techTree and techTree:GetTechNode(kTechId.ExosuitTech)
+    local commander = team:GetCommander()
+    local held = self.exoUpgradeHeld and commander and not commander:GetIsVirtual()
+    if self:GetResearchingId() == kTechId.None and not held and GetIsUnitActive(self) then
+
+        local techTree = team:GetTechTree()
+        local techNode = techTree:GetTechNode(kTechId.UpgradeToExoPrototypeLab)
+        self.exoUpgradeHeld = false
+        self:SetResearching(techNode, commander or self)
+        techNode:SetResearching()
+        techTree:SetTechNodeChanged(techNode, "researching")
+
+    end
+
+    return true
+
+end
+
+local function GrantExosuitTech(self)
+
+    local techTree = self:GetTeam():GetTechTree()
+    local exosuitNode = techTree:GetTechNode(kTechId.ExosuitTech)
     if exosuitNode and not exosuitNode:GetResearched() then
         exosuitNode:SetResearchProgress(1)
         techTree:SetTechNodeChanged(exosuitNode, string.format("researchProgress = %.2f", 1))
         exosuitNode:SetResearched(true)
         techTree:QueueOnResearchComplete(kTechId.ExosuitTech, self)
     end
+
+end
+
+function PrototypeLab:OnConstructionComplete()
+
+    self:AddTimedCallback(OnDeploy, kDeployTime)
+
+    if self:GetTechId() == kTechId.PrototypeLab then
+        UpdateExoLabUpgrade(self)
+        self:AddTimedCallback(UpdateExoLabUpgrade, 1)
+    else
+        GrantExosuitTech(self)
+    end
+
+end
+
+function PrototypeLab:OnResearchCancel(researchId)
+
+    if researchId == kTechId.UpgradeToExoPrototypeLab then
+        self.exoUpgradeHeld = self:GetIsPowered()
+    end
+
+end
+
+function PrototypeLab:OnResearchComplete(researchId)
+
+    if researchId ~= kTechId.UpgradeToExoPrototypeLab then
+        return
+    end
+
+    self:SetTechId(kTechId.ExoPrototypeLab)
+    if HasMixin(self, "MapBlip") then
+        self:MarkBlipDirty()
+    end
+    GrantExosuitTech(self)
 
 end
 

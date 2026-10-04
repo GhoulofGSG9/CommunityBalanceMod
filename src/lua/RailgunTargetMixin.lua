@@ -4,7 +4,8 @@
 --
 --    Created by:   Andreas Urwalek (andi@unknownworlds.com)
 --
---    Outlines targets blue when SetRailgunTarget() is called for kRailgunTargetDuration seconds.
+--    Outlines targets blue when SetRailgunTarget() is called for kRailgunTargetDuration seconds,
+--    pink when the aiming dual rail's next slug resonates on them.
 --
 -- ========= For more information, visit us at http://www.unknownworlds.com =====================
 
@@ -26,29 +27,36 @@ function RailgunTargetMixin:__initmixin()
     PROFILE("RailgunTargetMixin:__initmixin")
     
     assert(Client)
-    self.isRailgunTarget = false
     self.timeRailgunTargeted = -1
+    self.timeRailgunPrimed = -1
 end
 
-function RailgunTargetMixin:SetRailgunTarget()
-    self.timeRailgunTargeted = Shared.GetTime()
+function RailgunTargetMixin:SetRailgunTarget(primed)
+    local now = Shared.GetTime()
+    self.timeRailgunTargeted = now
+    if primed then
+        self.timeRailgunPrimed = now
+    end
 end
 
 function RailgunTargetMixin:OnUpdate(deltaTime)
     PROFILE("RailgunTargetMixin:OnUpdate")
-    local isTarget = self.timeRailgunTargeted + kRailgunTargetDuration > Shared.GetTime()
+    local now = Shared.GetTime()
+    local isTarget = self.timeRailgunTargeted + kRailgunTargetDuration > now
+    local color = isTarget and (self.timeRailgunPrimed + kRailgunTargetDuration > now
+            and kEquipmentOutlineColor.Fuchsia or kEquipmentOutlineColor.TSFBlue)
     local model = self:GetRenderModel()
     
-    if self.isRailgunTarget ~= isTarget and model then
+    if self.railgunOutlineColor ~= color and model then
     
-        if isTarget then
-            EquipmentOutline_AddModel(model, kEquipmentOutlineColor.TSFBlue)
+        if color then
+            EquipmentOutline_AddModel(model, color)
         else
             EquipmentOutline_RemoveModel(model)
         end
         
-        self.isRailgunTarget = isTarget
-    
+        self.railgunOutlineColor = color
+
     end
 
 end

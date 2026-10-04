@@ -9,8 +9,8 @@
 -- ========= For more information, visit us at http://www.unknownworlds.com =====================
 
 -- The arms' own muzzle effects, so the tell looks like the weapon and shows in both views.
-local kFlameMuzzleViewCinematic = PrecacheAsset("cinematics/marine/flamethrower/flame_1p.cinematic")
-local kFlameMuzzleCinematic = PrecacheAsset("cinematics/marine/flamethrower/flame.cinematic")
+local kFlameMuzzleViewCinematic = PrecacheAsset("cinematics/marine/exo_flamer/flame_1p.cinematic")
+local kFlameMuzzleCinematic = PrecacheAsset("cinematics/marine/exo_flamer/flame.cinematic")
 local kPlasmaMuzzleCinematic = PrecacheAsset("models/plasma/muzzle_flash_plasma.cinematic")
 local kBeaconCinematic = PrecacheAsset("cinematics/marine/mac/siren.cinematic")
 local kPlatingMaterial = PrecacheAsset("cinematics/vfx_materials/exo_plating.material")

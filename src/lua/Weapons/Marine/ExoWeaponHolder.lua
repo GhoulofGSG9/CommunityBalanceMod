@@ -155,7 +155,6 @@ end
 
 function ExoWeaponHolder:CheckDualFiring()
 	
-	-- No railgun entry: one railgun charges at a time, so a pair never fires together.
 	if self.weaponMapNameLeft == self.weaponMapNameRight then
 		if self.dualminifiring and self.weaponMapNameLeft == "minigun" then
 			return true
@@ -220,6 +219,10 @@ function ExoWeaponHolder:OnSecondaryAttackEnd(player)
     -- Calling OnPrimaryAttackEnd here is intentional.
     Shared.GetEntity(self.rightWeaponId):OnPrimaryAttackEnd(player)
     
+end
+
+function ExoWeaponHolder:GetHasDualRails()
+    return self.weaponMapNameLeft == Railgun.kMapName and self.weaponMapNameRight == Railgun.kMapName
 end
 
 function ExoWeaponHolder:ProcessMoveOnWeapon(player, input)

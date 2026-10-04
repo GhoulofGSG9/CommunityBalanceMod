@@ -1,7 +1,7 @@
 # TLDR of Community Balance Mod vs. Vanilla: (9/11/2025)
   - Reworks to marines structures (sentry and sentry battery)
   - New marine commander units (SPARC and A-MAC).
-  - Modular exosuits with new exo arms (plasma launcher and blowtorch) and upgrades.
+  - Modular exosuits with new exo arms (plasma launcher and Ion Torch) and upgrades.
   - Scaling structure damage with weapon upgrades.
   - Extension to electrify debuff (works on PvE).
   - Reworks and balance of some alien traits (carapace and aura) and trait swapping.
@@ -41,12 +41,20 @@
   - Railgun reworked to be more forgiving and less "bursty".
   - Firing cooldown set to 1s from 1.4s.
   - Charge time to 1s from 2s.
-  - Shots can be stored for 2s.
-  - Base damage range is now 35 (0% charge) to 70 (100% charge) from 10/150.
-	- Maximum burst is 140 (280 for structures) at W0. Down from ~170 (340) in vanilla.
-	- Maximum DPS is 70 (140 for structures) at W0. Down from ~88 (176) in vanilla.
-  - Maximum range set to 30 m and falloff removed.
-  - Dual railgun now allows simultaneous firing of both arms.
+  - Shots can be stored for 3 s; the railgun fires itself 4 s after charging starts.
+  - A click, a cyan dial (pulsing red before the forced shot) and a blue muzzle light show a full charge. Other players see a glint on an arm that holds a full charge.
+  - Damage scales with charge: 0 to 130 (100% charge), from 10/150.
+	- Maximum DPS is 65 (130 for structures) at W0.
+	- Two full shots kill a lerk without carapace (from W0, up to biomass 11); no shot kills a lerk alone and two shots never kill a fade.
+  - Maximum range set to 32 m and falloff removed.
+  - Dual railguns charge together but fire at least 1.5 s apart, and each arm reloads for 3 s after its own shot.
+	- Releasing both fires left, then right 1.5 s later; pressing an arm again holds its shot instead. A hit lerk always has at least 1.5 s to break line of sight.
+	- A full arm that has to wait turns amber and its dial drains until it may fire. The squares under each dial count down that arm's reload.
+	- Resonance: a fully charged dual-rail hit on a lerk or fade makes the other arm's slug deal 30% more (169) for 3 s. Every full slug after the first resonates: about 84 DPS on one lerk or fade at W0, 65 on anything else (claw + railgun: 65, plus its claw). Skulks, gorges, the Onos and structures never resonate.
+	- Dual railguns kill a carapace lerk in 2 hits and a fade in 3 from W0 (claw + railgun: 3 and 4). No single shot kills a lerk and the first two shots never kill a fade.
+	- Only your own arms mark a target, and only with a full charge.
+	- The crosshair target outline turns pink when your next shot will resonate, and a resonant hit pings. A marked alien sees a blue resonance icon among its status icons.
+	- The railgun help card explains the dual-rail timing.
   - Target highlighting now works on all lifeforms and alien structures (red).
   - Target highlighting now matches maximum range of railgun.
   
@@ -72,25 +80,21 @@
   - Projectiles spawn on each weapon and are fired towards the crosshair target.
   - Projectiles have dual projectile controller (one for geometry and one for entities) to reduce geo clipping.
 
-### Blowtorch
-  - Heat based weapon.
-    - Heat buffer is 10s.
-	- Cooldown is 5s.
-  - Blowtorch welds marines and burns aliens within cone.
-    - Damage and welding is SPLIT between all targets.
-  - Welds at 1.0x weld rate.
-	- 90 eHP/s for structures.
-	- 20 eHP/s for marines.
-  - Base damage is 8 eHP/s.
-	- Flame damage type (bonus damage to structures and flammables)
-  - Has custom cinematics and materials.
-  - DOES NOT IGNITE ALIEN PLAYERS, STRUCTURES, OR ABILITIES (NO BURNT MARINES ALLOWED)!
-  - Target highlighting on all aliens (red) and weldable marines (blue) including structures.
+### Ion Torch (exo flamethrower arm)
+  - Heat based weapon: overheats after 10 s of fire, cools down in 5 s.
+  - 12 damage a tick in a wide cone out to 13 m (marine flamethrower: 9 damage, 9 m).
+  - Sets aliens and structures on fire; its burn deals 12 damage a second instead of 8. A target keeps the hottest burn on it.
+  - Burns away spores and umbra; bile bombs fly through it. No ground fire, does not weld.
+  - Aliens and structures it hits are outlined red.
+  - Blue-white flame and its own kill feed icon; minimal particles hide the flame like the marine flamethrower's.
   
 ### Prototype Lab
   - A built prototype lab is an exosuit prototype lab: claw + minigun and claw + railgun exosuits can be bought as soon as it is built.
-  - Researches Dual Exosuit Arms (25 tres, 60 s), Advanced Exosuit Arms (20 tres, 60 s: flame and plasma arms), Exosuit Cores (15 tres, 45 s: Thrusters, Ejection Seat, Armor Plating) and Exosuit Abilities (15 tres, 45 s: support abilities).
+  - Researches Dual Exosuit Arms (25 tres, 60 s), Advanced Exosuit Arms (20 tres, 60 s: Ion Torch and Plasma Launcher arms), Exosuit Cores (15 tres, 45 s: Thrusters, Ejection Seat, Armor Plating) and Exosuit Abilities (15 tres, 45 s: support abilities).
   - Opens straight on the exosuit configuration page.
+    - Rows that need research stay hidden until it is done.
+    - A LOADOUTS panel offers Charter Issue, Enforcer, Responder and Quarantine presets, plus Re-issue for the last suit bought.
+  - When Exosuit Cores or Exosuit Abilities research finishes, exos with that slot empty get a refit banner.
   - Protolabs show a rotating exo hologram while researching and a static exo inside an orb otherwise.
   - Researches stay with the team when a protolab is destroyed or recycled; another built protolab sells exosuits again.
 
@@ -348,7 +352,7 @@
 
 ### Fade
   - Stab: late game exosuit counter.
-    - Moved from bio 7 to bio 8. Research 35 tres (vanilla 25), same as Stomp. Research time stays 60 s.
+    - Bio 7 as in vanilla. Research 35 tres (vanilla 25), same as Stomp. Research time stays 60 s.
     - Deals 2.25x damage (270) when it hits an exosuit from behind. Nano shield cancels the bonus.
     - Energy cost reduced from 30 to 20.
     - No longer affected by Focus.
@@ -378,6 +382,8 @@
   - Rerouted techs to illustrate proper tech and structure requirements.
   - Replaced babblertech and webs with nutrientmist at bio 1.
   - Improved nanoshield surface shader so that it more clearly appears on all entities.
+  - Help screen cards for the Ion Torch and Plasma Launcher; exo arm cards show only the mouse button of their arm.
+  - Bot exos only fire railguns and Ion Torches at targets inside their range.
   
 ### Minimap
   - Players are able to see if a hive is at <34%, <67% or <=100% maturity
@@ -403,6 +409,7 @@
   - Rollout crash fixed.
   - Fix to cinematics of projectiles desyncing.
   - Fix to pistol shot queuing not registering inputs.
+  - A power surge ending on a structure that still has power no longer cancels its research, a player's spawn at an infantry portal or a beacon.
 
 <br />
 <br />
