@@ -170,8 +170,8 @@ function OnCommandEffectDebug(client, className)
 
 end
 
-local unstickDelay = 5
-local unstickInterval = 30
+local unstickDelay = 3
+local unstickInterval = 20
 local lastUnstuck = {}
 
 --We don't use ServerAdminPrint here as that would spam the server log
@@ -204,12 +204,12 @@ local function Unstick(client, origin)
         local height, radius = GetTraceCapsuleFromExtents( bounds )
         local resourceNear
         local i = 1
-		
+        
         local filter = EntityFilterAll()
-		
+        
         if not spawn then
             --Log("1- Using vanilla unstuck")
-    		repeat
+            repeat
                 spawn = GetRandomSpawnForCapsule( height, radius, origin, 1, 8, EntityFilterAll() )
 
                 if spawn then
@@ -219,36 +219,36 @@ local function Unstick(client, origin)
                 i = i + 1
             until not resourceNear or i > 100
         end
-		
+        
         --[[ -- Path unstuck, effective when near pathing mesh but could lead to exploits
         if not spawn then
-    		local source = nil
-    		local nrt = FindNearestEntityId("TechPoint", player:GetOrigin())
-    		
-    		-- If no spawn is found, use pathing to try to find a valid unstuck spot.
-    		if nrt then
-    			local rt = Shared.GetEntity(nrt)
-    			if rt then
-    			   source = rt:GetOrigin() + Vector(0, 1, 0)
+            local source = nil
+            local nrt = FindNearestEntityId("TechPoint", player:GetOrigin())
+            
+            -- If no spawn is found, use pathing to try to find a valid unstuck spot.
+            if nrt then
+                local rt = Shared.GetEntity(nrt)
+                if rt then
+                   source = rt:GetOrigin() + Vector(0, 1, 0)
                    DebugCapsule(source, source, 0.2, 0.2, 10)
-    			end
-    		end
+                end
+            end
 
-    		if source then
-    			local points = PointArray()
+            if source then
+                local points = PointArray()
                 
-    			Pathing.GetPathPoints(source, player:GetEngagementPoint(), points)
+                Pathing.GetPathPoints(source, player:GetEngagementPoint(), points)
                 Log("2- Using pathing unstuck with %s points", #points)
-    			for i = #points, math.max(1, #points - 10), -2 do
+                for i = #points, math.max(1, #points - 10), -2 do
                     DebugCapsule(points[i], points[i], 0.2, 0.2, 5)
                     for j = 1, 10 do
-    				    spawn = GetRandomSpawnForCapsule( height, radius, points[i], 0, 2, EntityFilterAll() )
-    				    if spawn then
-    					   break
-    				    end
+                        spawn = GetRandomSpawnForCapsule( height, radius, points[i], 0, 2, EntityFilterAll() )
+                        if spawn then
+                           break
+                        end
                     end
-    			end
-    		end
+                end
+            end
         end
         --]]
 
@@ -278,7 +278,6 @@ local function Unstick(client, origin)
     if spawn then
         NotifyPlayer(player, "Successfully unstuck!")
         Log(string.format("Successfully unstuck %s [%s]", player:GetName(), player:GetSteamId()))
-				
         player:SetOrigin(spawn)
         return
     end
