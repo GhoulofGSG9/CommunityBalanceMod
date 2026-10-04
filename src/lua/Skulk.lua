@@ -66,11 +66,20 @@ local kJumpWallFeelerSize = 0.1
 local kOffSurfaceGraceTime = 0.03
 
 -- On a ceiling a missed scan is usually just a recess, a pipe or a light, so the grace there is longer and
--- does not need speed. "Ceiling" means the last wall normal points down.
+-- does not need speed. "Ceiling" means the last wall normal points down. The grace is meant for walking across
+-- such a gap, never for flying, so it is only given while all of these hold (see IsLeavingCeiling):
+--  * a move key is pressed (no hovering);
+--  * the movement asked for stays within kCeilingStayAngle of the ceiling plane, up or down (no steering
+--    into the air, as when going down to the ground);
+--  * the skulk is not moving away from or towards the ceiling faster than kCeilingMaxNormalSpeed (a jump, a
+--    knockback or a fall is not walking);
+--  * it has not drifted further than kCeilingMaxDrift from the plane it was on when the scan first missed.
 local kCeilingNormalMaxY = -0.3
 local kCeilingGraceTime = 0.25
-local kCeilingLeaveAngle = math.rad(45)
-local kCeilingLeaveSin = math.sin(kCeilingLeaveAngle)
+local kCeilingStayAngle = math.rad(35)
+local kCeilingStaySin = math.sin(kCeilingStayAngle)
+local kCeilingMaxNormalSpeed = 1.5
+local kCeilingMaxDrift = 0.2
 
 -- A jump is still allowed for a short while after leaving a surface (walking off a ledge, stepping off a
 -- wall, a gap in a ceiling), so a jump pressed a hair too late is not lost. Leaving by jumping or leaping
@@ -114,10 +123,9 @@ local networkVars =
     wallWalking = "compensated boolean",
     timeLastWallWalkCheck = "private compensated time",
     leaping = "compensated boolean",
-
     wasOnGround = "private boolean",
     wasOnWall = "private boolean",
-
+    timeOffSurface = "private compensated time",
     timeOfLeap = "private compensated time",
     timeOfLastJumpLand = "private compensated time",
     timeLastWallJump = "private compensated time",
@@ -288,25 +296,57 @@ local function UpdateSurfaceContact(self)
 
     self.wasOnWall = onWall
     self.wasOnGround = onGround
+
 end
 
--- Does the player clearly want to leave the ceiling? That is: is the movement asked for (the move keys, turned
--- by where the player looks, as the wish direction of a wall walker is) pointing away from the ceiling by
--- more than kCeilingLeaveAngle. No move keys pressed means no.
+-- Is the skulk doing anything other than walking along the ceiling? Called on a tick where the wall scan
+-- missed, to decide if the ceiling grace may be given. All the checks are strict on purpose: any one of them
+-- failing means the skulk is leaving (or abusing the grace) and falls normally.
+-- Must be called on every missed tick, since the first one records where the drift is measured from.
 local function IsLeavingCeiling(self, input, ceilingNormal)
 
-    local move = input.move
-    if move == nil or move:GetLength() == 0 then
-        return false
+    local nx = ceilingNormal.x
+    local ny = ceilingNormal.y
+    local nz = ceilingNormal.z
+
+    -- Where the skulk is along the ceiling normal. On the first missed tick this is the reference plane.
+    local origin = self:GetOrigin()
+    local height = origin.x * nx + origin.y * ny + origin.z * nz
+    local anchor = self.ceilingGraceAnchor
+    if anchor == nil or (self.timeOffSurface or 0) == 0 then
+        self.ceilingGraceAnchor = height
+        anchor = height
     end
 
+    -- Drifted off the ceiling plane
+    local drift = height - anchor
+    if drift > kCeilingMaxDrift or drift < -kCeilingMaxDrift then
+        return true
+    end
+
+    -- Moving towards or away from the ceiling too fast (jumped, was pushed, is falling)
+    local velocity = self:GetVelocity()
+    local normalSpeed = velocity.x * nx + velocity.y * ny + velocity.z * nz
+    if normalSpeed > kCeilingMaxNormalSpeed or normalSpeed < -kCeilingMaxNormalSpeed then
+        return true
+    end
+
+    -- Not asking to walk: no hovering
+    local move = input.move
+    if move == nil or move:GetLength() == 0 then
+        return true
+    end
+
+    -- The wish direction of a wall walker is the move keys turned by where the player looks. It has to stay
+    -- close to the ceiling plane, on either side.
     local wishDir = self:GetViewAngles():GetCoords():TransformVector(move)
     local length = wishDir:GetLength()
     if length == 0 then
-        return false
+        return true
     end
 
-    return wishDir:DotProduct(ceilingNormal) > length * kCeilingLeaveSin
+    local wishNormal = wishDir.x * nx + wishDir.y * ny + wishDir.z * nz
+    return wishNormal > length * kCeilingStaySin or wishNormal < -length * kCeilingStaySin
 
 end
 
