@@ -402,6 +402,7 @@
   - Rollout crash fixed.
   - Fix to cinematics of projectiles desyncing.
   - Fix to pistol shot queuing not registering inputs.
+  - A power surge ending on a structure that still has power no longer cancels its research, a player's spawn at an infantry portal or a beacon.
 
 <br />
 <br />

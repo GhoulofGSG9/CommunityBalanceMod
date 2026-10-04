@@ -314,6 +314,7 @@ if kCBMaddon then
 	  - Fixed issue with projectiles visually disappearing from the client.
 	  - Fixed ARCs causing server hitching / crash on loss of orders when orders were queued.
 	  - Fixed welders stopping welding when accidently aimed at a marine weapon.
+	  - Fixed a power surge ending on a structure that still has power: it no longer cancels its research, a player's spawn at an infantry portal or a beacon.
 	  - Fixed collisions being dependent tick/move rate (now based on time). 
 	  - Fixed whips causing server hitching / crash on death due to ragdolls.
 	  - Fixed cyst popping on expanding across the map.
@@ -1034,6 +1035,7 @@ else
 	  - Fixed issue with projectiles visually disappearing from the client.
 	  - Fixed ARCs causing server hitching / crash on loss of orders when orders were queued.
 	  - Fixed welders stopping welding when accidently aimed at a marine weapon.
+	  - Fixed a power surge ending on a structure that still has power: it no longer cancels its research, a player's spawn at an infantry portal or a beacon.
 	  - Fixed collisions being dependent tick/move rate (now based on time). 
 	  - Fixed whips causing server hitching / crash on death due to ragdolls.
 	  - Fixed cyst popping on expanding across the map.
