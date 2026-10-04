@@ -59,6 +59,8 @@ function ControllerMixin:CreateController()
     -- interact/collide with it.
     self.controller:SetPhysicsType(CollisionObject.Kinematic)
 
+    self.controllerHeight = nil
+    self.controllerRadius = nil
 
 end
 
@@ -70,6 +72,9 @@ function ControllerMixin:CreateOutterController()
     self.controllerOutter:SetGroup(physicsGroup)
     self.controllerOutter:SetTriggeringEnabled( false )
     self.controllerOutter:SetPhysicsType(CollisionObject.Kinematic) 
+
+    self.controllerHeight = nil
+    self.controllerRadius = nil
     
 end
 
