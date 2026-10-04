@@ -32,7 +32,6 @@ local kMaxAirVeer = 1.3
 local kTracesAmount = 7
 local kPvPTracesAmount = 10
 
--- Scratch objects (copied by their consumers, never stored)
 local kMaxSpeedTable = { maxSpeed = 0 }
 local kGravityTable = { gravity = 0 }
 local kStepScratch = Vector(0, 0, 0)
@@ -81,8 +80,7 @@ function GroundMoveMixin:__initmixin()
     self.stepSkipOrigin = Vector()
     self.stepSkipHeight = 0
     self.prevOrigin = Vector()
-    self.storedNormalVec = Vector() -- owned storage for OnWorldCollision (PerformMovement returns a shared vector)
-    self.wishMoveScratch = Vector()
+    self.storedNormalVec = Vector()
     self.lastGroundCheck = {
         distance = 0, -- How far from the ground we checked we were
         origin = Vector(0, 0, 0), -- Position of the test, written in place
@@ -266,10 +264,8 @@ local function GetWishDir_moveAdjust(self, viewCoords, move, simpleAcceleration,
 
         end
     end
-    local normed = self.wishMoveScratch
-    VectorCopy(move, normed)
-    normed:Normalize()
-    return normed
+    move:Normalize()
+    return move
 end
 
 local function GetWishDir(self, move, simpleAcceleration, velocity, maxSpeed)
@@ -514,9 +510,8 @@ function GroundMoveMixin:GetFriction(input, velocity)
         return Vector(0,0,0)
     end
 
-    -- direction opposite to the velocity (one allocation)
     local invLength = -1 / fullLength
-    local friction = Vector(velocity.x * invLength, velocity.y * invLength, velocity.z * invLength) -- inline normalized (less vector allocations compared to GetNormalizedVector())
+    local friction = Vector(velocity.x * invLength, velocity.y * invLength, velocity.z * invLength)
     local velocityLength = fullLength
     
     local isOnGround = self:GetIsOnGround()
@@ -630,10 +625,7 @@ local function DoStepMove(self, _, velocity, deltaTime)
 
         if (averageSurfaceNormal and averageSurfaceNormal.y >= 0.5) then
 
-            -- Fraction of kStepHeight the previous step-down has to have travelled to count as proof
             local kStepUpSkipProofFraction = 0.99
-
-            -- The column above the final origin is proven free up to the distance we just fell.
             local downDistTravelled = forwardEndY - self:GetOrigin().y
             local canReuse = downDistTravelled >= kStepHeight * kStepUpSkipProofFraction and not crouching
             self.performedDownTraceLastMove = canReuse
@@ -895,7 +887,6 @@ function GroundMoveMixin:OnWorldCollision(normal, impactForce)
     if normal then
 
         if not self.storedNormal then
-            -- 'normal' is a vector shared by PerformMovement, never keep a reference to it
             VectorCopy(normal, self.storedNormalVec)
             self.storedNormal = self.storedNormalVec
         else

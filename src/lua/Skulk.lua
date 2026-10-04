@@ -61,6 +61,32 @@ local kNormalWallWalkRange = 0.3
 local kJumpWallRange = 0.4
 local kJumpWallFeelerSize = 0.1
 
+-- After a missed wall scan, a skulk that is moving fast keeps wall walking for this long (about one tick
+-- at the default tick rate) instead of falling at once.
+local kOffSurfaceGraceTime = 0.03
+
+-- On a ceiling a missed scan is usually just a recess, a pipe or a light, so the grace there is longer and
+-- does not need speed. "Ceiling" means the last wall normal points down. The grace is meant for walking across
+-- such a gap, never for flying, so it is only given while all of these hold (see IsLeavingCeiling):
+--  * a move key is pressed (no hovering);
+--  * the movement asked for stays within kCeilingStayAngle of the ceiling plane, up or down (no steering
+--    into the air, as when going down to the ground);
+--  * the skulk is not moving away from or towards the ceiling faster than kCeilingMaxNormalSpeed (a jump, a
+--    knockback or a fall is not walking);
+--  * it has not drifted further than kCeilingMaxDrift from the plane it was on when the scan first missed.
+local kCeilingNormalMaxY = -0.3
+local kCeilingGraceTime = 0.25
+local kCeilingStayAngle = math.rad(35)
+local kCeilingStaySin = math.sin(kCeilingStayAngle)
+local kCeilingMaxNormalSpeed = 1.5
+local kCeilingMaxDrift = 0.2
+
+-- A jump is still allowed for a short while after leaving a surface (walking off a ledge, stepping off a
+-- wall, a gap in a ceiling), so a jump pressed a hair too late is not lost. Leaving by jumping or leaping
+-- does not count, so this can never give a second jump.
+local kGroundJumpGraceTime = 0.1
+local kWallJumpGraceTime = 0.15
+
 Skulk.kXExtents = .45
 Skulk.kYExtents = .45
 Skulk.kZExtents = .45
@@ -97,9 +123,15 @@ local networkVars =
     wallWalking = "compensated boolean",
     timeLastWallWalkCheck = "private compensated time",
     leaping = "compensated boolean",
+    wasOnGround = "private boolean",
+    wasOnWall = "private boolean",
+    timeOffSurface = "private compensated time",
     timeOfLeap = "private compensated time",
     timeOfLastJumpLand = "private compensated time",
     timeLastWallJump = "private compensated time",
+    -- when we last left the ground / a wall (not by jumping): the jump grace time
+    timeLeftGround = "private compensated time",
+    timeLeftWall = "private compensated time",
     jumpLandSpeed = "private compensated float",
     dashing = "compensated boolean",    
     timeOfLastPhase = "private time",
@@ -149,6 +181,10 @@ function Skulk:OnCreate()
     self.wallWalkingNormalGoal = Vector.yAxis
     self.leaping = false
     self.timeLastWallJump = 0
+    self.timeLeftGround = 0
+    self.timeLeftWall = 0
+    self.wasOnGround = false
+    self.wasOnWall = false
      
     self.sneakOffset = 0
     self.autopickedUpgrades = false
@@ -240,6 +276,90 @@ function Skulk:GetExtentsCrouchShrinkAmount()
     return 0
 end
 
+-- Remember when we left the ground or a wall, for the jump grace time. Stamped on the change only, so the
+-- network variables are not touched every tick. (The surface we were on is read from the same state the
+-- wall walking uses: a goal normal that is not steep means "standing".)
+local function UpdateSurfaceContact(self)
+
+    local normal = self.wallWalkingNormalGoal
+    local onWall = self.wallWalking and normal ~= nil and normal.y < 0.5
+    local onGround = not onWall and self:GetIsOnGround()
+    local now = Shared.GetTime()
+
+    if self.wasOnWall and not onWall then
+        self.timeLeftWall = now
+    end
+
+    if self.wasOnGround and not onGround then
+        self.timeLeftGround = now
+    end
+
+    self.wasOnWall = onWall
+    self.wasOnGround = onGround
+
+end
+
+-- Is the skulk doing anything other than walking along the ceiling? Called on a tick where the wall scan
+-- missed, to decide if the ceiling grace may be given. All the checks are strict on purpose: any one of them
+-- failing means the skulk is leaving (or abusing the grace) and falls normally.
+-- Must be called on every missed tick, since the first one records where the drift is measured from.
+local function IsLeavingCeiling(self, input, ceilingNormal)
+
+    local nx = ceilingNormal.x
+    local ny = ceilingNormal.y
+    local nz = ceilingNormal.z
+
+    -- Where the skulk is along the ceiling normal. On the first missed tick this is the reference plane.
+    local origin = self:GetOrigin()
+    local height = origin.x * nx + origin.y * ny + origin.z * nz
+    local anchor = self.ceilingGraceAnchor
+    if anchor == nil or (self.timeOffSurface or 0) == 0 then
+        self.ceilingGraceAnchor = height
+        anchor = height
+    end
+
+    -- Drifted off the ceiling plane
+    local drift = height - anchor
+    if drift > kCeilingMaxDrift or drift < -kCeilingMaxDrift then
+        return true
+    end
+
+    -- Moving towards or away from the ceiling too fast (jumped, was pushed, is falling)
+    local velocity = self:GetVelocity()
+    local normalSpeed = velocity.x * nx + velocity.y * ny + velocity.z * nz
+    if normalSpeed > kCeilingMaxNormalSpeed or normalSpeed < -kCeilingMaxNormalSpeed then
+        return true
+    end
+
+    -- Not asking to walk: no hovering
+    local move = input.move
+    if move == nil or move:GetLength() == 0 then
+        return true
+    end
+
+    -- The wish direction of a wall walker is the move keys turned by where the player looks. It has to stay
+    -- close to the ceiling plane, on either side.
+    local wishDir = self:GetViewAngles():GetCoords():TransformVector(move)
+    local length = wishDir:GetLength()
+    if length == 0 then
+        return true
+    end
+
+    local wishNormal = wishDir.x * nx + wishDir.y * ny + wishDir.z * nz
+    return wishNormal > length * kCeilingStaySin or wishNormal < -length * kCeilingStaySin
+
+end
+
+-- Leaving a surface by jumping or leaping must not leave a grace time behind
+local function ResetJumpGrace(self)
+
+    self.timeLeftGround = 0
+    self.timeLeftWall = 0
+    self.wasOnGround = false
+    self.wasOnWall = false
+
+end
+
 function Skulk:OnLeap()
 
     local velocity = self:GetVelocity() * 0.5
@@ -255,6 +375,7 @@ function Skulk:OnLeap()
     self.wallWalking = false
     self.jumping = true
     self:DisableGroundMove(0.2)
+    ResetJumpGrace(self)
     
     self.timeOfLeap = Shared.GetTime()
     
@@ -264,14 +385,32 @@ function Skulk:GetRecentlyWallJumped()
     return self.timeLastWallJump + Skulk.kWallJumpInterval > Shared.GetTime()
 end
 
+-- Were we on a wall or ceiling a moment ago (or are we on one as far as the wall walking is concerned)?
+function Skulk:GetWasRecentlyOnWall()
+
+    if self.wallWalking then
+        local normal = self.wallWalkingNormalGoal
+        return normal ~= nil and normal.y < 0.5
+    end
+
+    return self.timeLeftWall + kWallJumpGraceTime > Shared.GetTime()
+
+end
+
+function Skulk:GetWasRecentlyOnGround()
+    return self.timeLeftGround + kGroundJumpGraceTime > Shared.GetTime()
+end
+
 function Skulk:GetCanWallJump()
 
     local wallWalkNormal = self:GetAverageWallWalkingNormal(kJumpWallRange, kJumpWallFeelerSize)
     if wallWalkNormal then
         return wallWalkNormal.y < 0.5
     end
-    
-    return false
+
+    -- Nothing in reach right now, but we just left a wall: still a wall jump. Not when we are standing on
+    -- the ground (a wall we walked off long ago must not turn a normal jump into a wall jump).
+    return (self.wallWalking or not self:GetIsOnGround()) and self:GetWasRecentlyOnWall()
 
 end
 
@@ -280,7 +419,7 @@ function Skulk:GetViewModelName()
 end
 
 function Skulk:GetCanJump()
-    return self:GetIsOnGround() or self:GetCanWallJump()
+    return self:GetIsOnGround() or self:GetWasRecentlyOnGround() or self:GetCanWallJump()
 end
 
 function Skulk:GetIsWallWalking()
@@ -330,22 +469,7 @@ end
 function Skulk:PreUpdateMove(input, runningPrediction)
 
     PROFILE("Skulk:PreUpdateMove")
-    --[[
-    local dashDesired = bit_band(input.commands, Move.MovementModifier) ~= 0 and self:GetVelocity():GetLength() > 4
-    if not self.dashing and dashDesired and self:GetEnergy() > 15 then
-        self.dashing = true    
-    elseif self.dashing and not dashDesired then
-        self.dashing = false
-    end
-    
-    if self.dashing then    
-        self:DeductAbilityEnergy(input.time * 30)    
-    end
-    
-    if self:GetEnergy() == 0 then
-        self.dashing = false
-    end
-    --]]
+
     if self:GetCrouching() then
         self.wallWalking = false
     end
@@ -360,31 +484,30 @@ function Skulk:PreUpdateMove(input, runningPrediction)
             self.wallWalkingNormalGoal = goal
             self.wallWalking = true
 
-            self.offTickCounts = 0
-            --self.offTickCountsTimeStart = Shared.GetTime() -- Dbg measure
+            self.timeOffSurface = 0
 
         else
             self.wallWalking = false
 
             local currVelocity = self:GetVelocityLength()
             local defaultSneakSpeed = Skulk.kMaxSpeed * Skulk.kSneakSpeedModifier
-            local offTickCountsMax = currVelocity >= defaultSneakSpeed and 1 or 0
 
-            -- Allows the skulks to keep wallwalking for one tick ~0.03s without falling if a check misses (on default tickrate)
-            self.offTickCounts = self.offTickCounts or 0
-            if (self.offTickCounts < offTickCountsMax) then
-                self.offTickCounts = self.offTickCounts + 1
-                self.wallWalking = true
-                --[[
-                Log("Keeping inertia: "
-                    .. tostring(self.offTickCounts)
-                    .. tostring("/") .. tostring(offTickCountsMax)
-                    .. " - velocity: " .. tostring(self:GetVelocityLength())
-                    .. "-" .. tostring( (Skulk.kMaxSpeed * Skulk.kSneakSpeedModifier))
-                    --.. "- duration" .. tostring(Shared.GetTime() - self.offTickCountsTimeStart)
-                    )
-                --]]
+            -- (the goal is only replaced by a successful scan, so it is still the surface we were on)
+            local previousGoal = self.wallWalkingNormalGoal
+            local graceTime = 0
+            if previousGoal ~= nil and previousGoal.y < kCeilingNormalMaxY and not IsLeavingCeiling(self, input, previousGoal) then
+                graceTime = kCeilingGraceTime
+            elseif currVelocity >= defaultSneakSpeed then
+                graceTime = kOffSurfaceGraceTime
             end
+
+            -- Allows the skulks to keep wallwalking for a short time (about one tick at the default tickrate,
+            -- longer on a ceiling) without falling if a check misses.
+            local timeOffSurface = self.timeOffSurface or 0
+            if timeOffSurface < graceTime then
+                self.wallWalking = true
+            end
+            self.timeOffSurface = timeOffSurface + input.time
         end
         -- Note: We detach here if we are not on walls
     end
@@ -393,6 +516,8 @@ function Skulk:PreUpdateMove(input, runningPrediction)
         -- When not wall walking, the goal is always directly up (running on ground).
         self.wallWalkingNormalGoal = Vector.yAxis
     end
+
+    UpdateSurfaceContact(self)
 
     if self.leaping and Shared.GetTime() > self.timeOfLeap + kLeapTime then
         self.leaping = false
@@ -477,6 +602,7 @@ end
 function Skulk:OnJump( modifiedVelocity )
 
     self.wallWalking = false
+    ResetJumpGrace(self)
 
     local material = self:GetMaterialBelowPlayer()    
     
@@ -758,6 +884,13 @@ function Skulk:OnProcessMove(input)
     
     --UpdateDashEffects(self)
 
+end
+
+function Skulk:HandleButtons(input)
+
+    Alien.HandleButtons(self, input)
+
+    self.movementModiferState = bit_band(input.commands, Move.MovementModifier) ~= 0
 end
 
 function Skulk:GetIsSmallTarget()
