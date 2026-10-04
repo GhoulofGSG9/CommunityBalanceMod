@@ -42,12 +42,19 @@
   - Firing cooldown set to 1s from 1.4s.
   - Charge time to 1s from 2s.
   - Shots can be stored for 3 s; the railgun fires itself 4 s after charging starts.
-  - A click, a cyan dial (pulsing red before the forced shot) and a blue muzzle light show a full charge.
-  - Base damage range is now 35 (0% charge) to 70 (100% charge) from 10/150.
-	- Maximum burst is 140 (280 for structures) at W0. Down from ~170 (340) in vanilla.
-	- Maximum DPS is 70 (140 for structures) at W0. Down from ~88 (176) in vanilla.
-  - Maximum range set to 36 m and falloff removed.
-  - Dual railgun allows simultaneous charging and firing of both arms (240 damage volley).
+  - A click, a cyan dial (pulsing red before the forced shot) and a blue muzzle light show a full charge. Other players see a glint on an arm that holds a full charge.
+  - Damage scales with charge: 0 to 130 (100% charge), from 10/150.
+	- Maximum DPS is 65 (130 for structures) at W0.
+	- Two full shots kill a lerk without carapace (from W0, up to biomass 11); no shot kills a lerk alone and two shots never kill a fade.
+  - Maximum range set to 32 m and falloff removed.
+  - Dual railguns charge together but fire at least 1.5 s apart, and each arm reloads for 3 s after its own shot.
+	- Releasing both fires left, then right 1.5 s later; pressing an arm again holds its shot instead. A hit lerk always has at least 1.5 s to break line of sight.
+	- A full arm that has to wait turns amber and its dial drains until it may fire. The squares under each dial count down that arm's reload.
+	- Resonance: a fully charged dual-rail hit on a lerk or fade makes the other arm's slug deal 30% more (169) for 3 s. Every full slug after the first resonates: about 84 DPS on one lerk or fade at W0, 65 on anything else (claw + railgun: 65, plus its claw). Skulks, gorges, the Onos and structures never resonate.
+	- Dual railguns kill a carapace lerk in 2 hits and a fade in 3 from W0 (claw + railgun: 3 and 4). No single shot kills a lerk and the first two shots never kill a fade.
+	- Only your own arms mark a target, and only with a full charge.
+	- The crosshair target outline turns pink when your next shot will resonate, and a resonant hit pings. A marked alien sees a blue resonance icon among its status icons.
+	- The railgun help card explains the dual-rail timing.
   - Target highlighting now works on all lifeforms and alien structures (red).
   - Target highlighting now matches maximum range of railgun.
   

@@ -50,7 +50,10 @@ if kCBMaddon then
 
 	### Exosuits: Weapons
 	  - Minigun: vanilla damage and heat-up.
-	  - Railgun: 20 damage on a tap, 120 fully charged (kills a skulk). Both arms may charge together for a 240 damage volley. 36 m range.
+	  - Railgun: damage scales with charge, 130 fully charged (kills a skulk). 32 m range.
+	    - Dual railguns charge together but fire at least 1.5 s apart, and each arm reloads for 3 s after its own shot. Releasing both fires left, then right 1.5 s later; pressing an arm again holds its shot. A full arm that has to wait turns amber and its dial drains until it may fire.
+	    - Resonance: a fully charged dual-rail hit on a lerk or fade makes the other arm's slug deal 30% more (169) for 3 s: about 84 DPS on one lerk or fade, 65 on anything else. Dual rails kill a carapace lerk in 2 hits and a fade in 3. The crosshair outline turns pink when your next shot will resonate, and a resonant hit pings. A marked alien sees a blue resonance icon among its status icons.
+	    - A held full charge shows a glint on the exo's arm that other players can see.
 	    - A full charge holds for 3 s before the railgun fires itself. A click, a cyan dial (pulsing red before the forced shot) and a blue muzzle light show it is ready.
 	  - Plasma Launcher: lobs a bomb every 2 s. AoE burst of 40 damage in 4 m and burns for 3 s.
 	    - Burns do not stack and need line of sight.
@@ -778,7 +781,10 @@ else
 
 	### Exosuits: Weapons
 	  - Minigun: vanilla damage and heat-up.
-	  - Railgun: 20 damage on a tap, 120 fully charged (kills a skulk). Both arms may charge together for a 240 damage volley. 36 m range.
+	  - Railgun: damage scales with charge, 130 fully charged (kills a skulk). 32 m range.
+	    - Dual railguns charge together but fire at least 1.5 s apart, and each arm reloads for 3 s after its own shot. Releasing both fires left, then right 1.5 s later; pressing an arm again holds its shot. A full arm that has to wait turns amber and its dial drains until it may fire.
+	    - Resonance: a fully charged dual-rail hit on a lerk or fade makes the other arm's slug deal 30% more (169) for 3 s: about 84 DPS on one lerk or fade, 65 on anything else. Dual rails kill a carapace lerk in 2 hits and a fade in 3. The crosshair outline turns pink when your next shot will resonate, and a resonant hit pings. A marked alien sees a blue resonance icon among its status icons.
+	    - A held full charge shows a glint on the exo's arm that other players can see.
 	    - A full charge holds for 3 s before the railgun fires itself. A click, a cyan dial (pulsing red before the forced shot) and a blue muzzle light show it is ready.
 	  - Plasma Launcher: lobs a bomb every 2 s. AoE burst of 40 damage in 4 m and burns for 3 s.
 	    - Burns do not stack and need line of sight.
