@@ -326,9 +326,7 @@ kFlamethrowerBurnDuration = 2.1
 kFlamethrowerMaxBurnDuration = 6
 
 
--- Output levers for an exo carrying two gun arms, applied in Exo:ComputeDamageAttackerOverride.
--- All four are 1: the hooks exist so a pair can be tuned without a code change, not because
--- any pair is currently modified. A mixed pair takes the first lever its arms match.
+-- Output levers for an exo carrying two arms of the same gun, applied in Exo:ComputeDamageAttackerOverride.
 kExoDualMinigunModifier = 1
 kExoDualRailgunModifier = 1
 kExoDualPlasmaModifier = 1
