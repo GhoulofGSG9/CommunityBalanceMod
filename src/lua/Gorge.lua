@@ -301,8 +301,9 @@ function Gorge:UpdateGorgeSliding(input)
 
     PROFILE("Gorge:UpdateGorgeSliding")
 
+    local now = Shared.GetTime()
     local slidingDesired = self:GetIsSlidingDesired(input)
-    if slidingDesired and not self.sliding and self.timeSlideEnd + Gorge.kSlideCoolDown < Shared.GetTime()
+    if slidingDesired and not self.sliding and self.timeSlideEnd + Gorge.kSlideCoolDown < now
             and self:GetIsOnGround() and self:GetEnergy() >= kBellySlideCost then
 
         self.sliding = true
@@ -329,7 +330,7 @@ function Gorge:UpdateGorgeSliding(input)
             self.slideLoopSound:Stop()
         end
 
-        self.timeSlideEnd = Shared.GetTime()
+        self.timeSlideEnd = now
 
     end
 
