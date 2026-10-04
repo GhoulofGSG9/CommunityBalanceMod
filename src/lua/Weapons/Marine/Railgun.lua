@@ -31,6 +31,7 @@ local kRailgunChargeTime = 1 -- Vanilla 1.4
 local kChargeSound = PrecacheAsset("sound/NS2.fev/marine/heavy/railgun_charge")
 local kChargeReadySound = PrecacheAsset("sound/NS2.fev/common/checkbox_on")
 local kQueuedSound = PrecacheAsset("sound/NS2.fev/common/hovar")
+local kChargedGlintCinematic = PrecacheAsset("cinematics/marine/exo/lens_flare.cinematic")
 local kResonanceSound = PrecacheAsset("sound/NS2.fev/common/ping")
 
 local precached1 = PrecacheAsset("cinematics/vfx_materials/alien_frag.surface_shader")
@@ -100,6 +101,13 @@ function Railgun:OnDestroy()
         Client.DestroyRenderLight(self.chargeLight)
         self.chargeLight = nil
         
+    end
+
+    if self.chargedGlint then
+
+        Client.DestroyCinematic(self.chargedGlint)
+        self.chargedGlint = nil
+
     end
     
 end
@@ -576,12 +584,36 @@ if Client then
         end
 
         local light = self.chargeLight
+        local glint = self.chargedGlint
         if attachPoint < 0 then
 
             if light then
                 light:SetIsVisible(false)
             end
+            if glint then
+                glint:SetIsVisible(false)
+            end
             return
+
+        end
+
+        local coords = parent:GetAttachPointCoords(attachPoint)
+
+        local charged = chargeAmount >= 1
+        if charged and not glint then
+
+            glint = Client.CreateCinematic(RenderScene.Zone_Default)
+            glint:SetCinematic(kChargedGlintCinematic)
+            glint:SetRepeatStyle(Cinematic.Repeat_Endless)
+            self.chargedGlint = glint
+
+        end
+        if glint then
+
+            if charged then
+                glint:SetCoords(coords)
+            end
+            glint:SetIsVisible(charged)
 
         end
 
@@ -597,7 +629,7 @@ if Client then
         end
 
         light:SetIntensity(kChargeLightIntensity * chargeAmount)
-        light:SetCoords(parent:GetAttachPointCoords(attachPoint))
+        light:SetCoords(coords)
         light:SetIsVisible(true)
 
     end
