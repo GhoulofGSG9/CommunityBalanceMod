@@ -164,7 +164,7 @@ if kCBMaddon then
 	### Misc
 	  - AMAC given minor rework to lower skill floor and reduce power ceiling.
 	  - Adjusted drifter "snap" range to 2 from 3 m. Improved command responsiveness.
-	  - Resilience and aura reverted to vanilla.
+	  - Rage reverted to carapace. Aura allows health information when parasited.
 	  - Biomass five removed.
 	  - Unstuck (vanilla console command) improved.
 	  - Upgrade buying and switching as a lifeform improved (better egg placement).
@@ -596,7 +596,7 @@ if kCBMaddon then
 	  - Dropping welders cost 2 tres (from 3 tres).
 
 	## ALIEN - PLAYER
-	### Chamber Trait Reworks / Rebelance
+	### Chamber Trait Reworks / Rebalance
 	  - Trait Swapping: (cost reduction)
 		- Skulk: 0 (Same as vanilla)
 		- Gorge: 1 (Same as vanilla)
@@ -611,6 +611,9 @@ if kCBMaddon then
       - Focus:
 	    - Fixed bug which slowed Gore by 57% instead of 33%.
 	    - Gorges now get a 1.5x damage buff instead of a 1.33x buff.
+      - Aura:
+	    - Only gives health information when enemy is parasited.
+		- Unparasited targets have a grey yellow icon.
 
 	### Gorges
 	  - Babblers
@@ -895,7 +898,7 @@ else
 	### Misc
 	  - AMAC given minor rework to lower skill floor and reduce power ceiling.
 	  - Adjusted drifter "snap" range to 2 from 3 m. Improved command responsiveness.
-	  - Resilience and aura reverted to vanilla.
+	  - Rage reverted to carapace. Aura allows health information when parasited.
 	  - Unstuck (vanilla console command) improved.
 	  - Upgrade buying and switching as a lifeform improved (better egg placement).
 	  - Marine tech path adjusted and given colors to signify different tech progression.
@@ -1250,7 +1253,7 @@ else
 	  - Dropping welders cost 2 tres (from 3 tres).
 
 	## ALIEN - PLAYER
-	### Chamber Trait Reworks / Rebelance
+	### Chamber Trait Reworks / Rebalance
 	  - Trait Swapping: (cost reduction)
 		- Skulk: 0 (Same as vanilla)
 		- Gorge: 1 (Same as vanilla)
@@ -1265,6 +1268,9 @@ else
       - Focus:
 	    - Fixed bug which slowed Gore by 57% instead of 33%.
 	    - Gorges now get a 1.5x damage buff instead of a 1.33x buff.
+      - Aura:
+	    - Only gives health information when enemy is parasited.
+		- Unparasited targets have a grey yellow icon.
 
 	### Gorges
 	  - Babblers

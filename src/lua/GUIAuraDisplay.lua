@@ -129,9 +129,11 @@ function GUIAuraDisplay:Update(deltaTime)
         local enemy = players[i]
         local icon = self.icons[i]
 
-        local healthScalar = self.isThunderdomeEnabled and 1 or enemy:GetHealthScalar()
-        local blue = self.isThunderdomeEnabled and 1 or 0
-        local color = Color(1, healthScalar, blue, 1)
+        local healthScalar = enemy:GetHealthScalar()
+        local color = Color(1, 1, 0.65, 1) -- matches TD
+		if HasMixin(enemy, "ParasiteAble") and enemy:GetIsParasited() then
+			color = Color(1, healthScalar, 0, 1)
+		end
 
         local offset = enemy:isa("Exo") and kExoHeartOffset or kHeartOffset
 
