@@ -273,6 +273,7 @@ function MapBlip:Update(owner)
             blipSetAngle.yaw = 0
         end
         self:SetAngles(blipSetAngle)        
+        self.blipYaw = blipSetAngle.yaw
 
         local origin
         if owner.GetPositionForMinimap then

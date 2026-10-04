@@ -73,27 +73,6 @@ function ControllerMixin:CreateOutterController()
     
 end
 
-local function SetNearbyPlayerControllers(self, enabled)
-
-    for _, player in ipairs(GetEntitiesWithinRange("Player", self:GetOrigin(), 4)) do
-    
-        if player ~= self then
-
-            if player.controllerOutter then
-
-                player.controllerOutter:SetCollisionEnabled(enabled)
-            end
-            
-            if player.controller then
-                player.controller:SetCollisionEnabled(enabled)
-            end
-        
-        end
-    
-    end
-
-end
-
 function ControllerMixin:DestroyController()
 
     if self.controller ~= nil then
@@ -305,10 +284,7 @@ function ControllerMixin:PerformMovement(o, maxTraces, velocity, isMove, slowDow
         -- Vanilla move-rate per second is 26 (to make it time based, rather than tick)
         slowDownFraction = math.min(1, slowDownFraction * 26 * deltaTime)
     end
-    local origSlowDownFraction = slowDownFraction
     
-    VectorCopy(offset, self.moveOrigOffset)
-    local origOffset = self.moveOrigOffset
     local oldVelocity = nil
     local prevXZSpeed = nil
 
@@ -342,28 +318,32 @@ function ControllerMixin:PerformMovement(o, maxTraces, velocity, isMove, slowDow
                 break
             else
                 -- Remove the amount of the offset we've already moved.
-                offset = offset * (1 - trace.fraction)
+                offset:Scale(1 - trace.fraction)
                 
                 -- Make the motion perpendicular to the surface we collided with so we slide.
-                offset = offset - offset:GetProjection(trace.normal) -- + trace.normal*0.001
+                local offsetProjection = offset:GetProjection(trace.normal)
+                offset.x = offset.x - offsetProjection.x
+                offset.y = offset.y - offsetProjection.y
+                offset.z = offset.z - offsetProjection.z
 
-                -- Redirect velocity if specified
-                if velocity ~= nil and slowDownFraction ~= nil then
+                -- Redirect velocity if specified (changed in place, so it's changed for the caller)
+                if velocity ~= nil then
                 
                     -- Scale it according to how much velocity we lost
-                    local newVelocity = velocity - velocity:GetProjection(trace.normal) * slowDownFraction -- + trace.normal*0.001
-                    
-                    -- Copy it so it's changed for caller
-                    VectorCopy(newVelocity, velocity)
-                    --Log("Applying slow down of %s * %s", deltaTime, slowDownFraction)
+                    local velocityProjection = velocity:GetProjection(trace.normal)
+                    velocity.x = velocity.x - velocityProjection.x * slowDownFraction
+                    velocity.y = velocity.y - velocityProjection.y * slowDownFraction
+                    velocity.z = velocity.z - velocityProjection.z * slowDownFraction
                     
                 end
                 
+                -- Always accumulate in the shared vector, so the returned normal is
+                -- consistently the same object whether we hit once or many times.
                 if not averageSurfaceNormal then
                     VectorCopy(trace.normal, self.moveAverageSurfaceNormal)
                     averageSurfaceNormal = self.moveAverageSurfaceNormal
                 else
-                    averageSurfaceNormal = averageSurfaceNormal + trace.normal
+                    averageSurfaceNormal:Add(trace.normal)
                 end
                 
                 -- Defer the processing of the callbacks until after we've finished moving,
@@ -400,7 +380,9 @@ function ControllerMixin:PerformMovement(o, maxTraces, velocity, isMove, slowDow
         for _, entity in ipairs(hitEntities) do
         
             entity:OnCapsuleTraceHit(self)
-            self:OnCapsuleTraceHit(entity)
+            if self.OnCapsuleTraceHit then
+                self:OnCapsuleTraceHit(entity)
+            end
             
         end
         

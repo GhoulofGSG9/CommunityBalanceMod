@@ -138,6 +138,8 @@ MAC.kRepairHealthPerSecond = 30 -- (used by WeldableMixin, when welding hp of ar
  -- Range at which the MAC is looking for entities to interact with (limited by leash range if shorter)
 MAC.kSearchRangeLongLeash = 12.0
 MAC.kSearchRangeShortLeash = 3.0 -- 2.5
+-- While following a player (FollowAndWeld), non-player weldables/constructables are only searched within this fraction of the scan radius
+MAC.kFollowNonPlayerScanFactor = 0.5
 
 -- Distances at which the MAC can operate from its anchor point (needs to be longer than kSearchRange(long/short)Leash)
 MAC.kDefaultLeashRadius = 14.0 -- Direct distance check for leash
@@ -263,15 +265,9 @@ function MAC:UpdateOrderScanRadius()
 end
 
 function MAC:GetHasWeldingOrder()
-    local hasWeldingOrder = false
-    local currentOrder = mac:GetCurrentOrder()
-
-    if (currentOrder) then
-        hasWeldingOrder = (isWeldingOrder or currentOrder:GetType() == kTechId.FollowAndWeld)
-        hasWeldingOrder = (isWeldingOrder or currentOrder:GetType() == kTechId.Weld)
-        hasWeldingOrder = (isWeldingOrder or currentOrder:GetType() == kTechId.AutoWeld)
-    end
-    return hasWeldingOrder
+    local currentOrder = self:GetCurrentOrder()
+    local orderType = currentOrder and currentOrder:GetType()
+    return orderType == kTechId.FollowAndWeld or orderType == kTechId.Weld or orderType == kTechId.AutoWeld
 end
 
 
@@ -497,8 +493,10 @@ function MAC:OnEntityChange(oldId, newId)
 
             -- continue follow the new entity which we were following
             if isValidNewTarget then
-                -- Only case where we self-issue an order (ex: moving in/out of exo, buying JPs)
-                self:GiveOrder(kTechId.FollowAndWeld, newTarget:GetId(), newTarget:GetOrigin(), nil, false, false)
+                -- (ex: moving in/out of exo, buying JPs)
+                -- Retarget the current order in place
+                currentOrder:SetParam(newTarget:GetId())
+                currentOrder:SetLocation(newTarget:GetOrigin())
             else
                 self:ClearCurrentOrder()
                 self.targetId = Entity.invalidId
@@ -1103,14 +1101,16 @@ function MAC:OnOrderGiven(newOrder)
         self:SetLeashPos(newOrder:GetLocation())
     end
 
-    if (newOrder:GetType() == kTechId.FollowAndWeld and self:GetCurrentOrder():GetType() == kTechId.Move) then
+    local currentOrder = self:GetCurrentOrder()
+    if (currentOrder and newOrder:GetType() == kTechId.FollowAndWeld and currentOrder:GetType() == kTechId.Move) then
         -- QoL: If we have move orders, just discard them and go straight for the target
         -- (because ns2 is autochaining a move and THEN a follow order, which is not a nice detour)
         self:ClearCurrentOrder()
+        currentOrder = self:GetCurrentOrder()
     end
 
     -- Clear the QoL hold order whenever a new different order is given (it will be reissued once done)
-    if (newOrder:GetType() ~= kTechId.HoldPosition and self:GetCurrentOrder():GetType() == kTechId.HoldPosition) then
+    if (currentOrder and newOrder:GetType() ~= kTechId.HoldPosition and currentOrder:GetType() == kTechId.HoldPosition) then
         self:ClearCurrentOrder()
     end
     
@@ -1171,7 +1171,9 @@ function MAC:UpdateCurrentOrder(deltaTime, currentOrder)
 
         if (orderType == kTechId.FollowAndWeld) then
             -- Follow order never complete on their own (infinite), they only get cancelled because target died (so we check for end-of-order here)
-            self:CompletedCurrentOrder() -- Complete first, then clear it (it's a looping kind, it won't auto clear itself on complete)
+            -- Run the completion hook (leash reset), but do NOT call CompletedCurrentOrder(): for a looping order it advances
+            -- to the next queued order, and the ClearCurrentOrder() below would then delete that order instead of the follow.
+            self:OnOrderComplete(currentOrder)
         end
 
         self:ClearCurrentOrder()
@@ -1197,9 +1199,15 @@ local function _GetNearestWeldablePlayer(self, nearbySortedWeldable)
     return nil
 end
 
-local function _GetNearestWeldablePvE(self, nearbySortedWeldable)
+-- XZ distance check from the scan center (same metric as GetEntitiesWithMixinForTeamWithinXZRange)
+local function _IsWithinScanRangeSq(w, scanPos, rangeSq)
+    local delta = w:GetOrigin() - scanPos
+    return delta.x * delta.x + delta.z * delta.z <= rangeSq
+end
+
+local function _GetNearestWeldablePvE(self, nearbySortedWeldable, scanPos, rangeSq)
     for _, w in ipairs(nearbySortedWeldable) do
-        if not w:isa("Player") then
+        if not w:isa("Player") and (not rangeSq or _IsWithinScanRangeSq(w, scanPos, rangeSq)) then
             local isWeldable = w:GetIsAlive() and w:GetWeldPercentage() < 1
             local isConstructable = w:GetIsAlive() and (HasMixin(w, "Construct") and w:GetCanConstruct(self))
             local isAllowedToWeld = MAC.CanMultipleWeldPvE or not self:GetIsWeldedByOtherMAC(w)
@@ -1212,9 +1220,9 @@ local function _GetNearestWeldablePvE(self, nearbySortedWeldable)
     return nil
 end
 
-local function _GetNearestConstructablePvE(self, nearbySortedWeldable)
+local function _GetNearestConstructablePvE(self, nearbySortedWeldable, scanPos, rangeSq)
     for _, w in ipairs(nearbySortedWeldable) do
-        if not w:isa("Player") then
+        if not w:isa("Player") and (not rangeSq or _IsWithinScanRangeSq(w, scanPos, rangeSq)) then
             local isConstructable = w:GetIsAlive() and (HasMixin(w, "Construct") and w:GetCanConstruct(self))
             local isAllowedToBuild = MAC.CanMultipleWeldPvE or not self:GetIsWeldedByOtherMAC(w)
             if isConstructable and isAllowedToBuild then --  and not self:GetIsWeldedByOtherMAC(w) -- Constructable CAN be build with multiple macs, only welding is restricted
@@ -1233,16 +1241,26 @@ function MAC:DecisionMakingRoutine_SideQuests(deltaTime, currentOrder, currentOr
     end
 
     local newOrderTarget = nil
-    local nearbySortedWeldable = self:IsBeyondLeash() and {} or GetEntitiesWithMixinForTeamWithinXZRange("Weldable", self:GetTeamNumber(), self:GetLeashPos(), self:GetOrderScanRadius())
+    local hasFollowOrder = currentOrderType and currentOrderTarget and (currentOrderType == kTechId.FollowAndWeld)
+
+    local scanPos = self:GetLeashPos()
+    local scanRadius = self:GetOrderScanRadius()
+    local nearbySortedWeldable = self:IsBeyondLeash() and {} or GetEntitiesWithMixinForTeamWithinXZRange("Weldable", self:GetTeamNumber(), scanPos, scanRadius)
     Shared.SortEntitiesByDistance(self:GetOrigin(), nearbySortedWeldable)
 
+    -- While following a player, only look for non-player stuff (PvE welds + constructables) in a reduced radius (players keep the full radius)
+    local pveRangeSq = nil
+    if hasFollowOrder and currentOrderTarget:isa("Player") then
+        local pveRadius = scanRadius * MAC.kFollowNonPlayerScanFactor
+        pveRangeSq = pveRadius * pveRadius
+    end
+
     local nearestPlayerNeedingWeld = _GetNearestWeldablePlayer(self, nearbySortedWeldable) 
-    local nearestPvENeedingWeld = _GetNearestWeldablePvE(self, nearbySortedWeldable)
-    local nearestConstructablePvE = _GetNearestConstructablePvE(self, nearbySortedWeldable)
+    local nearestPvENeedingWeld = _GetNearestWeldablePvE(self, nearbySortedWeldable, scanPos, pveRangeSq)
+    local nearestConstructablePvE = _GetNearestConstructablePvE(self, nearbySortedWeldable, scanPos, pveRangeSq)
 
     -- Followed target doesn't need immediate welding (catched in first condition),
     -- so we just update the leash to follow it and do side quests
-    local hasFollowOrder = currentOrderType and currentOrderTarget and (currentOrderType == kTechId.FollowAndWeld)
     if (hasFollowOrder) then
         self:SetLeashPos(currentOrderTarget:GetOrigin())
         newOrderTarget = currentOrderTarget -- We are assigned to it, even if we don't actively weld it we are ready

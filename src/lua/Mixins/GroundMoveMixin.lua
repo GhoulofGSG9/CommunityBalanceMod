@@ -81,6 +81,7 @@ function GroundMoveMixin:__initmixin()
     self.stepSkipHeight = 0
     self.prevOrigin = Vector()
     self.storedNormalVec = Vector()
+    self.wishMoveScratch = Vector()
     self.lastGroundCheck = {
         distance = 0, -- How far from the ground we checked we were
         origin = Vector(0, 0, 0), -- Position of the test, written in place
@@ -264,8 +265,10 @@ local function GetWishDir_moveAdjust(self, viewCoords, move, simpleAcceleration,
 
         end
     end
-    move:Normalize()
-    return move
+    local normed = self.wishMoveScratch
+    VectorCopy(move, normed)
+    normed:Normalize()
+    return normed
 end
 
 local function GetWishDir(self, move, simpleAcceleration, velocity, maxSpeed)

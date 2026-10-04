@@ -220,10 +220,8 @@ function LiveMixin:SetArmor(armor, hideEffect)
         local prevArmor = self.armor
         self.armor = Clamp(armor, 0, self:GetMaxArmor())
 
-        local time = Shared.GetTime()
-
         if prevArmor < self.armor and not hideEffect then
-            self.timeLastVisuallyHealed = time
+            self.timeLastVisuallyHealed = Shared.GetTime()
         end
 
     end
@@ -305,7 +303,7 @@ local function SetLastDamage(self, time, attacker)
     end
 
     -- Track "combat" (for now only take damage, since we don't make a difference between harmful and passive abilities):
-    self.timeLastCombatAction = Shared.GetTime()
+    self.timeLastCombatAction = time
 
 end
 
@@ -361,21 +359,7 @@ function LiveMixin:TakeDamage(damage, attacker, doer, point, direction, armorUse
     -- Do the actual damage only on the server
     if Server then
 
-        -- If a Hive dies, we'll log the biomass level (For Stats)
-        local className
         local biomassLevel
-
-        if self.GetClassName then
-
-            className = self:GetClassName()
-
-            if className == "Hive" then
-                local team = self:GetTeam()
-                if team then
-                    biomassLevel = team:GetBioMassLevel() - self:GetBioMassLevel()
-                end
-            end
-        end
 
         -- Damage types that do not ignore health give us leftover damage after armor depletion regardless of us ignoring health.
         if self.healthIgnored then
@@ -390,12 +374,23 @@ function LiveMixin:TakeDamage(damage, attacker, doer, point, direction, armorUse
         --]]
         local newArmor = math.max(0, self:GetArmor() - armorUsed)
         local newHealth = math.max(0, self:GetHealth() - healthUsed)
+
+        local killedFromHealth = oldHealth > 0 and newHealth == 0 and not self.healthIgnored
+        local killedFromArmor = oldArmor > 0 and newArmor == 0 and self.healthIgnored
+        local killing = killedFromHealth or killedFromArmor
+
+        -- If a Hive dies, we'll log the biomass level (For Stats)
+        if killing and self.GetClassName and self:GetClassName() == "Hive" then
+            local team = self:GetTeam()
+            if team then
+                biomassLevel = team:GetBioMassLevel() - self:GetBioMassLevel()
+            end
+        end
+
         self.armor = newArmor
         self.health = newHealth
 
-        local killedFromHealth = oldHealth > 0 and self:GetHealth() == 0 and not self.healthIgnored
-        local killedFromArmor = oldArmor > 0 and self:GetArmor() == 0 and self.healthIgnored
-        if killedFromHealth or killedFromArmor then
+        if killing then
 
             if not self.AttemptToKill or self:AttemptToKill(damage, attacker, doer, point) then
 
@@ -416,6 +411,8 @@ function LiveMixin:TakeDamage(damage, attacker, doer, point, direction, armorUse
 
         -- Handle Stats for killing stuff
         if killedFromDamage then
+
+            local className = self.GetClassName and self:GetClassName()
 
             if self:isa("ResourceTower") then
 
@@ -455,15 +452,19 @@ function LiveMixin:TakeDamage(damage, attacker, doer, point, direction, armorUse
         end
 
         -- Handle stats for damage
-        local attackerSteamId, attackerWeapon, attackerTeam = StatsUI_GetAttackerWeapon(attacker, doer)
-        if attackerSteamId then
+        if doer then
 
-            -- Don't count friendly fire towards damage counts
-            -- Check if there is a doer, because when alien structures are off infestation
-            -- it will count as an attack for the last person that shot it, only log actual attacks
-            if attackerTeam ~= targetTeam and damageDone and damageDone > 0 and doer then
-                StatsUI_AddDamageStat(attackerSteamId, damageDone or 0, self and self:isa("Player") and not (self:isa("Hallucination") or self.isHallucination), attackerWeapon, attackerTeam)
+            local attackerSteamId, attackerWeapon, attackerTeam = StatsUI_GetAttackerWeapon(attacker, doer)
+            if attackerSteamId then
+
+                -- Don't count friendly fire towards damage counts
+                -- Check if there is a doer, because when alien structures are off infestation
+                -- it will count as an attack for the last person that shot it, only log actual attacks
+                if attackerTeam ~= targetTeam and damageDone > 0 then
+                    StatsUI_AddDamageStat(attackerSteamId, damageDone, self:isa("Player") and not (self:isa("Hallucination") or self.isHallucination), attackerWeapon, attackerTeam)
+                end
             end
+
         end
 
         return killedFromDamage, damageDone
@@ -554,24 +555,22 @@ function LiveMixin:AddArmor(armor, playSound, hideEffect, healer )
 
     if self:AmountDamaged() > 0 then
 
-        total = math.min(math.max(0, self:GetArmor() + armor), self:GetMaxArmor()) - self:GetArmor()
+        local currentArmor = self:GetArmor()
+        local newArmor = math.min(math.max(0, currentArmor + armor), self:GetMaxArmor())
+        total = newArmor - currentArmor
 
         -- Add health first, then armor if we're full
-        self:SetArmor(math.min(math.max(0, self:GetArmor() + armor), self:GetMaxArmor()), hideEffect)
+        self:SetArmor(newArmor, hideEffect)
 
-        if total > 0 then
+        if total > 0 and Server then
 
-            if Server then
+            local time = Shared.GetTime()
 
-                if not hideEffect then
-
-                    self.timeLastVisuallyHealed = Shared.GetTime()
-
-                end
-
-                self.timeLastHealed = Shared.GetTime()
-
+            if not hideEffect then
+                self.timeLastVisuallyHealed = time
             end
+
+            self.timeLastHealed = time
 
         end
 
@@ -588,57 +587,41 @@ end
 -- defined by kHealingClampMaxHPAmount and kHealingClampInterval.
 function LiveMixin:ClampHealing( healAmount, healer )
     -- Don't clamp system healing (growth/spawning)
-    if not healer then return healAmount end
+    if not healer or healAmount <= 0 then return healAmount end
 
     -- Only clamp healing for aliens
     local isAlien = HasMixin( self, "Team") and self:GetTeamType() == kAlienTeamType
     if not isAlien then return healAmount end
 
     -- Make sure Crag doesn't get heal-rate capped.
-    if healer and healer:isa("Crag") then
+    if healer:isa("Crag") then
         return healAmount
     end
 
     local now = Shared.GetTime()
-
-    -- Init history
-    if not self.healHistory then
-        self.healHistory = {
-            lastUpdate = now,
-            healingReceived = 0
-        }
-    end
+    local received = self.healClampReceived or 0
+    local timeDiff = now - (self.healClampLast or now)
 
     local ehpMax = self:GetMaxHealth() + self:GetMaxArmor() * kHealthPointsPerArmor
     local ehpSoftCap = ehpMax * kHealingClampMaxHPAmount / kHealingClampInterval -- Maximum amount of ehp that can be received un-taxed
 
     -- Amortize for time past since last heal
-    local timeDiff = now - self.healHistory.lastUpdate
     if timeDiff > 0 then
-        self.healHistory.healingReceived = math.max( self.healHistory.healingReceived - timeDiff * ehpSoftCap, 0)
+        received = math.max(received - timeDiff * ehpSoftCap, 0)
     end
 
     -- Amount of ehp that can be added before we start getting taxed.
-    local ehpRemainUntilCap = math.max(ehpSoftCap - self.healHistory.healingReceived, 0)
+    local ehpRemainUntilCap = math.max(ehpSoftCap - received, 0)
 
-    -- Split heal amount into two sums: amount that pushes us up to the cap (if enough), and amount over the cap.
     local nonTaxableHealAmount = math.min(healAmount, ehpRemainUntilCap)
     local taxableHealAmount = healAmount - nonTaxableHealAmount
-    assert(nonTaxableHealAmount >= 0)
-    assert(taxableHealAmount >= 0)
 
     healAmount = nonTaxableHealAmount + taxableHealAmount * kHealingClampReductionScalar
 
-    self.healHistory.healingReceived = self.healHistory.healingReceived + healAmount
-    self.healHistory.lastUpdate = now
-
-    if self.healHistory.healingReceived <= 0 and timeDiff > kHealingClampInterval then
-        self.healHistory = nil
-    end
+    self.healClampReceived = received + healAmount
+    self.healClampLast = now
 
     return healAmount
-
-    
 end
 
 -- Return the amount of health we added
@@ -944,7 +927,9 @@ function LiveMixin:OnUpdateRender()
             end
 
         else
+
             self.healMaterial:SetParameter("timeLastHealed", showHeal and self.timeLastVisuallyHealed or 0)
+
         end
 
     end
@@ -972,6 +957,7 @@ function LiveMixin:OnUpdateRender()
 
             else
                 self.healViewMaterial:SetParameter("timeLastHealed", self.timeLastVisuallyHealed)
+
             end
 
         end

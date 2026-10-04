@@ -27,6 +27,7 @@ AddMixinNetworkVars(TeamMixin, networkVars)
 local kFogEntRelevancyDist = kPlayerLOSDistance
 
 local kFogEndUpdateInterval = 0.8
+local kFogHostSightRangeSq = 1.5 * 1.5
 
 function FogOfWarEntity:OnCreate()
     ScriptActor.OnCreate(self)
@@ -75,7 +76,9 @@ function FogOfWarEntity:OnUpdate()
             local seen = self:OverrideCheckVisibilty(e)
             if seen then
                 local host = MapBlipMixin.GetFogEntityHost(self)
-                if host and HasMixin(host, "LOS") then
+                local hostOrig = host and host:GetOrigin()
+                local dx, dz = hostOrig and hostOrig.x - orig.x, hostOrig and hostOrig.z - orig.z
+                if host and HasMixin(host, "LOS") and dx * dx + dz * dz < kFogHostSightRangeSq then
                     host:SetIsSighted(true, e)
                 else
                     self:SetFogEntMapBlipInfo(false)
