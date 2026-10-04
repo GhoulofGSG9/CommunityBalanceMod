@@ -159,6 +159,8 @@ if kCBMaddon then
 	  - Biomass five removed.
 	  - Unstuck (vanilla console command) improved.
 	  - Upgrade buying and switching as a lifeform improved (better egg placement).
+	  - Reworked ceiling movement to be more forgiving for skulks (allows for smooth movement along ceilings).
+	  - Added minor grace period for skulks to prevent instant falling off of walls and to improve jump consistency.
 	  - Marine tech path adjusted and given colors to signify different tech progression.
 	    - Blue is research.
 		- Green is a structure upgrade.
@@ -878,6 +880,8 @@ else
 	  - Resilience and aura reverted to vanilla.
 	  - Unstuck (vanilla console command) improved.
 	  - Upgrade buying and switching as a lifeform improved (better egg placement).
+	  - Reworked ceiling movement to be more forgiving for skulks (allows for smooth movement along ceilings).
+	  - Added minor grace period for skulks to prevent instant falling off of walls and to improve jump consistency.
 	  - Marine tech path adjusted and given colors to signify different tech progression.
 	    - Blue is research.
 		- Green is a structure upgrade.
