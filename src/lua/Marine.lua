@@ -680,7 +680,10 @@ function Marine:HandleButtons(input)
                 end
             end
 
-            if usePressed then
+            -- Only pickup weapons if the "use" key didn't find anything
+            -- Otherwise it would prevents use from building (for instance)
+            local isAlreadyUsing = ( now < self.timeOfLastUse + kUseInterval )
+            if usePressed and not isAlreadyUsing then
 
                 local pickupWeapon = self:GetNearbyPickupableWeapon()
                 -- see if we have a weapon nearby to pickup.
