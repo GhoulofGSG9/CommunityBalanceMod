@@ -239,7 +239,7 @@ local function ExecuteShot(self, startPoint, endPoint, player)
     for _ = 1, 20 do
 
         local capsuleTrace = Shared.TraceBox(extents, startPoint, trace.endPoint, CollisionRep.Damage, PhysicsMask.Bullets, filter)
-        if capsuleTrace.entity then
+        if capsuleTrace.entity and damage > 0 then
 
             if not table.find(hitEntities, capsuleTrace.entity) then
                 table.insert(hitEntities, capsuleTrace.entity)

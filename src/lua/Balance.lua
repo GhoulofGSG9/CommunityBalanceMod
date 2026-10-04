@@ -14,7 +14,8 @@ kCBMaddon = true -- Enables AMAC, SPARC, SMG, Adv Obs, Adv Gate, Bio 5, and Adva
 kRelevancyRangeCap = 41 -- Relevancy range is 40 m, so 1 m buffer
 -- Railgun stays under relevancy: a longer slug hits aliens whose client has not even
 -- received the exo entity, so lerks died to shooters they could not see (vanilla 400).
-kRailgunRange = kMaxRelevancyDistance - 4
+-- 32 m leaves a lerk a 32-40 m band at the edge of a hive room.
+kRailgunRange = kMaxRelevancyDistance - 8
 
 kTransformResourcesTime = 15
 kTransformResourcesCost = 15
@@ -338,8 +339,8 @@ kMinigunDamageType = kDamageType.Heavy
 kClawDamage = 50
 kClawDamageType = kDamageType.Structural
 
-kRailgunDamage = 20
-kRailgunChargeDamage = 100
+kRailgunDamage = 0
+kRailgunChargeDamage = 130
 kRailgunDamageType = kDamageType.Structural
 
 kMACAttackDamage = 5

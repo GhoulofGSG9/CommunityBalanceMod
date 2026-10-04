@@ -65,9 +65,9 @@ local function GetShouldFireExoWeapon( weapon, dist, target )
         end
 
         -- Railguns charge while the trigger is held and fire on release
-        local railgunFireCharge = 0.98
+        local railgunFireCharge = 1
         if dist and dist < 10 and target and target:isa("Player") then
-            railgunFireCharge = 0.4 -- fire railgun shots more quickly against close players
+            railgunFireCharge = 0.8 -- fire railgun shots more quickly against close players
         end
 
         return charge < railgunFireCharge
