@@ -65,6 +65,13 @@ local kJumpWallFeelerSize = 0.1
 -- at the default tick rate) instead of falling at once.
 local kOffSurfaceGraceTime = 0.03
 
+-- On a ceiling a missed scan is usually just a recess, a pipe or a light, so the grace there is longer and
+-- does not need speed. "Ceiling" means the last wall normal points down.
+local kCeilingNormalMaxY = -0.3
+local kCeilingGraceTime = 0.25
+local kCeilingLeaveAngle = math.rad(45)
+local kCeilingLeaveSin = math.sin(kCeilingLeaveAngle)
+
 -- A jump is still allowed for a short while after leaving a surface (walking off a ledge, stepping off a
 -- wall, a gap in a ceiling), so a jump pressed a hair too late is not lost. Leaving by jumping or leaping
 -- does not count, so this can never give a second jump.
@@ -281,6 +288,25 @@ local function UpdateSurfaceContact(self)
 
     self.wasOnWall = onWall
     self.wasOnGround = onGround
+end
+
+-- Does the player clearly want to leave the ceiling? That is: is the movement asked for (the move keys, turned
+-- by where the player looks, as the wish direction of a wall walker is) pointing away from the ceiling by
+-- more than kCeilingLeaveAngle. No move keys pressed means no.
+local function IsLeavingCeiling(self, input, ceilingNormal)
+
+    local move = input.move
+    if move == nil or move:GetLength() == 0 then
+        return false
+    end
+
+    local wishDir = self:GetViewAngles():GetCoords():TransformVector(move)
+    local length = wishDir:GetLength()
+    if length == 0 then
+        return false
+    end
+
+    return wishDir:DotProduct(ceilingNormal) > length * kCeilingLeaveSin
 
 end
 
@@ -425,10 +451,18 @@ function Skulk:PreUpdateMove(input, runningPrediction)
 
             local currVelocity = self:GetVelocityLength()
             local defaultSneakSpeed = Skulk.kMaxSpeed * Skulk.kSneakSpeedModifier
-            local graceTime = currVelocity >= defaultSneakSpeed and kOffSurfaceGraceTime or 0
 
-            -- Allows the skulks to keep wallwalking for a short time (about one tick at the default tickrate)
-            -- without falling if a check misses.
+            -- (the goal is only replaced by a successful scan, so it is still the surface we were on)
+            local previousGoal = self.wallWalkingNormalGoal
+            local graceTime = 0
+            if previousGoal ~= nil and previousGoal.y < kCeilingNormalMaxY and not IsLeavingCeiling(self, input, previousGoal) then
+                graceTime = kCeilingGraceTime
+            elseif currVelocity >= defaultSneakSpeed then
+                graceTime = kOffSurfaceGraceTime
+            end
+
+            -- Allows the skulks to keep wallwalking for a short time (about one tick at the default tickrate,
+            -- longer on a ceiling) without falling if a check misses.
             local timeOffSurface = self.timeOffSurface or 0
             if timeOffSurface < graceTime then
                 self.wallWalking = true
