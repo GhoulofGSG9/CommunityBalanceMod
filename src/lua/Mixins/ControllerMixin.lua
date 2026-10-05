@@ -120,7 +120,7 @@ end
 local origin = Vector()
 function ControllerMixin:UpdateControllerFromEntity(allowTrigger)
 
-    -- PROFILE("ControllerMixin:UpdateControllerFromEntity")
+    PROFILE("ControllerMixin:UpdateControllerFromEntity")
 
     if allowTrigger == nil then
         allowTrigger = true
@@ -140,23 +140,17 @@ function ControllerMixin:UpdateControllerFromEntity(allowTrigger)
             -- Skulks/Gorges/Lerks
             if capsuleHeight < 0.001 then
                 -- Use a sphere controller
-                --Log("A - %s", self)
                 self.controller:SetupSphere( controllerRadius, self.controller:GetCoords(), allowTrigger )
             else -- Marines/Exos/Fades/Onos
                 -- A flat bottomed cylinder works well for movement since we don't
                 -- slide down as we walk up stairs or over other lips. The curved
                 -- edges of the cylinder allows players to slide off when we hit them,
-                --Log("%s - %s / %s", self, controllerRadius, capsuleHeight)
                 self.controller:SetupCapsule( controllerRadius, capsuleHeight, self.controller:GetCoords(), allowTrigger )
-                --self.controller:SetupCylinder( controllerRadius, controllerHeight, self.controller:GetCoords(), allowTrigger )
             end
 
             if self.controllerOutter then                
-            --if self.controllerOutter and self:isa("Fade") then                
-                --self.controllerOutter:SetupBox(Vector(self.controllerRadius * 1.3, self.controllerHeight * 0.5, self.controllerRadius * 1.3), self.controller:GetCoords(), allowTrigger)
                 local outerOffset = 0.22
                 self.controllerOutter:SetupCylinder( controllerRadius + outerOffset, controllerHeight, self.controller:GetCoords(), allowTrigger )
-                --DebugCapsule(self:GetOrigin() + Vector(0, 0.5, 0), self:GetOrigin() + Vector(0, 0.5, 0), controllerRadius * 1.55, controllerHeight, 5)
             end                
             
             -- Remove all collision reps except movement from the controller.
@@ -262,6 +256,287 @@ function ControllerMixin:GetIsColliding()
 
 end
 
+
+-- Normals of the distinct planes hit so far by the move in progress (scratch, reset at the
+-- start of every sweep; a sweep is never re-entered since hit callbacks are deferred).
+local kPlaneX, kPlaneY, kPlaneZ = {}, {}, {}
+local gPlaneCount = 0
+
+local function IsMovingIntoPlane(offset, planeIndex)
+    return offset.x * kPlaneX[planeIndex] + offset.y * kPlaneY[planeIndex] + offset.z * kPlaneZ[planeIndex] < -kEpsilon
+end
+
+local function IsMovingIntoAnyPlaneExcept(offset, skipIndex)
+
+    for k = 1, gPlaneCount do
+        if k ~= skipIndex and IsMovingIntoPlane(offset, k) then
+            return true
+        end
+    end
+
+    return false
+
+end
+
+--
+-- Crease sliding.
+--
+-- Sliding into a concave corner (e.g. a wall meeting a ramp): clipping the offset against
+-- one plane at a time ping-pongs between the two planes. Each clip leaves a small component
+-- into the other plane, so every sweep is blocked at fraction 0 and the trace budget runs out
+-- without the controller ever moving. With a flat floor and a wall the clips are exact and it
+-- converges at once, which is why only sloped planes show it. When a real move (one that is
+-- passed a velocity) still moves into a plane it hit earlier, slide along the crease of the
+-- two planes instead (the direction perpendicular to both normals).
+--
+
+-- Keeps only the part of the offset that runs along the crease between the earlier plane
+-- (planeIndex) and the plane with the normal (nx, ny, nz).
+local function ClipOffsetToCrease(offset, planeIndex, nx, ny, nz)
+
+    local px, py, pz = kPlaneX[planeIndex], kPlaneY[planeIndex], kPlaneZ[planeIndex]
+    local cx = py * nz - pz * ny
+    local cy = pz * nx - px * nz
+    local cz = px * ny - py * nx
+    local creaseLengthSq = cx * cx + cy * cy + cz * cz
+
+    if creaseLengthSq > (kEpsilon * kEpsilon) then
+
+        local invLength = 1 / math.sqrt(creaseLengthSq)
+        cx, cy, cz = cx * invLength, cy * invLength, cz * invLength
+
+        local along = offset.x * cx + offset.y * cy + offset.z * cz
+        offset.x, offset.y, offset.z = cx * along, cy * along, cz * along
+
+        -- A third plane that the crease runs into is a corner, stop there.
+        if IsMovingIntoAnyPlaneExcept(offset, planeIndex) then
+            offset.x, offset.y, offset.z = 0, 0, 0
+        end
+
+    else
+        -- opposing parallel planes, squeezed between two surfaces
+        offset.x, offset.y, offset.z = 0, 0, 0
+    end
+
+end
+
+-- Call for every hit of a real move, after the offset was clipped against the hit plane.
+-- If the offset still moves into a plane that was hit earlier in this move, it is redirected
+-- along the crease of the two planes. Returns true when that happened.
+local function SlideAlongCrease(offset, normal)
+
+    local nx, ny, nz = normal.x, normal.y, normal.z
+    local isNewPlane = true
+    local creased = false
+    local kSamePlaneDot = 0.999
+    local kMaxCreasePlanes = 8
+
+    for i = 1, gPlaneCount do
+
+        if kPlaneX[i] * nx + kPlaneY[i] * ny + kPlaneZ[i] * nz > kSamePlaneDot then
+            -- same plane as before, nothing new to learn from it
+            isNewPlane = false
+        elseif IsMovingIntoPlane(offset, i) then
+            ClipOffsetToCrease(offset, i, nx, ny, nz)
+            creased = true
+            break
+        end
+
+    end
+
+    if isNewPlane and gPlaneCount < kMaxCreasePlanes then
+        gPlaneCount = gPlaneCount + 1
+        kPlaneX[gPlaneCount], kPlaneY[gPlaneCount], kPlaneZ[gPlaneCount] = nx, ny, nz
+    end
+
+    return creased
+
+end
+
+--
+-- Sweeping the controller.
+--
+
+-- Removes the part of the offset that is already moved and the part pointing into the
+-- surface we hit, so the rest of the offset slides along that surface.
+local function ClipOffsetToHit(offset, trace)
+
+    -- Remove the amount of the offset we've already moved.
+    offset:Scale(1 - trace.fraction)
+
+    -- Make the motion perpendicular to the surface we collided with so we slide.
+    local offsetProjection = offset:GetProjection(trace.normal)
+    offset.x = offset.x - offsetProjection.x
+    offset.y = offset.y - offsetProjection.y
+    offset.z = offset.z - offsetProjection.z
+
+end
+
+-- Redirect velocity (changed in place, so it's changed for the caller).
+-- Scales it according to how much velocity we lost.
+local function RedirectVelocity(velocity, normal, slowDownFraction)
+
+    local velocityProjection = velocity:GetProjection(normal)
+    velocity.x = velocity.x - velocityProjection.x * slowDownFraction
+    velocity.y = velocity.y - velocityProjection.y * slowDownFraction
+    velocity.z = velocity.z - velocityProjection.z * slowDownFraction
+
+end
+
+-- Always accumulate in the shared vector, so the returned normal is consistently the
+-- same object whether we hit once or many times.
+local function AccumulateSurfaceNormal(self, averageSurfaceNormal, normal)
+
+    if not averageSurfaceNormal then
+        VectorCopy(normal, self.moveAverageSurfaceNormal)
+        return self.moveAverageSurfaceNormal
+    end
+
+    averageSurfaceNormal:Add(normal)
+    return averageSurfaceNormal
+
+end
+
+-- Entities that want to know about being hit are collected here, their callbacks are
+-- deferred until we've finished moving, since the callbacks may modify our self and
+-- interfere with our loop.
+local function AddHitEntity(hitEntities, entity)
+
+    if entity ~= nil and entity.OnCapsuleTraceHit ~= nil then
+
+        if not hitEntities then
+            hitEntities = {}
+        end
+        hitEntities[#hitEntities + 1] = entity  -- Faster than table.insert
+
+    end
+
+    return hitEntities
+
+end
+
+-- Sweeps the controller along the offset (modified in place), sliding along every surface
+-- it hits, for at most maxTraces traces. The velocity (if any) is redirected along the way.
+local function SweepController(self, offset, maxTraces, velocity, slowDownFraction)
+
+    local controller = self.controller
+    local physicsMask = self:GetMovePhysicsMask()
+    local useCreaseSlide = velocity ~= nil
+
+    local completedMove = true
+    local tracesPerformed = 0
+    local hitEntities, averageSurfaceNormal, surfaceMaterial
+
+    gPlaneCount = 0
+
+    while offset:GetLengthSquared() > 0.0 and tracesPerformed < maxTraces do
+
+        local trace = controller:Move(offset, CollisionRep.Move, CollisionRep.Move, physicsMask)
+
+        if trace.fraction >= 1 then
+            break
+        end
+
+        ClipOffsetToHit(offset, trace)
+
+        if velocity ~= nil then
+            RedirectVelocity(velocity, trace.normal, slowDownFraction)
+        end
+
+        averageSurfaceNormal = AccumulateSurfaceNormal(self, averageSurfaceNormal, trace.normal)
+        hitEntities = AddHitEntity(hitEntities, trace.entity)
+        surfaceMaterial = trace.surface
+        completedMove = false
+
+        tracesPerformed = tracesPerformed + 1
+
+    end
+
+    return completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial
+
+end
+
+-- Syncs the controller with the entity, sweeps it and (if isMove) applies the result to the
+-- entity origin. The outer controller must not take part in the sweep.
+local function MoveController(self, offset, maxTraces, velocity, slowDownFraction, isMove)
+
+    local controllerOutter = self.controllerOutter
+
+    if controllerOutter then
+        controllerOutter:SetCollisionEnabled(false)
+    end
+
+    self:UpdateControllerFromEntity()
+
+    local completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial =
+        SweepController(self, offset, maxTraces, velocity, slowDownFraction)
+
+    if isMove then
+        self:UpdateOriginFromController()
+    end
+
+    if controllerOutter then
+        controllerOutter:SetCollisionEnabled(true)
+    end
+
+    return completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial
+
+end
+
+--
+-- Helpers for the parts around the sweep.
+--
+
+local function GetSlowDownFraction(slowDownFraction, deltaTime)
+
+    if slowDownFraction == nil then
+        slowDownFraction = 1
+    end
+
+    if deltaTime then
+        -- Vanilla move-rate per second is 26 (to make it time based, rather than tick)
+        slowDownFraction = math.min(1, slowDownFraction * 26 * deltaTime)
+    end
+
+    return slowDownFraction
+
+end
+
+local function NotifyTraceHits(self, hitEntities)
+
+    for _, entity in ipairs(hitEntities) do
+
+        entity:OnCapsuleTraceHit(self)
+        if self.OnCapsuleTraceHit then
+            self:OnCapsuleTraceHit(entity)
+        end
+
+    end
+
+end
+
+-- edge case when jumping down slopes. we never want that the controller can add speed
+local function ClampXZSpeedGain(velocity, prevXZSpeed)
+
+    local newXZSpeed = velocity:GetLengthXZ()
+    if newXZSpeed > prevXZSpeed then
+
+        local ySpeed = velocity.y
+        velocity.y = 0
+        velocity:Scale(prevXZSpeed / newXZSpeed)
+        velocity.y = ySpeed
+
+    end
+
+end
+
+local function NotifyWorldCollision(self, averageSurfaceNormal, oldVelocity, velocity)
+
+    local impactForce = math.max(0, (-averageSurfaceNormal):DotProduct(oldVelocity))
+    self:OnWorldCollision(averageSurfaceNormal, impactForce, velocity)
+
+end
+
 --
 -- Moves by the player by the specified offset, colliding and sliding with the world.
 --
@@ -270,142 +545,43 @@ function ControllerMixin:PerformMovement(o, maxTraces, velocity, isMove, slowDow
     PROFILE("ControllerMixin:PerformMovement")
 
     local offset = Vector(o) -- Do not modify parameter which is passed by ref (so caller can use constant)
-    local controller = self.controller
-    local controllerOutter = self.controllerOutter
 
     if isMove == nil then
         isMove = true
     end
-    
+
     if deflectMove == nil then
         deflectMove = false
     end
-    
-    if slowDownFraction == nil then
-        slowDownFraction = 1
-    end
 
-    if (deltaTime) then
-        -- Vanilla move-rate per second is 26 (to make it time based, rather than tick)
-        slowDownFraction = math.min(1, slowDownFraction * 26 * deltaTime)
-    end
-    
+    slowDownFraction = GetSlowDownFraction(slowDownFraction, deltaTime)
+
     local oldVelocity = nil
     local prevXZSpeed = nil
 
-    if (velocity) then
+    if velocity then
         VectorCopy(velocity, self.moveVelocity)
         oldVelocity = self.moveVelocity
-        prevXZSpeed = self.moveVelocity:GetLengthXZ()
+        prevXZSpeed = oldVelocity:GetLengthXZ()
     end
-    
+
     local hitEntities
     local completedMove = true
     local averageSurfaceNormal
     local surfaceMaterial
 
-    if controller then
-        
-        if controllerOutter then
-            controllerOutter:SetCollisionEnabled(false)        
-        end
-        
-        self:UpdateControllerFromEntity()
-
-        local tracesPerformed = 0
-        local physicsMask = self:GetMovePhysicsMask()
-
-        while offset:GetLengthSquared() > 0.0 and tracesPerformed < maxTraces do
-        
-            local trace = controller:Move(offset, CollisionRep.Move, CollisionRep.Move, physicsMask)
-
-            if trace.fraction >= 1 then
-                break
-            else
-                -- Remove the amount of the offset we've already moved.
-                offset:Scale(1 - trace.fraction)
-                
-                -- Make the motion perpendicular to the surface we collided with so we slide.
-                local offsetProjection = offset:GetProjection(trace.normal)
-                offset.x = offset.x - offsetProjection.x
-                offset.y = offset.y - offsetProjection.y
-                offset.z = offset.z - offsetProjection.z
-
-                -- Redirect velocity if specified (changed in place, so it's changed for the caller)
-                if velocity ~= nil then
-                
-                    -- Scale it according to how much velocity we lost
-                    local velocityProjection = velocity:GetProjection(trace.normal)
-                    velocity.x = velocity.x - velocityProjection.x * slowDownFraction
-                    velocity.y = velocity.y - velocityProjection.y * slowDownFraction
-                    velocity.z = velocity.z - velocityProjection.z * slowDownFraction
-                    
-                end
-                
-                -- Always accumulate in the shared vector, so the returned normal is
-                -- consistently the same object whether we hit once or many times.
-                if not averageSurfaceNormal then
-                    VectorCopy(trace.normal, self.moveAverageSurfaceNormal)
-                    averageSurfaceNormal = self.moveAverageSurfaceNormal
-                else
-                    averageSurfaceNormal:Add(trace.normal)
-                end
-                
-                -- Defer the processing of the callbacks until after we've finished moving,
-                -- since the callbacks may modify our self an interfere with our loop
-                if trace.entity ~= nil and trace.entity.OnCapsuleTraceHit ~= nil then
-                
-                    if not hitEntities then
-                        hitEntities = {}
-                    end
-                    hitEntities[#hitEntities + 1] = trace.entity  -- Faster than table.insert
-
-                end
-                surfaceMaterial = trace.surface
-                completedMove = false
-            end
-            
-            tracesPerformed = tracesPerformed + 1
-            
-        end
-        
-        if isMove then
-            self:UpdateOriginFromController()
-        end
-        
-        if controllerOutter then
-            controllerOutter:SetCollisionEnabled(true)
-        end
-        
+    if self.controller then
+        completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial =
+            MoveController(self, offset, maxTraces, velocity, slowDownFraction, isMove)
     end
 
     -- Do the hit callbacks. (but not if we do the blank one to nornalize, isMove would be set to "1")
     if hitEntities and isMove then
-        
-        for _, entity in ipairs(hitEntities) do
-        
-            entity:OnCapsuleTraceHit(self)
-            if self.OnCapsuleTraceHit then
-                self:OnCapsuleTraceHit(entity)
-            end
-            
-        end
-        
+        NotifyTraceHits(self, hitEntities)
     end
 
     if velocity and oldVelocity and not deflectMove then
-        
-        -- edge case when jumping down slopes. we never want that the controller can add speed
-        local newXZSpeed = velocity:GetLengthXZ()
-        if newXZSpeed > prevXZSpeed then
-        
-            local ySpeed = velocity.y
-            velocity.y = 0
-            velocity:Scale(prevXZSpeed / newXZSpeed)
-            velocity.y = ySpeed
-            
-        end
-        
+        ClampXZSpeedGain(velocity, prevXZSpeed)
     end
 
     if averageSurfaceNormal and averageSurfaceNormal:GetLength() > 0 then
@@ -416,11 +592,8 @@ function ControllerMixin:PerformMovement(o, maxTraces, velocity, isMove, slowDow
     -- averageSurfaceNormal should not normally be nil at this point but there is an edge
     -- case where it is.
     if oldVelocity ~= velocity and isMove and averageSurfaceNormal and self.OnWorldCollision then
-    
-        local impactForce = math.max(0, (-averageSurfaceNormal):DotProduct(oldVelocity))    
-        self:OnWorldCollision(averageSurfaceNormal, impactForce, velocity)
-        
+        NotifyWorldCollision(self, averageSurfaceNormal, oldVelocity, velocity)
     end
-    
+
     return completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial
 end
