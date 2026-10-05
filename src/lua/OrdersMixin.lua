@@ -416,7 +416,9 @@ function OrdersMixin:ClearCurrentOrder()
         if currentOrder:isa("SharedOrder") then
             currentOrder:Unregister(self)
         else
-            DestroyEntity(currentOrder)
+            if Server then
+                DestroyEntity(currentOrder)
+            end
         end
         
         table.remove(self.orders, self:GetCorrectedOrderIndex())
