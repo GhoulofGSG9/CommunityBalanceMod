@@ -38,6 +38,7 @@ function ControllerMixin:__initmixin()
     self.controller = nil
     
     self.moveOrigOffset = Vector()
+    self.moveOffset = Vector()
     self.moveVelocity = Vector()
     self.moveAverageSurfaceNormal = Vector()
 end
@@ -362,24 +363,33 @@ end
 local function ClipOffsetToHit(offset, trace)
 
     -- Remove the amount of the offset we've already moved.
-    offset:Scale(1 - trace.fraction)
+    local keep = 1 - trace.fraction
+    offset.x = offset.x * keep
+    offset.y = offset.y * keep
+    offset.z = offset.z * keep
 
-    -- Make the motion perpendicular to the surface we collided with so we slide.
-    local offsetProjection = offset:GetProjection(trace.normal)
-    offset.x = offset.x - offsetProjection.x
-    offset.y = offset.y - offsetProjection.y
-    offset.z = offset.z - offsetProjection.z
+    -- Make the motion perpendicular to the surface we collided with so we slide
+    -- (offset -= normal * (offset . normal)). Written out, since Vector:GetProjection
+    -- allocates a vector for every hit.
+    local normal = trace.normal
+    local nx, ny, nz = normal.x, normal.y, normal.z
+    local dot = offset.x * nx + offset.y * ny + offset.z * nz
+    offset.x = offset.x - nx * dot
+    offset.y = offset.y - ny * dot
+    offset.z = offset.z - nz * dot
 
 end
 
 -- Redirect velocity (changed in place, so it's changed for the caller).
 -- Scales it according to how much velocity we lost.
+-- Same projection as above (velocity -= normal * (velocity . normal) * slowDownFraction).
 local function RedirectVelocity(velocity, normal, slowDownFraction)
 
-    local velocityProjection = velocity:GetProjection(normal)
-    velocity.x = velocity.x - velocityProjection.x * slowDownFraction
-    velocity.y = velocity.y - velocityProjection.y * slowDownFraction
-    velocity.z = velocity.z - velocityProjection.z * slowDownFraction
+    local nx, ny, nz = normal.x, normal.y, normal.z
+    local dot = velocity.x * nx + velocity.y * ny + velocity.z * nz
+    velocity.x = velocity.x - nx * dot * slowDownFraction
+    velocity.y = velocity.y - ny * dot * slowDownFraction
+    velocity.z = velocity.z - nz * dot * slowDownFraction
 
 end
 
@@ -415,9 +425,14 @@ local function AddHitEntity(hitEntities, entity)
 
 end
 
--- Sweeps the controller along the offset (modified in place), sliding along every surface
--- it hits, for at most maxTraces traces. The velocity (if any) is redirected along the way.
-local function SweepController(self, offset, maxTraces, velocity, slowDownFraction)
+-- Sweeps the controller along the offset, sliding along every surface it hits, for at most
+-- maxTraces traces. The velocity (if any) is redirected along the way.
+local function SweepController(self, o, maxTraces, velocity, slowDownFraction)
+
+    -- Work on a copy, the offset of the caller is not to be modified (so the caller can use
+    -- a constant). A scratch vector of the entity, instead of a new vector for every call.
+    local offset = self.moveOffset
+    VectorCopy(o, offset)
 
     local controller = self.controller
     local physicsMask = self:GetMovePhysicsMask()
@@ -458,7 +473,7 @@ end
 
 -- Syncs the controller with the entity, sweeps it and (if isMove) applies the result to the
 -- entity origin. The outer controller must not take part in the sweep.
-local function MoveController(self, offset, maxTraces, velocity, slowDownFraction, isMove)
+local function MoveController(self, o, maxTraces, velocity, slowDownFraction, isMove)
 
     local controllerOutter = self.controllerOutter
 
@@ -469,7 +484,7 @@ local function MoveController(self, offset, maxTraces, velocity, slowDownFractio
     self:UpdateControllerFromEntity()
 
     local completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial =
-        SweepController(self, offset, maxTraces, velocity, slowDownFraction)
+        SweepController(self, o, maxTraces, velocity, slowDownFraction)
 
     if isMove then
         self:UpdateOriginFromController()
@@ -504,8 +519,9 @@ end
 
 local function NotifyTraceHits(self, hitEntities)
 
-    for _, entity in ipairs(hitEntities) do
+    for i = 1, #hitEntities do
 
+        local entity = hitEntities[i]
         entity:OnCapsuleTraceHit(self)
         if self.OnCapsuleTraceHit then
             self:OnCapsuleTraceHit(entity)
@@ -532,7 +548,8 @@ end
 
 local function NotifyWorldCollision(self, averageSurfaceNormal, oldVelocity, velocity)
 
-    local impactForce = math.max(0, (-averageSurfaceNormal):DotProduct(oldVelocity))
+    -- (-normal . velocity) without creating the negated vector
+    local impactForce = math.max(0, -averageSurfaceNormal:DotProduct(oldVelocity))
     self:OnWorldCollision(averageSurfaceNormal, impactForce, velocity)
 
 end
@@ -543,8 +560,6 @@ end
 function ControllerMixin:PerformMovement(o, maxTraces, velocity, isMove, slowDownFraction, deflectMove, slowDownFilterFunc, deltaTime)
 
     PROFILE("ControllerMixin:PerformMovement")
-
-    local offset = Vector(o) -- Do not modify parameter which is passed by ref (so caller can use constant)
 
     if isMove == nil then
         isMove = true
@@ -557,22 +572,27 @@ function ControllerMixin:PerformMovement(o, maxTraces, velocity, isMove, slowDow
     slowDownFraction = GetSlowDownFraction(slowDownFraction, deltaTime)
 
     local oldVelocity = nil
-    local prevXZSpeed = nil
 
     if velocity then
         VectorCopy(velocity, self.moveVelocity)
         oldVelocity = self.moveVelocity
-        prevXZSpeed = oldVelocity:GetLengthXZ()
     end
 
     local hitEntities
     local completedMove = true
     local averageSurfaceNormal
     local surfaceMaterial
+    local prevXZSpeed = nil
 
     if self.controller then
         completedMove, hitEntities, averageSurfaceNormal, surfaceMaterial =
-            MoveController(self, offset, maxTraces, velocity, slowDownFraction, isMove)
+            MoveController(self, o, maxTraces, velocity, slowDownFraction, isMove)
+
+        -- The velocity is only changed by a hit, so the speed before the move is only needed
+        -- then (taken before the hit callbacks below can run).
+        if not completedMove and oldVelocity and not deflectMove then
+            prevXZSpeed = oldVelocity:GetLengthXZ()
+        end
     end
 
     -- Do the hit callbacks. (but not if we do the blank one to nornalize, isMove would be set to "1")
@@ -580,7 +600,7 @@ function ControllerMixin:PerformMovement(o, maxTraces, velocity, isMove, slowDow
         NotifyTraceHits(self, hitEntities)
     end
 
-    if velocity and oldVelocity and not deflectMove then
+    if prevXZSpeed then
         ClampXZSpeedGain(velocity, prevXZSpeed)
     end
 
