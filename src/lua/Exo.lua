@@ -493,8 +493,6 @@ function Exo:GetDualArmDamageScalar()
         return kExoDualRailgunModifier
     elseif self:GetHasPlasmaLauncher() then
         return kExoDualPlasmaModifier
-    elseif self:GetHasExoFlamer() then
-        return kExoDualFlamerModifier
     end
     return 1
 
@@ -706,13 +704,6 @@ function Exo:GetHasMinigun()
     
     local weaponHolder = self:GetWeapon(ExoWeaponHolder.kMapName)
     return weaponHolder ~= nil and (weaponHolder:GetLeftSlotWeapon():isa("Minigun") or weaponHolder:GetRightSlotWeapon():isa("Minigun"))
-
-end
-
-function Exo:GetHasExoFlamer()
-    
-    return self.leftArmModuleType == kExoModuleTypes.Flamethrower
-        or self.rightArmModuleType == kExoModuleTypes.Flamethrower
 
 end
 

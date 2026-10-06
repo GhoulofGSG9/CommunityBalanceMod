@@ -84,11 +84,7 @@ local function GetShouldFireExoWeapon( weapon, dist, target )
         return energy >= (weapon.energyCost or 0)
     end
 
-    if weapon:isa("ExoFlamer") and dist and dist > kExoFlamerRange then
-        return false
-    end
-
-    -- Minigun and exo flamer build heat and lock out while overheated.
+    -- The minigun builds heat and locks out while overheated.
     if weapon.overheated then
         return false
     end

@@ -103,22 +103,6 @@ local menu =
 				},
 			},
 			{
-				name = "dualBTfiringlock",
-				class = OP_TT_Checkbox,
-				params =
-				{
-					optionPath = "ExoA_duallock_BT_enabled",
-					optionType = "bool",
-					default = false,
-					tooltip = "Enable to cause firing of the left arm to fire the right arm (updates upon entering an exosuit)",
-				},
-			
-				properties =
-				{
-					{"Label", "Dual Ion Torch Firing Sync"},
-				},
-			},
-			{
 				name = "dualPLfiringlock",
 				class = OP_TT_Checkbox,
 				params =

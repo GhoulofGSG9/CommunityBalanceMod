@@ -117,28 +117,16 @@ if Client then
 		cp = "ClawPlasmaLauncher",
 		rp = "RailgunPlasmaLauncher",
 		pr = "PlasmaLauncherRailgun",
-		ff = "ExoFlamer",
-		fp = "ExoFlamerPlasmaLauncher",
-		pf = "PlasmaLauncherExoFlamer",
-		fr = "ExoFlamerRailgun",
-		rf = "RailgunExoFlamer",
-		cf = "ClawExoFlamer",
     }
 	
 	local DualRailgunModelList = {
 	"PlasmaLauncher",
 	"RailgunPlasmaLauncher",
 	"PlasmaLauncherRailgun",
-	"ExoFlamer",
-	"ExoFlamerPlasmaLauncher",
-	"PlasmaLauncherExoFlamer",
-	"ExoFlamerRailgun",
-	"RailgunExoFlamer",
 	}
 	
 	local ClawRailgunModelList = {
 	"ClawPlasmaLauncher",
-	"ClawExoFlamer",
 	}
 	
 	local function LocateItem(table, value)

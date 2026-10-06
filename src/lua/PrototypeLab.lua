@@ -187,7 +187,7 @@ function PrototypeLab:GetTechButtons(techId)
     end
 
     return
-    { kTechId.DualMinigunTech, kTechId.AdvancedExoArmsTech, kTechId.CoresExosuitTech, kTechId.ExoAbilitiesTech,
+    { kTechId.DualMinigunTech, kTechId.None, kTechId.CoresExosuitTech, kTechId.ExoAbilitiesTech,
       kTechId.None, kTechId.None, kTechId.None, kTechId.None }
 end
 

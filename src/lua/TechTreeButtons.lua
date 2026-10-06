@@ -439,7 +439,6 @@ kTechIdToMaterialOffset[kTechId.Resilience] = 167 --61 is carapace/resilience
 kTechIdToMaterialOffset[kTechId.DualMinigunExosuit] = 84 
 kTechIdToMaterialOffset[kTechId.DualRailgunExosuit] = 116 
 kTechIdToMaterialOffset[kTechId.CoresExosuitTech] = 200 
-kTechIdToMaterialOffset[kTechId.AdvancedExoArmsTech] = 208
 kTechIdToMaterialOffset[kTechId.ExoAbilitiesTech] = 209
 
 kTechIdToMaterialOffset[kTechId.FortressCrag] = 192 

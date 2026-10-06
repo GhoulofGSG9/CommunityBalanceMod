@@ -1633,17 +1633,6 @@ function BuildTechData()
         },
 
         {
-            [kTechDataId] = kTechId.AdvancedExoArmsTech,
-            [kTechIDShowEnables] = false,
-            [kTechDataCostKey] = kAdvancedExoArmsTechResearchCost,
-            [kTechDataResearchTimeKey] = kAdvancedExoArmsTechResearchTime,
-            [kTechDataDisplayName] = "ADVANCED_EXO_ARMS_TECH",
-            [kTechDataResearchName] = "ADVANCED_EXO_ARMS_TECH",
-            [kTechDataHotkey] = Move.F,
-            [kTechDataTooltipInfo] = "ADVANCED_EXO_ARMS_TECH_TOOLTIP",
-        },
-
-        {
             [kTechDataId] = kTechId.ExoAbilitiesTech,
             [kTechIDShowEnables] = false,
             [kTechDataCostKey] = kExoAbilitiesTechResearchCost,
@@ -1672,13 +1661,6 @@ function BuildTechData()
             [kTechDataDamageType] = kRailgunDamageType,
             [kTechDataDisplayName] = "RAILGUN_CLAW_TOOLTIP",
             [kTechDataModel] = Railgun.kModelName,
-        },
-
-        {
-            [kTechDataId] = kTechId.ExoFlamer,
-            [kTechDataMapName] = ExoFlamer.kMapName,
-            [kTechDataDisplayName] = "EXO_MODULE_IONTORCH",
-			[kTechDataDamageType] = kExoFlamerDamageType,
         },
 
         {

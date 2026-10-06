@@ -1,4 +1,0 @@
-shader = "cinematics/vfx_materials/exo_flame.surface_shader"
-numFrames = 16
-frameRate = 24
-emissiveMap = "cinematics/vfx_materials/vfx_fireball_01_animated.dds"

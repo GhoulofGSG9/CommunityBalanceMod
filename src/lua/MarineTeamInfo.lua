@@ -137,18 +137,10 @@ if Server then
 		local rightArmModuleType = kExoModuleTypes[exo.rightArmModuleType]
 		
 		if leftArmModuleType ~= rightArmModuleType then
-			if leftArmModuleType == "Flamethrower" then
-				self["Blowtorch"] = self["Blowtorch"] + 1
-			else
-				self[leftArmModuleType] = self[leftArmModuleType] + 1
-			end
+			self[leftArmModuleType] = self[leftArmModuleType] + 1
 		end
 		
-		if rightArmModuleType == "Flamethrower" then
-			self["Blowtorch"] = self["Blowtorch"] + 1
-		else
-			self[rightArmModuleType] = self[rightArmModuleType] + 1
-		end
+		self[rightArmModuleType] = self[rightArmModuleType] + 1
 
     end
 

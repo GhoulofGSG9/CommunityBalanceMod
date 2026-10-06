@@ -637,21 +637,6 @@ GetEffectManager():AddEffectData("ScattersModEffects", {
     },
 })
 
-GetEffectManager():AddEffectData("FlamerModEffects", {
-    leftexoflamer_muzzle  = {
-        flamerMuzzleEffects = {
-            { viewmodel_cinematic = "cinematics/marine/exo_flamer/flame_1p.cinematic", attach_point = "fxnode_l_railgun_muzzle" },
-            { weapon_cinematic = "cinematics/marine/exo_flamer/flame.cinematic", attach_point = "fxnode_lrailgunmuzzle" },
-        },
-    },
-    rightexoflamer_muzzle = {
-        flamerMuzzleEffects = {
-            { viewmodel_cinematic = "cinematics/marine/exo_flamer/flame_1p.cinematic", attach_point = "fxnode_r_railgun_muzzle" },
-            { weapon_cinematic = "cinematics/marine/exo_flamer/flame.cinematic", attach_point = "fxnode_rrailgunmuzzle" },
-        },
-    },
-})
-    
 GetEffectManager():AddEffectData("plasma_impact", {
 	plasma_impact = 
     {
