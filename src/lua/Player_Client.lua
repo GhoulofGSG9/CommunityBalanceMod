@@ -4140,12 +4140,14 @@ end
 
 --[[
  * Damage indicators. Returns a array of damage indicators which are used to draw red arrows pointing towards
- * recent damage. Each damage indicator pair will consist of an alpha and a direction. The alpha is 0-1 and the
- * direction in radians is the angle at which to display it. 0 should face forward (top of the screen), pi
- * should be behind us (bottom of the screen), pi/2 is to our left, 3*pi/2 is right.
+ * recent damage. Each damage indicator triple will consist of an alpha, a direction and a showPop flag. The alpha
+ * is 0-1 and the direction in radians is the angle at which to display it. 0 should face forward (top of the
+ * screen), pi should be behind us (bottom of the screen), pi/2 is to our left, 3*pi/2 is right. showPop is true
+ * only for the first indicator of a burst: it is the only one that plays the big shrink-in animation, all others
+ * start at their settled size/position.
  *
  * For two damage indicators, perhaps:
- *  {alpha1, directionRadians1, alpha2, directonRadius2}
+ *  {alpha1, directionRadians1, showPop1, alpha2, directonRadius2, showPop2}
  *
  * It returns an empty table if the player has taken no damage recently.
 ]]
@@ -4154,19 +4156,22 @@ function PlayerUI_GetDamageIndicators()
     local drawIndicators = {}
 
     local player = Client.GetLocalPlayer()
-    if player then
+    local damageIndicators = player and player.damageIndicators
+    if damageIndicators and #damageIndicators > 0 then
 
-        for index, indicatorTriple in ipairs(player.damageIndicators) do
+        local now = Shared.GetTime()
+        local drawTime = Player.kDamageIndicatorDrawTime
+        local origin = player:GetOrigin()
+        local worldToView = player:GetViewAngles():GetCoords():GetInverse() -- identical for every indicator
 
-            local alpha = Clamp(1 - ((Shared.GetTime() - indicatorTriple[3])/Player.kDamageIndicatorDrawTime), 0, 1)
-            table.insert(drawIndicators, alpha)
+        local n = 0
+        for index = 1, #damageIndicators do
 
-            local worldX = indicatorTriple[1]
-            local worldZ = indicatorTriple[2]
+            local indicator = damageIndicators[index]
 
-            local normDirToDamage = GetNormalizedVector(Vector(player:GetOrigin().x, 0, player:GetOrigin().z) - Vector(worldX, 0, worldZ))
-            local worldToView = player:GetViewAngles():GetCoords():GetInverse()
+            local alpha = Clamp(1 - ((now - indicator[3]) / drawTime), 0, 1)
 
+            local normDirToDamage = GetNormalizedVector(Vector(origin.x - indicator[1], 0, origin.z - indicator[2]))
             local damageDirInView = worldToView:TransformVector(normDirToDamage)
 
             local directionRadians = math.atan2(damageDirInView.x, damageDirInView.z)
@@ -4174,7 +4179,10 @@ function PlayerUI_GetDamageIndicators()
                 directionRadians = directionRadians + 2 * math.pi
             end
 
-            table.insert(drawIndicators, directionRadians)
+            drawIndicators[n + 1] = alpha
+            drawIndicators[n + 2] = directionRadians
+            drawIndicators[n + 3] = indicator[4] == true -- showPop
+            n = n + 3
 
         end
 
@@ -4276,7 +4284,10 @@ end
 function Player:AddTakeDamageIndicator(damagePosition)
 
     if self:GetShowDamageArrows() and self.damageIndicators then
-        table.insert(self.damageIndicators, { damagePosition.x, damagePosition.z, Shared.GetTime() })
+        -- Only the first arrow of a burst gets the big "pop" animation (see GUIDamageIndicators:Update).
+        -- Arrows that arrive while others are still visible start directly at their settled size/position.
+        local showPop = #self.damageIndicators == 0
+        table.insert(self.damageIndicators, { damagePosition.x, damagePosition.z, Shared.GetTime(), showPop })
     end
 
     local damageIndicatorScript = ClientUI.GetScript("GUIDamageIndicators")
@@ -4336,21 +4347,15 @@ end
 
 function Player:UpdateDamageIndicators()
 
-    local indicesToRemove = {}
+    -- Expire old damage indicators. Iterate backwards so that removing an entry
+    -- doesn't shift the indices of the entries still to be checked.
+    local now = Shared.GetTime()
+    for index = #self.damageIndicators, 1, -1 do
 
-    -- Expire old damage indicators
-    for index, indicatorTriple in ipairs(self.damageIndicators) do
-
-        if Shared.GetTime() > (indicatorTriple[3] + Player.kDamageIndicatorDrawTime) then
-
-            table.insert(indicesToRemove, index)
-
+        if now > (self.damageIndicators[index][3] + Player.kDamageIndicatorDrawTime) then
+            table.remove(self.damageIndicators, index)
         end
 
-    end
-
-    for i, index in ipairs(indicesToRemove) do
-        table.remove(self.damageIndicators, index)
     end
 
     -- update damage given
