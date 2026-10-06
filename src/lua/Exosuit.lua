@@ -259,6 +259,7 @@ if Server then
             })
             if exoPlayer then
                 exoPlayer.timeSupportAbilityReady = self.timeSupportAbilityReady or 0
+                exoPlayer:RestoreArmHeat(self.armHeat)
                 for i = 1, #weapons do
                     exoPlayer:StoreWeapon(weapons[i])
                 end

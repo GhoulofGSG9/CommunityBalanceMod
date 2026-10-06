@@ -1015,6 +1015,7 @@ if Server then
                 exosuit:SetArmor(suitArmor)
 
                 exosuit.timeSupportAbilityReady = self.timeSupportAbilityReady
+                exosuit.armHeat = self:GetArmHeat()
                 exosuit:SetExoVariant(self:GetExoVariant())
                 exosuit:SetFlashlightOn(self:GetFlashlightOn())
                 exosuit:TransferParasite(self)
@@ -1083,7 +1084,47 @@ if Server then
         end
         weapon:SetWeaponWorldState(false)
         table.insert(self.storedWeaponsIds, weapon:GetId())
-    
+
+    end
+
+    -- Heat lives on the arm entities, which an eject destroys, so carry it over to the
+    -- dropped suit or leaving it would reset an overheat.
+    function Exo:GetArmHeat()
+
+        local weaponHolder = self:GetWeapon(ExoWeaponHolder.kMapName)
+        if not weaponHolder then
+            return nil
+        end
+
+        local armHeat = { time = Shared.GetTime() }
+        local arms = { weaponHolder:GetLeftSlotWeapon(), weaponHolder:GetRightSlotWeapon() }
+        for i = 1, 2 do
+            local arm = arms[i]
+            if arm and arm.RestoreHeat then
+                armHeat[i] = { heat = arm.heatAmount, overheated = arm.overheated, timeOverheated = arm.timeOverheated }
+            end
+        end
+
+        return armHeat
+
+    end
+
+    function Exo:RestoreArmHeat(armHeat)
+
+        local weaponHolder = self:GetWeapon(ExoWeaponHolder.kMapName)
+        if not armHeat or not weaponHolder then
+            return
+        end
+
+        local elapsed = Shared.GetTime() - armHeat.time
+        local arms = { weaponHolder:GetLeftSlotWeapon(), weaponHolder:GetRightSlotWeapon() }
+        for i = 1, 2 do
+            local arm, state = arms[i], armHeat[i]
+            if arm and state and arm.RestoreHeat then
+                arm:RestoreHeat(state.heat, state.overheated, elapsed, state.timeOverheated)
+            end
+        end
+
     end
     
     local Player_OnEntityChange = Player.OnEntityChange
