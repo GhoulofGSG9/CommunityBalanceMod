@@ -28,7 +28,6 @@ Script.Load("lua/UpgradableMixin.lua")
 Script.Load("lua/IdleMixin.lua")
 Script.Load("lua/ExtractorVariantMixin.lua")
 Script.Load("lua/BlightMixin.lua")
-Script.Load("lua/BlowtorchTargetMixin.lua")
 
 
 class 'Extractor' (ResourceTower)
@@ -73,7 +72,6 @@ function Extractor:OnCreate()
     
     if Client then
         InitMixin(self, CommanderGlowMixin)
-		InitMixin(self, BlowtorchTargetMixin)
     end
     
 end

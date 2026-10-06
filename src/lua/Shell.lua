@@ -41,7 +41,6 @@ Script.Load("lua/CommanderGlowMixin.lua")
 Script.Load("lua/BiomassMixin.lua")
 Script.Load("lua/ConsumeMixin.lua")
 Script.Load("lua/RailgunTargetMixin.lua")
-Script.Load("lua/BlowtorchTargetMixin.lua")
 
 class 'Shell' (ScriptActor)
 
@@ -119,7 +118,6 @@ function Shell:OnCreate()
     elseif Client then
         InitMixin(self, CommanderGlowMixin)
         InitMixin(self, RailgunTargetMixin)
-        InitMixin(self, BlowtorchTargetMixin)       
     end
     
     self:SetLagCompensated(false)

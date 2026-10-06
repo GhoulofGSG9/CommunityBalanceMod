@@ -26,7 +26,6 @@ Script.Load("lua/BabblerClingMixin.lua")
 Script.Load("lua/IdleMixin.lua")
 Script.Load("lua/LerkVariantMixin.lua")
 Script.Load("lua/RailgunTargetMixin.lua")
-Script.Load("lua/BlowtorchTargetMixin.lua")
 
 class 'Lerk' (Alien)
 
@@ -154,7 +153,6 @@ function Lerk:OnCreate()
 	
 	if Client then
         InitMixin(self, RailgunTargetMixin)
-		InitMixin(self, BlowtorchTargetMixin)
     end
 end
 

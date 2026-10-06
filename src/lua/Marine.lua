@@ -47,7 +47,6 @@ Script.Load("lua/Hud/GUINotificationMixin.lua")
 Script.Load("lua/PlayerStatusMixin.lua")
 Script.Load("lua/BlightMixin.lua")
 Script.Load("lua/DoomMixin.lua")
-Script.Load("lua/BlowtorchTargetMixin.lua")
 
 if Client then
     Script.Load("lua/TeamMessageMixin.lua")
@@ -268,7 +267,6 @@ function Marine:OnCreate()
         InitMixin(self, TeamMessageMixin, { kGUIScriptName = "GUIMarineTeamMessage" })
 
         InitMixin(self, DisorientableMixin)
-        InitMixin(self, BlowtorchTargetMixin)
         
     end
     

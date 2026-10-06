@@ -39,7 +39,6 @@ Script.Load("lua/ObstacleMixin.lua")
 Script.Load("lua/InfestationMixin.lua")
 Script.Load("lua/AlienTunnelVariantMixin.lua")
 Script.Load("lua/RailgunTargetMixin.lua")
-Script.Load("lua/BlowtorchTargetMixin.lua")
 
 Script.Load("lua/Tunnel.lua")
 
@@ -137,7 +136,6 @@ function TunnelEntrance:OnCreate()
     elseif Client then
         InitMixin(self, CommanderGlowMixin)
 		InitMixin(self, RailgunTargetMixin)
-		InitMixin(self, BlowtorchTargetMixin)
     end
     
     self:SetLagCompensated(false)

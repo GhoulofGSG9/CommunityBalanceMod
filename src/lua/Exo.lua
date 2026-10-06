@@ -38,7 +38,6 @@ Script.Load("lua/Weapons/PierceProjectile.lua")
 Script.Load("lua/Weapons/PredictedProjectile.lua")
 Script.Load("lua/BlightMixin.lua")
 Script.Load("lua/DoomMixin.lua")
-Script.Load("lua/BlowtorchTargetMixin.lua")
 
 if Client then
     Script.Load("lua/ExoFlashlight_Client.lua")
@@ -259,7 +258,6 @@ function Exo:OnCreate()
     self:SetIgnoreHealth(true)
 
     if Client then
-		InitMixin(self, BlowtorchTargetMixin)
         InitMixin(self, TeamMessageMixin, { kGUIScriptName = "GUIMarineTeamMessage" })
     end
     

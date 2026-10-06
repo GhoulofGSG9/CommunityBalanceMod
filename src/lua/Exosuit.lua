@@ -26,7 +26,6 @@ Script.Load("lua/FlinchMixin.lua")
 Script.Load("lua/LOSMixin.lua")
 Script.Load("lua/AutoWeldMixin.lua")
 Script.Load("lua/BlightMixin.lua")
-Script.Load("lua/BlowtorchTargetMixin.lua")
 Script.Load("lua/DoomMixin.lua")
 
 if Client then
@@ -103,7 +102,6 @@ function Exosuit:OnCreate ()
     
     if Client then
         InitMixin(self, UnitStatusMixin)
-		InitMixin(self, BlowtorchTargetMixin)
     end
     
 end

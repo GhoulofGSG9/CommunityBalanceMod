@@ -39,7 +39,6 @@ Script.Load("lua/SupplyUserMixin.lua")
 Script.Load("lua/IdleMixin.lua")
 Script.Load("lua/ParasiteMixin.lua")
 Script.Load("lua/BlightMixin.lua")
-Script.Load("lua/BlowtorchTargetMixin.lua")
 Script.Load("lua/OrdersMixin.lua")  
 
 local kAnimationGraph = PrecacheAsset("models/marine/phase_gate/phase_gate.animation_graph")
@@ -193,7 +192,6 @@ function CargoGate:OnCreate()
 	
     if Client then
         InitMixin(self, CommanderGlowMixin)
-		InitMixin(self, BlowtorchTargetMixin)
     end
     
     -- Compute link state on server and propagate to client for looping effects

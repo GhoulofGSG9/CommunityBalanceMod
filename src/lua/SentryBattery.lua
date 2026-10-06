@@ -37,7 +37,6 @@ Script.Load("lua/InfestationTrackerMixin.lua")
 Script.Load("lua/ParasiteMixin.lua")
 Script.Load("lua/SupplyUserMixin.lua")
 Script.Load("lua/BlightMixin.lua")
-Script.Load("lua/BlowtorchTargetMixin.lua")
 Script.Load("lua/EnergyMixin.lua")
 
 class 'SentryBattery' (ScriptActor)
@@ -115,7 +114,6 @@ function SentryBattery:OnCreate()
     
     if Client then
         InitMixin(self, CommanderGlowMixin)
-		InitMixin(self, BlowtorchTargetMixin)
 		-- self:AddTimedCallback(SentryBattery.OnTimedUpdate, kUpdateIntervalLow)
     end
     

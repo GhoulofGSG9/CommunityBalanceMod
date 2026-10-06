@@ -25,7 +25,6 @@ Script.Load("lua/BiomassMixin.lua")
 Script.Load("lua/IdleMixin.lua")
 Script.Load("lua/AlienStructureVariantMixin.lua")
 Script.Load("lua/RailgunTargetMixin.lua")
-Script.Load("lua/BlowtorchTargetMixin.lua")
 
 class 'Hive' (CommandStructure)
 
@@ -150,7 +149,6 @@ function Hive:OnCreate()
         -- For mist creation
         self:SetUpdates(true, kDefaultUpdateRate)
 		InitMixin(self, RailgunTargetMixin)
-		InitMixin(self, BlowtorchTargetMixin)
     end
     
 end
