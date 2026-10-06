@@ -1083,6 +1083,12 @@ if Server then
             self.storedWeaponsIds = {}
         end
         weapon:SetWeaponWorldState(false)
+        -- Stored without OnHolster, so a reload in progress would resume on eject.
+        if weapon:isa("ClipWeapon") then
+            weapon.reloading = false
+            weapon.deployed = false
+            weapon.shooting = false
+        end
         table.insert(self.storedWeaponsIds, weapon:GetId())
 
     end
