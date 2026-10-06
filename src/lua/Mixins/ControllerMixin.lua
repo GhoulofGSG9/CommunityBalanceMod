@@ -454,6 +454,10 @@ local function SweepController(self, o, maxTraces, velocity, slowDownFraction)
 
         ClipOffsetToHit(offset, trace)
 
+        if useCreaseSlide then
+            SlideAlongCrease(offset, trace.normal)
+        end
+
         if velocity ~= nil then
             RedirectVelocity(velocity, trace.normal, slowDownFraction)
         end
