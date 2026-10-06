@@ -694,6 +694,29 @@ function Marine:HandleButtons(input)
     end
 end
 
+if Client then
+
+    -- The SDL client reports OS key repeats as fresh presses, so a drop key still held
+    -- from a hold-eject keeps sending Move.Drop to the marine after the server guard
+    -- has re-armed. Strip it until that key goes up.
+    function Marine:OverrideInput(input)
+
+        input = Player.OverrideInput(self, input)
+
+        if gExoDropHeld then
+            if Input_GetIsBindingDown("Drop") then
+                input.commands = bit_band(input.commands, kMaskClearDrop)
+            else
+                gExoDropHeld = false
+            end
+        end
+
+        return input
+
+    end
+
+end
+
 function Marine:FindFirstGrenade()
     local weapons = self:GetWeapons()
     if weapons ~= nil then
