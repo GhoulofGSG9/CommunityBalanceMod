@@ -4162,7 +4162,8 @@ function PlayerUI_GetDamageIndicators()
         local now = Shared.GetTime()
         local drawTime = Player.kDamageIndicatorDrawTime
         local origin = player:GetOrigin()
-        local worldToView = player:GetViewAngles():GetCoords():GetInverse() -- identical for every indicator
+
+        local worldToView = Angles(0, player:GetViewAngles().yaw, 0):GetCoords():GetInverse() -- identical for every indicator
 
         local n = 0
         for index = 1, #damageIndicators do
@@ -4281,13 +4282,78 @@ function Player:GetShowDamageArrows()
 end
 
 
+local kDamageIndicatorMergeAngle = math.rad(10) -- set to 0 to disable merging
+local kDamageIndicatorMergeCosSq = math.cos(kDamageIndicatorMergeAngle) ^ 2
+local kDamageIndicatorMinBearingDistSq = 0.5 * 0.5
+local kDamageIndicatorBlend = 0.5
+local kDamageIndicatorBlendWindow = 0.25 -- only blend if the arrow was refreshed this recently, else snap to the new hit
+
 function Player:AddTakeDamageIndicator(damagePosition)
 
-    if self:GetShowDamageArrows() and self.damageIndicators then
-        -- Only the first arrow of a burst gets the big "pop" animation (see GUIDamageIndicators:Update).
-        -- Arrows that arrive while others are still visible start directly at their settled size/position.
-        local showPop = #self.damageIndicators == 0
-        table.insert(self.damageIndicators, { damagePosition.x, damagePosition.z, Shared.GetTime(), showPop })
+    local damageIndicators = self.damageIndicators
+    if damageIndicators and self:GetShowDamageArrows() then
+
+        local now = Shared.GetTime()
+        local newX, newZ = damagePosition.x, damagePosition.z
+
+        -- Find the existing arrow whose bearing is closest to this hit (within the merge angle)
+        local bestIndex
+        if kDamageIndicatorMergeAngle > 0 then
+
+            local origin = self:GetOrigin()
+            local dx, dz = newX - origin.x, newZ - origin.z
+            local lenSq = dx * dx + dz * dz
+
+            if lenSq > kDamageIndicatorMinBearingDistSq then
+
+                local bestCosSq = kDamageIndicatorMergeCosSq
+                for index = 1, #damageIndicators do
+
+                    local indicator = damageIndicators[index]
+                    -- match against the last raw hit [5],[6], not the (blended) displayed position [1],[2]
+                    local ex, ez = indicator[5] - origin.x, indicator[6] - origin.z
+                    local eLenSq = ex * ex + ez * ez
+                    local dot = dx * ex + dz * ez
+
+                    if dot > 0 and eLenSq > kDamageIndicatorMinBearingDistSq then
+
+                        local cosSq = (dot * dot) / (lenSq * eLenSq)
+                        if cosSq >= bestCosSq then
+                            bestCosSq = cosSq
+                            bestIndex = index
+                        end
+
+                    end
+
+                end
+
+            end
+
+        end
+
+        if bestIndex then
+
+            -- Refresh in place: restarts the fade and moves the displayed position towards the new hit. Blending (instead
+            -- of snapping) keeps two nearby shooters from making the arrow teleport between them on every hit.
+            -- It is already visible, so never replay the pop.
+            local indicator = damageIndicators[bestIndex]
+            local blend = (now - indicator[3] <= kDamageIndicatorBlendWindow) and kDamageIndicatorBlend or 1
+            indicator[1] = indicator[1] + (newX - indicator[1]) * blend
+            indicator[2] = indicator[2] + (newZ - indicator[2]) * blend
+            indicator[3] = now
+            indicator[4] = false
+            indicator[5], indicator[6] = newX, newZ
+
+        else
+
+            -- Only the first arrow of a burst gets the big "pop" animation (see GUIDamageIndicators:Update).
+            -- Arrows that arrive while others are still visible start directly at their settled size/position.
+            -- Layout: displayed x, displayed z, time, showPop, last raw hit x, last raw hit z
+            local showPop = #damageIndicators == 0
+            damageIndicators[#damageIndicators + 1] = { newX, newZ, now, showPop, newX, newZ }
+
+        end
+
     end
 
     local damageIndicatorScript = ClientUI.GetScript("GUIDamageIndicators")
