@@ -744,7 +744,7 @@ function Skulk:ModifyJump(input, velocity, jumpVelocity)
 
         self.timeLastWallJump = Shared.GetTime()
 
-    elseif not self:GetRecentlyJumped() and self:GetTimeGroundTouched() + Skulk.kBunnyHopMaxGroundTouchDuration < Shared.GetTime() then
+    elseif not self:GetRecentlyJumped() and self:GetTimeGroundTouched() + Skulk.kBunnyHopMaxGroundTouchDuration > Shared.GetTime() then
 
         local minimumForce = Skulk.kMinBunnyHopForce
         local scalableForce = Skulk.kBunnyHopForce
