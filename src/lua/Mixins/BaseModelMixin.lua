@@ -1500,6 +1500,36 @@ if Server then
 
     end
 
+    -- Opt-in for structures whose idle clip loops forever: one collision pose per interval,
+    -- same idea as PropDynamic's fans. Never for players or anything that moves its hitboxes.
+    local kIdlePhysicsInterval = 0.05
+
+    function GetCanSkipIdlePhysics(entity)
+
+        if HasMixin(entity, "Construct") and not entity:GetIsBuilt() then
+            return false
+        end
+
+        -- Settled watches animation fields only; a teleport moves the hitbox without touching them.
+        local origin = entity:GetOrigin()
+        local cached = entity.idlePhysicsOrigin
+        if not cached or cached.x ~= origin.x or cached.y ~= origin.y or cached.z ~= origin.z then
+            entity.idlePhysicsOrigin = Vector(origin)
+            return false
+        end
+
+        local settled, looping = entity:GetAnimationSettled()
+        if settled then
+            return true
+        end
+
+        -- A lag-comp rewind runs this at an earlier time and must re-pose, so only skip inside the window.
+        local now = Shared.GetTime()
+        local last = entity.lastPhysicsUpdateTime or 0
+        return looping and now >= last and now < last + kIdlePhysicsInterval
+
+    end
+
 end
 
 --

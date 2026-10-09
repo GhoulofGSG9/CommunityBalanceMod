@@ -826,3 +826,11 @@ if Server then
 
 
 end --End-Server
+
+if Server then
+
+    function Tunnel:GetCanSkipPhysics()
+        return GetCanSkipIdlePhysics(self)
+    end
+
+end

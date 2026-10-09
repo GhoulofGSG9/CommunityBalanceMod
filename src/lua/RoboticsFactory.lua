@@ -492,3 +492,11 @@ function GetRoboticsFactoryBuildValid(techId, origin, normal, player)
     local ents = GetEntitiesWithinXZRange("ScriptActor", origin, 3)
     return (#ents == 0)
 end
+
+if Server then
+
+    function RoboticsFactory:GetCanSkipPhysics()
+        return GetCanSkipIdlePhysics(self)
+    end
+
+end

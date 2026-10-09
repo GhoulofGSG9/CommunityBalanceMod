@@ -738,3 +738,11 @@ if Server then
         
     end)
 end
+
+if Server then
+
+    function InfantryPortal:GetCanSkipPhysics()
+        return GetCanSkipIdlePhysics(self)
+    end
+
+end
