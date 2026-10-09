@@ -56,6 +56,17 @@ if Server then
     -- A looping prop (fan blades) only needs its collision pose refreshed at this rate.
     local kLoopingPhysicsInterval = 0.1
 
+    -- A settled or looping clip only needs stepping at the default rate; a
+    -- one-shot clip keeps the real-time rate so its tags land on time.
+    function PropDynamic:OnUpdate(deltaTime)
+
+        ScriptActor.OnUpdate(self, deltaTime)
+
+        local settled, looping = self:GetAnimationSettled()
+        self:SetUpdates(true, (settled or looping) and kDefaultUpdateRate or kRealTimeUpdateRate)
+
+    end
+
     function PropDynamic:GetCanSkipPhysics()
 
         local settled, looping = self:GetAnimationSettled()

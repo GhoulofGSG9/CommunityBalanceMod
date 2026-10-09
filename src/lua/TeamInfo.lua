@@ -178,7 +178,7 @@ function TeamInfo:OnCreate()
     
     if Server then
     
-        self:SetUpdates(true, kRealTimeUpdateRate)
+        self:SetUpdates(true, kDefaultUpdateRate)
         
 		self:Reset()
         

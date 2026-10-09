@@ -203,6 +203,21 @@ function Spectator:OnInitialized()
 
 end
 
+if Server then
+
+    -- Invisible (above), so the collision object has no bodies to pose for.
+    -- Same pair as ViewModel: the override keeps a stale physics model from
+    -- being created for a rig that is never updated.
+    function Spectator:GetCanSkipPhysics()
+        return true
+    end
+
+    function Spectator:GetPhysicsModelAllowedOverride()
+        return false
+    end
+
+end
+
 function Spectator:OnDestroy()
 
     Player.OnDestroy(self)
