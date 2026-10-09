@@ -1404,6 +1404,104 @@ function BaseModelMixin:UpdatePhysicsModel()
 
 end
 
+if Server then
+
+    local kPhysicsSettleMargin = 0.5
+
+    local kWatchedFields =
+    {
+        "modelIndex",
+        "animationSequence", "animationStart",
+        "animationSequence2", "animationStart2",
+        "layer1AnimationSequence", "layer1AnimationStart",
+        "layer1AnimationSequence2", "layer1AnimationStart2",
+    }
+
+    local kClips =
+    {
+        { "animationSequence", "animationSpeed" },
+        { "animationSequence2", "animationSpeed2" },
+        { "layer1AnimationSequence", "layer1AnimationSpeed" },
+        { "layer1AnimationSequence2", "layer1AnimationSpeed2" },
+    }
+
+    local function GetAnimationChanged(self)
+
+        local seen = self.physicsSettleSeen
+        if not seen then
+            seen = {}
+            self.physicsSettleSeen = seen
+        end
+
+        local changed = false
+        for i = 1, #kWatchedFields do
+
+            local field = kWatchedFields[i]
+            local value = self[field]
+            if seen[field] ~= value then
+                seen[field] = value
+                changed = true
+            end
+
+        end
+
+        return changed
+
+    end
+
+    -- Returns the time until every playing clip has finished, or nil while one of them loops.
+    local function GetSettleTime(self)
+
+        local model = self.modelIndex and self.modelIndex > 0 and Shared.GetModel(self.modelIndex)
+        if not model then
+            return 0
+        end
+
+        local clipTime = 0
+        for i = 1, #kClips do
+
+            local sequence = self[kClips[i][1]]
+            local speed = self[kClips[i][2]]
+            if sequence and sequence >= 0 and speed and speed ~= 0 then
+                if model:GetIsLooping(sequence) then
+                    return nil
+                end
+                clipTime = math.max(clipTime, model:GetSequenceLength(sequence) / math.abs(speed))
+            end
+
+        end
+
+        return clipTime
+
+    end
+
+    --
+    -- True once the model's animation has played out, so an entity that never moves on
+    -- its own can skip server physics updates until its animation changes again.
+    -- The second value is true while a playing clip loops (never settles).
+    --
+    function BaseModelMixin:GetAnimationSettled()
+
+        -- Simulated bodies move without any animation change.
+        if self.physicsType == _dynamicPhysicsType then
+            return false, false
+        end
+
+        local now = Shared.GetTime()
+
+        if GetAnimationChanged(self) then
+            local settleTime = GetSettleTime(self)
+            self.physicsSettleLooping = settleTime == nil
+            self.physicsSettleTime = settleTime and (now + settleTime + kPhysicsSettleMargin) or nil
+            return false, self.physicsSettleLooping
+        end
+
+        return self.physicsSettleTime ~= nil and now > self.physicsSettleTime, self.physicsSettleLooping
+
+    end
+
+end
+
 --
 -- By default every entity is allowed to have a physics model.
 -- Classes can override this behavior through this method.
