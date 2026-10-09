@@ -159,10 +159,6 @@ if Server then
         end
     end
     
-    function TechMixin:OnProcessMove()
-        SharedUpdate(self)
-    end
-    
     function TechMixin:OnUpdate(deltaTime)
         SharedUpdate(self)
     end

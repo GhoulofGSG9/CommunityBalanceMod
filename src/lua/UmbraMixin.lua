@@ -149,8 +149,12 @@ function UmbraMixin:OnProcessSpectate(deltaTime)
     SharedUpdate(self, deltaTime)
 end
 
-function UmbraMixin:OnProcessMove(input)
-    SharedUpdate(self, input.time)
+if not Server then
+
+    function UmbraMixin:OnProcessMove(input)
+        SharedUpdate(self, input.time)
+    end
+
 end
 
 function UmbraMixin:OnUpdateRender()

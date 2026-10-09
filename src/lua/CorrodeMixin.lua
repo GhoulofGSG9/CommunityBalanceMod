@@ -197,8 +197,12 @@ function CorrodeMixin:OnUpdate(deltaTime)
     SharedUpdate(self, deltaTime)
 end
 
-function CorrodeMixin:OnProcessMove(input)   
-    SharedUpdate(self, input.time)
+if not Server then
+
+    function CorrodeMixin:OnProcessMove(input)   
+        SharedUpdate(self, input.time)
+    end
+
 end
 
 if Server then

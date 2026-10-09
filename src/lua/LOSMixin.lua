@@ -444,10 +444,6 @@ if Server then
         SharedUpdate(self, deltaTime)
     end
     
-    function LOSMixin:OnProcessMove(input)
-        SharedUpdate(self, input.time)
-    end
-    
     -- this causes an issue: when the distance is too big (going to ready room, moving through phase gate) MarkNearbyDirty(self) will miss previous revealed entities.
     function LOSMixin:SetOrigin(origin)
 

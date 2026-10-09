@@ -218,8 +218,12 @@ function NanoShieldMixin:OnUpdate(deltaTime)
     SharedUpdate(self)
 end
 
-function NanoShieldMixin:OnProcessMove(input)   
-    SharedUpdate(self)
+if not Server then
+
+    function NanoShieldMixin:OnProcessMove(input)   
+        SharedUpdate(self)
+    end
+
 end
 
 if Client then

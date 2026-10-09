@@ -53,10 +53,6 @@ if Server then
         self.stormCloudSpeed = self.timeUntilStormCloud >= Shared.GetTime()
     end
 
-    function StormCloudMixin:OnProcessMove(input)    
-        SharedUpdate(self)
-    end
-    
     function StormCloudMixin:OnUpdate(deltaTime)   
         PROFILE("StormCloudMixin:OnUpdate")
         SharedUpdate(self)
