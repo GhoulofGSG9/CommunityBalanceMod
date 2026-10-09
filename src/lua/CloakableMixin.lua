@@ -389,8 +389,12 @@ function CloakableMixin:OnUpdate(deltaTime)
     UpdateCloakState(self, deltaTime)
 end
 
-function CloakableMixin:OnProcessMove(input)
-    UpdateCloakState(self, input.time)
+if not Server then
+
+    function CloakableMixin:OnProcessMove(input)
+        UpdateCloakState(self, input.time)
+    end
+
 end
 
 function CloakableMixin:OnProcessSpectate(deltaTime)
