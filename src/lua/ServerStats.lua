@@ -1033,7 +1033,7 @@ function StatsUI_SaveRoundStats(winningTeam)
 
 	local savedServerFile = io.open(string.format("config://%s%s.json", serverStatsPath, Shared.GetSystemTime()), "w+")
 	if savedServerFile then
-		savedServerFile:write(json.encode(lastRoundStats, { indent = true }))
+		savedServerFile:write(json.encode(lastRoundStats))
 		io.close(savedServerFile)
 	end
 	
