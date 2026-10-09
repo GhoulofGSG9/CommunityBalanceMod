@@ -382,15 +382,10 @@ kShotgunWeapons1DamageScalar = 1 + kShotgunDamagePerUpgradeScalar
 kShotgunWeapons2DamageScalar = 1 + kShotgunDamagePerUpgradeScalar * 2
 kShotgunWeapons3DamageScalar = 1 + kShotgunDamagePerUpgradeScalar * 3
 
-local kGrenadeLauncherDamagePerUpgradeScalar = 0.07
-kGrenadeLauncherWeapons1DamageScalar = 1 + kGrenadeLauncherDamagePerUpgradeScalar
-kGrenadeLauncherWeapons2DamageScalar = 1 + kGrenadeLauncherDamagePerUpgradeScalar * 2
-kGrenadeLauncherWeapons3DamageScalar = 1 + kGrenadeLauncherDamagePerUpgradeScalar * 3
-
-local kFlamethrowerDamagePerUpgradeScalar = 0.07
-kFlamethrowerWeapons1DamageScalar = 1 + kFlamethrowerDamagePerUpgradeScalar
-kFlamethrowerWeapons2DamageScalar = 1 + kFlamethrowerDamagePerUpgradeScalar * 2
-kFlamethrowerWeapons3DamageScalar = 1 + kFlamethrowerDamagePerUpgradeScalar * 3
+local kDamagePerUpgradeScalarStructure = 0.1 * 2
+kWeapons1DamageScalarStructure = 1 + kDamagePerUpgradeScalarStructure
+kWeapons2DamageScalarStructure = 1 + kDamagePerUpgradeScalarStructure * 2
+kWeapons3DamageScalarStructure = 1 + kDamagePerUpgradeScalarStructure * 3
 
 kNanoShieldDamageReductionDamage = 0.68
 
@@ -900,17 +895,6 @@ kVeilBiomass = 0
 kSpurBiomass = 0
 
 -- CBM Balance:
--- GL and FT for their playerdamage change have to be removed at damagetypes.lua from their special damage table "upgradedDamageScalars"
-local kDamagePerUpgradeScalarStructure = 0.1 * 2
-kWeapons1DamageScalarStructure = 1 + kDamagePerUpgradeScalarStructure
-kWeapons2DamageScalarStructure = 1 + kDamagePerUpgradeScalarStructure * 2
-kWeapons3DamageScalarStructure = 1 + kDamagePerUpgradeScalarStructure * 3
-
-local kShotgunDamagePerUpgradeScalarStructure = 0.0784 * 2
-kShotgunWeapons1DamageScalarStructure = 1 + kShotgunDamagePerUpgradeScalarStructure
-kShotgunWeapons2DamageScalarStructure = 1 + kShotgunDamagePerUpgradeScalarStructure * 2
-kShotgunWeapons3DamageScalarStructure = 1 + kShotgunDamagePerUpgradeScalarStructure * 3
-
 -- Gorge energy reduction
 kDropHydraEnergyCost = 30
 kDropBabblerEggEnergyCost = 10
