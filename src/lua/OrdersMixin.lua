@@ -666,6 +666,14 @@ if Server then
         
     end
     
+    function OrdersMixin:OnProcessMove(input)
+
+        PROFILE("OrdersMixin:OnProcessMove")
+
+        SharedUpdate(self)
+        
+    end
+    
 end
 
 -- Note: This needs to be tested.

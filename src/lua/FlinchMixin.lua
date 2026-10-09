@@ -28,7 +28,7 @@ FlinchMixin.optionalConstants =
 }
 
 -- Takes this much time to reduce flinch completely.
-local kFlinchIntensityReduceRate = 0.8
+local kFlinchIntensityReduceRate = 0.4
 
 
 FlinchMixin.networkVars =
@@ -154,6 +154,10 @@ if Server then
     
     function FlinchMixin:OnUpdate(deltaTime)
         UpdateFlinch(self, deltaTime)
+    end
+    
+    function FlinchMixin:OnProcessMove(input)
+        UpdateFlinch(self, input.time)
     end
     
 end

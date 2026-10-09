@@ -194,12 +194,8 @@ local function SharedUpdate(self, _)
     
 end
 
-if not Server then
-
-    function IdleMixin:OnProcessMove(input)
-        SharedUpdate(self, input.time)
-    end
-
+function IdleMixin:OnProcessMove(input)
+    SharedUpdate(self, input.time)
 end
 
 function IdleMixin:OnUpdate(deltaTime)
