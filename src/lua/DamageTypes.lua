@@ -69,8 +69,6 @@ function NS2Gamerules_GetUpgradedDamageScalar( attacker, weaponTechId, target ) 
         upgradedDamageScalars =
         {
             [kTechId.Shotgun]         = { kShotgunWeapons1DamageScalar,         kShotgunWeapons2DamageScalar,         kShotgunWeapons3DamageScalar },
-           -- [kTechId.GrenadeLauncher] = { kGrenadeLauncherWeapons1DamageScalar, kGrenadeLauncherWeapons2DamageScalar, kGrenadeLauncherWeapons3DamageScalar },
-           -- [kTechId.Flamethrower]    = { kFlamethrowerWeapons1DamageScalar,    kFlamethrowerWeapons2DamageScalar,    kFlamethrowerWeapons3DamageScalar },
             ["Default"]               = { kWeapons1DamageScalar,                kWeapons2DamageScalar,                kWeapons3DamageScalar },
         }
 
@@ -82,8 +80,6 @@ function NS2Gamerules_GetUpgradedDamageScalar( attacker, weaponTechId, target ) 
         upgradedDamageScalarsStructure =
         {
             [kTechId.Shotgun]         = { kShotgunWeapons1DamageScalarStructure,         kShotgunWeapons2DamageScalarStructure,         kShotgunWeapons3DamageScalarStructure },
-           -- [kTechId.GrenadeLauncher] = { kGrenadeLauncherWeapons1DamageScalarStructure, kGrenadeLauncherWeapons2DamageScalarStructure, kGrenadeLauncherWeapons3DamageScalarStructure },
-           -- [kTechId.Flamethrower]    = { kFlamethrowerWeapons1DamageScalarStructure,    kFlamethrowerWeapons2DamageScalarStructure,    kFlamethrowerWeapons3DamageScalarStructure },
             ["Default"]               = { kWeapons1DamageScalarStructure,                kWeapons2DamageScalarStructure,                kWeapons3DamageScalarStructure },
         }
 
