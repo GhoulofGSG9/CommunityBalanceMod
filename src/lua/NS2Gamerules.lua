@@ -399,17 +399,34 @@ if Server then
             
         end
         
+        local notifyIds = self.resetNotifyIds
+        if notifyIds then
+
+            for i = 1, #notifyIds do
+
+                local id = notifyIds[i]
+                local ent = id ~= oldId and Shared.GetEntity(id)
+                if ent and ent.OnEntityChange then
+                    ent:OnEntityChange(oldId, newId)
+                end
+
+            end
+
+            return
+
+        end
+
         local notifyEntities = Shared.GetEntitiesWithTag("EntityChange")
-        
+
         -- Tell notifyEntities this entity has changed ids or has been deleted (changed to nil).
         for _, ent in ientitylist(notifyEntities) do
-        
+
             if ent:GetId() ~= oldId and ent.OnEntityChange then
                 ent:OnEntityChange(oldId, newId)
             end
-            
+
         end
-        
+
     end
 
     -- Called whenever an entity is killed. Killer could be the same as targetEntity. Called before entity is destroyed.
@@ -501,6 +518,7 @@ if Server then
         -- message could match a recycled key and never be resent.
         self.healthMessageCache = nil
         self.techPointMessageCache = nil
+        self.resetNotifyIds = nil
 
         self:SetGameState(kGameState.NotStarted)
 
@@ -517,10 +535,12 @@ if Server then
         -- Destroy any map entities that are still around
         DestroyLiveMapEntities()
         
-        -- Reset all players, delete other not map entities that were created during 
+        -- Reset all players, delete other not map entities that were created during
         -- the game (hives, command structures, initial resource towers, etc)
         -- We need to convert the EntityList to a table since we are destroying entities
         -- within the EntityList here.
+        local destroyList = {}
+        local notifyIds = {}
         for _, entity in ientitylist(Shared.GetEntitiesWithClassname("Entity")) do
 
             local allowDestruction = true
@@ -528,25 +548,38 @@ if Server then
             for _, className in ipairs(self.resetProtectedEntities) do
                 allowDestruction = allowDestruction and not entity:isa(className)
             end
-            
-            if allowDestruction and entity:GetParent() == nil then
-                
-                -- Reset all map entities and all player's that have a valid Client (not ragdolled players for example).
-                local resetEntity = entity:isa("TeamInfo") or entity:GetIsMapEntity() or (entity:isa("Player") and entity:GetClient() ~= nil)
-                if resetEntity then
-                
-                    if entity.Reset then
-                        entity:Reset()
-                    end
-                    
-                else
-                    DestroyEntity(entity)
+
+            -- Reset all map entities and all player's that have a valid Client (not ragdolled players for example).
+            local resetEntity = entity:isa("TeamInfo") or entity:GetIsMapEntity() or (entity:isa("Player") and entity:GetClient() ~= nil)
+
+            if allowDestruction and entity:GetParent() == nil and not resetEntity then
+                table.insert(destroyList, entity:GetId())
+            else
+
+                if allowDestruction and entity:GetParent() == nil and entity.Reset then
+                    entity:Reset()
                 end
-                
-            end       
-            
+
+                if HasMixin(entity, "EntityChange") then
+                    table.insert(notifyIds, entity:GetId())
+                end
+
+            end
+
         end
-        
+
+        -- By id: an OnDestroy or Reset above may already have destroyed a queued entity.
+        self.resetNotifyIds = notifyIds
+        for i = 1, #destroyList do
+
+            local entity = Shared.GetEntity(destroyList[i])
+            if entity then
+                DestroyEntity(entity)
+            end
+
+        end
+        self.resetNotifyIds = nil
+
         -- Clear out obstacles from the navmesh before we start repopualating the scene
         RemoveAllObstacles()
         
