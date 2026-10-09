@@ -79,6 +79,10 @@ function GroundMoveMixin:__initmixin()
     self.performedDownTraceLastMove = false
     self.stepSkipOrigin = Vector()
     self.stepSkipHeight = 0
+
+    self.stepSkipCtrlHeight = 0
+    self.stepSkipCtrlRadius = 0
+
     self.prevOrigin = Vector()
     self.storedNormalVec = Vector()
     self.lastGroundCheck = {
@@ -571,12 +575,34 @@ function GroundMoveMixin:PreUpdateMove()
 end
 
 local kUpVector = Vector(0, kStepHeight, 0)
+
+-- Scratch vectors for the offsets of a move. PerformMovement copies the offset it is given,
+-- so these can be refilled right after the call.
+local kMoveOffset = Vector(0, 0, 0)
+local kDownVector = Vector(0, 0, 0) -- only y is ever set
+
+-- velocity * scale, without creating a vector (valid until the next call)
+local function GetScaledVelocity(velocity, scale)
+    kMoveOffset.x = velocity.x * scale
+    kMoveOffset.y = velocity.y * scale
+    kMoveOffset.z = velocity.z * scale
+    return kMoveOffset
+end
+
+local function SetOriginXYZ(self, x, y, z)
+    kStepScratch.x = x
+    kStepScratch.y = y
+    kStepScratch.z = z
+    self:SetOrigin(kStepScratch)
+end
+
 local function DoStepMove(self, _, velocity, deltaTime)
 
     PROFILE("GroundMoveMixin:DoStepMove")
-    
-    local oldOrigin = Vector(self:GetOrigin())
-    local oldVelocity = Vector(velocity)
+
+    local origin = self:GetOrigin()
+    local oldX, oldY, oldZ = origin.x, origin.y, origin.z
+    local oldVelX, oldVelY, oldVelZ = velocity.x, velocity.y, velocity.z
     local success = false
     local stepAmount = 0
     local slowDownFraction = self.GetCollisionSlowdownFraction and self:GetCollisionSlowdownFraction() or 1
@@ -585,36 +611,51 @@ local function DoStepMove(self, _, velocity, deltaTime)
 
     -- Step up. If the previous move's step-down proved that the column above this exact
     -- origin is free, we can skip the up trace and just teleport up by the proven height.
+    -- The proof is only valid for the controller shape it was recorded with, so any change of
+    -- GetControllerSize (not just crouching) invalidates it. Compare against the *current*
+    -- size: self.controllerHeight/Radius are only synced inside UpdateControllerFromEntity.
+    local ctrlHeight, ctrlRadius = self:GetControllerSize()
     local skippedUpCheck = false
     if self.performedDownTraceLastMove and not crouching
-            and self.stepSkipOrigin == oldOrigin then
+            and self.stepSkipCtrlHeight == ctrlHeight and self.stepSkipCtrlRadius == ctrlRadius
+            and self.stepSkipOrigin == origin then
 
         local skipHeight = self.stepSkipHeight
-        VectorCopy(oldOrigin, kStepScratch)
-        kStepScratch.y = kStepScratch.y + skipHeight
-        self:SetOrigin(kStepScratch)
-        skippedUpCheck = true
-        stepAmount = skipHeight
+        SetOriginXYZ(self, oldX, oldY + skipHeight, oldZ)
+
+        -- The proof is one move old and only covers static geometry. A player landing on us,
+        -- a door or a lift may have entered the column since, so make sure the teleported-to
+        -- position is actually free. If not, undo and do the real up trace below.
+        if self:GetIsColliding() then
+            SetOriginXYZ(self, oldX, oldY, oldZ)
+        else
+            skippedUpCheck = true
+            stepAmount = skipHeight
+        end
 
     end
 
     if not skippedUpCheck then
         _PerformMovement(self, kUpVector, 1)
-        stepAmount = self:GetOrigin().y - oldOrigin.y
+        stepAmount = self:GetOrigin().y - oldY
     end
     self.performedDownTraceLastMove = false
-    
+
     -- do the normal move
-    local startOrigin = Vector(self:GetOrigin())
-    local completedMove = _PerformMovement(self, velocity * deltaTime, kTracesAmount, velocity, true, slowDownFraction, deflectMove, nil, deltaTime)
-    local horizMoveAmount = (startOrigin - self:GetOrigin()):GetLengthXZ()
-    local forwardEndY = self:GetOrigin().y
+    local startOrigin = self:GetOrigin()
+    local startX, startZ = startOrigin.x, startOrigin.z
+    local completedMove = _PerformMovement(self, GetScaledVelocity(velocity, deltaTime), kTracesAmount, velocity, true, slowDownFraction, deflectMove, nil, deltaTime)
+
+    local endOrigin = self:GetOrigin()
+    local moveX, moveZ = startX - endOrigin.x, startZ - endOrigin.z
+    local horizMoveAmount = math.sqrt(moveX * moveX + moveZ * moveZ)
+    local forwardEndY = endOrigin.y
 
     if completedMove then
         -- step down again (slightly more than we went up to account for slopes)
         local downDistance = -stepAmount - horizMoveAmount * kDownSlopeFactor
-        local downVect = Vector(0, downDistance, 0)
-        local _, hitEntities, averageSurfaceNormal, surfaceMaterial = _PerformMovement(self, downVect, 1)
+        kDownVector.y = downDistance
+        local _, hitEntities, averageSurfaceNormal, surfaceMaterial = _PerformMovement(self, kDownVector, 1)
 
         if not (averageSurfaceNormal and averageSurfaceNormal.y >= 0.5) then
             downDistance = 0.15
@@ -632,6 +673,8 @@ local function DoStepMove(self, _, velocity, deltaTime)
             if canReuse then
                 self.stepSkipHeight = math.min(downDistTravelled, kStepHeight)
                 VectorCopy(self:GetOrigin(), self.stepSkipOrigin)
+                self.stepSkipCtrlHeight = ctrlHeight
+                self.stepSkipCtrlRadius = ctrlRadius
             end
 
             _SetGroundCheckCache(self, downDistance, hitEntities, averageSurfaceNormal, surfaceMaterial)
@@ -643,12 +686,12 @@ local function DoStepMove(self, _, velocity, deltaTime)
     -- not succesful. fall back to normal move
     if not success then
     
-        self:SetOrigin(oldOrigin)
-        VectorCopy(oldVelocity, velocity)
+        SetOriginXYZ(self, oldX, oldY, oldZ)
+        velocity.x, velocity.y, velocity.z = oldVelX, oldVelY, oldVelZ
 
         self.storedNormal = nil
         self.storedImpactForce = nil
-        local fallbackCompleted = _PerformMovement(self, velocity * deltaTime, kTracesAmount, velocity, true, slowDownFraction, deflectMove, nil, deltaTime)
+        local fallbackCompleted = _PerformMovement(self, GetScaledVelocity(velocity, deltaTime), kTracesAmount, velocity, true, slowDownFraction, deflectMove, nil, deltaTime)
         
     end
 
@@ -749,7 +792,7 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
     
         -- check if we are allowed to step:
         if stepAllowed and (Predict or self:GetShouldDoStepOverCheck()) then
-            local _, hitEntities = self:PerformMovement(velocity * 0.1, 1, nil, false)
+            local _, hitEntities = self:PerformMovement(GetScaledVelocity(velocity, 0.1), 1, nil, false)
 
             if hitEntities then
             
@@ -775,10 +818,10 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
             
             -- Increases deflect traces in combat
             local numTraces = enemyPlayerHit and kPvPTracesAmount or kTracesAmount
-            _PerformMovement(self, velocity * deltaTime, numTraces, velocity, true, slowDownFraction * 0.5, deflectMove, nil, deltaTime)
+            _PerformMovement(self, GetScaledVelocity(velocity, deltaTime), numTraces, velocity, true, slowDownFraction * 0.5, deflectMove, nil, deltaTime)
             self.performedDownTraceLastMove = false
         else     
-            DoStepMove(self, input, velocity, deltaTime)            
+            DoStepMove(self, input, velocity, deltaTime)
         end
         
         FlushCollisionCallbacks(self, velocity)
@@ -789,10 +832,6 @@ function GroundMoveMixin:UpdatePosition(input, velocity, deltaTime)
         
     end
     
-    if gSpeedDebug then
-        SetSpeedDebugText("onGround %s", ToString(self.onGround))
-    end
-
 end
 -- stub
 function GroundMoveMixin:ModifyVelocity(input, velocity, deltaTime)
@@ -820,7 +859,7 @@ local function UpdateOnGround(self)
 
     --PROFILE("GroundMoveMixin:UpdateOnGround")
 
-    local onGround, _, hitEntities, surfaceMaterial = GetIsCloseToGround(self, 0.15, true)
+    local onGround, probeNormal, hitEntities, surfaceMaterial = GetIsCloseToGround(self, 0.15, true)
     
     if surfaceMaterial then
         self.onGroundSurface = Surfaces_StringToEnum(surfaceMaterial) or kSurfaces.metal
@@ -831,7 +870,7 @@ local function UpdateOnGround(self)
     end
       
     if not onGround and onGround ~= self.onGround then
-    
+
         self.onGround = false
         self.isOnEntity = false
         self.timeGroundTouched = Shared.GetTime()
