@@ -134,8 +134,6 @@ if Client then
             
                 self.clientLastTakenDamageTime = self.lastTakenDamageTime
                 
-                self:AddTakeDamageIndicator(self.lastTakenDamageOrigin)
-                
                 -- Shake the camera if this player supports it.
                 if self.SetCameraShake ~= nil then
                 
