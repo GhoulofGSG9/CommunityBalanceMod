@@ -77,12 +77,15 @@ if Client then
 	
 	Locale.substitutions["EXOSUIT_TECH_TOOLTIP"] = "Unlocks modular exosuits."
 	
-	Locale.substitutions["SENTRY_TOOLTIP"] = "AI sentry gun that provides supporting fire. Limited to 1!"
+	Locale.substitutions["SENTRY_TOOLTIP"] = "AI sentry gun that provides supporting fire. One stands alone; a Power Battery hosts a nest of up to 2 that fire only while it stands."
 	
 	Locale.substitutions["SENTRY_BATTERY"] = "Power Battery"
 	Locale.substitutions["SENTRY_BATTERY_HINT"] = "Powers Marine Structures"
-	Locale.substitutions["SENTRY_BATTERY_TOOLTIP"] = "Powers nearby marine structures (max 1 per room). Limited to 2!"
+	Locale.substitutions["SENTRY_BATTERY_TOOLTIP"] = "Powers nearby marine structures (max 1 per room) and hosts a nest of up to 2 sentries that fire only while it stands. Limited to 2!"
 	Locale.substitutions["COMMANDERERROR_ONLY_ONE_BATTERY_PER_ROOM"] = "Can't build or too many power batteries in room or total."
+	Locale.substitutions["COMMANDERERROR_TOO_MANY_SENTRIES"] = "Only one sentry can stand alone. Place more within range of a Power Battery."
+	Locale.substitutions["COMMANDERERROR_SENTRY_NEST_FULL"] = "A Power Battery hosts at most 2 sentries."
+	Locale.substitutions["COMMANDERERROR_SENTRY_TOO_CLOSE"] = "Too close to another sentry. Sentries stand alone or share a Power Battery."
 	
 	Locale.substitutions["BATTERY_SHIELD"] = "Linked Power Battery"
 	Locale.substitutions["BATTERY_SHIELD_HINT"] = "Links to Power Node to enable Purification"
