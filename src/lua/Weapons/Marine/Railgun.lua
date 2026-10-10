@@ -586,8 +586,17 @@ if Client then
         end
         if glint then
 
-            if charged then
-                glint:SetCoords(coords)
+            -- Ride the attach point like the muzzle flash (CreateMuzzleCinematic), so the engine places the
+            -- glint on the drawn arm instead of a world-space copy of the coords taken during this update.
+            local parentId = parent:GetId()
+            if charged and (self.chargedGlintParentId ~= parentId or self.chargedGlintAttachPoint ~= attachPoint) then
+
+                glint:SetParent(parent)
+                glint:SetCoords(Coords.GetIdentity())
+                glint:SetAttachPoint(attachPoint)
+                self.chargedGlintParentId = parentId
+                self.chargedGlintAttachPoint = attachPoint
+
             end
             glint:SetIsVisible(charged)
 
