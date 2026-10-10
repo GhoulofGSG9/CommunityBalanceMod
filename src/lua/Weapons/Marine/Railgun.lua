@@ -30,7 +30,6 @@ local kRailgunChargeTime = 1 -- Vanilla 1.4
 
 local kChargeSound = PrecacheAsset("sound/NS2.fev/marine/heavy/railgun_charge")
 local kChargeReadySound = PrecacheAsset("sound/NS2.fev/common/checkbox_on")
-local kQueuedSound = PrecacheAsset("sound/NS2.fev/common/hovar")
 local kChargedGlintCinematic = PrecacheAsset("cinematics/marine/exo/lens_flare.cinematic")
 local kResonanceSound = PrecacheAsset("sound/NS2.fev/common/ping")
 
@@ -41,8 +40,7 @@ local networkVars =
 {
     timeChargeStarted = "time",
     railgunAttacking = "boolean",
-    timeOfLastShot = "time",
-    railgunQueued = "boolean"
+    timeOfLastShot = "time"
 }
 
 AddMixinNetworkVars(TechMixin, networkVars)
@@ -65,7 +63,6 @@ function Railgun:OnCreate()
     self.timeChargeStarted = 0
     self.railgunAttacking = false
     self.timeOfLastShot = 0
-    self.railgunQueued = false
     self.resonanceHits = { }
     
     if Client then
@@ -152,25 +149,11 @@ local function GetDualRail(self, player)
 
 end
 
-local function GetRefireTime(other)
-    return other and kDualRailRefire or kRailgunChargeTime
-end
-
--- Dual-rail slugs leave at least kDualRailSpacing apart.
-local function GetFireAllowedTime(other)
-    return other and other.timeOfLastShot + kDualRailSpacing or 0
-end
-
--- Charging time that counts towards the forced shot: a dual arm only starts the count once it may fire,
--- but no later than one spacing into the hold, so cycling the other arm cannot hold a charge forever.
-local function GetHoldStart(self, other)
-    return math.min(math.max(self.timeChargeStarted, GetFireAllowedTime(other) - kChargeTime), self.timeChargeStarted + kDualRailSpacing)
-end
-
+-- Each arm of a dual railgun charges and fires on its own trigger like a single railgun; only the damage of
+-- every slug is halved (kExoDualRailgunModifier, Exo:GetDualArmDamageScalar).
 function Railgun:OnPrimaryAttack(player)
 
-    self.railgunQueued = false
-    if self.timeOfLastShot + GetRefireTime(GetDualRail(self, player)) <= Shared.GetTime() then
+    if self.timeOfLastShot + kRailgunChargeTime <= Shared.GetTime() then
 
         if not self.railgunAttacking then
             self.timeChargeStarted = Shared.GetTime()
@@ -189,20 +172,14 @@ function Railgun:GetWeight()
     return kRailgunWeight
 end
 
--- A dual-rail release inside the spacing stays charged and fires once allowed (ProcessMoveOnWeapon). The slug
--- itself only leaves at the shoot tag a few ticks later, so the spacing is stamped at release.
+-- A release always fires. The slug itself only leaves at the shoot tag a few ticks later, so the refire is
+-- stamped at release.
 function Railgun:OnPrimaryAttackEnd(player)
 
-    if not self.railgunAttacking then
-        return
+    if self.railgunAttacking then
+        self.timeOfLastShot = Shared.GetTime()
+        self.railgunAttacking = false
     end
-    if Shared.GetTime() < GetFireAllowedTime(GetDualRail(self, player)) then
-        self.railgunQueued = true
-        return
-    end
-    self.railgunQueued = false
-    self.timeOfLastShot = Shared.GetTime()
-    self.railgunAttacking = false
 
 end
 
@@ -261,10 +238,9 @@ function Railgun:GetChargeAmount()
     return self.railgunAttacking and math.min(1, (Shared.GetTime() - self.timeChargeStarted) / kChargeTime) or 0
 end
 
--- A dual arm that is queued or waiting out the spacing is not held by choice.
-function Railgun:GetIsHoldingCharge(player)
-    return self.railgunAttacking and not self.railgunQueued and self:GetChargeAmount() >= 1
-        and Shared.GetTime() >= GetFireAllowedTime(GetDualRail(self, player))
+-- A full charge the trigger still holds.
+function Railgun:GetIsHoldingCharge()
+    return self.railgunAttacking and self:GetChargeAmount() >= 1
 end
 
 local function TriggerSteamEffect(self, player)
@@ -285,32 +261,33 @@ local function GetIsResonant(target)
     return target:isa("Lerk") or target:isa("Fade")
 end
 
-local function GetResonanceScalar(self, other, target, now, primes)
+-- The other arm's last full-charge hit on target is old enough not to be the same volley and still inside
+-- the window.
+local function GetHasOtherArmMark(other, target, now)
 
-    if not other or not GetIsResonant(target) then
-        return 1
-    end
-    local id = target:GetId()
-    local otherTime = other.resonanceHits[id]
-    if primes then
-        self.resonanceHits[id] = now
-        if Server then
-            target:SetRailResonance()
-        end
-    end
-    if otherTime and otherTime < now and now - otherTime <= kRailResonanceWindow then
-        return 1 + kRailResonanceBonus
-    end
-    return 1
+    local hitTime = other and other.resonanceHits[target:GetId()]
+    return hitTime ~= nil and now - hitTime >= kRailResonanceMinGap and now - hitTime <= kRailResonanceWindow
 
 end
 
+-- Only full-charge slugs mark a target and only full-charge slugs resonate.
+local function GetResonanceScalar(self, other, target, now, fullCharge)
+
+    if not other or not fullCharge or not GetIsResonant(target) then
+        return 1
+    end
+    local resonates = GetHasOtherArmMark(other, target, now)
+    self.resonanceHits[target:GetId()] = now
+    if Server then
+        target:SetRailResonance()
+    end
+    return resonates and 1 + kRailResonanceBonus or 1
+
+end
+
+-- Pink outline: releasing this arm now would resonate on target.
 local function GetIsPrimedFor(self, player, target)
-
-    local other = GetDualRail(self, player)
-    local hitTime = other and other.resonanceHits[target:GetId()]
-    return hitTime ~= nil and Shared.GetTime() - hitTime <= kRailResonanceWindow
-
+    return self:GetChargeAmount() >= 1 and GetHasOtherArmMark(GetDualRail(self, player), target, Shared.GetTime())
 end
 
 local function ExecuteShot(self, startPoint, endPoint, player)
@@ -438,11 +415,11 @@ function Railgun:ProcessMoveOnWeapon(player, input)
 
     if self.railgunAttacking then
     
-        if player.thrustersActive and not self.railgunQueued then
+        if player.thrustersActive then
             self.timeChargeStarted = Shared.GetTime()
         end
     
-        if self.railgunQueued or Shared.GetTime() - GetHoldStart(self, GetDualRail(self, player)) >= kChargeForceShootTime then
+        if Shared.GetTime() - self.timeChargeStarted >= kChargeForceShootTime then
             self:OnPrimaryAttackEnd(player)
         end
         
@@ -489,29 +466,14 @@ function Railgun:OnUpdateRender()
         local slot = self.exoWeaponSlot
         local now = Shared.GetTime()
         chargeDisplayUI:SetGlobal(kChargeAmountKey[slot], chargeAmount)
-        local other = GetDualRail(self, parent)
-        chargeDisplayUI:SetGlobal(kChargeHeldKey[slot], self.railgunAttacking and now - GetHoldStart(self, other) or 0)
+        chargeDisplayUI:SetGlobal(kChargeHeldKey[slot], self.railgunAttacking and now - self.timeChargeStarted or 0)
+        chargeDisplayUI:SetGlobal("reserve", math.min(1, (now - self.timeOfLastShot) / kRailgunChargeTime))
 
-        chargeDisplayUI:SetGlobal("reserve", math.min(1, (now - self.timeOfLastShot) / GetRefireTime(other)))
-
-        -- A full arm waiting out the spacing drains from the moment it had to wait.
-        local fireAllowed = GetFireAllowedTime(other)
-        local fuse = 0
-        if chargeAmount >= 1 and now < fireAllowed then
-            fuse = (fireAllowed - now) / (fireAllowed - math.max(self.timeChargeStarted + kChargeTime, other.timeOfLastShot))
-        end
-        chargeDisplayUI:SetGlobal("fuse", fuse)
-
-        local ready = chargeAmount >= 1 and now >= fireAllowed
-        chargeDisplayUI:SetGlobal("ready", ready and 1 or 0)
-        if ready and not self.railgunQueued and not self.chargeReadyCued then
+        local charged = chargeAmount >= 1
+        if charged and not self.chargeReadyCued then
             StartSoundEffect(kChargeReadySound)
         end
-        self.chargeReadyCued = ready
-        if self.railgunQueued and not self.queueCued then
-            StartSoundEffect(kQueuedSound)
-        end
-        self.queueCued = self.railgunQueued
+        self.chargeReadyCued = charged
         
     else
     
