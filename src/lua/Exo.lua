@@ -695,14 +695,14 @@ function Exo:GetIsDualWeapon()
 
 end
 
-local function GetIsHoldingCharge(weapon, player)
-    return weapon ~= nil and weapon.GetIsHoldingCharge ~= nil and weapon:GetIsHoldingCharge(player)
+local function GetIsHoldingCharge(weapon)
+    return weapon ~= nil and weapon.GetIsHoldingCharge ~= nil and weapon:GetIsHoldingCharge()
 end
 
 function Exo:GetIsHoldingRailCharge()
 
     local weaponHolder = self:GetWeapon(ExoWeaponHolder.kMapName)
-    return weaponHolder ~= nil and (GetIsHoldingCharge(weaponHolder:GetLeftSlotWeapon(), self) or GetIsHoldingCharge(weaponHolder:GetRightSlotWeapon(), self))
+    return weaponHolder ~= nil and (GetIsHoldingCharge(weaponHolder:GetLeftSlotWeapon()) or GetIsHoldingCharge(weaponHolder:GetRightSlotWeapon()))
 
 end
 

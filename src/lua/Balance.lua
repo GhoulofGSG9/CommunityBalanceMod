@@ -329,7 +329,8 @@ kFlamethrowerMaxBurnDuration = 6
 
 -- Output levers for an exo carrying two arms of the same gun, applied in Exo:ComputeDamageAttackerOverride.
 kExoDualMinigunModifier = 1
-kExoDualRailgunModifier = 1
+-- Each dual-rail slug deals half, so firing both arms together equals one single-rail slug.
+kExoDualRailgunModifier = 0.5
 kExoDualPlasmaModifier = 1
 
 kMinigunDamage = 6
@@ -340,15 +341,13 @@ kClawDamageType = kDamageType.Structural
 
 kRailgunDamage = 0
 kRailgunChargeDamage = 130
--- Dual railguns charge together but fire at least the spacing apart. Each arm then reloads like a single
--- railgun, so held arms alternate one slug per spacing: the spacing is the shortest gap a hit lerk gets
--- and sets dual-rail DPS.
-kDualRailSpacing = 1.5
-kDualRailRefire = 1
--- A dual-rail slug deals this much more to a lerk or fade the other arm hit with a full charge within
--- the window.
+-- A full-charge dual-rail slug deals this much more to a lerk or fade the other arm hit with a full charge
+-- within the window.
 kRailResonanceBonus = 0.3
 kRailResonanceWindow = 3
+-- The other arm's hit must be at least this old to resonate, so both arms fired together do not resonate
+-- with each other.
+kRailResonanceMinGap = 0.5
 -- Each alien a slug passes through scales the damage to everything behind it.
 kRailgunPierceScalar = 0.5
 -- Exo speed while an arm holds a full charge it could fire.
