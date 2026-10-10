@@ -4141,10 +4141,9 @@ end
 --[[
  * Damage indicators. Returns a array of damage indicators which are used to draw red arrows pointing towards
  * recent damage. Each damage indicator triple will consist of an alpha, a direction and a showPop flag. The alpha
- * is 0-1 and the direction in radians is the angle at which to display it. 0 should face forward (top of the
- * screen), pi should be behind us (bottom of the screen), pi/2 is to our left, 3*pi/2 is right. showPop is true
- * only for the first indicator of a burst: it is the only one that plays the big shrink-in animation, all others
- * start at their settled size/position.
+ * is 0-1 and the direction in radians is the angle at which to display it. 0 should face forward (top of the screen),
+ * pi should be behind us (bottom of the screen), pi/2 is to our left, 3*pi/2 is right. Only the first indicator of
+ * a burst has showPop set: it is the only one that plays the big shrink-in animation.
  *
  * For two damage indicators, perhaps:
  *  {alpha1, directionRadians1, showPop1, alpha2, directonRadius2, showPop2}
@@ -4156,23 +4155,20 @@ function PlayerUI_GetDamageIndicators()
     local drawIndicators = {}
 
     local player = Client.GetLocalPlayer()
-    local damageIndicators = player and player.damageIndicators
-    if damageIndicators and #damageIndicators > 0 then
+    if player then
 
-        local now = Shared.GetTime()
-        local drawTime = Player.kDamageIndicatorDrawTime
-        local origin = player:GetOrigin()
+        local worldToView = Angles(0, player:GetViewAngles().yaw, 0):GetCoords():GetInverse()
 
-        local worldToView = Angles(0, player:GetViewAngles().yaw, 0):GetCoords():GetInverse() -- identical for every indicator
+        for index, indicatorTriple in ipairs(player.damageIndicators) do
 
-        local n = 0
-        for index = 1, #damageIndicators do
+            local alpha = Clamp(1 - ((Shared.GetTime() - indicatorTriple[3])/Player.kDamageIndicatorDrawTime), 0, 1)
+            table.insert(drawIndicators, alpha)
 
-            local indicator = damageIndicators[index]
+            local worldX = indicatorTriple[1]
+            local worldZ = indicatorTriple[2]
 
-            local alpha = Clamp(1 - ((now - indicator[3]) / drawTime), 0, 1)
+            local normDirToDamage = GetNormalizedVector(Vector(player:GetOrigin().x, 0, player:GetOrigin().z) - Vector(worldX, 0, worldZ))
 
-            local normDirToDamage = GetNormalizedVector(Vector(origin.x - indicator[1], 0, origin.z - indicator[2]))
             local damageDirInView = worldToView:TransformVector(normDirToDamage)
 
             local directionRadians = math.atan2(damageDirInView.x, damageDirInView.z)
@@ -4180,10 +4176,8 @@ function PlayerUI_GetDamageIndicators()
                 directionRadians = directionRadians + 2 * math.pi
             end
 
-            drawIndicators[n + 1] = alpha
-            drawIndicators[n + 2] = directionRadians
-            drawIndicators[n + 3] = indicator[4] == true -- showPop
-            n = n + 3
+            table.insert(drawIndicators, directionRadians)
+            table.insert(drawIndicators, indicatorTriple[4])
 
         end
 
@@ -4282,78 +4276,10 @@ function Player:GetShowDamageArrows()
 end
 
 
-local kDamageIndicatorMergeAngle = math.rad(10) -- set to 0 to disable merging
-local kDamageIndicatorMergeCosSq = math.cos(kDamageIndicatorMergeAngle) ^ 2
-local kDamageIndicatorMinBearingDistSq = 0.5 * 0.5
-local kDamageIndicatorBlend = 0.5
-local kDamageIndicatorBlendWindow = 0.25 -- only blend if the arrow was refreshed this recently, else snap to the new hit
-
 function Player:AddTakeDamageIndicator(damagePosition)
 
-    local damageIndicators = self.damageIndicators
-    if damageIndicators and self:GetShowDamageArrows() then
-
-        local now = Shared.GetTime()
-        local newX, newZ = damagePosition.x, damagePosition.z
-
-        -- Find the existing arrow whose bearing is closest to this hit (within the merge angle)
-        local bestIndex
-        if kDamageIndicatorMergeAngle > 0 then
-
-            local origin = self:GetOrigin()
-            local dx, dz = newX - origin.x, newZ - origin.z
-            local lenSq = dx * dx + dz * dz
-
-            if lenSq > kDamageIndicatorMinBearingDistSq then
-
-                local bestCosSq = kDamageIndicatorMergeCosSq
-                for index = 1, #damageIndicators do
-
-                    local indicator = damageIndicators[index]
-                    -- match against the last raw hit [5],[6], not the (blended) displayed position [1],[2]
-                    local ex, ez = indicator[5] - origin.x, indicator[6] - origin.z
-                    local eLenSq = ex * ex + ez * ez
-                    local dot = dx * ex + dz * ez
-
-                    if dot > 0 and eLenSq > kDamageIndicatorMinBearingDistSq then
-
-                        local cosSq = (dot * dot) / (lenSq * eLenSq)
-                        if cosSq >= bestCosSq then
-                            bestCosSq = cosSq
-                            bestIndex = index
-                        end
-
-                    end
-
-                end
-
-            end
-
-        end
-
-        if bestIndex then
-
-            -- Refresh in place: restarts the fade and moves the displayed position towards the new hit. Blending (instead
-            -- of snapping) keeps two nearby shooters from making the arrow teleport between them on every hit.
-            -- It is already visible, so never replay the pop.
-            local indicator = damageIndicators[bestIndex]
-            local blend = (now - indicator[3] <= kDamageIndicatorBlendWindow) and kDamageIndicatorBlend or 1
-            indicator[1] = indicator[1] + (newX - indicator[1]) * blend
-            indicator[2] = indicator[2] + (newZ - indicator[2]) * blend
-            indicator[3] = now
-            indicator[4] = false
-            indicator[5], indicator[6] = newX, newZ
-
-        else
-
-            -- Only the first arrow of a burst gets the big "pop" animation (see GUIDamageIndicators:Update).
-            -- Arrows that arrive while others are still visible start directly at their settled size/position.
-            -- Layout: displayed x, displayed z, time, showPop, last raw hit x, last raw hit z
-            local showPop = #damageIndicators == 0
-            damageIndicators[#damageIndicators + 1] = { newX, newZ, now, showPop, newX, newZ }
-
-        end
-
+    if self:GetShowDamageArrows() and self.damageIndicators then
+        table.insert(self.damageIndicators, { damagePosition.x, damagePosition.z, Shared.GetTime(), #self.damageIndicators == 0 })
     end
 
     local damageIndicatorScript = ClientUI.GetScript("GUIDamageIndicators")
@@ -4413,8 +4339,7 @@ end
 
 function Player:UpdateDamageIndicators()
 
-    -- Expire old damage indicators. Iterate backwards so that removing an entry
-    -- doesn't shift the indices of the entries still to be checked.
+    -- Expire old damage indicators
     local now = Shared.GetTime()
     for index = #self.damageIndicators, 1, -1 do
 
@@ -4424,11 +4349,27 @@ function Player:UpdateDamageIndicators()
 
     end
 
+    -- Add an indicator whenever the last damage origin or time changes (checked every frame)
+    local origin = self.lastTakenDamageOrigin
+    local seen = self.clientLastDamageOrigin
+    if origin and (self.clientLastDamageTime ~= self.lastTakenDamageTime or not seen or
+                   seen.x ~= origin.x or seen.y ~= origin.y or seen.z ~= origin.z) then
+
+        -- the first look only starts the tracking, and old damage is not replayed
+        if seen and now - self.lastTakenDamageTime <= Player.kDamageIndicatorDrawTime then
+            self:AddTakeDamageIndicator(origin)
+        end
+
+        self.clientLastDamageTime = self.lastTakenDamageTime
+        self.clientLastDamageOrigin = Vector(origin)
+
+    end
+
     -- update damage given
     if self.giveDamageTimeClientCheck ~= self.giveDamageTime then
 
         self.giveDamageTimeClientCheck = self.giveDamageTime
-        self.giveDamageTimeClient = Shared.GetTime()
+        self.giveDamageTimeClient = now
 
         self.showDamage = self:GetShowDamageIndicator()
         if self.showDamage then
