@@ -348,6 +348,10 @@ kDualRailRefire = 3
 -- the window.
 kRailResonanceBonus = 0.3
 kRailResonanceWindow = 3
+-- Each alien a slug passes through scales the damage to everything behind it.
+kRailgunPierceScalar = 0.5
+-- Exo speed while an arm holds a full charge it could fire.
+kRailgunHeldChargeSpeedScalar = 0.8
 kRailgunDamageType = kDamageType.Structural
 
 kMACAttackDamage = 5

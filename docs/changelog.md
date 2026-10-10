@@ -54,6 +54,9 @@
 	- Only your own arms mark a target, and only with a full charge.
 	- The crosshair target outline turns pink when your next shot will resonate, and a resonant hit pings. A marked alien sees a blue resonance icon among its status icons.
 	- The railgun help card explains the dual-rail timing.
+  - Each alien a slug passes through halves its damage to everything behind it. Structures do not reduce it.
+  - An exo moves at 80% speed while an arm holds a full charge it could fire. A dual arm that is queued or waiting out the 1.5 s spacing does not slow you.
+  - Railguns cannot charge while thrusters are active; a held charge starts over when thrusters fire. A dual arm already released still fires.
   - Target highlighting now works on all lifeforms and alien structures (red).
   - Target highlighting now matches maximum range of railgun.
   
