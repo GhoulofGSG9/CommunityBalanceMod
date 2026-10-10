@@ -31,10 +31,9 @@ if kCBMaddon then
 	## Balance and QoL Changes
 	### Exosuits: Tech Path
 	  - The Prototype Lab needs an Arms Lab instead of an Advanced Armory. 
-	    - Each lab first upgrades itself (free, 90 s), then claw-minigun and claw-railgun exosuits can be purchased
-	  - Four optional researches at the Prototype Lab, run in parallel:
+	    - Each lab first upgrades itself (free, 90 s), then claw-minigun, claw-railgun and claw-plasma exosuits can be purchased
+	  - Three optional researches at the Prototype Lab, run in parallel:
 	    - Dual Exosuit Arms (25 tres, 60 s): a weapon on both arms.
-	    - Advanced Exosuit Arms (20 tres, 60 s): Ion Torch and plasma launcher arms.
 	    - Exosuit Cores (15 tres, 45 s): Thrusters, Ejection Seat and Armor Plating.
 	    - Exosuit Abilities (15 tres, 45 s): support abilities.
 	  - Jetpacks moved to the Advanced Armory: research them there (40 tres, 130 s) and buy them there. 
@@ -43,7 +42,7 @@ if kCBMaddon then
 	### Exosuits: Build Your Own
 	  - An exosuit is two arms plus optional modules. Price, armor and speed add up from the parts.
 	  - Example: claw + minigun costs 40 pres (vanilla exosuit 55), has 320 armor (440 at Armor 3) and walks as fast as a marine.
-	  - Arms, pres / armor: Claw 15 / 90, Minigun 25 / 90, Railgun 25 / 60, Plasma Launcher 25 / 60, Ion Torch 25 / 60.
+	  - Arms, pres / armor: Claw 15 / 90, Minigun 25 / 90, Railgun 25 / 60, Plasma Launcher 25 / 60.
 	  - Modules: Thrusters 15 pres, Ejection Seat 10 pres, Armor Plating 15 pres, one support ability 10 pres.
 	  - Base armor 140, +40 per Armor upgrade, 520 at most.
 	  - Arms and Armor Plating slow the suit. Every build is slower than a sprinting marine.
@@ -61,8 +60,6 @@ if kCBMaddon then
 	  - Plasma Launcher: lobs a bomb every 2 s. AoE burst of 40 damage in 4 m and burns for 3 s.
 	    - Burns do not stack and need line of sight.
 		- Electrify is only applied to direct hits.
-	  - Ion Torch (exo flamethrower arm): 12 damage a tick, 13 m range, and its burn deals 12 damage a second (marine flamethrower: 9, 9 m, 8). Blue-white flame and light, and its own kill feed icon.
-	    - No ground flames, does not weld, and is not blocked by bone shield.
 	  - Exosuits can no longer repair each other.
 
 	### Exosuits: Modules and Abilities
@@ -87,7 +84,7 @@ if kCBMaddon then
 	    - Stat bars preview the module under the cursor. Every module has a short description.
 	    - Grey or red items say why they cannot be bought: research, pres or an incompatible arm.
 	    - Rows that need research stay hidden until it is done. The page reads top to bottom: loadouts, arms, modules, BUY.
-	    - Loadouts: Charter Issue, Enforcer, Responder and Quarantine presets, plus Re-issue for the last suit bought.
+	    - Loadouts: Charter Issue, Enforcer and Responder presets, plus Re-issue for the last suit bought.
 	  - Refit at any built Armory: pay the price difference, at least 5 pres. Damage carries over, so a full suit stays full. 
 	    - Looking at an armory in an exosuit shows a Refit Exosuit hint.
 	    - When Exosuit Cores or Exosuit Abilities research finishes, exos with that slot empty get a refit banner.
@@ -97,11 +94,11 @@ if kCBMaddon then
 		- The HUD shows the progress and why ejecting is blocked (combat, airborne, deploying).
 	  - An ejected suit keeps its armor and can be entered again.
 	  - The loadout shows on the suit.
-	    - Idle Ion Torch and Plasma arms puff blue flame and plasma.
+	    - Idle Plasma arms puff plasma.
 		- Ejection Seat blinks orange in the front.
 		- Armor Plating has a subtle shielding shader.
 	  - Bots buy and use modular exosuits, including a core module and a support ability.
-	    - Bot exos only fire railguns and Ion Torches at targets inside their range.
+	    - Bot exos only fire railguns at targets inside their range.
 	  - The tech map shows the lab researches, and Jetpack under the Advanced Armory.
 
 	### Exosuits: Fixes
@@ -109,7 +106,7 @@ if kCBMaddon then
 	  - The classic ammo counter shows plasma launcher shots.
 	  - Fixed exosuit purchases being handled twice on the server.
 	  - Armor Plating and the support fields have their own help screen icons.
-	  - The Ion Torch and Plasma Launcher have help screen cards, and exo arm cards show only the mouse button of their arm.
+	  - The Plasma Launcher has a help screen card, and exo arm cards show only the mouse button of their arm.
 	
 	### PvE
 	  - Base alien support structures now all cost 10 tres from 8 (Advanced to 18 tres from 20).
@@ -264,7 +261,7 @@ if kCBMaddon then
 	  - Display status icons even with minimal hud elements.
 
 	### QoL / General Improvements
-	  - Dual Minigun, Flamethrower and Plasma Launcher Firing Sync now default to off, matching the mods menu checkboxes.
+	  - Dual Minigun and Plasma Launcher Firing Sync now default to off, matching the mods menu checkboxes.
 	  - Unit status health bars now shade towards red as the unit loses health.
 	  - Spawning players keep the spawn percentage on their nameplate when percentage display is on.
 	  - Evolve menu lifeform counters now show waiting eggs of that lifeform in brackets.
@@ -772,10 +769,9 @@ else
 	## Balance and QoL Changes
 	### Exosuits: Tech Path
 	  - The Prototype Lab needs an Arms Lab instead of an Advanced Armory. 
-	    - Each lab first upgrades itself (free, 90 s), then claw-minigun and claw-railgun exosuits can be purchased
-	  - Four optional researches at the Prototype Lab, run in parallel:
+	    - Each lab first upgrades itself (free, 90 s), then claw-minigun, claw-railgun and claw-plasma exosuits can be purchased
+	  - Three optional researches at the Prototype Lab, run in parallel:
 	    - Dual Exosuit Arms (25 tres, 60 s): a weapon on both arms.
-	    - Advanced Exosuit Arms (20 tres, 60 s): Ion Torch and plasma launcher arms.
 	    - Exosuit Cores (15 tres, 45 s): Thrusters, Ejection Seat and Armor Plating.
 	    - Exosuit Abilities (15 tres, 45 s): support abilities.
 	  - Jetpacks moved to the Advanced Armory: research them there (40 tres, 130 s) and buy them there. 
@@ -784,7 +780,7 @@ else
 	### Exosuits: Build Your Own
 	  - An exosuit is two arms plus optional modules. Price, armor and speed add up from the parts.
 	  - Example: claw + minigun costs 40 pres (vanilla exosuit 55), has 320 armor (440 at Armor 3) and walks as fast as a marine.
-	  - Arms, pres / armor: Claw 15 / 90, Minigun 25 / 90, Railgun 25 / 60, Plasma Launcher 25 / 60, Ion Torch 25 / 60.
+	  - Arms, pres / armor: Claw 15 / 90, Minigun 25 / 90, Railgun 25 / 60, Plasma Launcher 25 / 60.
 	  - Modules: Thrusters 15 pres, Ejection Seat 10 pres, Armor Plating 15 pres, one support ability 10 pres.
 	  - Base armor 140, +40 per Armor upgrade, 520 at most.
 	  - Arms and Armor Plating slow the suit. Every build is slower than a sprinting marine.
@@ -802,8 +798,6 @@ else
 	  - Plasma Launcher: lobs a bomb every 2 s. AoE burst of 40 damage in 4 m and burns for 3 s.
 	    - Burns do not stack and need line of sight.
 		- Electrify is only applied to direct hits.
-	  - Ion Torch (exo flamethrower arm): 12 damage a tick, 13 m range, and its burn deals 12 damage a second (marine flamethrower: 9, 9 m, 8). Blue-white flame and light, and its own kill feed icon.
-	    - No ground flames, does not weld, and is not blocked by bone shield.
 	  - Exosuits can no longer repair each other.
 
 	### Exosuits: Modules and Abilities
@@ -828,7 +822,7 @@ else
 	    - Stat bars preview the module under the cursor. Every module has a short description.
 	    - Grey or red items say why they cannot be bought: research, pres or an incompatible arm.
 	    - Rows that need research stay hidden until it is done. The page reads top to bottom: loadouts, arms, modules, BUY.
-	    - Loadouts: Charter Issue, Enforcer, Responder and Quarantine presets, plus Re-issue for the last suit bought.
+	    - Loadouts: Charter Issue, Enforcer and Responder presets, plus Re-issue for the last suit bought.
 	  - Refit at any built Armory: pay the price difference, at least 5 pres. Damage carries over, so a full suit stays full. 
 	    - Looking at an armory in an exosuit shows a Refit Exosuit hint.
 	    - When Exosuit Cores or Exosuit Abilities research finishes, exos with that slot empty get a refit banner.
@@ -838,11 +832,11 @@ else
 		- The HUD shows the progress and why ejecting is blocked (combat, airborne, deploying).
 	  - An ejected suit keeps its armor and can be entered again.
 	  - The loadout shows on the suit.
-	    - Idle Ion Torch and Plasma arms puff blue flame and plasma.
+	    - Idle Plasma arms puff plasma.
 		- Ejection Seat blinks orange in the front.
 		- Armor Plating has a subtle shielding shader.
 	  - Bots buy and use modular exosuits, including a core module and a support ability.
-	    - Bot exos only fire Railguns and Ion Torches at targets inside their range.
+	    - Bot exos only fire Railguns at targets inside their range.
 	  - The tech map shows the lab researches, and Jetpack under the Advanced Armory.
 
 	### Exosuits: Fixes
@@ -850,7 +844,7 @@ else
 	  - The classic ammo counter shows plasma launcher shots.
 	  - Fixed exosuit purchases being handled twice on the server.
 	  - Armor Plating and the support fields have their own help screen icons.
-	  - The Ion Torch and Plasma Launcher have help screen cards, and exo arm cards show only the mouse button of their arm.
+	  - The Plasma Launcher has a help screen card, and exo arm cards show only the mouse button of their arm.
 	
 	### PvE
 	  - Base alien support structures now all cost 10 tres from 8 (Advanced to 18 tres from 20).
@@ -999,7 +993,7 @@ else
 	  - Display status icons even with minimal hud elements.
 
 	### QoL / General Improvements
-	  - Dual Minigun, Flamethrower and Plasma Launcher Firing Sync now default to off, matching the mods menu checkboxes.
+	  - Dual Minigun and Plasma Launcher Firing Sync now default to off, matching the mods menu checkboxes.
 	  - Unit status health bars now shade towards red as the unit loses health.
 	  - Spawning players keep the spawn percentage on their nameplate when percentage display is on.
 	  - Evolve menu lifeform counters now show waiting eggs of that lifeform in brackets.

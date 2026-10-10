@@ -746,7 +746,6 @@ function MarineTeam:InitTechTree()
     self.techTree:AddBuyNode(kTechId.DualMinigunExosuit,            kTechId.ExoPrototypeLab)
     self.techTree:AddResearchNode(kTechId.CoresExosuitTech,         kTechId.ExoPrototypeLab, kTechId.None)
     self.techTree:AddResearchNode(kTechId.DualMinigunTech,          kTechId.ExoPrototypeLab, kTechId.None)
-    self.techTree:AddResearchNode(kTechId.AdvancedExoArmsTech,      kTechId.ExoPrototypeLab, kTechId.None)
     self.techTree:AddResearchNode(kTechId.ExoAbilitiesTech,         kTechId.ExoPrototypeLab, kTechId.None)
     
     -- Jetpack

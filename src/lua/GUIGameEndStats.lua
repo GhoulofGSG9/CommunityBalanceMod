@@ -3116,7 +3116,6 @@ gTechIdPosition[kTechId.Hydra] = kDeathMessageIcon.HydraSpike
 gTechIdPosition[kTechId.Minigun] = kDeathMessageIcon.Minigun
 gTechIdPosition[kTechId.Claw] = kDeathMessageIcon.Claw
 gTechIdPosition[kTechId.Railgun] = kDeathMessageIcon.Railgun
-gTechIdPosition[kTechId.ExoFlamer] = kDeathMessageIcon.IonTorch
 
 Client.HookNetworkMessage("PlayerStats", CHUDSetPlayerStats)
 Client.HookNetworkMessage("GameData", CHUDSetGameData)

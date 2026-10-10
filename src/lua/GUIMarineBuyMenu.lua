@@ -503,10 +503,6 @@ local kTechIdInfo =
     ║             │ ││ RAILGUN     ││                                 ││ RAILGUN     ││ ║
     ║             │ ││ 10Z    (PIC)││                                 ││ 10Z    (PIC)││ ║
     ║             │ │└─────────────┘│                                 │└─────────────┘│ ║
-    ║             │ │┌─────────────┐│                                 │┌─────────────┐│ ║
-    ║             │ ││ FLAMER      ││                                 ││ FLAMER      ││ ║
-    ║             │ ││ 10Z    (PIC)││                                 ││ 10Z    (PIC)││ ║
-    ║             │ │└─────────────┘│                                 │└─────────────┘│ ║
     ║             │ └───────────────┘                                 └───────────────┘ ║ ─15%+right/left arm panel height
     ║             │ ┌─────────────────────────────┐  ┌────────────────────────────────┐ ║ ─85%
     ║             │ │ ARMOR MODULE                │  │ UTILITY MODULE                 │ ║
@@ -650,12 +646,6 @@ GUIMarineBuyMenu.kExoModuleData = {
         image          = kInventoryIconsTexture,
         imageTexCoords = { GetSmallIconPixelCoordinates(kTechId.Exosuit) },
     },
-    [kExoModuleTypes.Flamethrower] = {
-        label          = "EXO_MODULE_IONTORCH",
-        stats          = { Range = 0.45, LifeFormDamage = 0.75, StructureDamage = 1.0 },
-        image          = kInventoryIconsTexture,
-        imageTexCoords = { GetSmallIconPixelCoordinates(kTechId.Flamethrower) },
-    },
     
     -- Utility modules
     
@@ -737,7 +727,6 @@ GUIMarineBuyMenu.kExoPresets = {
     { nameKey = "EXO_PRESET_1", descKey = "EXO_PRESET_1_DESC", config = ExoPresetConfig(kExoModuleTypes.Claw, kExoModuleTypes.Minigun) },
     { nameKey = "EXO_PRESET_2", descKey = "EXO_PRESET_2_DESC", config = ExoPresetConfig(kExoModuleTypes.Minigun, kExoModuleTypes.Minigun) },
     { nameKey = "EXO_PRESET_3", descKey = "EXO_PRESET_3_DESC", config = ExoPresetConfig(kExoModuleTypes.Railgun, kExoModuleTypes.Railgun, kExoModuleTypes.Thrusters) },
-    { nameKey = "EXO_PRESET_4", descKey = "EXO_PRESET_4_DESC", config = ExoPresetConfig(kExoModuleTypes.Claw, kExoModuleTypes.Flamethrower, kExoModuleTypes.Armor) },
     { nameKey = "EXO_PRESET_LAST", descKey = "EXO_PRESET_LAST_DESC", lastBought = true },
 }
 
@@ -1984,7 +1973,7 @@ local kEnabledColor = Color(1, 1, 1, 1)
 --     |                           [ preset ][ preset ][ preset ][ preset ][ preset ] | 76
 --     |   MODULE NAME                     LEFT ARM                       RIGHT ARM  | 160
 --     |   COST / CURRENT          +---------+   [   exo   ]    +---------+          |
---     |   ---- EXOSUIT ----       | 5 arms  |   [  model  ]    | 4 arms  |          |
+--     |   ---- EXOSUIT ----       | 4 arms  |   [  model  ]    | 3 arms  |          |
 --     |   five stat bars          |         |   [ preview ]    +---------+          |
 --     |   tags                    +---------+                    CORE MODULE        |
 --     |   Description             [ core module row, full width             ]       | 530
@@ -2223,9 +2212,8 @@ end
 --
 -- moduleOrder is the display order of a slot, listed explicitly instead of falling out of
 -- kExoModuleTypes' declaration order: the claw has to sit at the top of the left column
--- because it is the base arm, and the flamethrower has to be in the right column even
--- though it is the last member of the enum. Modules the slot cannot take are still filtered
--- out at build time, so listing one here that does not fit is harmless.
+-- because it is the base arm. Modules the slot cannot take are still filtered out at
+-- build time, so listing one here that does not fit is harmless.
 GUIMarineBuyMenu.kExoSlotData = {
     [kExoModuleSlots.LeftArm]  = {
         label      = "EXO_MODULESLOT_LEFT_ARM",
@@ -2237,7 +2225,6 @@ GUIMarineBuyMenu.kExoSlotData = {
             kExoModuleTypes.Minigun,
             kExoModuleTypes.Railgun,
             kExoModuleTypes.PlasmaLauncher,
-            kExoModuleTypes.Flamethrower,
         },
         makeButton = function(self, moduleType, moduleTypeData, offsetX, offsetY)
             return self:MakeModuleButton(moduleType, moduleTypeData, offsetX, offsetY, kExoModuleSlots.LeftArm, false)
@@ -2252,7 +2239,6 @@ GUIMarineBuyMenu.kExoSlotData = {
             kExoModuleTypes.Minigun,
             kExoModuleTypes.Railgun,
             kExoModuleTypes.PlasmaLauncher,
-            kExoModuleTypes.Flamethrower,
         },
         makeButton = function(self, moduleType, moduleTypeData, offsetX, offsetY)
             return self:MakeModuleButton(moduleType, moduleTypeData, offsetX, offsetY, kExoModuleSlots.RightArm, false)
@@ -3713,9 +3699,6 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
         for _, buttonData in ipairs(self.modularExoModuleButtonList) do
             if buttonData.teamNumber then
                 local ArmType = kExoModuleTypes[buttonData.moduleType]
-                if ArmType == "Flamethrower" then
-                    ArmType = "Blowtorch"
-                end
                 local numUsers = teamInfo[ArmType]
                 if not numUsers then
                     error(string.format("Netvar %s does not exist in MarineTeamInfo!", ArmType))
@@ -3735,7 +3718,6 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
     -- as well, so finishing a research while the menu is open repaints the grid.
     local hasCoresTech     = ModularExo_GetIsTechResearched(kTechId.CoresExosuitTech)
     local hasDualArmsTech  = ModularExo_GetIsTechResearched(kTechId.DualMinigunTech)
-    local hasAdvArmsTech   = ModularExo_GetIsTechResearched(kTechId.AdvancedExoArmsTech)
     local hasAbilitiesTech = ModularExo_GetIsTechResearched(kTechId.ExoAbilitiesTech)
 
     -- Repainting the grid costs one ModularExo_GetIsConfigValid call per button plus a
@@ -3759,7 +3741,6 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
     and self.exoButtonsPaintedAbility == ability
     and self.exoButtonsPaintedCoresTech == hasCoresTech
     and self.exoButtonsPaintedDualArmsTech == hasDualArmsTech
-    and self.exoButtonsPaintedAdvArmsTech == hasAdvArmsTech
     and self.exoButtonsPaintedAbilitiesTech == hasAbilitiesTech then
         return
     end
@@ -3775,7 +3756,6 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
     self.exoButtonsPaintedAbility = self.exoConfig[kExoModuleSlots.Ability]
     self.exoButtonsPaintedCoresTech = hasCoresTech
     self.exoButtonsPaintedDualArmsTech = hasDualArmsTech
-    self.exoButtonsPaintedAdvArmsTech = hasAdvArmsTech
     self.exoButtonsPaintedAbilitiesTech = hasAbilitiesTech
 
     -- What the configuration on screen is still waiting on, if anything. The BUY button and

@@ -1514,12 +1514,6 @@ local kSetDualMiniLockMessage =
 }
 Shared.RegisterNetworkMessage("SetDualMiniLock", kSetDualMiniLockMessage)
 
-local kSetDualBTLockMessage =
-{
-    dualBTfiring = "boolean"
-}
-Shared.RegisterNetworkMessage("SetDualBTLock", kSetDualBTLockMessage)
-
 local kSetDualPLLockMessage =
 {
     dualPLfiring = "boolean"

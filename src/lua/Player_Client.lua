@@ -4140,12 +4140,13 @@ end
 
 --[[
  * Damage indicators. Returns a array of damage indicators which are used to draw red arrows pointing towards
- * recent damage. Each damage indicator pair will consist of an alpha and a direction. The alpha is 0-1 and the
- * direction in radians is the angle at which to display it. 0 should face forward (top of the screen), pi
- * should be behind us (bottom of the screen), pi/2 is to our left, 3*pi/2 is right.
+ * recent damage. Each damage indicator triple will consist of an alpha, a direction and a showPop flag. The alpha
+ * is 0-1 and the direction in radians is the angle at which to display it. 0 should face forward (top of the screen),
+ * pi should be behind us (bottom of the screen), pi/2 is to our left, 3*pi/2 is right. Only the first indicator of
+ * a burst has showPop set: it is the only one that plays the big shrink-in animation.
  *
  * For two damage indicators, perhaps:
- *  {alpha1, directionRadians1, alpha2, directonRadius2}
+ *  {alpha1, directionRadians1, showPop1, alpha2, directonRadius2, showPop2}
  *
  * It returns an empty table if the player has taken no damage recently.
 ]]
@@ -4156,6 +4157,8 @@ function PlayerUI_GetDamageIndicators()
     local player = Client.GetLocalPlayer()
     if player then
 
+        local worldToView = Angles(0, player:GetViewAngles().yaw, 0):GetCoords():GetInverse()
+
         for index, indicatorTriple in ipairs(player.damageIndicators) do
 
             local alpha = Clamp(1 - ((Shared.GetTime() - indicatorTriple[3])/Player.kDamageIndicatorDrawTime), 0, 1)
@@ -4165,7 +4168,6 @@ function PlayerUI_GetDamageIndicators()
             local worldZ = indicatorTriple[2]
 
             local normDirToDamage = GetNormalizedVector(Vector(player:GetOrigin().x, 0, player:GetOrigin().z) - Vector(worldX, 0, worldZ))
-            local worldToView = player:GetViewAngles():GetCoords():GetInverse()
 
             local damageDirInView = worldToView:TransformVector(normDirToDamage)
 
@@ -4175,6 +4177,7 @@ function PlayerUI_GetDamageIndicators()
             end
 
             table.insert(drawIndicators, directionRadians)
+            table.insert(drawIndicators, indicatorTriple[4])
 
         end
 
@@ -4276,7 +4279,7 @@ end
 function Player:AddTakeDamageIndicator(damagePosition)
 
     if self:GetShowDamageArrows() and self.damageIndicators then
-        table.insert(self.damageIndicators, { damagePosition.x, damagePosition.z, Shared.GetTime() })
+        table.insert(self.damageIndicators, { damagePosition.x, damagePosition.z, Shared.GetTime(), #self.damageIndicators == 0 })
     end
 
     local damageIndicatorScript = ClientUI.GetScript("GUIDamageIndicators")
@@ -4336,28 +4339,37 @@ end
 
 function Player:UpdateDamageIndicators()
 
-    local indicesToRemove = {}
-
     -- Expire old damage indicators
-    for index, indicatorTriple in ipairs(self.damageIndicators) do
+    local now = Shared.GetTime()
+    for index = #self.damageIndicators, 1, -1 do
 
-        if Shared.GetTime() > (indicatorTriple[3] + Player.kDamageIndicatorDrawTime) then
-
-            table.insert(indicesToRemove, index)
-
+        if now > (self.damageIndicators[index][3] + Player.kDamageIndicatorDrawTime) then
+            table.remove(self.damageIndicators, index)
         end
 
     end
 
-    for i, index in ipairs(indicesToRemove) do
-        table.remove(self.damageIndicators, index)
+    -- Add an indicator whenever the last damage origin or time changes (checked every frame)
+    local origin = self.lastTakenDamageOrigin
+    local seen = self.clientLastDamageOrigin
+    if origin and (self.clientLastDamageTime ~= self.lastTakenDamageTime or not seen or
+                   seen.x ~= origin.x or seen.y ~= origin.y or seen.z ~= origin.z) then
+
+        -- the first look only starts the tracking, and old damage is not replayed
+        if seen and now - self.lastTakenDamageTime <= Player.kDamageIndicatorDrawTime then
+            self:AddTakeDamageIndicator(origin)
+        end
+
+        self.clientLastDamageTime = self.lastTakenDamageTime
+        self.clientLastDamageOrigin = Vector(origin)
+
     end
 
     -- update damage given
     if self.giveDamageTimeClientCheck ~= self.giveDamageTime then
 
         self.giveDamageTimeClientCheck = self.giveDamageTime
-        self.giveDamageTimeClient = Shared.GetTime()
+        self.giveDamageTimeClient = now
 
         self.showDamage = self:GetShowDamageIndicator()
         if self.showDamage then

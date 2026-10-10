@@ -331,7 +331,6 @@ kFlamethrowerMaxBurnDuration = 6
 kExoDualMinigunModifier = 1
 kExoDualRailgunModifier = 1
 kExoDualPlasmaModifier = 1
-kExoDualFlamerModifier = 1
 
 kMinigunDamage = 6
 kMinigunDamageType = kDamageType.Heavy
@@ -382,15 +381,10 @@ kShotgunWeapons1DamageScalar = 1 + kShotgunDamagePerUpgradeScalar
 kShotgunWeapons2DamageScalar = 1 + kShotgunDamagePerUpgradeScalar * 2
 kShotgunWeapons3DamageScalar = 1 + kShotgunDamagePerUpgradeScalar * 3
 
-local kGrenadeLauncherDamagePerUpgradeScalar = 0.07
-kGrenadeLauncherWeapons1DamageScalar = 1 + kGrenadeLauncherDamagePerUpgradeScalar
-kGrenadeLauncherWeapons2DamageScalar = 1 + kGrenadeLauncherDamagePerUpgradeScalar * 2
-kGrenadeLauncherWeapons3DamageScalar = 1 + kGrenadeLauncherDamagePerUpgradeScalar * 3
-
-local kFlamethrowerDamagePerUpgradeScalar = 0.07
-kFlamethrowerWeapons1DamageScalar = 1 + kFlamethrowerDamagePerUpgradeScalar
-kFlamethrowerWeapons2DamageScalar = 1 + kFlamethrowerDamagePerUpgradeScalar * 2
-kFlamethrowerWeapons3DamageScalar = 1 + kFlamethrowerDamagePerUpgradeScalar * 3
+local kDamagePerUpgradeScalarStructure = 0.1 * 2
+kWeapons1DamageScalarStructure = 1 + kDamagePerUpgradeScalarStructure
+kWeapons2DamageScalarStructure = 1 + kDamagePerUpgradeScalarStructure * 2
+kWeapons3DamageScalarStructure = 1 + kDamagePerUpgradeScalarStructure * 3
 
 kNanoShieldDamageReductionDamage = 0.68
 
@@ -900,17 +894,6 @@ kVeilBiomass = 0
 kSpurBiomass = 0
 
 -- CBM Balance:
--- GL and FT for their playerdamage change have to be removed at damagetypes.lua from their special damage table "upgradedDamageScalars"
-local kDamagePerUpgradeScalarStructure = 0.1 * 2
-kWeapons1DamageScalarStructure = 1 + kDamagePerUpgradeScalarStructure
-kWeapons2DamageScalarStructure = 1 + kDamagePerUpgradeScalarStructure * 2
-kWeapons3DamageScalarStructure = 1 + kDamagePerUpgradeScalarStructure * 3
-
-local kShotgunDamagePerUpgradeScalarStructure = 0.0784 * 2
-kShotgunWeapons1DamageScalarStructure = 1 + kShotgunDamagePerUpgradeScalarStructure
-kShotgunWeapons2DamageScalarStructure = 1 + kShotgunDamagePerUpgradeScalarStructure * 2
-kShotgunWeapons3DamageScalarStructure = 1 + kShotgunDamagePerUpgradeScalarStructure * 3
-
 -- Gorge energy reduction
 kDropHydraEnergyCost = 30
 kDropBabblerEggEnergyCost = 10
@@ -994,7 +977,6 @@ kInfantryPrototypeLabPointValue = kPrototypeLabPointValue -- 20
 -- Module Pricing
 kRailgunCost = 25
 kPlasmaLauncherCost = 25
-kExoFlamerCost = 25
 kMinigunCost = 25
 kExoShieldCost = 15
 kClawCost = 15
@@ -1032,13 +1014,12 @@ kExoNanoShieldFieldDamageScalar = 0.8 -- damage taken while under the field's sh
 
 -- Exo Tech Research
 kExoShieldTech = kTechId.ExosuitTech -- (depreciated)
--- Claw + minigun and claw + railgun need no research, only a built prototype lab to buy at.
--- Everything else is one of four researches at the lab: Dual Arms (a weapon in
--- both arms, decided by ModularExo_GetConfigNeedsDualArmsTech), Advanced Arms (flame and
--- plasma), Cores (utility modules) and Abilities (support abilities).
-kExoFlamerTech = kTechId.AdvancedExoArmsTech
+-- Claw with any weapon arm needs no research, only a built prototype lab to buy at.
+-- Everything else is one of three researches at the lab: Dual Arms (a weapon in
+-- both arms, decided by ModularExo_GetConfigNeedsDualArmsTech), Cores (utility modules)
+-- and Abilities (support abilities).
 kRailgunTech = kTechId.None
-kPlasmaLauncherTech = kTechId.AdvancedExoArmsTech
+kPlasmaLauncherTech = kTechId.None
 kMinigunTech = kTechId.None
 kExoArmorModuleTech = kTechId.CoresExosuitTech
 kExoThrusterModuleTech = kTechId.CoresExosuitTech
@@ -1046,8 +1027,6 @@ kEjectionSeatModuleTech = kTechId.CoresExosuitTech
 kExoSupportModuleTech = kTechId.ExoAbilitiesTech
 kCoreExosuitTechResearchCost = 15
 kCoreExosuitTechResearchTime = 45
-kAdvancedExoArmsTechResearchCost = 20
-kAdvancedExoArmsTechResearchTime = 60
 kExoAbilitiesTechResearchCost = 15
 kExoAbilitiesTechResearchTime = 45
 
@@ -1070,19 +1049,6 @@ kPlasmaDamageType = kDamageType.Normal
 
 kPlasmaLauncherWeight = 0.10
 
--- Exo flamethrower arm
-kExoFlamerWeight = 0.09
-kExoFlamerConeWidth = 1
-kExoFlamerCoolDownRate = 0.20
-kExoFlamerHeatUpRate = 0.10
-kExoFlamerFireRate = 1 / 3
-kExoFlamerExoFlamerDamage = 12
-kExoFlamerBurnDamagePerSecond = 12
-kExoFlamerRange = 13
-kExoFlamerTrailLength = kExoFlamerRange + 0.5
-
-kExoFlamerDamageType = kFlamethrowerDamageType
-
 -- Module weights
 kExoArmorModuleWeight = 0.10
 kThrustersWeight = 0
@@ -1097,7 +1063,6 @@ kClawArmor = 90
 kMinigunArmor = 90
 kRailgunArmor = 60
 kPlasmaLauncherArmor = 60
-kExoFlamerArmor = 60
 kThrustersArmor = 0
 kExoArmorModuleArmor = 80
 kCatPackArmor = 0

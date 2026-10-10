@@ -64,7 +64,6 @@ Script.Load("lua/IdleMixin.lua")
 Script.Load("lua/ConsumeMixin.lua")
 Script.Load("lua/ShadeHallucination.lua") -- by twilite
 Script.Load("lua/RailgunTargetMixin.lua")
-Script.Load("lua/BlowtorchTargetMixin.lua")
 Script.Load("lua/BiomassHealthMixin.lua")
 
 class 'Shade' (ScriptActor)
@@ -174,7 +173,6 @@ function Shade:OnCreate()
     elseif Client then
         InitMixin(self, CommanderGlowMixin)
 		InitMixin(self, RailgunTargetMixin)
-		InitMixin(self, BlowtorchTargetMixin)		
     end
     
     self:SetLagCompensated(false)

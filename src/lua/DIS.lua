@@ -73,7 +73,6 @@ function DIS:OnCreate()
         
     elseif Client then
         InitMixin(self, CommanderGlowMixin)
-		InitMixin(self, BlowtorchTargetMixin)
     end
     
     self.deployMode = DIS.kDeployMode.Undeployed

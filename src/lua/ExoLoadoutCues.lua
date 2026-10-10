@@ -2,15 +2,13 @@
 --
 -- lua\ExoLoadoutCues.lua
 --
--- World-view cues that let other players read an exosuit's loadout. The flamethrower and
--- plasma arms reuse the railgun model and the core modules change nothing on the suit, so
+-- World-view cues that let other players read an exosuit's loadout. The plasma arm reuses
+-- the railgun model and the core modules change nothing on the suit, so
 -- without these an alien cannot tell what it is about to fight.
 --
 -- ========= For more information, visit us at http://www.unknownworlds.com =====================
 
 -- The arms' own muzzle effects, so the tell looks like the weapon and shows in both views.
-local kFlameMuzzleViewCinematic = PrecacheAsset("cinematics/marine/exo_flamer/flame_1p.cinematic")
-local kFlameMuzzleCinematic = PrecacheAsset("cinematics/marine/exo_flamer/flame.cinematic")
 local kPlasmaMuzzleCinematic = PrecacheAsset("models/plasma/muzzle_flash_plasma.cinematic")
 local kBeaconCinematic = PrecacheAsset("cinematics/marine/mac/siren.cinematic")
 local kPlatingMaterial = PrecacheAsset("cinematics/vfx_materials/exo_plating.material")
@@ -20,16 +18,16 @@ local kSupportFieldCinematic = PrecacheAsset("cinematics/healing_field/exo_suppo
 
 if Client then
 
-    -- Every arm pair that can hold a flamethrower or plasma launcher uses a railgun model
+    -- Every arm pair that can hold a plasma launcher uses a railgun model
     -- (exosuit_rr, exosuit_cr, exosuit_pr), and all three carry both muzzle nodes. Skins only
     -- override materials, so the nodes are the same on every variant. The view models name
     -- the same nodes differently.
     local kArmAttachPoints =
     {
         left = { view = "fxnode_l_railgun_muzzle", world = "fxnode_lrailgunmuzzle",
-                 flameTime = "loadoutCueLeftFlameTime", nextCue = "loadoutCueLeftNext" },
+                 nextCue = "loadoutCueLeftNext" },
         right = { view = "fxnode_r_railgun_muzzle", world = "fxnode_rrailgunmuzzle",
-                  flameTime = "loadoutCueRightFlameTime", nextCue = "loadoutCueRightNext" },
+                  nextCue = "loadoutCueRightNext" },
     }
 
     -- An arm that fired a moment ago has already told everyone what it is.
@@ -98,7 +96,7 @@ if Client then
 
     end
 
-    local function GetArmFiredRecently(exo, weapon, flameTimeField, now)
+    local function GetArmFiredRecently(exo, weapon, now)
 
         if not weapon then
             return false
@@ -106,16 +104,6 @@ if Client then
 
         if weapon:isa("PlasmaLauncher") then
             return now - (weapon.timeOfLastShot or 0) < kArmCueQuietTime
-        end
-
-        if weapon:isa("ExoFlamer") then
-
-            if weapon.isShooting then
-                exo[flameTimeField] = now
-            end
-
-            return now - (exo[flameTimeField] or -kArmCueQuietTime) < kArmCueQuietTime
-
         end
 
         return false
@@ -131,7 +119,7 @@ if Client then
 
         local fields = kArmAttachPoints[side]
 
-        if not weapon or GetArmFiredRecently(exo, weapon, fields.flameTime, now) then
+        if not weapon or GetArmFiredRecently(exo, weapon, now) then
             exo[fields.nextCue] = GetNextArmCueTime(now)
             return
         end
@@ -142,9 +130,7 @@ if Client then
         exo[fields.nextCue] = GetNextArmCueTime(now)
 
         local viewName, worldName
-        if weapon:isa("ExoFlamer") then
-            viewName, worldName = kFlameMuzzleViewCinematic, kFlameMuzzleCinematic
-        elseif weapon:isa("PlasmaLauncher") then
+        if weapon:isa("PlasmaLauncher") then
             viewName, worldName = kPlasmaMuzzleCinematic, kPlasmaMuzzleCinematic
         else
             return

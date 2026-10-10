@@ -79,7 +79,6 @@ Script.Load("lua/IdleMixin.lua")
 Script.Load("lua/WebableMixin.lua")
 Script.Load("lua/ParasiteMixin.lua")
 Script.Load("lua/BlightMixin.lua")
-Script.Load("lua/BlowtorchTargetMixin.lua")
 Script.Load("lua/RolloutMixin.lua")
 Script.Load("lua/MACVariantMixin.lua")
 Script.Load("lua/ResearchMixin.lua")
@@ -339,7 +338,6 @@ function MAC:OnCreate()
         self:UpdateOrderScanRadius()
     elseif Client then
         InitMixin(self, CommanderGlowMixin)
-        InitMixin(self, BlowtorchTargetMixin)
         self.orderScanRadiusClient = self:GetOrderScanRadius()
     end
     

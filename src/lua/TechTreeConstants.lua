@@ -262,7 +262,6 @@ kTechId = enum {
     'HallucinateRandom',
 
     --'ExoWelder',
-    'ExoFlamer',
     'ExoShield',
     
     --'WeaponCache',
@@ -288,7 +287,7 @@ kTechId = enum {
     'Weapons1', 'Weapons2', 'Weapons3', 'AdvancedMarineSupport',
     'Armor1', 'Armor2', 'Armor3', 'NanoArmor',
 	
-	'AdvancedExoArmsTech', 'ExoAbilitiesTech',
+	'ExoAbilitiesTech',
 
 	'Max', -- Unused, for legacy reasons, do NOT use!
 }

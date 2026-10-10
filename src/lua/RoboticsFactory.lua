@@ -38,7 +38,6 @@ Script.Load("lua/SupplyUserMixin.lua")
 Script.Load("lua/ParasiteMixin.lua")
 Script.Load("lua/HiveVisionMixin.lua")
 Script.Load("lua/BlightMixin.lua")
-Script.Load("lua/BlowtorchTargetMixin.lua")
 
 class 'RoboticsFactory' (ScriptActor)
 
@@ -119,7 +118,6 @@ function RoboticsFactory:OnCreate()
 	
     if Client then
         InitMixin(self, CommanderGlowMixin)
-		InitMixin(self, BlowtorchTargetMixin)
     end
 
     self:SetLagCompensated(true)

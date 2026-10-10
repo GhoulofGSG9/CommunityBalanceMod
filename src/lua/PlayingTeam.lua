@@ -289,7 +289,6 @@ local function GetIsResearchRelevant(techId)
         relevantResearchIds[kTechId.ExosuitTech] = 3
         relevantResearchIds[kTechId.JetpackTech] = 3
         relevantResearchIds[kTechId.DualMinigunTech] = 3
-        relevantResearchIds[kTechId.AdvancedExoArmsTech] = 3
         relevantResearchIds[kTechId.ClawRailgunTech] = 3
         relevantResearchIds[kTechId.DualRailgunTech] = 3
 

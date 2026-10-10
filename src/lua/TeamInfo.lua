@@ -76,7 +76,6 @@ TeamInfo.kRelevantTechIdsMarine =
 	kTechId.ExosuitTech,
     kTechId.DualMinigunTech,
 	kTechId.CoresExosuitTech,
-	kTechId.AdvancedExoArmsTech,
 	kTechId.ExoAbilitiesTech,
 	kTechId.UpgradeToInfantryPrototypeLab,
 	kTechId.InfantryPrototypeLab,

@@ -24,7 +24,6 @@ Script.Load("lua/HiveVisionMixin.lua")
 Script.Load("lua/IdleMixin.lua")
 Script.Load("lua/MarineStructureVariantMixin.lua")
 Script.Load("lua/BlightMixin.lua")
-Script.Load("lua/BlowtorchTargetMixin.lua")
 
 class 'CommandStation' (CommandStructure)
 
@@ -69,7 +68,6 @@ function CommandStation:OnCreate()
 	InitMixin(self, BlightMixin)
 	
     if Client then
-		InitMixin(self, BlowtorchTargetMixin)
     end
 end
 
