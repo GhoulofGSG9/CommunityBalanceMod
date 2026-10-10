@@ -340,10 +340,11 @@ kClawDamageType = kDamageType.Structural
 
 kRailgunDamage = 0
 kRailgunChargeDamage = 130
--- Dual railguns charge together but fire at least the spacing apart, and each arm then reloads, so an
--- arm fires at most every 4 s. The spacing is the shortest gap a hit lerk gets; the reload sets DPS.
+-- Dual railguns charge together but fire at least the spacing apart. Each arm then reloads like a single
+-- railgun, so held arms alternate one slug per spacing: the spacing is the shortest gap a hit lerk gets
+-- and sets dual-rail DPS.
 kDualRailSpacing = 1.5
-kDualRailRefire = 3
+kDualRailRefire = 1
 -- A dual-rail slug deals this much more to a lerk or fade the other arm hit with a full charge within
 -- the window.
 kRailResonanceBonus = 0.3
@@ -352,7 +353,8 @@ kRailResonanceWindow = 3
 kRailgunPierceScalar = 0.5
 -- Exo speed while an arm holds a full charge it could fire.
 kRailgunHeldChargeSpeedScalar = 0.8
-kRailgunDamageType = kDamageType.Structural
+-- Not Structural: the claw is the exo's structure arm, the railgun hunts lifeforms.
+kRailgunDamageType = kDamageType.Normal
 
 kMACAttackDamage = 5
 kMACAttackDamageType = kDamageType.Normal

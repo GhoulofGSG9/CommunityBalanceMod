@@ -43,13 +43,14 @@
   - Shots can be stored for 3 s; the railgun fires itself 4 s after charging starts.
   - A click, a cyan dial (pulsing red before the forced shot) and a blue muzzle light show a full charge. Other players see a glint on an arm that holds a full charge.
   - Damage scales with charge: 0 to 130 (100% charge), from 10/150.
-	- Maximum DPS is 65 (130 for structures) at W0.
+	- Maximum DPS is 65 at W0.
+  - Railgun damage is normal instead of structural: no double damage to structures, so full charge deals 130 to them too (from 260).
 	- Two full shots kill a lerk without carapace (from W0, up to biomass 11); no shot kills a lerk alone and two shots never kill a fade.
   - Maximum range set to 32 m and falloff removed.
-  - Dual railguns charge together but fire at least 1.5 s apart, and each arm reloads for 3 s after its own shot.
+  - Dual railguns charge together but fire at least 1.5 s apart. Each arm reloads for 1 s after its own shot like a single railgun (from 3 s), so held arms take turns: one slug every 1.5 s, 87 DPS at W0.
 	- Releasing both fires left, then right 1.5 s later; pressing an arm again holds its shot instead. A hit lerk always has at least 1.5 s to break line of sight.
 	- A full arm that has to wait turns amber and its dial drains until it may fire. The squares under each dial count down that arm's reload.
-	- Resonance: a fully charged dual-rail hit on a lerk or fade makes the other arm's slug deal 30% more (169) for 3 s. Every full slug after the first resonates: about 84 DPS on one lerk or fade at W0, 65 on anything else (claw + railgun: 65, plus its claw). Skulks, gorges, the Onos and structures never resonate.
+	- Resonance: a fully charged dual-rail hit on a lerk or fade makes the other arm's slug deal 30% more (169) for 3 s. Every full slug after the first resonates: about 113 DPS on one lerk or fade at W0, 87 on anything else (claw + railgun: 65, plus its claw). Skulks, gorges, the Onos and structures never resonate.
 	- Dual railguns kill a carapace lerk in 2 hits and a fade in 3 from W0 (claw + railgun: 3 and 4). No single shot kills a lerk and the first two shots never kill a fade.
 	- Only your own arms mark a target, and only with a full charge.
 	- The crosshair target outline turns pink when your next shot will resonate, and a resonant hit pings. A marked alien sees a blue resonance icon among its status icons.
