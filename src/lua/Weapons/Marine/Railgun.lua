@@ -261,6 +261,12 @@ function Railgun:GetChargeAmount()
     return self.railgunAttacking and math.min(1, (Shared.GetTime() - self.timeChargeStarted) / kChargeTime) or 0
 end
 
+-- A dual arm that is queued or waiting out the spacing is not held by choice.
+function Railgun:GetIsHoldingCharge(player)
+    return self.railgunAttacking and not self.railgunQueued and self:GetChargeAmount() >= 1
+        and Shared.GetTime() >= GetFireAllowedTime(GetDualRail(self, player))
+end
+
 local function TriggerSteamEffect(self, player)
 
     if self:GetIsLeftSlot() then
@@ -329,6 +335,7 @@ local function ExecuteShot(self, startPoint, endPoint, player)
 
     local hitEntities = {}
     local resonated = false
+    local pierceScalar = 1
     for _ = 1, 20 do
 
         local capsuleTrace = Shared.TraceBox(extents, startPoint, trace.endPoint, CollisionRep.Damage, PhysicsMask.Bullets, filter)
@@ -338,7 +345,10 @@ local function ExecuteShot(self, startPoint, endPoint, player)
                 table.insert(hitEntities, capsuleTrace.entity)
                 local scalar = GetResonanceScalar(self, dualRail, capsuleTrace.entity, now, charge >= 1)
                 resonated = resonated or scalar > 1
-                self:DoDamage(damage * scalar, capsuleTrace.entity, capsuleTrace.endPoint + hitPointOffset, direction, capsuleTrace.surface, false, false)
+                self:DoDamage(damage * scalar * pierceScalar, capsuleTrace.entity, capsuleTrace.endPoint + hitPointOffset, direction, capsuleTrace.surface, false, false)
+                if capsuleTrace.entity:isa("Alien") then
+                    pierceScalar = pierceScalar * kRailgunPierceScalar
+                end
 				
 				if capsuleTrace.entity:isa("Onos") then
 					if capsuleTrace.entity:GetIsBoneShieldActive() and capsuleTrace.entity:GetHitsBoneShield(self, capsuleTrace.endPoint + hitPointOffset) then
@@ -427,6 +437,10 @@ end
 function Railgun:ProcessMoveOnWeapon(player, input)
 
     if self.railgunAttacking then
+    
+        if player.thrustersActive and not self.railgunQueued then
+            self.timeChargeStarted = Shared.GetTime()
+        end
     
         if self.railgunQueued or Shared.GetTime() - GetHoldStart(self, GetDualRail(self, player)) >= kChargeForceShootTime then
             self:OnPrimaryAttackEnd(player)
