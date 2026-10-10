@@ -41,23 +41,24 @@
   - Firing cooldown set to 1s from 1.4s.
   - Charge time to 1s from 2s.
   - Shots can be stored for 3 s; the railgun fires itself 4 s after charging starts.
-  - A click, a cyan dial (pulsing red before the forced shot) and a blue muzzle light show a full charge. Other players see a glint on an arm that holds a full charge.
+  - The dial is white while charging. A click, a cyan dial (pulsing red just before the forced shot) and a blue muzzle light show a full charge. The squares under the dial count the 1 s refire. Other players see a glint on an arm that holds a full charge.
   - Damage scales with charge: 0 to 130 (100% charge), from 10/150.
 	- Maximum DPS is 65 at W0.
   - Railgun damage is normal instead of structural: no double damage to structures, so full charge deals 130 to them too (from 260).
 	- Two full shots kill a lerk without carapace (from W0, up to biomass 11); no shot kills a lerk alone and two shots never kill a fade.
   - Maximum range set to 32 m and falloff removed.
-  - Dual railguns charge together but fire at least 1.5 s apart. Each arm reloads for 1 s after its own shot like a single railgun (from 3 s), so held arms take turns: one slug every 1.5 s, 87 DPS at W0.
-	- Releasing both fires left, then right 1.5 s later; pressing an arm again holds its shot instead. A hit lerk always has at least 1.5 s to break line of sight.
-	- A full arm that has to wait turns amber and its dial drains until it may fire. The squares under each dial count down that arm's reload.
-	- Resonance: a fully charged dual-rail hit on a lerk or fade makes the other arm's slug deal 30% more (169) for 3 s. Every full slug after the first resonates: about 113 DPS on one lerk or fade at W0, 87 on anything else (claw + railgun: 65, plus its claw). Skulks, gorges, the Onos and structures never resonate.
-	- Dual railguns kill a carapace lerk in 2 hits and a fade in 3 from W0 (claw + railgun: 3 and 4). No single shot kills a lerk and the first two shots never kill a fade.
+  - Dual railguns: each arm is a full, independent railgun with its own trigger (left click fires the left arm, right click the right arm). Releasing always fires.
+	- Every dual slug deals half damage: 65 at full charge. Both arms fired together deal 130, the same as one single slug, so a volley still kills a skulk and 260 is impossible.
+	- Alternating arms give 65 every second: 65 DPS, the same as claw + railgun.
+	- Resonance (lerk and fade only): a full-charge dual-rail hit marks the target for 3 s. A full-charge slug from the other arm that lands between 0.5 s and 3 s later deals 30% more (84.5 instead of 65). Chained alternating full slugs resonate: about 85 DPS on one lerk or fade. Both arms fired at once do not resonate with each other. Skulks, gorges, the Onos and structures never resonate.
+	- At W0 without carapace, dual railguns kill a lerk in 2 volleys (2 s) or 4 alternating slugs (3 s), and a fade in 3 volleys (about 4 s) or 6 alternating slugs (5 s), against 4 single slugs (about 5.2 s for claw + railgun). No dual rail kills a lerk faster than a single one.
 	- Only your own arms mark a target, and only with a full charge.
-	- The crosshair target outline turns pink when your next shot will resonate, and a resonant hit pings. A marked alien sees a blue resonance icon among its status icons.
-	- The railgun help card explains the dual-rail timing.
+	- The crosshair target outline turns pink only when your charge is full and your next slug will resonate. A resonant hit pings. A marked alien sees a blue resonance icon among its status icons.
+	- The railgun help card explains the dual-rail rules.
+	- Removed from dual railguns: the 1.5 s spacing between slugs, the queued release that fired later by itself, the amber draining dial and the separate dual reload.
   - Each alien a slug passes through halves its damage to everything behind it. Structures do not reduce it.
-  - An exo moves at 80% speed while an arm holds a full charge it could fire. A dual arm that is queued or waiting out the 1.5 s spacing does not slow you.
-  - Railguns cannot charge while thrusters are active; a held charge starts over when thrusters fire. A dual arm already released still fires.
+  - An exo moves at 80% speed while an arm holds a full charge.
+  - Railguns cannot charge while thrusters are active; a held charge starts over when thrusters fire.
   - Target highlighting now works on all lifeforms and alien structures (red).
   - Target highlighting now matches maximum range of railgun.
   

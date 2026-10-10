@@ -53,12 +53,14 @@ if kCBMaddon then
 	    - Normal damage, no longer structural: no double damage to structures.
 	    - Each alien a slug passes through halves its damage to everything behind it.
 	    - Holding a full charge slows the exo to 80%. Thrusters restart a held charge.
-	    - Dual railguns charge together but fire sequentially over 1.5 s. The left is fired first then the right.
-		- Each arm reloads for 1 s after its own shot (was 3 s) and can be held for 3 s, so held arms take turns: one slug every 1.5 s.
-	    - Resonance: a fully charged dual-rail hit on a lerk or fade makes the other arm's slug deal 30% more (169) for 3 s: about 113 DPS on one lerk or fade, 87 on anything else. Dual rails kill a carapace lerk in 2 hits and a fade in 3. 
-		- The crosshair outline turns pink when your next shot will resonate, and a resonant hit pings. A marked alien sees a blue resonance icon among its status icons.
+	    - Dual railguns: each arm is a full railgun on its own trigger (left click, right click). Releasing always fires.
+		- Every slug deals half damage (65 at full charge). Both arms together deal 130, the same as one single slug, so a volley still kills a skulk. Alternating arms give 65 DPS, like claw + railgun.
+	    - Resonance (lerk and fade only): a full-charge dual-rail hit marks the target for 3 s. A full-charge slug from the other arm that lands 0.5 to 3 s later deals 30% more (84.5 instead of 65): about 85 DPS on one lerk or fade. Both arms fired at once do not resonate with each other.
+		- Weapons 0, no carapace: dual rails kill a lerk in 2 volleys (2 s) or 4 alternating slugs (3 s), and a fade in 3 volleys (about 4 s) or 6 alternating slugs (5 s), against 4 single slugs (about 5.2 s for claw + railgun).
+		- The crosshair outline turns pink only when your charge is full and your next slug will resonate, and a resonant hit pings. A marked alien sees a blue resonance icon among its status icons.
+		- Removed: the 1.5 s spacing between dual slugs, the queued release, the amber draining dial and the separate dual reload.
 	    - A held full charge shows a glint on the exo's arm that other players can see.
-		- The charge dial signifies when the railgun is charging (cyan), when the shot is about to be force released (pulsing red), and when the arm is waiting to fire (amber - only affects dual railgun).
+		- The charge dial is white while charging, cyan with a click when full, and pulses red just before the forced shot. The squares under it count the 1 s refire.
 		- A blue muzzle light will show when the railgun is ready to fire.
 	  - Plasma Launcher: lobs a bomb every 2 s. AoE burst of 40 damage in 4 m and burns for 3 s.
 	    - Burns do not stack and need line of sight.
@@ -794,12 +796,14 @@ else
 	    - Normal damage, no longer structural: no double damage to structures.
 	    - Each alien a slug passes through halves its damage to everything behind it.
 	    - Holding a full charge slows the exo to 80%. Thrusters restart a held charge.
-	    - Dual railguns charge together but fire sequentially over 1.5 s. The left is fired first then the right.
-		- Each arm reloads for 1 s after its own shot (was 3 s) and can be held for 3 s, so held arms take turns: one slug every 1.5 s.
-	    - Resonance: a fully charged dual-rail hit on a lerk or fade makes the other arm's slug deal 30% more (169) for 3 s: about 113 DPS on one lerk or fade, 87 on anything else. Dual rails kill a carapace lerk in 2 hits and a fade in 3. 
-		- The crosshair outline turns pink when your next shot will resonate, and a resonant hit pings. A marked alien sees a blue resonance icon among its status icons.
+	    - Dual railguns: each arm is a full railgun on its own trigger (left click, right click). Releasing always fires.
+		- Every slug deals half damage (65 at full charge). Both arms together deal 130, the same as one single slug, so a volley still kills a skulk. Alternating arms give 65 DPS, like claw + railgun.
+	    - Resonance (lerk and fade only): a full-charge dual-rail hit marks the target for 3 s. A full-charge slug from the other arm that lands 0.5 to 3 s later deals 30% more (84.5 instead of 65): about 85 DPS on one lerk or fade. Both arms fired at once do not resonate with each other.
+		- Weapons 0, no carapace: dual rails kill a lerk in 2 volleys (2 s) or 4 alternating slugs (3 s), and a fade in 3 volleys (about 4 s) or 6 alternating slugs (5 s), against 4 single slugs (about 5.2 s for claw + railgun).
+		- The crosshair outline turns pink only when your charge is full and your next slug will resonate, and a resonant hit pings. A marked alien sees a blue resonance icon among its status icons.
+		- Removed: the 1.5 s spacing between dual slugs, the queued release, the amber draining dial and the separate dual reload.
 	    - A held full charge shows a glint on the exo's arm that other players can see.
-		- The charge dial signifies when the railgun is charging (cyan), when the shot is about to be force released (pulsing red), and when the arm is waiting to fire (amber - only affects dual railgun).
+		- The charge dial is white while charging, cyan with a click when full, and pulses red just before the forced shot. The squares under it count the 1 s refire.
 		- A blue muzzle light will show when the railgun is ready to fire.
 	  - Plasma Launcher: lobs a bomb every 2 s. AoE burst of 40 damage in 4 m and burns for 3 s.
 	    - Burns do not stack and need line of sight.
