@@ -36,7 +36,6 @@ Script.Load("lua/CommanderGlowMixin.lua")
 Script.Load("lua/InfestationTrackerMixin.lua")
 Script.Load("lua/ParasiteMixin.lua")
 Script.Load("lua/BlightMixin.lua")
-Script.Load("lua/BlowtorchTargetMixin.lua")
 
 local kAnimationGraph = PrecacheAsset("models/marine/prototype_lab/prototype_lab.animation_graph")
 
@@ -119,7 +118,6 @@ function PrototypeLab:OnCreate()
     
     if Client then
         InitMixin(self, CommanderGlowMixin)
-		InitMixin(self, BlowtorchTargetMixin)
     end
 
     self:SetUpdates(true, kRealTimeUpdateRate)
@@ -187,7 +185,7 @@ function PrototypeLab:GetTechButtons(techId)
     end
 
     return
-    { kTechId.DualMinigunTech, kTechId.AdvancedExoArmsTech, kTechId.CoresExosuitTech, kTechId.ExoAbilitiesTech,
+    { kTechId.DualMinigunTech, kTechId.None, kTechId.CoresExosuitTech, kTechId.ExoAbilitiesTech,
       kTechId.None, kTechId.None, kTechId.None, kTechId.None }
 end
 

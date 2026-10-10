@@ -511,17 +511,6 @@ local function OnSetDualMiniLockMessage(client, message)
     end
 end
 
-local function OnSetDualBTLockMessage(client, message)
-    if client then
-        local player = client:GetControllingPlayer()
-        if player and player:GetActiveWeapon() and player:GetActiveWeapon():isa("ExoWeaponHolder") then
-            player:GetActiveWeapon():SetDualBTLock(message.dualBTfiring)
-        end
-    else
-        Log("Error: No client for locking dual exosuit!")
-    end
-end
-
 local function OnSetDualPLLockMessage(client, message)
     if client then
         local player = client:GetControllingPlayer()
@@ -549,5 +538,4 @@ Server.HookNetworkMessage("SetCommunicationStatus", OnCommandSetCommStatus)
 Server.HookNetworkMessage("Buy", OnMessageBuy)
 Server.HookNetworkMessage("VoiceMessage", OnVoiceMessage)
 Server.HookNetworkMessage("SetDualMiniLock", OnSetDualMiniLockMessage)
-Server.HookNetworkMessage("SetDualBTLock", OnSetDualBTLockMessage)
 Server.HookNetworkMessage("SetDualPLLock", OnSetDualPLLockMessage)

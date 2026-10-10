@@ -476,7 +476,6 @@ local function BuildCommanderHelpFunctions()
 
     table.insert(gGetMarineCommanderHelp, {kTechId.JetpackTech, GetAdvancedArmoryResearchHelpFunction(kTechId.JetpackTech, kWorldButtonSize * .5) })
     table.insert(gGetMarineCommanderHelp, {kTechId.DualMinigunTech, GetResearchHelpFunction("PrototypeLab", kTechId.DualMinigunTech, -kWorldButtonSize * .5, -kWorldButtonSize * .5) })
-    table.insert(gGetMarineCommanderHelp, {kTechId.AdvancedExoArmsTech, GetResearchHelpFunction("PrototypeLab", kTechId.AdvancedExoArmsTech, kWorldButtonSize * .5, -kWorldButtonSize * .5) })
     table.insert(gGetMarineCommanderHelp, {kTechId.CoresExosuitTech, GetResearchHelpFunction("PrototypeLab", kTechId.CoresExosuitTech, -kWorldButtonSize * .5, kWorldButtonSize * .5) })
     table.insert(gGetMarineCommanderHelp, {kTechId.ExoAbilitiesTech, GetResearchHelpFunction("PrototypeLab", kTechId.ExoAbilitiesTech, kWorldButtonSize * .5, kWorldButtonSize * .5) })
 

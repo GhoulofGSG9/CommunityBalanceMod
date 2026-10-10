@@ -21,7 +21,6 @@ local networkVars =
 	weaponMapNameLeft = "string (15)",
 	weaponMapNameRight = "string (15)",
 	dualminifiring = "boolean",
-	dualBTfiring = "boolean",
 	dualPLfiring = "boolean",
 }
 
@@ -51,7 +50,6 @@ function ExoWeaponHolder:OnCreate()
 	self.weaponMapNameLeft = "minigun"
 	self.weaponMapNameRight = "minigun"
 	self.dualminifiring = false
-	self.dualBTfiring = false
 	self.dualPLfiring = false
 
     self.closeStart = Shared.GetTime()
@@ -60,10 +58,6 @@ end
 
 function ExoWeaponHolder:SetDualMiniLock(dualfiring)
 	self.dualminifiring = dualfiring
-end
-
-function ExoWeaponHolder:SetDualBTLock(dualfiring)
-	self.dualBTfiring = dualfiring
 end
 
 function ExoWeaponHolder:SetDualPLLock(dualfiring)
@@ -75,9 +69,6 @@ if Client then
         Weapon.OnInitialized(self)
 		self:SetDualMiniLock(Client.GetOptionBoolean("ExoA_duallock_mini_enabled", false))
         Client.SendNetworkMessage("SetDualMiniLock", { dualminifiring = self.dualminifiring })
-		
-		self:SetDualBTLock(Client.GetOptionBoolean("ExoA_duallock_BT_enabled", false))
-        Client.SendNetworkMessage("SetDualBTLock", { dualBTfiring = self.dualBTfiring })
 		
 		self:SetDualPLLock(Client.GetOptionBoolean("ExoA_duallock_PL_enabled", false))
         Client.SendNetworkMessage("SetDualPLLock", { dualPLfiring = self.dualPLfiring })
@@ -157,8 +148,6 @@ function ExoWeaponHolder:CheckDualFiring()
 	
 	if self.weaponMapNameLeft == self.weaponMapNameRight then
 		if self.dualminifiring and self.weaponMapNameLeft == "minigun" then
-			return true
-		elseif self.dualBTfiring and self.weaponMapNameLeft == "exoflamer" then
 			return true
 		elseif self.dualPLfiring and self.weaponMapNameLeft == "PlasmaLauncher" then
 			return true

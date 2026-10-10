@@ -38,7 +38,6 @@ Script.Load("lua/Weapons/PierceProjectile.lua")
 Script.Load("lua/Weapons/PredictedProjectile.lua")
 Script.Load("lua/BlightMixin.lua")
 Script.Load("lua/DoomMixin.lua")
-Script.Load("lua/BlowtorchTargetMixin.lua")
 
 if Client then
     Script.Load("lua/ExoFlashlight_Client.lua")
@@ -259,7 +258,6 @@ function Exo:OnCreate()
     self:SetIgnoreHealth(true)
 
     if Client then
-		InitMixin(self, BlowtorchTargetMixin)
         InitMixin(self, TeamMessageMixin, { kGUIScriptName = "GUIMarineTeamMessage" })
     end
     
@@ -493,8 +491,6 @@ function Exo:GetDualArmDamageScalar()
         return kExoDualRailgunModifier
     elseif self:GetHasPlasmaLauncher() then
         return kExoDualPlasmaModifier
-    elseif self:GetHasExoFlamer() then
-        return kExoDualFlamerModifier
     end
     return 1
 
@@ -706,13 +702,6 @@ function Exo:GetHasMinigun()
     
     local weaponHolder = self:GetWeapon(ExoWeaponHolder.kMapName)
     return weaponHolder ~= nil and (weaponHolder:GetLeftSlotWeapon():isa("Minigun") or weaponHolder:GetRightSlotWeapon():isa("Minigun"))
-
-end
-
-function Exo:GetHasExoFlamer()
-    
-    return self.leftArmModuleType == kExoModuleTypes.Flamethrower
-        or self.rightArmModuleType == kExoModuleTypes.Flamethrower
 
 end
 
@@ -1026,6 +1015,7 @@ if Server then
                 exosuit:SetArmor(suitArmor)
 
                 exosuit.timeSupportAbilityReady = self.timeSupportAbilityReady
+                exosuit.armHeat = self:GetArmHeat()
                 exosuit:SetExoVariant(self:GetExoVariant())
                 exosuit:SetFlashlightOn(self:GetFlashlightOn())
                 exosuit:TransferParasite(self)
@@ -1093,8 +1083,54 @@ if Server then
             self.storedWeaponsIds = {}
         end
         weapon:SetWeaponWorldState(false)
+        -- Stored without OnHolster, so a reload in progress would resume on eject.
+        if weapon:isa("ClipWeapon") then
+            weapon.reloading = false
+            weapon.deployed = false
+            weapon.shooting = false
+        end
         table.insert(self.storedWeaponsIds, weapon:GetId())
-    
+
+    end
+
+    -- Heat lives on the arm entities, which an eject destroys, so carry it over to the
+    -- dropped suit or leaving it would reset an overheat.
+    function Exo:GetArmHeat()
+
+        local weaponHolder = self:GetWeapon(ExoWeaponHolder.kMapName)
+        if not weaponHolder then
+            return nil
+        end
+
+        local armHeat = { time = Shared.GetTime() }
+        local arms = { weaponHolder:GetLeftSlotWeapon(), weaponHolder:GetRightSlotWeapon() }
+        for i = 1, 2 do
+            local arm = arms[i]
+            if arm and arm.RestoreHeat then
+                armHeat[i] = { heat = arm.heatAmount, overheated = arm.overheated, timeOverheated = arm.timeOverheated }
+            end
+        end
+
+        return armHeat
+
+    end
+
+    function Exo:RestoreArmHeat(armHeat)
+
+        local weaponHolder = self:GetWeapon(ExoWeaponHolder.kMapName)
+        if not armHeat or not weaponHolder then
+            return
+        end
+
+        local elapsed = Shared.GetTime() - armHeat.time
+        local arms = { weaponHolder:GetLeftSlotWeapon(), weaponHolder:GetRightSlotWeapon() }
+        for i = 1, 2 do
+            local arm, state = arms[i], armHeat[i]
+            if arm and state and arm.RestoreHeat then
+                arm:RestoreHeat(state.heat, state.overheated, elapsed, state.timeOverheated)
+            end
+        end
+
     end
     
     local Player_OnEntityChange = Player.OnEntityChange
@@ -1952,10 +1988,9 @@ elseif Client then
         end
     end
 
-    -- InputHandler only sets Move.Drop on the move in which the key goes down
-    -- (_keyPressed is emptied after every generated move and the OS key repeat is
-    -- filtered out), so holding the key never produced more than one move with the
-    -- bit set and the hold timer could never complete. Read the key state and keep
+    -- InputHandler only sets Move.Drop on moves in which a key down event arrived
+    -- (_keyPressed is emptied after every generated move), so holding the key left
+    -- gaps between the bits and the hold timer could never complete. Read the key state and keep
     -- the bit set for as long as it is actually down, but stop the moment the eject
     -- itself starts: every further move with the bit set would only reach the marine
     -- the server replaces us with, and be read there as "throw your weapon away".
@@ -1971,6 +2006,8 @@ elseif Client then
         and not self:isa("ReadyRoomExo") then
             input.commands = bit.bor(input.commands, Move.Drop)
         end
+
+        gExoDropHeld = Input_GetIsBindingDown("Drop")
 
         return input
 

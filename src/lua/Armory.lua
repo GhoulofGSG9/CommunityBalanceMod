@@ -36,7 +36,6 @@ Script.Load("lua/SupplyUserMixin.lua")
 Script.Load("lua/IdleMixin.lua")
 Script.Load("lua/ParasiteMixin.lua")
 Script.Load("lua/BlightMixin.lua")
-Script.Load("lua/BlowtorchTargetMixin.lua")
 
 class 'Armory' (ScriptActor)
 
@@ -138,7 +137,6 @@ function Armory:OnCreate()
     
     if Client then
         InitMixin(self, CommanderGlowMixin)
-        InitMixin(self, BlowtorchTargetMixin)
     end
 
     self:SetUpdates(true, kRealTimeUpdateRate)

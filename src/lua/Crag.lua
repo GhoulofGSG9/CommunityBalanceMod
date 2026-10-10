@@ -52,7 +52,6 @@ Script.Load("lua/OrdersMixin.lua")
 Script.Load("lua/IdleMixin.lua")
 Script.Load("lua/ConsumeMixin.lua")
 Script.Load("lua/RailgunTargetMixin.lua")
-Script.Load("lua/BlowtorchTargetMixin.lua")
 Script.Load("lua/BiomassHealthMixin.lua")
 
 class 'Crag' (ScriptActor)
@@ -184,7 +183,6 @@ function Crag:OnCreate()
     elseif Client then    
         InitMixin(self, CommanderGlowMixin)
 		InitMixin(self, RailgunTargetMixin)
-		InitMixin(self, BlowtorchTargetMixin)
 		self.electrifiedClient = false		
     end
     

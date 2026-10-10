@@ -244,7 +244,6 @@ local helpScreenImages =
     gasGrenade          = PrecacheAsset("ui/helpScreen/icons/grenade_gas.dds"),
     minigun             = PrecacheAsset("ui/helpScreen/icons/mini_gun.dds"),
     railgun             = PrecacheAsset("ui/helpScreen/icons/rail_gun.dds"),
-    ionTorch            = PrecacheAsset("ui/helpScreen/icons/ion_torch.dds"),
     exoThrusters        = PrecacheAsset("ui/helpScreen/icons/thrusters.dds"),
     exoEject            = PrecacheAsset("ui/helpScreen/icons/exo_eject.dds"),
     exoArmorPlating     = PrecacheAsset("ui/helpScreen/icons/exo_armor_plating.dds"),
@@ -538,18 +537,6 @@ function HelpScreen_InitializeContent()
         imagePath = helpScreenImages.railgun,
         actions = GetExoArmActions("Railgun"),
         classNames = {"Railgun"},
-        theme = "marine",
-        useLocale = true,
-        })
-
-    -- Exosuit Ion Torch
-    HelpScreen_AddContent({
-        name = "ExoIonTorch",
-        title = "HELP_SCREEN_EXO_ION_TORCH",
-        description = "HELP_SCREEN_EXO_ION_TORCH_DESCRIPTION",
-        imagePath = helpScreenImages.ionTorch,
-        actions = GetExoArmActions("ExoFlamer"),
-        classNames = {"ExoFlamer"},
         theme = "marine",
         useLocale = true,
         })

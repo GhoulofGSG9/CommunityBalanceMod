@@ -40,7 +40,6 @@ Script.Load("lua/InfestationTrackerMixin.lua")
 Script.Load("lua/IdleMixin.lua")
 Script.Load("lua/ParasiteMixin.lua")
 Script.Load("lua/BlightMixin.lua")
-Script.Load("lua/BlowtorchTargetMixin.lua")
 Script.Load("lua/SupplyUserMixin.lua")
 
 class 'Observatory' (ScriptActor)
@@ -132,7 +131,6 @@ function Observatory:OnCreate()
 
     if Client then
         InitMixin(self, CommanderGlowMixin)
-		InitMixin(self, BlowtorchTargetMixin)
     end
 
     self:SetLagCompensated(false)

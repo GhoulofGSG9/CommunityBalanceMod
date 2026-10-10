@@ -69,12 +69,7 @@ function UnitStatusMixin:GetUnitStatus(forEntity)
             elseif HasMixin(self, "Live") and self:GetHealthScalar() < 1 and self:GetIsAlive() and (not forEntity.GetCanSeeDamagedIcon or forEntity:GetCanSeeDamagedIcon(self)) then
 
                 local forEntityIsMarine = forEntity:isa("Marine")
-				local forEntityIsBlowtorch
-				if forEntity:isa("Exo") then
-					forEntityIsBlowtorch = forEntity.rightArmModuleType == 6 or forEntity.leftArmModuleType == 6
-				end	
-				
-                if forEntityIsMarine or forEntityIsBlowtorch then
+                if forEntityIsMarine then
                     if self:isa("Marine") then
                         if self:GetArmor() < self:GetMaxArmor() then -- only mark Marines as damaged when they can be weld
                             unitStatus = kUnitStatus.Damaged
@@ -86,7 +81,7 @@ function UnitStatusMixin:GetUnitStatus(forEntity)
                     unitStatus = kUnitStatus.Damaged
                 end
                 
-                if unitStatus == kUnitStatus.Damaged and (forEntityIsMarine or forEntityIsBlowtorch) and not forEntity:GetWeapon(Welder.kMapName) then
+                if unitStatus == kUnitStatus.Damaged and forEntityIsMarine and not forEntity:GetWeapon(Welder.kMapName) then
                     unitStatus = kUnitStatus.Unrepaired
                 end
                     

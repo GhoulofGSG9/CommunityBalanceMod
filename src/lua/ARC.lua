@@ -43,7 +43,6 @@ Script.Load("lua/IdleMixin.lua")
 Script.Load("lua/WebableMixin.lua")
 Script.Load("lua/ParasiteMixin.lua")
 Script.Load("lua/BlightMixin.lua")
-Script.Load("lua/BlowtorchTargetMixin.lua")
 Script.Load("lua/RolloutMixin.lua")
 Script.Load("lua/ARCVariantMixin.lua")
 
@@ -167,7 +166,6 @@ function ARC:OnCreate()
         
     elseif Client then
         InitMixin(self, CommanderGlowMixin)
-		InitMixin(self, BlowtorchTargetMixin)
     end
     
     self.deployMode = ARC.kDeployMode.Undeployed

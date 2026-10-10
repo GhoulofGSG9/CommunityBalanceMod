@@ -35,7 +35,6 @@ Script.Load("lua/SpawnBlockMixin.lua")
 Script.Load("lua/IdleMixin.lua")
 Script.Load("lua/CystVariantMixin.lua")
 Script.Load("lua/RailgunTargetMixin.lua")
-Script.Load("lua/BlowtorchTargetMixin.lua")
 
 Script.Load("lua/CommAbilities/Alien/EnzymeCloud.lua")
 Script.Load("lua/CommAbilities/Alien/Rupture.lua")
@@ -228,7 +227,6 @@ function Cyst:OnCreate()
     elseif Client then
         InitMixin(self, CommanderGlowMixin)
 		InitMixin(self, RailgunTargetMixin)
-		InitMixin(self, BlowtorchTargetMixin)
         self.connectedFraction = 0
     end
 

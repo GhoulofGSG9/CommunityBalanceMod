@@ -332,6 +332,7 @@ local function UpdateOverheated(self, player)
     if not self.overheated and self.heatAmount == 1 then
     
         self.overheated = true
+        self.timeOverheated = Shared.GetTime()
         self:OnPrimaryAttackEnd(player)
         
         if self:GetIsLeftSlot() then
@@ -344,10 +345,25 @@ local function UpdateOverheated(self, player)
         
     end
     
+    if self.restoredOverheatEndTime and Shared.GetTime() >= self.restoredOverheatEndTime then
+        self.overheated = false
+        self.restoredOverheatEndTime = nil
+    end
+    
 end
 
 function Minigun:AddHeat(amount)
     self.heatAmount = self.heatAmount + amount
+end
+
+function Minigun:RestoreHeat(heat, overheated, elapsed, timeOverheated)
+    self.heatAmount = math.max(0, heat - elapsed * Minigun.kCoolDownRate)
+    -- The lockout normally ends with the overheat animation tag, which a fresh arm may
+    -- never play, so a restored overheat ends where that animation would have.
+    local endTime = overheated and timeOverheated and timeOverheated + Minigun.kOverheatDuration or nil
+    self.overheated = endTime ~= nil and endTime > Shared.GetTime()
+    self.timeOverheated = self.overheated and timeOverheated or nil
+    self.restoredOverheatEndTime = self.overheated and endTime or nil
 end
 
 function Minigun:ProcessMoveOnWeapon(player, input)

@@ -1,7 +1,7 @@
 # TLDR of Community Balance Mod vs. Vanilla: (9/11/2025)
   - Reworks to marines structures (sentry and sentry battery)
   - New marine commander units (SPARC and A-MAC).
-  - Modular exosuits with new exo arms (plasma launcher and Ion Torch) and upgrades.
+  - Modular exosuits with new exo arms (plasma launcher) and upgrades.
   - Scaling structure damage with weapon upgrades.
   - Extension to electrify debuff (works on PvE).
   - Reworks and balance of some alien traits (carapace and aura) and trait swapping.
@@ -26,7 +26,6 @@
 	- Railgun: 25/0.1/20
 	- Minigun: 100/0.2/25
 	- Plasma Launcher: 50/0.125/15
-	- Blowtorch: 0/0.05/15
 	- Claw: 0/0.0/5
   - Cores - Optional Upgrade:
 	- Ejection Seat: Auto-ejects marine on exosuit reaching 0 armor (+0.025 Weight / Costs 5 pres).
@@ -80,20 +79,12 @@
   - Projectiles spawn on each weapon and are fired towards the crosshair target.
   - Projectiles have dual projectile controller (one for geometry and one for entities) to reduce geo clipping.
 
-### Ion Torch (exo flamethrower arm)
-  - Heat based weapon: overheats after 10 s of fire, cools down in 5 s.
-  - 12 damage a tick in a wide cone out to 13 m (marine flamethrower: 9 damage, 9 m).
-  - Sets aliens and structures on fire; its burn deals 12 damage a second instead of 8. A target keeps the hottest burn on it.
-  - Burns away spores and umbra; bile bombs fly through it. No ground fire, does not weld.
-  - Aliens and structures it hits are outlined red.
-  - Blue-white flame and its own kill feed icon; minimal particles hide the flame like the marine flamethrower's.
-  
 ### Prototype Lab
-  - A built prototype lab is an exosuit prototype lab: claw + minigun and claw + railgun exosuits can be bought as soon as it is built.
-  - Researches Dual Exosuit Arms (25 tres, 60 s), Advanced Exosuit Arms (20 tres, 60 s: Ion Torch and Plasma Launcher arms), Exosuit Cores (15 tres, 45 s: Thrusters, Ejection Seat, Armor Plating) and Exosuit Abilities (15 tres, 45 s: support abilities).
+  - A built prototype lab is an exosuit prototype lab: claw + minigun, claw + railgun and claw + plasma launcher exosuits can be bought as soon as it is built.
+  - Researches Dual Exosuit Arms (25 tres, 60 s), Exosuit Cores (15 tres, 45 s: Thrusters, Ejection Seat, Armor Plating) and Exosuit Abilities (15 tres, 45 s: support abilities).
   - Opens straight on the exosuit configuration page.
     - Rows that need research stay hidden until it is done.
-    - A LOADOUTS panel offers Charter Issue, Enforcer, Responder and Quarantine presets, plus Re-issue for the last suit bought.
+    - A LOADOUTS panel offers Charter Issue, Enforcer and Responder presets, plus Re-issue for the last suit bought.
   - When Exosuit Cores or Exosuit Abilities research finishes, exos with that slot empty get a refit banner.
   - Protolabs show a rotating exo hologram while researching and a static exo inside an orb otherwise.
   - Researches stay with the team when a protolab is destroyed or recycled; another built protolab sells exosuits again.
@@ -382,8 +373,8 @@
   - Rerouted techs to illustrate proper tech and structure requirements.
   - Replaced babblertech and webs with nutrientmist at bio 1.
   - Improved nanoshield surface shader so that it more clearly appears on all entities.
-  - Help screen cards for the Ion Torch and Plasma Launcher; exo arm cards show only the mouse button of their arm.
-  - Bot exos only fire railguns and Ion Torches at targets inside their range.
+  - Help screen card for the Plasma Launcher; exo arm cards show only the mouse button of their arm.
+  - Bot exos only fire railguns at targets inside their range.
   
 ### Minimap
   - Players are able to see if a hive is at <34%, <67% or <=100% maturity

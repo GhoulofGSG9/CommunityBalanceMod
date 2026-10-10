@@ -47,7 +47,6 @@ Script.Load("lua/Hud/GUINotificationMixin.lua")
 Script.Load("lua/PlayerStatusMixin.lua")
 Script.Load("lua/BlightMixin.lua")
 Script.Load("lua/DoomMixin.lua")
-Script.Load("lua/BlowtorchTargetMixin.lua")
 
 if Client then
     Script.Load("lua/TeamMessageMixin.lua")
@@ -268,7 +267,6 @@ function Marine:OnCreate()
         InitMixin(self, TeamMessageMixin, { kGUIScriptName = "GUIMarineTeamMessage" })
 
         InitMixin(self, DisorientableMixin)
-        InitMixin(self, BlowtorchTargetMixin)
         
     end
     
@@ -694,6 +692,29 @@ function Marine:HandleButtons(input)
             end
         end
     end
+end
+
+if Client then
+
+    -- The SDL client reports OS key repeats as fresh presses, so a drop key still held
+    -- from a hold-eject keeps sending Move.Drop to the marine after the server guard
+    -- has re-armed. Strip it until that key goes up.
+    function Marine:OverrideInput(input)
+
+        input = Player.OverrideInput(self, input)
+
+        if gExoDropHeld then
+            if Input_GetIsBindingDown("Drop") then
+                input.commands = bit_band(input.commands, kMaskClearDrop)
+            else
+                gExoDropHeld = false
+            end
+        end
+
+        return input
+
+    end
+
 end
 
 function Marine:FindFirstGrenade()
