@@ -1,3 +1,4 @@
+
 -- ======= Copyright (c) 2003-2011, Unknown Worlds Entertainment, Inc. All rights reserved. =======
 --
 -- lua\GUIDamageIndicators.lua
@@ -85,7 +86,6 @@ function GUIDamageIndicators:Update(deltaTime)
 
     local damageIndicators = PlayerUI_GetDamageIndicators()
     
-    -- Entries are triples: alpha, angle, showPop
     local numDamageIndicators = #damageIndicators / 3
     
     if numDamageIndicators ~= table.icount(self.indicatorItems) then
@@ -97,14 +97,10 @@ function GUIDamageIndicators:Update(deltaTime)
         local currentAlpha = damageIndicators[currentIndex]
         local currentAngle = damageIndicators[currentIndex + 1]
         local showPop = damageIndicators[currentIndex + 2]
-        
-        -- Only the first indicator of a burst plays the big shrink-in animation (size tied to alpha).
-        -- All others start directly at the settled size, and thus the settled position.
         local currentSize = GUIDamageIndicators.kMinIndicatorSize
         if showPop then
             currentSize = math.max(math.pow(currentAlpha, 16), currentSize)
         end
-        
         indicatorItem:SetColor(Color(1, 1, 1, currentAlpha))
         indicatorItem:SetSize(Vector(GUIDamageIndicators.kIndicatorSize * currentSize, GUIDamageIndicators.kIndicatorSize * currentSize, 0))
         indicatorItem:SetRotation(Vector(0, 0, currentAngle + math.pi))
