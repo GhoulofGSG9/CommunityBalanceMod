@@ -212,6 +212,9 @@ if kCBMaddon then
 	  - Improved performance of gorge functions.
 	  - Improved performance of infestation functions.
 	  - Improved performance of projectile functions.
+	  - Improved server performance of doors and animated map props.
+	  - Improved server performance of round resets.
+	  - Improved server performance of idle structures, spectators and sound effects.
 	  - Lowered game network demand.
 	  
 	### Be sure to thank Katzenfleisch for the performance optimizations!
@@ -358,6 +361,9 @@ if kCBMaddon then
 	  - Improved performance of gorge functions.
 	  - Improved performance of infestation functions.
 	  - Improved performance of projectile functions.
+	  - Improved server performance of doors and animated map props.
+	  - Improved server performance of round resets.
+	  - Improved server performance of idle structures, spectators and sound effects.
 	  - Improved performance of achievement giver functions.
 	  - Lowered game network demand.
 
@@ -949,6 +955,9 @@ else
 	  - Improved performance of gorge functions.
 	  - Improved performance of infestation functions.
 	  - Improved performance of projectile functions.
+	  - Improved server performance of doors and animated map props.
+	  - Improved server performance of round resets.
+	  - Improved server performance of idle structures, spectators and sound effects.
 	  - Improved performance of achievement giver functions.
 	  - Lowered game network demand.
 	  
@@ -1089,6 +1098,9 @@ else
 	  - Improved performance of babbler / babbler ball functions.
 	  - Improved performance of infestation functions.
 	  - Improved performance of projectile functions.
+	  - Improved server performance of doors and animated map props.
+	  - Improved server performance of round resets.
+	  - Improved server performance of idle structures, spectators and sound effects.
 	  - Lowered game network demand.
 
 	## MARINE - PLAYER

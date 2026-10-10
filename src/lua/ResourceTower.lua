@@ -113,3 +113,11 @@ function ResourceTower:GetTechButtons()
 end
 
 Shared.LinkClassToMap("ResourceTower", ResourceTower.kMapName, networkVars, true)
+
+if Server then
+
+    function ResourceTower:GetCanSkipPhysics()
+        return GetCanSkipIdlePhysics(self)
+    end
+
+end

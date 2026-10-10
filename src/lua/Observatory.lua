@@ -743,6 +743,14 @@ end
 
 Shared.LinkClassToMap("Observatory", Observatory.kMapName, networkVars)
 
+if Server then
+
+    function Observatory:GetCanSkipPhysics()
+        return GetCanSkipIdlePhysics(self)
+    end
+
+end
+
 class 'AdvancedObservatory' (Observatory)
 AdvancedObservatory.kMapName = "advancedObservatory"
 Shared.LinkClassToMap("AdvancedObservatory", AdvancedObservatory.kMapName, {})

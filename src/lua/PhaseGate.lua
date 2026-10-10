@@ -604,3 +604,11 @@ function CheckSpaceForPhaseGate(techId, origin, normal, commander)
 end
 
 Shared.LinkClassToMap("PhaseGate", PhaseGate.kMapName, networkVars)
+
+if Server then
+
+    function PhaseGate:GetCanSkipPhysics()
+        return GetCanSkipIdlePhysics(self)
+    end
+
+end

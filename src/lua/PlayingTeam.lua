@@ -882,12 +882,14 @@ function PlayingTeam:UpdateTechTree()
 
         -- Send tech tree base line to players that just switched teams or joined the game
         local players = self:GetPlayers()
-        
+        local baseMessages
+
         for _, player in ipairs(players) do
-        
+
             if player:GetSendTechTreeBase() then
-            
-                self.techTree:SendTechTreeBase(player)
+
+                baseMessages = baseMessages or self.techTree:BuildTechTreeBaseMessages()
+                self.techTree:SendTechTreeBase(player, baseMessages)
                 
                 player:ClearSendTechTreeBase()
                 

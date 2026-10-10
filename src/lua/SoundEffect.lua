@@ -190,12 +190,15 @@ function SoundEffect:OnCreate()
     self.predictorId = Entity.invalidId
     
     self:SetRelevancyDistance(kDefaultMaxAudibleDistance)
-    self:SetUpdates(true, kRealTimeUpdateRate)
+    if Client then
+        self:SetUpdates(true, kRealTimeUpdateRate)
+    end
     
     if Server then
     
         self.assetLength = 0
         self.startTime = 0
+        self:SetUpdates(false)
         
     end
     
@@ -244,6 +247,40 @@ end
 
 if Server then
 
+    -- A looping sound (assetLength < 0) and a map entity are stopped by hand.
+    local function GetEndsByItself(self)
+        return self.assetLength >= 0 and not self:GetIsMapEntity()
+    end
+
+    -- Returning the time still to go re-arms the check after a restart.
+    local function CheckEnded(self)
+
+        if not self.playing or not GetEndsByItself(self) then
+            self.endCheckArmed = false
+            return false
+        end
+
+        local remaining = self.startTime + self.assetLength + kSoundEndBufferTime - Shared.GetTime()
+        if remaining > 0 then
+            return remaining
+        end
+
+        DestroyEntity(self)
+        return false
+
+    end
+
+    local function ArmEndCheck(self)
+
+        if self.endCheckArmed or not GetEndsByItself(self) then
+            return
+        end
+
+        self.endCheckArmed = true
+        self:AddTimedCallback(CheckEnded, math.max(0, self.startTime + self.assetLength + kSoundEndBufferTime - Shared.GetTime()))
+
+    end
+
     function SoundEffect:SetVolume(volume)
         self.volume = volume or 1
     end
@@ -272,6 +309,9 @@ if Server then
         
         self.assetIndex = assetIndex
         self.assetLength = GetSoundEffectLength(assetPath)
+        if self.playing then
+            ArmEndCheck(self)
+        end
         --[[
         if not self:GetParent() and self:GetOrigin() == Vector(0,0,0) then
             Print("Warning: %s is being player at (0,0,0)", assetPath)
@@ -287,6 +327,8 @@ if Server then
         
         self.playing = true
         self.startTime = Shared.GetTime()
+
+        ArmEndCheck(self)
         
     end
     
@@ -304,31 +346,6 @@ if Server then
     
     function SoundEffect:GetIsPlaying()
         return self.playing
-    end
-    
-    local function SharedUpdate(self)
-    
-        --PROFILE("SoundEffect:SharedUpdate")
-        
-        -- If the assetLength is < 0, it is a looping sound and needs to be manually destroyed.
-        if self.playing and self.assetLength >= 0 and not self:GetIsMapEntity() then
-        
-            -- Add in a bit of time to make sure the Client has had enough time to fully play.
-            local endTime = self.startTime + self.assetLength + kSoundEndBufferTime
-            if Shared.GetTime() > endTime then
-                DestroyEntity(self)
-            end
-            
-        end
-        
-    end
-    
-    function SoundEffect:OnProcessMove()
-        SharedUpdate(self)
-    end
-    
-    function SoundEffect:OnUpdate(deltaTime)
-        SharedUpdate(self)
     end
     
 end

@@ -357,3 +357,10 @@ function PrototypeLab:OnDestroy()
 
 end
 
+if Server then
+
+    function PrototypeLab:GetCanSkipPhysics()
+        return GetCanSkipIdlePhysics(self)
+    end
+
+end

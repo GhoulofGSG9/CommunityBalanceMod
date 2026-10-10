@@ -29,33 +29,42 @@ function TechTree:SendTechNodeInstances(player, techNode)
 
 end
 
+function TechTree:BuildTechTreeBaseMessages()
+
+    local messages = {}
+    for i, nodeTechId in ipairs(self.techIdList) do
+        messages[i] = BuildTechNodeBaseMessage(self:GetTechNode(nodeTechId))
+    end
+    return messages
+
+end
+
 -- Send the entirety of every the tech node on team change or join. Returns true if it sent anything
-function TechTree:SendTechTreeBase(player)
+-- baseMessages: optional result of BuildTechTreeBaseMessages() shared across players in one update
+function TechTree:SendTechTreeBase(player, baseMessages)
 
     PROFILE("TechTree:SendTechTreeBase")
 
     local sent = false
     if self.complete then
-    
+
         -- Tell client to empty tech tree before adding new nodes. Send reliably
         -- so players are always able to buy weapons, use commander mode, etc.
         Server.SendNetworkMessage(player, "ClearTechTree", {}, true)
 
-    --Log("Sending base to %s", player)
-        for _, nodeTechId in ipairs(self.techIdList) do
+        baseMessages = baseMessages or self:BuildTechTreeBaseMessages()
+        for i = 1, #baseMessages do
 
-            local techNode = self:GetTechNode(nodeTechId)
-        
-            Server.SendNetworkMessage(player, "TechNodeBase", BuildTechNodeBaseMessage(techNode), true)
+            Server.SendNetworkMessage(player, "TechNodeBase", baseMessages[i], true)
 
             sent = true
-        
+
         end
-        
+
     end
-    
+
     return sent
-    
+
 end
 
 function TechTree:SendTechTreeUpdates(playerList)
@@ -389,17 +398,29 @@ function TechTree:AddSupportingTechId(techId, idList)
     
 end
 
+-- Depends only on static kTechData and the team's node list, which is rebuilt identically every reset
+local upgradedTechIdsSupportingCache = {}
+
 function TechTree:ComputeUpgradedTechIdsSupporting()
+
+    local key = table.concat(self.techIdList, ",")
+    local cached = upgradedTechIdsSupportingCache[self.teamNumber]
+    if cached and cached.key == key then
+        self.upgradedTechIdsSupporting = cached.result
+        return
+    end
 
     self.upgradedTechIdsSupporting = {}
 
     for _, techId in ipairs(self.techIdList) do
-    
+
         local idList = self:ComputeUpgradedTechIdsSupportingId(techId)
         self:AddSupportingTechId(techId, idList)
-        
+
     end
-    
+
+    upgradedTechIdsSupportingCache[self.teamNumber] = { key = key, result = self.upgradedTechIdsSupporting }
+
 end
 
 function TechTree:GetUpgradedTechIdsSupporting(techId)
@@ -454,12 +475,10 @@ function TechTree:ComputeHasTech(structureTechIdList, techIdCount)
         
                 -- Also look for tech that replaces this tech but counts towards it (upgraded Armories, Infantry Portals, etc.)
                 local supportingTechIds = self:GetUpgradedTechIdsSupporting(techId)
-                
-                table.insert(supportingTechIds, techId)
 
                 for _, entityTechId in ipairs(structureTechIdList) do
-                
-                    if(table.find(supportingTechIds, entityTechId)) then
+
+                    if entityTechId == techId or table.find(supportingTechIds, entityTechId) then
                     
                         hasTech = true
                             
