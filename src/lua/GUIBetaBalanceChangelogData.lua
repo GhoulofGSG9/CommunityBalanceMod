@@ -50,9 +50,12 @@ if kCBMaddon then
 	### Exosuits: Weapons
 	  - Minigun: vanilla damage and heat-up.
 	  - Railgun: damage scales with charge, 130 fully charged (kills a skulk). 32 m range.
+	    - Normal damage, no longer structural: no double damage to structures.
+	    - Each alien a slug passes through halves its damage to everything behind it.
+	    - Holding a full charge slows the exo to 80%. Thrusters restart a held charge.
 	    - Dual railguns charge together but fire sequentially over 1.5 s. The left is fired first then the right.
-		- Each arm reloads for 3 s after its own shot and can be held for 3 s.
-	    - Resonance: a fully charged dual-rail hit on a lerk or fade makes the other arm's slug deal 30% more (169) for 3 s: about 84 DPS on one lerk or fade, 65 on anything else. Dual rails kill a carapace lerk in 2 hits and a fade in 3. 
+		- Each arm reloads for 1 s after its own shot (was 3 s) and can be held for 3 s, so held arms take turns: one slug every 1.5 s.
+	    - Resonance: a fully charged dual-rail hit on a lerk or fade makes the other arm's slug deal 30% more (169) for 3 s: about 113 DPS on one lerk or fade, 87 on anything else. Dual rails kill a carapace lerk in 2 hits and a fade in 3. 
 		- The crosshair outline turns pink when your next shot will resonate, and a resonant hit pings. A marked alien sees a blue resonance icon among its status icons.
 	    - A held full charge shows a glint on the exo's arm that other players can see.
 		- The charge dial signifies when the railgun is charging (cyan), when the shot is about to be force released (pulsing red), and when the arm is waiting to fire (amber - only affects dual railgun).
@@ -788,9 +791,12 @@ else
 	### Exosuits: Weapons
 	  - Minigun: vanilla damage and heat-up.
 	  - Railgun: damage scales with charge, 130 fully charged (kills a skulk). 32 m range.
+	    - Normal damage, no longer structural: no double damage to structures.
+	    - Each alien a slug passes through halves its damage to everything behind it.
+	    - Holding a full charge slows the exo to 80%. Thrusters restart a held charge.
 	    - Dual railguns charge together but fire sequentially over 1.5 s. The left is fired first then the right.
-		- Each arm reloads for 3 s after its own shot and can be held for 3 s.
-	    - Resonance: a fully charged dual-rail hit on a lerk or fade makes the other arm's slug deal 30% more (169) for 3 s: about 84 DPS on one lerk or fade, 65 on anything else. Dual rails kill a carapace lerk in 2 hits and a fade in 3. 
+		- Each arm reloads for 1 s after its own shot (was 3 s) and can be held for 3 s, so held arms take turns: one slug every 1.5 s.
+	    - Resonance: a fully charged dual-rail hit on a lerk or fade makes the other arm's slug deal 30% more (169) for 3 s: about 113 DPS on one lerk or fade, 87 on anything else. Dual rails kill a carapace lerk in 2 hits and a fade in 3. 
 		- The crosshair outline turns pink when your next shot will resonate, and a resonant hit pings. A marked alien sees a blue resonance icon among its status icons.
 	    - A held full charge shows a glint on the exo's arm that other players can see.
 		- The charge dial signifies when the railgun is charging (cyan), when the shot is about to be force released (pulsing red), and when the arm is waiting to fire (amber - only affects dual railgun).
