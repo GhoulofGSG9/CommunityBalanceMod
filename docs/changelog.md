@@ -42,15 +42,16 @@
   - Charge time to 1s from 2s.
   - Shots can be stored for 3 s; the railgun fires itself 4 s after charging starts.
   - The dial is white while charging. A click, a cyan dial (pulsing red just before the forced shot) and a blue muzzle light show a full charge. The squares under the dial count the 1 s refire. Other players see a glint on an arm that holds a full charge.
-  - Damage scales with charge: 0 to 130 (100% charge), from 10/150.
-	- Maximum DPS is 65 at W0.
-  - Railgun damage is normal instead of structural: no double damage to structures, so full charge deals 130 to them too (from 260).
+  - Damage scales with charge: 0 to 120 (100% charge), from 10/150.
+	- Maximum DPS is 60 at W0.
+	- A Weapons 2 slug (144) one-shots a biomass 8 carapace skulk (142 eHP); Weapons 1 (132) does not.
+  - Railgun damage is normal instead of structural: no double damage to structures, so full charge deals 120 to them too (from 260).
 	- Two full shots kill a lerk without carapace (from W0, up to biomass 11); no shot kills a lerk alone and two shots never kill a fade.
   - Maximum range set to 32 m and falloff removed.
   - Dual railguns: each arm is a full, independent railgun with its own trigger (left click fires the left arm, right click the right arm). Releasing always fires.
-	- Every dual slug deals half damage: 65 at full charge. Both arms fired together deal 130, the same as one single slug, so a volley still kills a skulk and 260 is impossible.
-	- Alternating arms give 65 every second: 65 DPS, the same as claw + railgun.
-	- Resonance (lerk and fade only): a full-charge dual-rail hit marks the target for 3 s. A full-charge slug from the other arm that lands between 0.5 s and 3 s later deals 30% more (84.5 instead of 65). Chained alternating full slugs resonate: about 85 DPS on one lerk or fade. Both arms fired at once do not resonate with each other. Skulks, gorges, the Onos and structures never resonate.
+	- Every dual slug deals half damage: 60 at full charge. Both arms fired together deal 120, the same as one single slug, so a volley still kills a skulk and 240 is impossible.
+	- Alternating arms give 60 every second: 60 DPS, the same as claw + railgun.
+	- Resonance (lerk and fade only): a full-charge dual-rail hit marks the target for 3 s. A full-charge slug from the other arm that lands between 0.5 s and 3 s later deals 40% more (84 instead of 60). Chained alternating full slugs resonate: about 84 DPS on one lerk or fade. Both arms fired at once do not resonate with each other. Skulks, gorges, the Onos and structures never resonate.
 	- At W0 without carapace, dual railguns kill a lerk in 2 volleys (2 s) or 4 alternating slugs (3 s), and a fade in 3 volleys (about 4 s) or 6 alternating slugs (5 s), against 4 single slugs (about 5.2 s for claw + railgun). No dual rail kills a lerk faster than a single one.
 	- Only your own arms mark a target, and only with a full charge.
 	- The crosshair target outline turns pink only when your charge is full and your next slug will resonate. A resonant hit pings. A marked alien sees a blue resonance icon among its status icons.

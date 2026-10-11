@@ -340,10 +340,10 @@ kClawDamage = 50
 kClawDamageType = kDamageType.Structural
 
 kRailgunDamage = 0
-kRailgunChargeDamage = 130
+kRailgunChargeDamage = 120
 -- A full-charge dual-rail slug deals this much more to a lerk or fade the other arm hit with a full charge
 -- within the window.
-kRailResonanceBonus = 0.3
+kRailResonanceBonus = 0.4
 kRailResonanceWindow = 3
 -- The other arm's hit must be at least this old to resonate, so both arms fired together do not resonate
 -- with each other.

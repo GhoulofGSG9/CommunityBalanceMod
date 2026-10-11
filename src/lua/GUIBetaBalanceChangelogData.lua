@@ -49,14 +49,15 @@ if kCBMaddon then
 
 	### Exosuits: Weapons
 	  - Minigun: vanilla damage and heat-up.
-	  - Railgun: damage scales with charge, 130 fully charged (kills a skulk). 32 m range.
+	  - Railgun: damage scales with charge, 120 fully charged (kills an unarmored skulk). 32 m range.
+	    - At biomass 8 a carapace skulk has 142 eHP: Weapons 2 (144) one-shots it, Weapons 1 (132) does not.
 	    - Normal damage, no longer structural: no double damage to structures.
 	    - Each alien a slug passes through halves its damage to everything behind it.
 	    - Holding a full charge slows the exo to 80%. Thrusters restart a held charge.
 	    - Dual railguns: each arm is a full railgun on its own trigger (left click, right click). Releasing always fires.
-		- Every slug deals half damage (65 at full charge). Both arms together deal 130, the same as one single slug, so a volley still kills a skulk. Alternating arms give 65 DPS, like claw + railgun.
-	    - Resonance (lerk and fade only): a full-charge dual-rail hit marks the target for 3 s. A full-charge slug from the other arm that lands 0.5 to 3 s later deals 30% more (84.5 instead of 65): about 85 DPS on one lerk or fade. Both arms fired at once do not resonate with each other.
-		- Weapons 0, no carapace: dual rails kill a lerk in 2 volleys (2 s) or 4 alternating slugs (3 s), and a fade in 3 volleys (about 4 s) or 6 alternating slugs (5 s), against 4 single slugs (about 5.2 s for claw + railgun).
+		- Every slug deals half damage (60 at full charge). Both arms together deal 120, the same as one single slug, so a volley still kills a skulk. Alternating arms give 60 DPS, like claw + railgun.
+	    - Resonance (lerk and fade only): a full-charge dual-rail hit marks the target for 3 s. A full-charge slug from the other arm that lands 0.5 to 3 s later deals 40% more (84 instead of 60): about 84 DPS on one lerk or fade. Both arms fired at once do not resonate with each other.
+		- Weapons 0, no carapace: dual rails kill a lerk in 2 volleys (2 s) or 4 alternating slugs (3 s), and a fade in 4 volleys (about 5 s) or 6 alternating slugs (5 s), against 4 single slugs (about 5.2 s for claw + railgun).
 		- The crosshair outline turns pink only when your charge is full and your next slug will resonate, and a resonant hit pings. A marked alien sees a blue resonance icon among its status icons.
 		- Removed: the 1.5 s spacing between dual slugs, the queued release, the amber draining dial and the separate dual reload.
 	    - A held full charge shows a glint on the exo's arm that other players can see.
@@ -801,14 +802,15 @@ else
 
 	### Exosuits: Weapons
 	  - Minigun: vanilla damage and heat-up.
-	  - Railgun: damage scales with charge, 130 fully charged (kills a skulk). 32 m range.
+	  - Railgun: damage scales with charge, 120 fully charged (kills an unarmored skulk). 32 m range.
+	    - At biomass 8 a carapace skulk has 142 eHP: Weapons 2 (144) one-shots it, Weapons 1 (132) does not.
 	    - Normal damage, no longer structural: no double damage to structures.
 	    - Each alien a slug passes through halves its damage to everything behind it.
 	    - Holding a full charge slows the exo to 80%. Thrusters restart a held charge.
 	    - Dual railguns: each arm is a full railgun on its own trigger (left click, right click). Releasing always fires.
-		- Every slug deals half damage (65 at full charge). Both arms together deal 130, the same as one single slug, so a volley still kills a skulk. Alternating arms give 65 DPS, like claw + railgun.
-	    - Resonance (lerk and fade only): a full-charge dual-rail hit marks the target for 3 s. A full-charge slug from the other arm that lands 0.5 to 3 s later deals 30% more (84.5 instead of 65): about 85 DPS on one lerk or fade. Both arms fired at once do not resonate with each other.
-		- Weapons 0, no carapace: dual rails kill a lerk in 2 volleys (2 s) or 4 alternating slugs (3 s), and a fade in 3 volleys (about 4 s) or 6 alternating slugs (5 s), against 4 single slugs (about 5.2 s for claw + railgun).
+		- Every slug deals half damage (60 at full charge). Both arms together deal 120, the same as one single slug, so a volley still kills a skulk. Alternating arms give 60 DPS, like claw + railgun.
+	    - Resonance (lerk and fade only): a full-charge dual-rail hit marks the target for 3 s. A full-charge slug from the other arm that lands 0.5 to 3 s later deals 40% more (84 instead of 60): about 84 DPS on one lerk or fade. Both arms fired at once do not resonate with each other.
+		- Weapons 0, no carapace: dual rails kill a lerk in 2 volleys (2 s) or 4 alternating slugs (3 s), and a fade in 4 volleys (about 5 s) or 6 alternating slugs (5 s), against 4 single slugs (about 5.2 s for claw + railgun).
 		- The crosshair outline turns pink only when your charge is full and your next slug will resonate, and a resonant hit pings. A marked alien sees a blue resonance icon among its status icons.
 		- Removed: the 1.5 s spacing between dual slugs, the queued release, the amber draining dial and the separate dual reload.
 	    - A held full charge shows a glint on the exo's arm that other players can see.
