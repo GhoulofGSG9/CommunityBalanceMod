@@ -214,7 +214,7 @@ if Client then
 	Locale.substitutions["EXO_MODULE_CLAW"] = "Claw"
 	Locale.substitutions["EXO_MODULE_CLAW_DESC"] = "Left arm only: a 50 structural damage swing at melee range that never runs dry, and the most armor for the least weight of any arm. It cannot shoot, so the right arm has to do the killing."
 	Locale.substitutions["EXO_MODULE_MINIGUN_DESC"] = "Mid range bullet hose with no ammo to reload: 6 heavy damage a round, the pick against big armored lifeforms. It overheats after 3.5 seconds of held fire and is by far the heaviest arm: two of them make the suit a slow tank."
-	Locale.substitutions["EXO_MODULE_RAILGUN_DESC"] = "Long range shot that charges up over 1 s for a maximum of 130 structural damage. The slug pierces every target in its line out to 32 meters. If two railguns charge together, they fire sequentially 1.5 s apart. If the first shot hits a lerk or fade, the other arm will deal 30% more at a full charge. Thin plating, so it wants to fight from the back."
+	Locale.substitutions["EXO_MODULE_RAILGUN_DESC"] = "Long range shot that charges up over 1 s for a maximum of 120 damage. The shot pierces every target along its trajectory out to 32 meters. Consecutive damage is halved for each alien hit. Two railguns fire on separate triggers but deal 60 damage each while applying resonance with successful full-charge shots to lifeforms hit. Resonance causes the next shot to deal 40% more damage. Thin plating, so it wants to fight from the back."
 	Locale.substitutions["EXO_MODULE_PLASMALAUNCHER"] = "Plasma Launcher"
 	Locale.substitutions["EXO_MODULE_PLASMALAUNCHER_DESC"] = "Lobbed plasma charge: 40 damage in a 4 meter blast plus a lingering DoT. A direct hit electrifies the alien it lands on for 3.5 seconds, stripping mucous and enzyme and slowing its attacks. Swarm control, not a siege weapon. One bomb from a full cell, then one every 2 seconds."
 	Locale.substitutions["EXO_MODULE_THRUSTERS"] = "Thrusters"
@@ -255,7 +255,7 @@ if Client then
 	Locale.substitutions["EXO_BUY_SPEED_BASELINE"] = "marine walk = 100% speed"
 	Locale.substitutions["EXO_MODULE_CLAW_TAGS"] = "MELEE | STRUCTURAL | 50 DMG"
 	Locale.substitutions["EXO_MODULE_MINIGUN_TAGS"] = "MID RANGE | HEAVY | 6 DMG A ROUND"
-	Locale.substitutions["EXO_MODULE_RAILGUN_TAGS"] = "LONG RANGE | STRUCTURAL | UP TO 130 | PIERCE"
+	Locale.substitutions["EXO_MODULE_RAILGUN_TAGS"] = "LONG RANGE | NORMAL | UP TO 130 | PIERCE"
 	Locale.substitutions["EXO_MODULE_PLASMALAUNCHER_TAGS"] = "MID RANGE | NORMAL | 40 + DOT | AOE | SHOCK"
 	Locale.substitutions["EXO_MODULE_THRUSTERS_TAGS"] = "MOBILITY | DASH | FUEL"
 	Locale.substitutions["EXO_MODULE_EJECTIONSEAT_TAGS"] = "SURVIVAL | AUTO-EJECT | FAST EJECT"
@@ -314,8 +314,8 @@ if Client then
 	Locale.substitutions["EXO_ABILITIES_REFIT"] = "New exosuit abilities: refit at an Armory or Prototype Lab"
 	
 	-- Help screen: railgun card
-	Locale.substitutions["HELP_SCREEN_EXO_RAILGUN_DESCRIPTION"] = "Hold to charge, release to fire: up to 130 damage, piercing every target in line.  Dual railguns fire at least 1.5 s apart; the second slug fires itself when its amber dial runs out, press again to hold it.  A full-charge hit on a lerk or fade makes the other arm's slug deal 30% more for 3 s (pink outline)."
-	Locale.substitutions["WEAPON_DESC_DUALRAILGUN_EXO"] = "The second slug follows the first."
+	Locale.substitutions["HELP_SCREEN_EXO_RAILGUN_DESCRIPTION"] = "Hold to charge, release to fire: up to 130 damage, piercing every target in line; each alien hit halves it for the rest.  Dual railguns: each arm fires on its own click and deals half a slug; both together deal one full slug.  Alternating full-charge hits on a lerk or fade resonate for 30% more (pink outline)."
+	Locale.substitutions["WEAPON_DESC_DUALRAILGUN_EXO"] = "Two barrels, half a slug each."
 	
 end
 

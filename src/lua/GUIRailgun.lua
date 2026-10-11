@@ -16,19 +16,16 @@ local kWarnTime = 0.75
 local kChargingColor = Color(1, 1, 1, 1)
 local kReadyColor = Color(0.25, 1, 1, 1)
 local kWarnColor = Color(1, 0, 0, 1)
-local kWaitColor = Color(1, 0.6, 0, 1)
 
 local chargeCircle
 local shootSquares = { }
 local cooldownSquares = { }
 local time = 0
 
--- Set through SetGlobal by Railgun:OnUpdateRender. The squares count down the reload in `reserve`;
--- `fuse` is what a full dual arm still waits before it may fire; `ready` is a full charge that may fire now.
+-- Set through SetGlobal by Railgun:OnUpdateRender. The squares count down the refire after a shot in
+-- `reserve` (0 just fired, 1 may charge again).
 forceShootTime = forceShootTime or 2.5
 reserve = reserve or 1
-fuse = fuse or 0
-ready = ready or 0
 
 function UpdateCharge(dt, chargeAmount, chargeHeld)
 
@@ -42,10 +39,7 @@ function UpdateCharge(dt, chargeAmount, chargeHeld)
         kWarnColor.b = pulseAmt
         color = kWarnColor
 
-    elseif fuse > 0 then
-        color = kWaitColor
-        chargeAmount = fuse
-    elseif ready == 1 then
+    elseif chargeAmount >= 1 then
         color = kReadyColor
     end
     chargeCircle:GetLeftSide():SetColor(color)

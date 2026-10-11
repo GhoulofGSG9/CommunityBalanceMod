@@ -329,7 +329,8 @@ kFlamethrowerMaxBurnDuration = 6
 
 -- Output levers for an exo carrying two arms of the same gun, applied in Exo:ComputeDamageAttackerOverride.
 kExoDualMinigunModifier = 1
-kExoDualRailgunModifier = 1
+-- Each dual-rail volley deals half, so firing both arms together equals one single-rail shot.
+kExoDualRailgunModifier = 0.5
 kExoDualPlasmaModifier = 1
 
 kMinigunDamage = 6
@@ -339,16 +340,20 @@ kClawDamage = 50
 kClawDamageType = kDamageType.Structural
 
 kRailgunDamage = 0
-kRailgunChargeDamage = 130
--- Dual railguns charge together but fire at least the spacing apart, and each arm then reloads, so an
--- arm fires at most every 4 s. The spacing is the shortest gap a hit lerk gets; the reload sets DPS.
-kDualRailSpacing = 1.5
-kDualRailRefire = 3
--- A dual-rail slug deals this much more to a lerk or fade the other arm hit with a full charge within
--- the window.
-kRailResonanceBonus = 0.3
+kRailgunChargeDamage = 120
+-- A full-charge dual-rail shot deals this much more to a lerk or fade the other arm hit with a full charge
+-- within the window.
+kRailResonanceBonus = 0.4
 kRailResonanceWindow = 3
-kRailgunDamageType = kDamageType.Structural
+-- The other arm's hit must be at least this old to resonate, so both arms fired together do not resonate
+-- with each other.
+kRailResonanceMinGap = 0.5
+-- Each alien a shot passes through scales the damage to everything behind it.
+kRailgunPierceScalar = 0.5
+-- Exo speed while an arm holds a full charge it could fire.
+kRailgunHeldChargeSpeedScalar = 0.8
+-- Not Structural: the claw is the exo's structure arm, the railgun hunts lifeforms.
+kRailgunDamageType = kDamageType.Normal
 
 kMACAttackDamage = 5
 kMACAttackDamageType = kDamageType.Normal

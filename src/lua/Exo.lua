@@ -675,6 +675,10 @@ function Exo:GetMaxSpeed(possible)
     
     local maxSpeed = kExosuitMaxSpeed * self:GetInventorySpeedScalar()
     
+    if self:GetIsHoldingRailCharge() then
+        maxSpeed = maxSpeed * kRailgunHeldChargeSpeedScalar
+    end
+    
     if self:GetHasCatPackBoost() then
         maxSpeed = maxSpeed + kCatPackMoveAddSpeed
     end
@@ -688,6 +692,17 @@ function Exo:GetIsDualWeapon()
     
     local weaponHolder = self:GetWeapon(ExoWeaponHolder.kMapName)
     return weaponHolder ~= nil and not weaponHolder:GetLeftSlotWeapon():isa("Claw")
+
+end
+
+local function GetIsHoldingCharge(weapon)
+    return weapon ~= nil and weapon.GetIsHoldingCharge ~= nil and weapon:GetIsHoldingCharge()
+end
+
+function Exo:GetIsHoldingRailCharge()
+
+    local weaponHolder = self:GetWeapon(ExoWeaponHolder.kMapName)
+    return weaponHolder ~= nil and (GetIsHoldingCharge(weaponHolder:GetLeftSlotWeapon()) or GetIsHoldingCharge(weaponHolder:GetRightSlotWeapon()))
 
 end
 
