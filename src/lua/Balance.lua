@@ -381,15 +381,20 @@ kWeapons1DamageScalar = 1 + kDamagePerUpgradeScalar
 kWeapons2DamageScalar = 1 + kDamagePerUpgradeScalar * 2
 kWeapons3DamageScalar = 1 + kDamagePerUpgradeScalar * 3
 
+local kDamagePerUpgradeScalarStructure = 0.1 * 2
+kWeapons1DamageScalarStructure = 1 + kDamagePerUpgradeScalarStructure
+kWeapons2DamageScalarStructure = 1 + kDamagePerUpgradeScalarStructure * 2
+kWeapons3DamageScalarStructure = 1 + kDamagePerUpgradeScalarStructure * 3
+
 local kShotgunDamagePerUpgradeScalar = 0.0784
 kShotgunWeapons1DamageScalar = 1 + kShotgunDamagePerUpgradeScalar
 kShotgunWeapons2DamageScalar = 1 + kShotgunDamagePerUpgradeScalar * 2
 kShotgunWeapons3DamageScalar = 1 + kShotgunDamagePerUpgradeScalar * 3
 
-local kDamagePerUpgradeScalarStructure = 0.1 * 2
-kWeapons1DamageScalarStructure = 1 + kDamagePerUpgradeScalarStructure
-kWeapons2DamageScalarStructure = 1 + kDamagePerUpgradeScalarStructure * 2
-kWeapons3DamageScalarStructure = 1 + kDamagePerUpgradeScalarStructure * 3
+local kShotgunDamagePerUpgradeScalarStructure = 0.0784 * 2
+kShotgunWeapons1DamageScalarStructure = 1 + kShotgunDamagePerUpgradeScalarStructure
+kShotgunWeapons2DamageScalarStructure = 1 + kShotgunDamagePerUpgradeScalarStructure * 2
+kShotgunWeapons3DamageScalarStructure = 1 + kShotgunDamagePerUpgradeScalarStructure * 3
 
 kNanoShieldDamageReductionDamage = 0.68
 
