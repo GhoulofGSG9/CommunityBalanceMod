@@ -187,6 +187,7 @@ kBlipInfo[kMinimapBlipType.DIS] = { kBlipColorType.AdvancedMarineColor, kBlipSiz
 kBlipInfo[kMinimapBlipType.DISDeployed] = { kBlipColorType.AdvancedMarineColor, kBlipSizeType.Normal, kStaticBlipsLayer, "ARCDeployed" }
 kBlipInfo[kMinimapBlipType.BattleMAC] = { kBlipColorType.AdvancedMarineColor, kBlipSizeType.Worker, kStaticBlipsLayer, "MAC" }
 kBlipInfo[kMinimapBlipType.ShieldedSentryBattery] = { kBlipColorType.AdvancedMarineColor, kBlipSizeType.Normal, kStaticBlipsLayer, "SentryBattery" }
+kBlipInfo[kMinimapBlipType.NestSentry] = { kBlipColorType.PowerPoint, kBlipSizeType.Normal, kStaticBlipsLayer, "Sentry" }
 kBlipInfo[kMinimapBlipType.AdvancedObservatory] = { kBlipColorType.AdvancedMarineColor, kBlipSizeType.Normal, kStaticBlipsLayer, "Observatory" }
 kBlipInfo[kMinimapBlipType.CargoGate] = { kBlipColorType.AdvancedMarineColor, kBlipSizeType.Normal, kStaticBlipsLayer, "PhaseGate" }
 kBlipInfo[kMinimapBlipType.ARCRoboticsFactory] = { kBlipColorType.AdvancedMarineColor, kBlipSizeType.Normal, kStaticBlipsLayer, "RoboticsFactory" }

@@ -111,7 +111,10 @@ local networkVars =
     
     attacking = "boolean",
     
-    attachedToBattery = "boolean"
+    attachedToBattery = "boolean",
+    
+    -- placed inside a Power Battery's range: fires only while a battery stands there
+    batteryBound = "boolean"
 }
 
 AddMixinNetworkVars(BaseModelMixin, networkVars)
@@ -182,6 +185,7 @@ function Sentry:OnCreate()
 
     self.confused = false
     self.attachedToBattery = true
+    self.batteryBound = false
     
     if Server then
 
@@ -254,6 +258,11 @@ function Sentry:OnInitialized()
 
         InitMixin(self, StaticTargetMixin)
         InitMixin(self, InfestationTrackerMixin)
+        
+        -- A sentry dropped inside a Power Battery's range joins that battery's nest. It fires only while a built
+        -- battery stands there (UpdateBatteryState); a lone sentry is always attached.
+        self.batteryBound = Sentry_FindNestBattery(self:GetOrigin(), self:GetTeamNumber(), false) ~= nil
+        self.attachedToBattery = not self.batteryBound
         
     elseif Client then
     
@@ -512,28 +521,15 @@ if Server then
 
     end
     
+    -- Nest sentries fire only while a built, friendly battery stands within range in their room.
     local function UpdateBatteryState(self)
     
         local time = Shared.GetTime()
         
-        if self.lastBatteryCheckTime == nil or (time > self.lastBatteryCheckTime + 0.5) then
+        if self.timeLastNestCheck == nil or (time > self.timeLastNestCheck + 0.5) then
         
-            -- Update if we're powered or not
-            self.attachedToBattery = false
-            
-            local ents = GetEntitiesForTeamWithinRange("SentryBattery", self:GetTeamNumber(), self:GetOrigin(), SentryBattery.kRange)
-            for index, ent in ipairs(ents) do
-            
-                if GetIsUnitActive(ent) and ent:GetLocationName() == self:GetLocationName() then
-                
-                    self.attachedToBattery = true
-                    break
-                    
-                end
-                
-            end
-            
-            self.lastBatteryCheckTime = time
+            self.attachedToBattery = Sentry_FindNestBattery(self:GetOrigin(), self:GetTeamNumber(), true) ~= nil
+            self.timeLastNestCheck = time
             
         end
         
@@ -545,7 +541,9 @@ if Server then
         
         ScriptActor.OnUpdate(self, deltaTime)  
         
-        --UpdateBatteryState(self)
+        if self.batteryBound then
+            UpdateBatteryState(self)
+        end
         
         if self.timeNextAttack == nil or (Shared.GetTime() > self.timeNextAttack) then
         
@@ -708,32 +706,88 @@ elseif Client then
 
 end
 
+local function GetRoomName(point)
+    local location = GetLocationForPoint(point)
+    return location and location:GetName() or nil
+end
+
+-- A Power Battery hosts a nest: up to kSentriesPerBattery sentries placed within SentryBattery.kRange of it in its
+-- room. Returns the friendly battery a sentry at origin belongs to, or nil. With requireActive the battery has to be
+-- built and standing (nest sentries only fire then); placement also accepts a battery that is still under construction.
+function Sentry_FindNestBattery(origin, teamNumber, requireActive)
+
+    local roomName = GetRoomName(origin)
+    if not roomName then
+        return nil
+    end
+
+    for _, battery in ipairs(GetEntitiesForTeamWithinRange("SentryBattery", teamNumber, origin, SentryBattery.kRange)) do
+
+        local standing
+        if requireActive then
+            standing = GetIsUnitActive(battery)
+        else
+            standing = battery:GetIsAlive() and not battery:GetIsRecycling() and not battery:GetIsRecycled()
+        end
+
+        if standing and GetRoomName(battery:GetOrigin()) == roomName then
+            return battery
+        end
+
+    end
+
+    return nil
+
+end
+
+-- Build rule. A sentry either stands alone (at most kSentryLimit of those on the map) or belongs to the nest of a
+-- Power Battery (at most kSentriesPerBattery around one battery). Sentries that do not share a nest keep
+-- Sentry.kBuildRange between them, and a room never holds more than one group.
 function GetCheckSentryLimit(techId, origin, normal, commander)
 
-	local location = GetLocationForPoint(origin)
-    local locationName = location and location:GetName() or nil
+    local teamNumber = commander and commander:GetTeamNumber() or nil
+    local sentries = teamNumber and GetEntitiesForTeam("Sentry", teamNumber) or EntityListToTable(Shared.GetEntitiesWithClassname("Sentry"))
+    local roomName = GetRoomName(origin)
+    local nestBattery = teamNumber and Sentry_FindNestBattery(origin, teamNumber, false) or nil
 
-    -- Prevent the case where a Sentry in one room is being placed next to another one.
-    local sentries = Shared.GetEntitiesWithClassname("Sentry")
+    local loneSentries = 0
+    local nestSize = 0
 
-	if sentries:GetSize() >= kSentryLimit then
-		return false
-	end
-	
-	for b = 0, sentries:GetSize() - 1 do
-		
-		local sentry = sentries:GetEntityAtIndex(b)
-		
-		if (sentry:GetOrigin() - origin):GetLength() < sentry.kBuildRange then
-			return false
-		end
-				
-		if sentry:GetLocationName() == locationName then
-			return false
-		end
-		
-	end
-	return true        
+    for _, sentry in ipairs(sentries) do
+
+        local sentryOrigin = sentry:GetOrigin()
+        local sentryRoom = GetRoomName(sentryOrigin)
+        local sameRoom = roomName ~= nil and sentryRoom == roomName
+        local nestMate = nestBattery ~= nil and sameRoom and (sentryOrigin - nestBattery:GetOrigin()):GetLength() <= SentryBattery.kRange
+
+        if nestMate then
+            nestSize = nestSize + 1
+        elseif sameRoom or (sentryOrigin - origin):GetLength() < Sentry.kBuildRange then
+            return false, "COMMANDERERROR_SENTRY_TOO_CLOSE"
+        end
+
+        if not sentry.batteryBound then
+            loneSentries = loneSentries + 1
+        end
+
+    end
+
+    if nestBattery then
+
+        if nestSize >= kSentriesPerBattery then
+            return false, "COMMANDERERROR_SENTRY_NEST_FULL"
+        end
+
+        return true
+
+    end
+
+    if loneSentries >= kSentryLimit then
+        return false, "COMMANDERERROR_TOO_MANY_SENTRIES"
+    end
+
+    return true
+
 end
 
 function GetBatteryInRange(commander)
