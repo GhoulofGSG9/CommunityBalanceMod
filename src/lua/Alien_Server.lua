@@ -239,7 +239,7 @@ function Alien:ProcessBuyAction(techIds)
                 newPlayer:SetResources(resources)
                 newPlayer:SetGestationData(upgrades, oldTechId, healthScalar, armorScalar)
                 
-                if oldLifeFormTechId and lifeFormTechId and oldLifeFormTechId ~= lifeFormTechId then
+                if oldTechId and lifeFormTechId and oldTechId ~= lifeFormTechId then
                     newPlayer.oneHive = false
                     newPlayer.twoHives = false
                     newPlayer.threeHives = false
