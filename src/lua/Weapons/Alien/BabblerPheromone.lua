@@ -99,6 +99,12 @@ local function DispatchBabblers(babblers, order, entity, position, spots)
         return
     end
 
+    if order == kBabblerMoveType.Attack
+            and (not entity or (HasMixin(entity, "Live") and not entity:GetIsAlive())) then
+        order = kBabblerMoveType.Move
+        entity = nil
+    end
+
     for _, babbler in ipairs(babblers) do
 
         if spots ~= nil and spots <= 0 then break end
