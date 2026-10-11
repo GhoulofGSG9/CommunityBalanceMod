@@ -156,6 +156,14 @@ function SentryBattery:OnInitialized()
 	else
 		self.AttachablePowerNode = false
 	end
+	
+	-- Make any sentries bind to a battery if one is placed / built in range afterwards.
+	for _, sentry in ipairs(GetEntitiesForTeamWithinRange("Sentry", self:GetTeamNumber(), self:GetOrigin(), SentryBattery.kRange)) do
+		sentry.batteryBound = true
+		if HasMixin(sentry, "MapBlip") then 
+			sentry:MarkBlipDirty()
+		end
+	end
 end
 
 function SentryBattery:GetReceivesStructuralDamage()

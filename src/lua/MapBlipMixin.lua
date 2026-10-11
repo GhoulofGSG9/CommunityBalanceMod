@@ -674,6 +674,17 @@ function MapBlipMixin:GetMapBlipInfo()
         end
       
         return success, blipType, blipTeam, isAttacked, isParasited
+
+    elseif self:isa("Sentry") then
+        blipTeam = self:GetTeamNumber()  
+        
+        if self.batteryBound then
+            blipType = kMinimapBlipType.NestSentry
+        else
+            blipType = kMinimapBlipType.Sentry
+        end
+      
+        return success, blipType, blipTeam, isAttacked, isParasited
         
     end
 
