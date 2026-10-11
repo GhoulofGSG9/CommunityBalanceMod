@@ -259,11 +259,10 @@ end
 
 local function GetIsResonant(target)
 
-	local resonant = true
-	if target:isa("Onos") then
-		if target:GetIsBoneShieldActive() then
-			resonant = false
-		end
+	local resonant = false
+	
+	if target:isa("Skulk") or target:isa("Gorge") or target:isa("Fade") or target:isa("Lerk") or (target:isa("Onos") and not target:GetIsBoneShieldActive()) then
+	    resonant = true
 	end
 	
 	return resonant
