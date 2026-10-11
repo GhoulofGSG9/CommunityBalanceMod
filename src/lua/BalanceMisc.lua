@@ -73,13 +73,13 @@ kClogsPerHive = 10
 kNumWebsPerGorge = 3
 kCystInfestDuration = 37.5
 
-kSentriesPerBattery = 3
+kSentriesPerBattery = 2 -- sentries a Power Battery hosts as a nest
 kSentryConfuseDuration = 8
 kSentryAttackEffectInterval = 0.2
 kSentryTargetAcquireTime = 0.4
 kSentrySpread = Math.Radians(7.5)
 kSentryRange = 20
-kSentryBuildRange = 25 -- (depreciated)
+kSentryBuildRange = 25 -- minimum distance between sentries that do not share a battery
 
 kStructureCircleRange = 4
 kInfantryPortalAttachRange = 10

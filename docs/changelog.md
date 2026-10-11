@@ -172,21 +172,23 @@
 
 ### Sentry
   - Attack cone increased to 360 degrees from 135 degrees.
-  - Requires room power instead of sentry battery.
-  - Outer build range cannot overlap with another sentry.
-  - Two sentries can not be placed in the same room.
+  - Requires room power or a Power Battery instead of a sentry battery.
   - Sentry supply cost reduced from 15 to 10.
-  - Cost 6 tres.
+  - Cost 9 tres.
   - 8s Buildtime.
-  - Limited to 2.
+  - One sentry stands alone. A Power Battery hosts a nest of up to 2 sentries placed within its 4 m range in the same room; they fire only while the battery stands.
+  - A room holds one lone sentry or one nest, and sentries that do not share a battery keep 25 m apart.
   - Removed weld override (welds at same rate as other structures).
+  - Shoots 2x3.5 light damage bullets with 7.5 degree spread; target acquire 0.4s.
 
 ### Power (formerly Sentry) Battery
   - Provides power to nearby marine structures.
   - Provided power does not require room power.
-  - Power battery supply cost changed from 25 to 10.
+  - Hosts a nest of up to 2 sentries.
+  - Requires the ARC Factory. Costs 10 tres, 15 supply.
+  - Limited to one per room and two in total.
   - Power lines drawn to all potentially powered structures before placement.
-  - Health/Armor increased to 1000/250.
+  - Health/Armor 500/250.
 
 ### Structure Damage Rework
   - Buffed clogs, hydras, harvester, tunnels, and upgrade chambers eHP by ~15%

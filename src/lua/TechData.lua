@@ -987,7 +987,7 @@ function BuildTechData()
             --[kStructureBuildNearClass] = "SentryBattery",
             --[kStructureAttachRange] = SentryBattery.kRange,
             [kTechDataBuildRequiresMethod] = GetCheckSentryLimit,
-            --[kTechDataGhostGuidesMethod] = GetBatteryInRange,
+            [kTechDataGhostGuidesMethod] = GetBatteryInRange,
             [kTechDataObstacleRadius] = 0.7,
 			[kVisualRange] =  {
                 kSentryRange,
