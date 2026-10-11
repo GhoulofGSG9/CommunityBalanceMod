@@ -131,6 +131,11 @@ local function IsWebOutOfAimRange(trace, eyePos)
 
 end
 
+local kIgnoreWebsPlayer = nil
+local function IgnoreWebsFilter(test)
+    return test == kIgnoreWebsPlayer or test:isa("Babbler") or test:isa("Web")
+end
+
 local function FindTarget(self, player)
 
     local direction = player:GetViewCoordsZAxis()
@@ -142,11 +147,9 @@ local function FindTarget(self, player)
 
     if IsWebOutOfAimRange(trace, startPoint) then
 
-        local ignoreWebsFilter = function(test)
-            return test == player or test:isa("Babbler") or test:isa("Web")
-        end
-
-        trace = TraceForTarget(self, startPoint, direction, ignoreWebsFilter)
+        kIgnoreWebsPlayer = player
+        trace = TraceForTarget(self, startPoint, direction, IgnoreWebsFilter)
+        kIgnoreWebsPlayer = nil
 
     end
     
@@ -179,17 +182,22 @@ local function CreateBabblerPheromone(self, player)
     babblerPheromone:SetOwner(player)
     
     local target, endPoint = FindTarget(self, player)
+    local directHandled = false
     if target and endPoint and (not HasMixin(target, "Live") or target:GetIsAlive())
         and ( GetAreEnemies(player, target) or
               (GetAreFriends(player, target) and (HasMixin(target, "BabblerCling") or target:isa("Web"))) )
     then
     
         babblerPheromone:SetOrigin(endPoint)
-        if not babblerPheromone:ProcessHit(target, nil, nil, endPoint, true) then
-            DestroyEntity(babblerPheromone)
+        directHandled = babblerPheromone:ProcessHit(target, nil, nil, endPoint, true)
+
+        if not directHandled then
+            babblerPheromone:SetOrigin(startPoint)
         end
     
-    else
+    end
+
+    if not directHandled then
     
         local startVelocity = viewCoords.zAxis * 32
 
