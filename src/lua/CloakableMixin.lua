@@ -14,7 +14,7 @@ CloakableMixin.type = "Cloakable"
 
 CloakableMixin.kCloakRate = 3.0
 CloakableMixin.kCloakRatePerLevel = 0
-CloakableMixin.kUncloakRate = 5.0 -- decloak over 0.2s. Camouflage and Shade slow decloaking rate, over 0.33s at level 3, (4-(3-1)*1.0 )
+CloakableMixin.kUncloakRate = 2.5 -- decloak over 0.2s (code doubles rate due to update calls). Camouflage and Shade slow decloaking rate, over 0.33s at level 3, (4-(3-1)*1.0 )
 CloakableMixin.kUncloakRatePerLevel = 1.0    -- 20% slower decloaking per level, 40% at lvl 3
 CloakableMixin.kTriggerCloakDuration = 0.6
 CloakableMixin.kTriggerUncloakDuration = 2.75    -- higher level cloak also shortens re-cloaking delay
@@ -389,12 +389,8 @@ function CloakableMixin:OnUpdate(deltaTime)
     UpdateCloakState(self, deltaTime)
 end
 
-if not Server then
-
-    function CloakableMixin:OnProcessMove(input)
-        UpdateCloakState(self, input.time)
-    end
-
+function CloakableMixin:OnProcessMove(input)
+	UpdateCloakState(self, input.time)
 end
 
 function CloakableMixin:OnProcessSpectate(deltaTime)
