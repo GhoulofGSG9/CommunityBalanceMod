@@ -113,8 +113,10 @@ if kCBMaddon then
 	    - Nest sentries fire only while a built battery stands there. Kill the battery and the nest goes dark; rebuild it and they wake.
 	    - A nest is 28 tres for two guns (battery 10, sentries 9 each) behind the ARC Factory, one battery per room and two in total.
 	  - The lone sentry is unchanged: one on the map, 9 tres, room power or a battery.
-	  - A room holds one lone sentry or one nest, and sentries that do not share a battery keep 25 m apart.
+	  - A room holds one lone sentry or one nest, and sentries that do not share a battery are kept 25 m apart.
 	  - Placing a sentry shows the range of every Power Battery.
+	  - A nested sentry will appear yellow on the minimap.
+	  - A lone sentry will become a nested sentry upon building a nearby Power Battery.
 
 	### PvE
 	  - Base alien support structures now all cost 10 tres from 8 (Advanced to 18 tres from 20).
@@ -866,8 +868,10 @@ else
 	    - Nest sentries fire only while a built battery stands there. Kill the battery and the nest goes dark; rebuild it and they wake.
 	    - A nest is 28 tres for two guns (battery 10, sentries 9 each) behind the ARC Factory, one battery per room and two in total.
 	  - The lone sentry is unchanged: one on the map, 9 tres, room power or a battery.
-	  - A room holds one lone sentry or one nest, and sentries that do not share a battery keep 25 m apart.
+	  - A room holds one lone sentry or one nest, and sentries that do not share a battery are kept 25 m apart.
 	  - Placing a sentry shows the range of every Power Battery.
+	  - A nested sentry will appear yellow on the minimap.
+	  - A lone sentry will become a nested sentry upon building a nearby Power Battery.
 
 	### PvE
 	  - Base alien support structures now all cost 10 tres from 8 (Advanced to 18 tres from 20).
