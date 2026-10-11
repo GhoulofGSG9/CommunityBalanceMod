@@ -658,6 +658,11 @@ function Babbler:UpdateBabbler(deltaTime, now)
         local targetReached = false
 
         local target = self:UpdateTargetPos()
+
+        if self.moveType == kBabblerMoveType.Attack and not target then
+            self:SetMoveType(kBabblerMoveType.None, nil, nil, true)
+        end
+
         local isEnemy = target and HasMixin(target, "Team")
                 and target:GetTeamNumber() == GetEnemyTeamNumber(self:GetTeamNumber())
 
@@ -1005,7 +1010,6 @@ if Server then
                     self.hungry = true
                 end
                 self:AddTimedCallback(ClearForagingCallback, kAnimForagingDuration)
-                self:SetMoveType(kBabblerMoveType.None, owner, ownerOrigin)
             end
         else
             local dest = self:PickIdleDestination()
@@ -2512,8 +2516,9 @@ if Server then
     function Babbler:SetMoveType(moveType, target, position, force, ignoreOrderDelay)
 
         if moveType == kBabblerMoveType.Attack and not target then
-            Log("Error: trying to assign an attack order to %s with no target", self)
-            return
+            Log("Error: trying to assign an attack order to %s with no target\n%s", self,
+                    Script.CallStack and Script.CallStack() or "")
+            moveType = position and kBabblerMoveType.Move or kBabblerMoveType.None
         end
 
         local targetId = Entity.invalidId
@@ -2561,6 +2566,17 @@ if Server then
     end
 
     function Babbler:OrderAttack(target, position)
+
+        local targetUsable = target ~= nil and not (HasMixin(target, "Live") and not target:GetIsAlive())
+        if not targetUsable then
+            if position then
+                self:OrderMove(position)
+            else
+                self:OrderIdle()
+            end
+            return
+        end
+
         self:SetMoveType(kBabblerMoveType.Attack, target, position or GetEngagementOrOrigin(target), true, 0.6)
     end
 
