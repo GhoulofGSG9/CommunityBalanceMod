@@ -258,7 +258,15 @@ function Railgun:GetIsAffectedByWeaponUpgrades()
 end
 
 local function GetIsResonant(target)
-    return target:isa("Lerk") or target:isa("Fade")
+
+	local resonant = true
+	if target:isa("Onos") then
+		if target:GetIsBoneShieldActive() then
+			resonant = false
+		end
+	end
+	
+	return resonant
 end
 
 -- The other arm's last full-charge hit on target is old enough not to be the same volley and still inside
@@ -414,11 +422,7 @@ end
 function Railgun:ProcessMoveOnWeapon(player, input)
 
     if self.railgunAttacking then
-    
-        if player.thrustersActive then
-            self.timeChargeStarted = Shared.GetTime()
-        end
-    
+        
         if Shared.GetTime() - self.timeChargeStarted >= kChargeForceShootTime then
             self:OnPrimaryAttackEnd(player)
         end
