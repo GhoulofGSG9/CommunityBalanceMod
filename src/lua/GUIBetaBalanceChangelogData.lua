@@ -574,7 +574,6 @@ if kCBMaddon then
 	### Sentry
 	  - Attack cone increased to 360 degrees from 135 degrees.
 	  - Requires room power instead of sentry battery.
-	  - Sentry supply cost increased from 15 to 20.
 	  - Cost 7 tres.
 	  - 8s build time.
 	  - One sentry stands alone. A Power Battery hosts a nest of up to 2 sentries that fire only while it stands.
@@ -588,7 +587,7 @@ if kCBMaddon then
 	### Power (formerly sentry) Battery
 	  - Provides power to nearby marine structures.
 	  - Provided power does not require room power.
-	  - Power battery supply cost changed from 25 to 15.
+	  - Power battery supply cost increased from 25 to 30.
 	  - Power lines drawn to all potentially powered structures before placement.
 	  - Costs 10 tres.
 	  - Requires ARC factory to build.
@@ -1279,7 +1278,6 @@ else
 	### Sentry
 	  - Attack cone increased to 360 degrees from 135 degrees.
 	  - Requires room power instead of sentry battery.
-	  - Sentry supply cost increased from 15 to 20.
 	  - Cost 7 tres.
 	  - 8s build time.
 	  - One sentry stands alone. A Power Battery hosts a nest of up to 2 sentries that fire only while it stands.
