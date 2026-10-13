@@ -641,9 +641,9 @@ if Server then
 			return kTechId.BabblerBombAbility
 		end
 	else
-        function Gorge:GetTierFourTechId()
-            return kTechId.BabblerBombAbility
-        end
+		function Gorge:GetTierFourTechId()
+			return kCBMaddon and kTechId.BabblerBombAbility or kTechId.None
+		end
     end
 
 end
