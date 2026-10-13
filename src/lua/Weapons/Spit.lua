@@ -106,7 +106,7 @@ if Server then
             if target:isa("Player") and parent and GetAreEnemies(parent, target) then
                 self.hitEnemy = true
                 self.hitOnos = target:isa("Onos")
-                OrderBabblerToAttack(self)
+                OrderBabblerToAttack(self, target)
             end
         end
     end
