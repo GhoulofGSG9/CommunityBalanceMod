@@ -574,7 +574,7 @@ if kCBMaddon then
 	### Sentry
 	  - Attack cone increased to 360 degrees from 135 degrees.
 	  - Requires room power instead of sentry battery.
-	  - Sentry supply cost reduced from 15 to 10.
+	  - Sentry supply cost increased from 15 to 20.
 	  - Cost 7 tres.
 	  - 8s build time.
 	  - One sentry stands alone. A Power Battery hosts a nest of up to 2 sentries that fire only while it stands.
@@ -1279,7 +1279,7 @@ else
 	### Sentry
 	  - Attack cone increased to 360 degrees from 135 degrees.
 	  - Requires room power instead of sentry battery.
-	  - Sentry supply cost reduced from 15 to 10.
+	  - Sentry supply cost increased from 15 to 20.
 	  - Cost 7 tres.
 	  - 8s build time.
 	  - One sentry stands alone. A Power Battery hosts a nest of up to 2 sentries that fire only while it stands.
