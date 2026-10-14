@@ -125,6 +125,9 @@ local networkVars =
     wasOnGround = "private boolean",
     wasOnWall = "private boolean",
     timeOffSurface = "private compensated time",
+    -- read by the ceiling grace on the first replayed move after a snapshot, so they must come from the server
+    wallWalkingNormalGoal = "private compensated vector",
+    ceilingGraceAnchor = "private compensated float",
     timeOfLeap = "private compensated time",
     timeOfLastJumpLand = "private compensated time",
     timeLastWallJump = "private compensated time",
@@ -183,6 +186,7 @@ function Skulk:OnCreate()
     self.timeLeftWall = 0
     self.wasOnGround = false
     self.wasOnWall = false
+    self.ceilingGraceAnchor = 0
      
     self.sneakOffset = 0
     self.autopickedUpgrades = false
