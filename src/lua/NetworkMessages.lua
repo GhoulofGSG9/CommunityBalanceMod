@@ -1471,6 +1471,8 @@ if Server then
         
         self:AddResources(-resCost)
         
+        -- Read before the holder is unparented below, GetArmHeat finds it as a child.
+        local armHeat = self:isa("Exo") and self:GetArmHeat() or nil
         local weapons = self:GetWeapons()
         for i = 1, #weapons do
             weapons[i]:SetParent(nil)
@@ -1491,6 +1493,8 @@ if Server then
             -- config. Carry the damage as a fraction, the way carapace does: a full suit
             -- stays full, so bought plating does not arrive empty.
             exo:SetArmor(exo:GetMaxArmor() * armorFraction)
+            exo:TransferParasite(self)
+            exo:RestoreArmHeat(armHeat)
             for i = 1, #weapons do
                 DestroyEntity(weapons[i])
             end
