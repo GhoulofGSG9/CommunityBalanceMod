@@ -514,7 +514,7 @@ function Skulk:PreUpdateMove(input, runningPrediction)
         -- Note: We detach here if we are not on walls
     end
     
-    if not self:GetIsWallWalking() then
+    if not self:GetIsWallWalking() and self.wallWalkingNormalGoal.y < 1 then
         -- When not wall walking, the goal is always directly up (running on ground).
         self.wallWalkingNormalGoal = Vector.yAxis
     end
