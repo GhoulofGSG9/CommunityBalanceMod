@@ -161,9 +161,14 @@ function Gore:OnTag(tagName)
     PROFILE("Gore:OnTag")
 
     if tagName == "hit" then
-    
+
+        if self:GetHasPendingWeaponSwitch() then
+            self:OnAttackEnd()
+            return
+        end
+
         local player = self:GetParent()
-        
+
         local didHit, impactPoint, target = self:Attack(player)
         
         -- play sound effects
@@ -195,7 +200,12 @@ function Gore:OnTag(tagName)
 end
 
 function Gore:OnPrimaryAttack(player)
-    
+
+    if self:GetHasPendingWeaponSwitch() then
+        self:OnAttackEnd()
+        return
+    end
+
     local nextAttackType = self.attackType
     if nextAttackType == Gore.kAttackType.None then
         nextAttackType = GetAttackType(self, player)
