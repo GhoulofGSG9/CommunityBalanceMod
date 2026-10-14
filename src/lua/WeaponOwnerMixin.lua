@@ -43,7 +43,29 @@ WeaponOwnerMixin.networkVars =
     weaponsWeight = "float (0 to " .. WeaponOwnerMixin.kMaxWeaponsWeight .. " by 0.01)",
     quickSwitchSlot = "integer (0 to 10)",
     inventoryUpdateId = "integer (0 to "..(kMaxInventoryUpdatesCount-1)..")",
+
+    -- A weapon switch that was requested while GetCanChangeWeapon() was false (e.g. mid-stomp).
+    -- It is applied from ProcessMoveOnWeapons as soon as switching is allowed again.
+    -- Networked so the predicting client and the server always agree on it.
+    queuedWeaponId = "private entityid",
+    queuedWeaponTime = "private time",
+    queuedWeaponKeepQuickSwitch = "private boolean",
 }
+
+-- A queued switch older than this is discarded, so it can't fire unexpectedly long after the request.
+local kQueuedWeaponSwitchMaxAge = 3
+
+local function ClearQueuedWeaponSwitch(self)
+    self.queuedWeaponId = Entity.invalidId
+    self.queuedWeaponTime = 0
+    self.queuedWeaponKeepQuickSwitch = false
+end
+
+local function QueueWeaponSwitch(self, weapon, keepQuickSwitchSlot)
+    self.queuedWeaponId = weapon:GetId()
+    self.queuedWeaponTime = Shared.GetTime()
+    self.queuedWeaponKeepQuickSwitch = keepQuickSwitchSlot == true
+end
 
 function WeaponOwnerMixin:__initmixin()
     
@@ -56,7 +78,12 @@ function WeaponOwnerMixin:__initmixin()
     self.weaponsWeight = 0
     self.quickSwitchSlot = 1
     self.inventoryUpdateId = 0
+    ClearQueuedWeaponSwitch(self)
     
+end
+
+function WeaponOwnerMixin:GetHasQueuedWeaponSwitch()
+    return self.queuedWeaponId ~= Entity.invalidId
 end
 
 function WeaponOwnerMixin:GetWeaponsWeight()
@@ -110,6 +137,35 @@ function WeaponOwnerMixin:SetWeaponsProcessMove(processMove)
     self.processMove = processMove
 end
 
+-- Applies a switch that was requested while weapon changes were blocked, once they are allowed again.
+local function ProcessQueuedWeaponSwitch(self)
+
+    if self.queuedWeaponId == Entity.invalidId then
+        return
+    end
+
+    local weapon = Shared.GetEntity(self.queuedWeaponId)
+    local expired = Shared.GetTime() - self.queuedWeaponTime > kQueuedWeaponSwitchMaxAge
+    local dead = self.GetIsAlive and not self:GetIsAlive()
+
+    -- Weapon was dropped/destroyed, we died, or the request is stale: forget it.
+    if not weapon or weapon:GetParent() ~= self or expired or dead then
+        ClearQueuedWeaponSwitch(self)
+        return
+    end
+
+    -- Still blocked, keep waiting.
+    if self.GetCanChangeWeapon and not self:GetCanChangeWeapon() then
+        return
+    end
+
+    -- Clear first, SetActiveWeapon would otherwise treat the request as superseded anyway.
+    local keepQuickSwitchSlot = self.queuedWeaponKeepQuickSwitch
+    ClearQueuedWeaponSwitch(self)
+    self:SetActiveWeapon(weapon:GetMapName(), keepQuickSwitchSlot)
+
+end
+
 function WeaponOwnerMixin:ProcessMoveOnWeapons(input)
 
     -- Don't update weapon if set to false (commander mode).
@@ -126,6 +182,23 @@ function WeaponOwnerMixin:ProcessMoveOnWeapons(input)
             activeWeapon:ProcessMoveOnModel(input.time)
             
         end
+
+        -- Some weapons own entities (e.g. stomp shockwaves) that must keep simulating while holstered.
+        -- This is the single place they get ticked, once per move, for every weapon that opts in.
+        if Server then
+
+            for i = 0, self:GetNumChildren() - 1 do
+
+                local child = self:GetChildAtIndex(i)
+                if child:isa("Weapon") and child.ProcessMoveOnOwnedEntities then
+                    child:ProcessMoveOnOwnedEntities(input.time)
+                end
+
+            end
+
+        end
+
+        ProcessQueuedWeaponSwitch(self)
         
     end
     
@@ -181,8 +254,18 @@ function WeaponOwnerMixin:SetActiveWeapon(weaponMapName, keepQuickSwitchSlot)
         local activeWeapon = self:GetActiveWeapon()
 
         if activeWeapon and self.GetCanChangeWeapon and not self:GetCanChangeWeapon() then
+
+            if activeWeapon == newWeapon then
+                ClearQueuedWeaponSwitch(self)
+            else
+                QueueWeaponSwitch(self, newWeapon, keepQuickSwitchSlot)
+            end
+
             return false
+
         end
+
+        ClearQueuedWeaponSwitch(self)
         
         if newWeapon.OnSetActive then
             newWeapon:OnSetActive()
@@ -204,7 +287,6 @@ function WeaponOwnerMixin:SetActiveWeapon(weaponMapName, keepQuickSwitchSlot)
                 end
 
                 if hudSlot > 0 and not keepQuickSwitchSlot then
-                    --DebugPrint("setting prev hud slot to %d, %s", hudSlot, Script.CallStack())
                     self.quickSwitchSlot = hudSlot
                 end
                 
@@ -437,17 +519,10 @@ function WeaponOwnerMixin:AddWeapon(weapon, setActive)
     
     if setActive then
     
-        local oldWeapon = self:GetActiveWeapon()
-        if oldWeapon then
-            oldWeapon:OnHolster(self)
-        end
-    
         self:SetActiveWeapon(weapon:GetMapName())
         
     else
     
-        -- SetActiveWeapon() will update the weight but
-        -- it must be manually called if SetActiveWeapon is not called.
         UpdateWeaponsWeight(self)
         
     end
@@ -474,6 +549,10 @@ function WeaponOwnerMixin:RemoveWeapon(weapon)
     local activeWeapon = self:GetActiveWeapon()
     local removingActive = weapon == activeWeapon
 
+    if self.queuedWeaponId == weapon:GetId() then
+        ClearQueuedWeaponSwitch(self)
+    end
+
     weapon:SetParent(nil)
     
     if removingActive then
@@ -498,6 +577,7 @@ function WeaponOwnerMixin:DestroyWeapons()
 
     self.activeWeaponId = Entity.invalidId
     self.activeWeaponMapName = ""
+    ClearQueuedWeaponSwitch(self)
 
     for _, weapon in ipairs(self:GetWeapons()) do
         DestroyEntity(weapon)
