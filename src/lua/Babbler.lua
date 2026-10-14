@@ -3009,10 +3009,10 @@ elseif Client then
             end
         elseif self.jumping then
             move = "jump"
-        elseif self.wagging then
-            move = "wag"
         elseif self.doesGroundMove and (self.smoothedMoveSpeed or 0) > kRunAnimMinSpeed then
             move = "run"
+        elseif self.wagging then
+            move = "wag"
         end
 
         modelMixin:SetAnimationInput("forage", self.foraging)
