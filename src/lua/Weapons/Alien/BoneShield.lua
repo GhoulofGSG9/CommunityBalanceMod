@@ -207,7 +207,7 @@ function BoneShield:GetCanUseBoneShield(player)
 end
 
 function BoneShield:OnPrimaryAttack(player)
-    if not self.primaryAttacking and self:GetCanUseBoneShield(player) then
+    if not self.primaryAttacking and not self:GetHasPendingWeaponSwitch() and self:GetCanUseBoneShield(player) then
         self.primaryAttacking = true
 
         if Server then
