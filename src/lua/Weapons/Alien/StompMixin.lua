@@ -49,6 +49,17 @@ function StompMixin:GetIsStomping()
     return self.secondaryAttacking
 end
 
+function StompMixin:CancelStomp(player)
+
+    self.secondaryAttacking = false
+
+    player = player or self:GetParent()
+    if player then
+        player.stomping = false
+    end
+
+end
+
 function StompMixin:GetSecondaryTechId()
     return kTechId.Stomp
 end
@@ -124,13 +135,8 @@ function StompMixin:OnTag(tagName)
 
         end
 
-    elseif tagName == "end" then
-        self.secondaryAttacking = false
-
-        local player = self:GetParent()
-        if player then
-            player.stomping = false
-        end
+    elseif tagName == "end" and self.secondaryAttacking then
+        self:CancelStomp()
     end
 
 end
@@ -152,22 +158,25 @@ function StompMixin:OnProcessMove(input)
     if self.secondaryAttacking and self.secondaryAttackStartTime and
             Shared.GetTime() > self.secondaryAttackStartTime + kAttackDurationStomp then
 
-        self.secondaryAttacking = false
-
-        local player = self:GetParent()
-        if player then
-            player.stomping = false
-        end
+        self:CancelStomp()
 
     end
 
-    if Server then
+end
 
-        for _, shockwaveId in ipairs(self.shockwaveEntIds) do
+if Server then
 
-            local shockwave = Shared.GetEntity(shockwaveId)
+    function StompMixin:ProcessMoveOnOwnedEntities(deltaTime)
+
+        local ids = self.shockwaveEntIds
+
+        for i = #ids, 1, -1 do
+
+            local shockwave = Shared.GetEntity(ids[i])
             if shockwave then
-                shockwave:UpdateShockwave(input.time)
+                shockwave:UpdateShockwave(deltaTime)
+            else
+                table.remove(ids, i)
             end
 
         end
@@ -180,9 +189,11 @@ if Server then
 
     function StompMixin:OnDestroy()
 
-        for _, shockwaveId in ipairs(self.shockwaveEntIds) do
+        local ids = self.shockwaveEntIds
 
-            local shockwave = Shared.GetEntity(shockwaveId)
+        for i = #ids, 1, -1 do
+
+            local shockwave = Shared.GetEntity(ids[i])
             if shockwave then
                 DestroyEntity(shockwave)
             end
