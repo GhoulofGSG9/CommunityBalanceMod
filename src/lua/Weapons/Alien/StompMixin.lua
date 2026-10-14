@@ -108,7 +108,9 @@ end
 
 function StompMixin:OnSecondaryAttack(player)
 
-    if player:GetEnergy() >= kStompEnergyCost and player:GetIsOnGround() and not self.primaryAttacking then
+    local switchPending = self.GetHasPendingWeaponSwitch and self:GetHasPendingWeaponSwitch()
+
+    if not (switchPending or self.primaryAttacking) and player:GetEnergy() >= kStompEnergyCost and player:GetIsOnGround() then
         self.secondaryAttacking = true
         self.secondaryAttackStartTime = Shared.GetTime()
         player.stomping = true
