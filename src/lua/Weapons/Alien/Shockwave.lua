@@ -152,6 +152,13 @@ function Shockwave:UpdateShockwave(deltaTime)
             end
         end
 
+        -- Every trace started inside geometry (e.g. stomping with your back to a wall), so there is
+        -- nowhere for the wave to travel. Without this, self.endPoint stays nil and the next line errors.
+        if not bestEndPoint then
+            DestroyShockwave(self)
+            return
+        end
+
         self.endPoint = bestEndPoint
         local origin = self:GetOrigin()
         origin.y = self.endPoint.y
