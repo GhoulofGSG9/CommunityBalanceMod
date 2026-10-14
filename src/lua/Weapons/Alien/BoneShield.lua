@@ -191,8 +191,7 @@ end
 
 function BoneShield:IsRechargeOnCooldown()
     local now = Shared.GetTime()
-    local result = (now - self.lastTimeDeactivated) <= self:GetCooldown()
-    return result
+    return (now - self.lastTimeDeactivated) <= kBoneShieldActivationCooldown
 end
 
 -- NOTE(Salads): BoneShield now only has a energy recharge cooldown.
@@ -243,17 +242,17 @@ end
 
 function BoneShield:OnHolster(player)
     Ability.OnHolster(self, player)
-    self.secondaryAttacking = false
-    player.stomping = false
+    self:CancelStomp(player)
     self:OnPrimaryAttackEnd(player)
     self.holsterTime = Shared.GetTime()
 end
 
 function BoneShield:OnBroken()
+    local player = self:GetParent()
     self.hitPoints = 0
-    self:OnPrimaryAttackEnd()
-    if Server then
-        self:GetParent():TriggerEffects("onos_shield_break")
+    self:OnPrimaryAttackEnd(player)
+    if Server and player then
+        player:TriggerEffects("onos_shield_break")
     end
     self.isBroken = true
 end
