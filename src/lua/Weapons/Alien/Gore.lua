@@ -162,7 +162,7 @@ function Gore:OnTag(tagName)
 
     if tagName == "hit" then
 
-        if self:GetHasPendingWeaponSwitch() then
+        if self:GetHasPendingWeaponSwitch() or self.secondaryAttacking then
             self:OnAttackEnd()
             return
         end
@@ -201,7 +201,7 @@ end
 
 function Gore:OnPrimaryAttack(player)
 
-    if self:GetHasPendingWeaponSwitch() then
+    if self:GetHasPendingWeaponSwitch() or self.secondaryAttacking then
         self:OnAttackEnd()
         return
     end
@@ -220,8 +220,13 @@ function Gore:OnPrimaryAttack(player)
 
 end
 
+-- Gore doesn't use primaryAttacking, so StompMixin needs this to know a swing is in progress.
+function Gore:GetIsPrimaryAttackInProgress()
+    return self.attackButtonPressed == true or self.attackType ~= Gore.kAttackType.None
+end
+
 function Gore:OnPrimaryAttackEnd(player)
-    
+
     Ability.OnPrimaryAttackEnd(self, player)
     self:OnAttackEnd()
     
