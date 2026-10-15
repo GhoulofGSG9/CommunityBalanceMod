@@ -131,6 +131,10 @@ function Ability:GetHasPendingWeaponSwitch()
 
 end
 
+function Ability:GetIsPrimaryAttackInProgress()
+    return self.primaryAttacking == true
+end
+
 -- Child class can override
 function Ability:OnPrimaryAttack(player)
 
