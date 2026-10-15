@@ -52,6 +52,7 @@ end
 function StompMixin:CancelStomp(player)
 
     self.secondaryAttacking = false
+    self.stompHitReceived = false
 
     player = player or self:GetParent()
     if player then
@@ -109,9 +110,12 @@ end
 function StompMixin:OnSecondaryAttack(player)
 
     local switchPending = self.GetHasPendingWeaponSwitch and self:GetHasPendingWeaponSwitch()
+    local primaryBusy = self.primaryAttacking or (self.GetIsPrimaryAttackInProgress and self:GetIsPrimaryAttackInProgress())
 
-    if not (switchPending or self.primaryAttacking) and player:GetEnergy() >= kStompEnergyCost and player:GetIsOnGround() then
+    if not switchPending and not primaryBusy and not self.secondaryAttacking and
+            player:GetEnergy() >= kStompEnergyCost and player:GetIsOnGround() then
         self.secondaryAttacking = true
+        self.stompHitReceived = false
         self.secondaryAttackStartTime = Shared.GetTime()
         player.stomping = true
     end
@@ -127,6 +131,8 @@ function StompMixin:OnTag(tagName)
 
     if self.secondaryAttacking and tagName == "stomp_hit" then
 
+        self.stompHitReceived = true
+
         local player = self:GetParent()
 
         if player then
@@ -137,7 +143,12 @@ function StompMixin:OnTag(tagName)
 
         end
 
-    elseif tagName == "end" and self.secondaryAttacking then
+    elseif tagName == "end" and self.secondaryAttacking and self.stompHitReceived then
+        -- Stomp and Gore swings share the "end" tag. A swing that was running when the stomp started delivers
+        -- its "end" right after the stomp began, which used to cancel the stomp before its stomp_hit tag (no
+        -- shockwave, no energy cost, but the animation still played). The stomp's own "end" always comes after
+        -- its stomp_hit, so only accept an "end" once that was seen. If the animation never delivers one,
+        -- OnProcessMove ends the stomp after kAttackDurationStomp.
         self:CancelStomp()
     end
 
@@ -171,7 +182,6 @@ if Server then
     function StompMixin:ProcessMoveOnOwnedEntities(deltaTime)
 
         local ids = self.shockwaveEntIds
-
         for i = #ids, 1, -1 do
 
             local shockwave = Shared.GetEntity(ids[i])
@@ -192,7 +202,6 @@ if Server then
     function StompMixin:OnDestroy()
 
         local ids = self.shockwaveEntIds
-
         for i = #ids, 1, -1 do
 
             local shockwave = Shared.GetEntity(ids[i])
