@@ -206,9 +206,20 @@ function BoneShield:GetCanUseBoneShield(player)
     
 end
 
+local kStompOverridesFreshShieldWindow = 0.15
+function BoneShield:GetCanInterruptPrimaryForStomp()
+    return self.primaryAttacking == true and self.primaryAttackStartTime ~= nil and
+            Shared.GetTime() - self.primaryAttackStartTime <= kStompOverridesFreshShieldWindow
+end
+
+function BoneShield:InterruptPrimaryForStomp(player)
+    self.primaryAttacking = false
+end
+
 function BoneShield:OnPrimaryAttack(player)
     if not self.primaryAttacking and not self:GetHasPendingWeaponSwitch() and self:GetCanUseBoneShield(player) then
         self.primaryAttacking = true
+        self.primaryAttackStartTime = Shared.GetTime()
 
         if Server then
             player:TriggerEffects("onos_shield_start")
