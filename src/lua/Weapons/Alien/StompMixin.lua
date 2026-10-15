@@ -49,6 +49,12 @@ function StompMixin:GetIsStomping()
     return self.secondaryAttacking
 end
 
+function StompMixin:GetIsStompRunning()
+    return self.secondaryAttacking == true and self.secondaryAttackStartTime ~= nil and
+            Shared.GetTime() <= self.secondaryAttackStartTime + kAttackDurationStomp
+end
+
+
 function StompMixin:CancelStomp(player)
 
     self.secondaryAttacking = false
@@ -109,11 +115,24 @@ end
 
 function StompMixin:OnSecondaryAttack(player)
 
+
+    if player:GetTimeOfLastWeaponSwitch() > (self.stompButtonReleasedTime or 0) and
+            player:GetSecondaryAttackLastFrame() then
+        return
+    end
+
     local switchPending = self.GetHasPendingWeaponSwitch and self:GetHasPendingWeaponSwitch()
+    local canStart = not switchPending and not self:GetIsStompRunning() and
+            player:GetEnergy() >= kStompEnergyCost and player:GetIsOnGround()
+
     local primaryBusy = self.primaryAttacking or (self.GetIsPrimaryAttackInProgress and self:GetIsPrimaryAttackInProgress())
 
-    if not switchPending and not primaryBusy and not self.secondaryAttacking and
-            player:GetEnergy() >= kStompEnergyCost and player:GetIsOnGround() then
+    if canStart and primaryBusy and self.GetCanInterruptPrimaryForStomp and self:GetCanInterruptPrimaryForStomp() then
+        self:InterruptPrimaryForStomp(player)
+        primaryBusy = false
+    end
+
+    if canStart and not primaryBusy then
         self.secondaryAttacking = true
         self.stompHitReceived = false
         self.secondaryAttackStartTime = Shared.GetTime()
@@ -123,6 +142,7 @@ function StompMixin:OnSecondaryAttack(player)
 end
 
 function StompMixin:OnSecondaryAttackEnd(_)
+    self.stompButtonReleasedTime = Shared.GetTime()
 end
 
 function StompMixin:OnTag(tagName)
@@ -182,6 +202,7 @@ if Server then
     function StompMixin:ProcessMoveOnOwnedEntities(deltaTime)
 
         local ids = self.shockwaveEntIds
+
         for i = #ids, 1, -1 do
 
             local shockwave = Shared.GetEntity(ids[i])
@@ -202,6 +223,7 @@ if Server then
     function StompMixin:OnDestroy()
 
         local ids = self.shockwaveEntIds
+
         for i = #ids, 1, -1 do
 
             local shockwave = Shared.GetEntity(ids[i])
