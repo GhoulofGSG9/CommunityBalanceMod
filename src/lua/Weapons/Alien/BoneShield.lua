@@ -271,11 +271,12 @@ end
 function BoneShield:ProcessMoveOnWeapon(player, input)
 
     local now = Shared.GetTime()
+    local isAlive = player:GetIsAlive()
 
-    if not self.isBroken and ((now < self.hitPointsRechargeStartTime and self.hitPoints <= kEpsilon) or not player:GetIsAlive()) then
+    if not self.isBroken and ((now < self.hitPointsRechargeStartTime and self.hitPoints <= kEpsilon) or not isAlive) then
         self:OnBroken()
 
-    elseif now > self.hitPointsRechargeStartTime then
+    elseif isAlive and now > self.hitPointsRechargeStartTime then
         local hitpointsToRecover = 0
 
         -- ProcessMoveOnWeapon only gets called on active weapon, but we want boneshield fuel to regen while "holstered"
