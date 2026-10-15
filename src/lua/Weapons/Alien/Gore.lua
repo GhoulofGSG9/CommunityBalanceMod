@@ -162,7 +162,7 @@ function Gore:OnTag(tagName)
 
     if tagName == "hit" then
 
-        if self:GetHasPendingWeaponSwitch() or self.secondaryAttacking then
+        if self:GetHasPendingWeaponSwitch() or self:GetIsStompRunning() then
             self:OnAttackEnd()
             return
         end
@@ -201,7 +201,7 @@ end
 
 function Gore:OnPrimaryAttack(player)
 
-    if self:GetHasPendingWeaponSwitch() or self.secondaryAttacking then
+    if self:GetHasPendingWeaponSwitch() or self:GetIsStompRunning() then
         self:OnAttackEnd()
         return
     end
