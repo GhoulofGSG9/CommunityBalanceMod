@@ -190,7 +190,7 @@ function GetBabblerBallOrder(owner, target)
         return kBabblerMoveType.Cling
     elseif target:isa("Web") and owner and HasMixin(owner, "BabblerOwner")
         and target:GetNumWebbedBabblers() < kWebMaxBabblers -- Check for web free slots
-        and owner:GetBabblerCount() - owner:GetNumWebbedBabblers() > 0
+        and owner:GetBabblerCount() > 0
         then
         return kBabblerMoveType.Cling
     end
@@ -790,9 +790,6 @@ function Babbler:OnUse(player, elapsedTime, useSuccessTable)
         if HasMixin(player, "BabblerCling") and (isOwner or player:GetNumFreeDonationSpots() > 0) then
 
             local wasOnWeb = self:GetIsOnWeb()
-            if wasOnWeb then
-                self:DetachFromWeb()
-            end
 
             local attachPos = GetEngagementOrOrigin(player)
             self:OrderCling(player, attachPos)
@@ -830,12 +827,13 @@ function Babbler:OnUpdate(deltaTime)
     local now = Shared.GetTime()
     self:UpdateBabbler(deltaTime, now)
 
+    if Server and (not self.cb_routine_moveRandom or now > self.cb_routine_moveRandom) then
+        self:MoveRandom(now)
+        self.cb_routine_moveRandom = now + kUpdateMoveInterval + math.random() / 8
+    end
+
     if Server and not self:GetIsOnWeb() then
 
-        if not self.cb_routine_moveRandom or now > self.cb_routine_moveRandom then
-            self:MoveRandom(now)
-            self.cb_routine_moveRandom = now + kUpdateMoveInterval + math.random() / 8
-        end
         if not self.cb_routine_updateWag or now > self.cb_routine_updateWag then
             self:UpdateWag()
             self.cb_routine_updateWag = now + kBabblerWagInterval
@@ -1028,11 +1026,7 @@ if Server then
     {
         strollTimeout = 8,
         idleMin       = 1,
-        idleRange     = 1.8,          -- idle pause between strolls, calm: 1..2.5s
-        panicMin      = 0.1,          -- panicked: chain strolls back-to-back
-        panicRange    = 0.2,
-        panicSpeedMult = 3.0,
-        stackMax      = 2.0,          -- cap for stacking re-triggered panic
+        idleRange     = 1.8,          -- idle pause between strolls: 1..2.8s
 
         chatterMin   = 6,
         chatterRange = 8,     -- ambient chirps, calm delay after attach
@@ -1042,8 +1036,6 @@ if Server then
         foragingRange = 18,
         foragingInitialMin = 10, -- let them spread a bit on the web first
         foragingDelayRange = 20,
-        angerMin      = 0.4,
-        angerRange = 0.5,    -- angry barks while panicked
     }
 
     local kWorldUp = Vector(0, 1, 0)
@@ -1075,33 +1067,6 @@ if Server then
         return Coords(right, up, forward,
                 Vector(px, py, pz) + axis * t + up * radius)
 
-    end
-
-    -- Babblers panic for a short while when the web loses a charge (enemy ran into it).
-    function Babbler:PanicFromWeb(duration)
-
-        local now = Shared.GetTime()
-
-        local remaining = 0
-        if self.panicExpire ~= nil and now < self.panicExpire then
-            remaining = math.min(self.panicExpire - now, kWebConfig.stackMax)
-        end
-        self.panicExpire = now + remaining + duration
-
-        self.webWalkTimer = 0
-        self.timeNextWebAnger = now + 0.1
-
-    end
-
-    local function GetWebIdleTime(self, now)
-
-        local panicking = self.panicExpire ~= nil and (now or Shared.GetTime()) < self.panicExpire
-
-        if panicking then
-            return (kWebConfig.panicMin + math.random() * kWebConfig.panicRange) * self.webIdleMult
-        end
-
-        return (kWebConfig.idleMin + math.random() * kWebConfig.idleRange) * self.webIdleMult
     end
 
     -- Restarts the idle/free behaviour after a babbler leaves a web or a player.
@@ -1761,28 +1726,44 @@ if Server then
 
     end
 
+    -- Attacks the closest enemy in range (or one a sibling is already fighting).
+    -- Returns true if an attack order was given.
+    function Babbler:EngageNearbyEnemy()
+
+        local target = self.targetSelector:AcquireTarget() or self:GetTarget() or self:AdoptSiblingTarget(self:GetOwnerId())
+        if not target then
+            return false
+        end
+
+        self:OrderAttack(target, target:GetOrigin())
+        return true
+
+    end
+
     function Babbler:MoveRandom(now)
         PROFILE("Babbler:MoveRandom")
 
         now = now or Shared.GetTime()
+        local onWeb = self:GetIsOnWeb()
         if not self.babblerOffMap
             and (self.moveType == kBabblerMoveType.None)
-            and self:GetIsOnGround(now) then
+            and (onWeb or self:GetIsOnGround(now)) then
+
+            if onWeb and self.webSpawned then
+                return
+            end
+
+            -- On a web the only idle behaviour is strolling along it (UpdateWebBehavior)
+            if self:EngageNearbyEnemy() or onWeb then
+                return
+            end
 
             local orig = self:GetOrigin()
-            local target = self.targetSelector:AcquireTarget() or self:GetTarget()
             local owner = self:GetOwner()
-            local ownerId = self:GetOwnerId()
             local alive = owner and HasMixin(owner, "Live") and owner:GetIsAlive()
             local ownerOrigin = owner and (not owner:isa("Commander") and GetEngagementOrOrigin(owner) or owner.lastGroundOrigin)
 
-            if not target then
-                target = self:AdoptSiblingTarget(ownerId)
-            end
-
-            if target then
-                self:OrderAttack(target, target:GetOrigin())
-            elseif not self.babblerBombSpawned and owner and alive and HasMixin(owner, "BabblerCling")
+            if not self.babblerBombSpawned and owner and alive and HasMixin(owner, "BabblerCling")
                     and now >= self.freeRoamUntil then
                 if ownerOrigin then -- If nothing to do, go back to owner and wag a bit
                     if (ownerOrigin - orig):GetLength() < kMaxWagDist * 0.8 then
@@ -2124,22 +2105,6 @@ if Server then
 
         now = now or Shared.GetTime()
 
-        -- angry chittering while panicked
-        if self.panicExpire ~= nil then
-
-            if now < self.panicExpire then
-                if self.timeNextWebAnger == nil or now >= self.timeNextWebAnger then
-                    self:TriggerEffects("babbler_engage")
-                    self.timeNextWebAnger = now + kWebConfig.angerMin + math.random() * kWebConfig.angerRange
-                end
-            else
-                -- panic over, clean up so the timer doesn't linger
-                self.panicExpire = nil
-                self.timeNextWebAnger = nil
-            end
-
-        end
-
         -- Don't go to the edge of the web (it might be inside walls)
         local margin = math.min(kBabblerWebEndMargin, length * 0.2)
         local selfOrigin = self:GetOrigin()
@@ -2159,10 +2124,8 @@ if Server then
 
         if self.webTargetT ~= nil then
 
-            local panicking = self.panicExpire ~= nil and now < self.panicExpire
             local speed = (self.webFastTravel and kWebTravelSpeed or self.webWalkSpeed or Babbler.kWebWalkSpeed)
                     * self.webSpeedMult
-                    * (panicking and kWebConfig.panicSpeedMult or 1)
 
             local arrived, t = StepWebPosition(myT, self.webTargetT, self.webWalkDir, deltaTime, speed, margin, length)
             local timedOut = self.webWalkTimer <= 0
@@ -2184,6 +2147,7 @@ if Server then
                 forward.z = axis.z * self.webWalkDir
 
                 self:SetCoords(BuildWebCoords(origin.x, origin.y, origin.z, axis, t, radius, forward))
+                self.targetSelector:AttackerMoved()
 
             end
 
@@ -2193,7 +2157,7 @@ if Server then
                 self.webTravelStartT = nil
                 self.webTravelTotal = nil
                 self.webWalking = false
-                self.webWalkTimer = GetWebIdleTime(self, now)
+                self.webWalkTimer = (kWebConfig.idleMin + math.random() * kWebConfig.idleRange) * self.webIdleMult
             end
 
             return
@@ -2238,6 +2202,8 @@ if Server then
             return false
         end
 
+        self:SetMoveType(kBabblerMoveType.None, nil, nil, true)
+
         self.onWeb = true
         self.webId = web:GetId()
         self.babblerOffMap = nil
@@ -2260,7 +2226,6 @@ if Server then
         -- disable physic simulation
         self:SetGroundMoveType(true)
         self:UpdateJumpPhysicsBody()
-        self:SetMoveType(kBabblerMoveType.None, nil, nil, true)
 
         web:AddWebbedBabbler(self)
 
@@ -2287,8 +2252,9 @@ if Server then
         self.timeNextWebChatter = nil
         self.timeNextWebForage = nil
 
-        self.panicExpire = nil
-        self.timeNextWebAnger = nil
+        -- Leaving the web counts as a jump: fall under gravity instead of walking in mid-air
+        self.timeLastJump = Shared.GetTime()
+        self:SetGroundMoveType(false)
 
         -- Web-spawned babblers are deliberately ownerless (see Web:AttachInitialBabblers),
         -- so OnOwnerChanged's despawn-on-ownerless path never fires for them. Left to
@@ -2537,9 +2503,8 @@ if Server then
         local diffOfPosition = (self.targetPos and position) and position:GetDistanceTo(self.targetPos) or 0
         if force or ((moveType ~= self.moveType or targetId ~= self.targetId or diffOfPosition > 0) and not GetIgnoreOrders(self)) then
 
-            if self:GetIsClinged() then
-                self:Detach()
-            end
+            self:DetachFromWeb()
+            self:Detach()
 
             self.moveType = moveType
             self.targetId = targetId
