@@ -179,7 +179,7 @@ function Alien:ProcessBuyAction(techIds)
             -- put the player on the ground in an area with enough room for the new Alien.
             if not evolveAllowed then
             
-                for _ = 1, 100 do
+                for _ = 1, 5 do
                 
                     spawnPoint = GetRandomSpawnForCapsule(eggExtents.y, math.max(eggExtents.x, eggExtents.z), self:GetModelOrigin(), 0.5, 5, EntityFilterOne(self))
   
@@ -196,7 +196,7 @@ function Alien:ProcessBuyAction(techIds)
             
             if lifeFormTechId and not GetHasRoomForCapsule(newAlienExtents + spawnBufferExtents, self:GetOrigin() + Vector(0, newAlienExtents.y + Embryo.kEvolveSpawnOffset, 0), CollisionRep.Default, PhysicsMask.AllButPCsAndRagdollsAndBabblers, nil, EntityFilterOne(self)) then
            
-                for _ = 1, 100 do
+                for _ = 1, 5 do
 
                     roomAfter = GetRandomSpawnForCapsule(newAlienExtents.y, math.max(newAlienExtents.x, newAlienExtents.z), self:GetModelOrigin(), 0.5, 5, EntityFilterOne(self))
                     
