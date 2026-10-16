@@ -969,10 +969,10 @@ local function GetServerMods()
 	return mods
 end
 
-function StatsUI_UploadRoundStats(endpoint)
+function StatsUI_UploadRoundStats(endpoint, encodedStats)
     Log("Uploading stats to remote endpoint %s", endpoint.url)
 
-    Shared.SendHTTPRequest(endpoint.url, "POST", { authToken=endpoint.authToken, stats=json.encode(lastRoundStats) },
+    Shared.SendHTTPRequest(endpoint.url, "POST", { authToken=endpoint.authToken, stats=encodedStats or json.encode(lastRoundStats) },
         function(result, error, code)
             Log("Round stats upload to endpoint %s complete, result code: %s", endpoint.url, code)
         end
@@ -1019,21 +1019,23 @@ function StatsUI_SaveRoundStats(winningTeam)
 	lastRoundStats.Buildings = STATS_ExportBuilding
 	lastRoundStats.Research = STATS_ExportResearch
 
+	local encodedStats = json.encode(lastRoundStats)
+
 	if type(STATS_remoteEndpoint) == "table" then
         Log("Beginning remote stats upload...")
 
         if type(STATS_remoteEndpoint.endpoint) == "table" then
-            StatsUI_UploadRoundStats(STATS_remoteEndpoint.endpoint)
+            StatsUI_UploadRoundStats(STATS_remoteEndpoint.endpoint, encodedStats)
         end
 
         if type(STATS_remoteEndpoint.altEndpoint) == "table" then
-            StatsUI_UploadRoundStats(STATS_remoteEndpoint.altEndpoint)
+            StatsUI_UploadRoundStats(STATS_remoteEndpoint.altEndpoint, encodedStats)
         end
 	end
 
 	local savedServerFile = io.open(string.format("config://%s%s.json", serverStatsPath, Shared.GetSystemTime()), "w+")
 	if savedServerFile then
-		savedServerFile:write(json.encode(lastRoundStats))
+		savedServerFile:write(encodedStats)
 		io.close(savedServerFile)
 	end
 	
