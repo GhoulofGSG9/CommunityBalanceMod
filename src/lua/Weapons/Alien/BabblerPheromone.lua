@@ -93,6 +93,16 @@ local function CollectBabblers(self)
 
 end
 
+local function IsBabblerAttachedTo(babbler, entity)
+
+    if entity:isa("Web") then
+        return babbler:GetIsOnWeb() and babbler:GetWeb() == entity
+    end
+
+    return babbler:GetIsClinged() and babbler:GetParent() == entity
+
+end
+
 local function DispatchBabblers(babblers, order, entity, position, spots)
 
     if not position then
@@ -111,7 +121,7 @@ local function DispatchBabblers(babblers, order, entity, position, spots)
 
         local alreadyThere = order == kBabblerMoveType.Cling
                 and entity ~= nil
-                and (babbler:GetParent() == entity or babbler:GetWeb() == entity)
+                and IsBabblerAttachedTo(babbler, entity)
 
         if not alreadyThere then
 
