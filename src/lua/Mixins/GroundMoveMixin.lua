@@ -617,25 +617,24 @@ local function DoStepMove(self, _, velocity, deltaTime)
     local ctrlHeight, ctrlRadius = self:GetControllerSize()
     local skippedUpCheck = false
 
-    -- -- Optimization attempt that leads to many hard to fix stuck issues, turning it off for now
-    -- if self.performedDownTraceLastMove and not crouching
-    --         and self.stepSkipCtrlHeight == ctrlHeight and self.stepSkipCtrlRadius == ctrlRadius
-    --         and self.stepSkipOrigin == origin then
+    if self.performedDownTraceLastMove and not crouching
+            and self.stepSkipCtrlHeight == ctrlHeight and self.stepSkipCtrlRadius == ctrlRadius
+            and self.stepSkipOrigin == origin then
 
-    --     local skipHeight = self.stepSkipHeight
-    --     SetOriginXYZ(self, oldX, oldY + skipHeight, oldZ)
+        local skipHeight = self.stepSkipHeight
+        SetOriginXYZ(self, oldX, oldY + skipHeight, oldZ)
 
-    --     -- The proof is one move old and only covers static geometry. A player landing on us,
-    --     -- a door or a lift may have entered the column since, so make sure the teleported-to
-    --     -- position is actually free. If not, undo and do the real up trace below.
-    --     if self:GetIsColliding() then
-    --         SetOriginXYZ(self, oldX, oldY, oldZ)
-    --     else
-    --         skippedUpCheck = true
-    --         stepAmount = skipHeight
-    --     end
+        -- The proof is one move old and only covers static geometry. A player landing on us,
+        -- a door or a lift may have entered the column since, so make sure the teleported-to
+        -- position is actually free. If not, undo and do the real up trace below.
+        if self:GetIsColliding() then
+            SetOriginXYZ(self, oldX, oldY, oldZ)
+        else
+            skippedUpCheck = true
+            stepAmount = skipHeight
+        end
 
-    -- end
+    end
 
     if not skippedUpCheck then
         _PerformMovement(self, kUpVector, 1)
