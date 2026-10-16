@@ -364,6 +364,14 @@ function DamageMixin:DoDamage(damage, target, point, direction, surface, altMode
 
     PROFILE("DamageMixin:DoDamage")
 
+    -- Weapons derive direction as (hit - start):GetUnit(), which is NaN when the trace starts inside the target.
+    if direction and not VectorIsFinite(direction) then
+        direction = nil
+    end
+    if point and not VectorIsFinite(point) then
+        point = target and target.GetEngagementPoint and target:GetEngagementPoint() or self:GetOrigin()
+    end
+
     local killedFromDamage = false
     local attacker = nil
     local weapon = nil

@@ -216,6 +216,7 @@ if kCBMaddon then
 	  - Fixed babblers playing their run animation while standing still, and their legs not following the direction they move.
 	  - Fixed the plasma launcher energy display and shots running ahead of the server.
 	  - Fixed armory exosuit refits removing parasite and instantly cooling an overheated minigun.
+	  - Fixed point-blank hits sometimes showing no damage number.
 	  - Improved performance of line of sight functions.
 	  - Improved performance of weapon holder functions.
 	  - Improved performance of cloaking functions.
@@ -978,6 +979,7 @@ else
 	  - Fixed babblers playing their run animation while standing still, and their legs not following the direction they move.
 	  - Fixed the plasma launcher energy display and shots running ahead of the server.
 	  - Fixed armory exosuit refits removing parasite and instantly cooling an overheated minigun.
+	  - Fixed point-blank hits sometimes showing no damage number.
 	  - Improved performance of line of sight functions.
 	  - Improved performance of weapon holder functions.
 	  - Improved performance of cloaking functions.
