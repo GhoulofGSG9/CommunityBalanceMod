@@ -229,12 +229,21 @@ function Onos:GetIsCharging()
     return self.charging
 end
 
+-- Derived from the active weapon instead of the plain (non-networked) self.stomping field, so prediction rollbacks,
+-- weapon removal and destruction can't leave a stale "stomping" flag behind that locks weapon switching or jumping.
+function Onos:GetIsStomping()
+
+    local activeWeapon = self:GetActiveWeapon()
+    return activeWeapon ~= nil and activeWeapon.GetIsStomping ~= nil and activeWeapon:GetIsStomping() == true
+
+end
+
 function Onos:GetCanChangeWeapon()
-    return not self.stomping
+    return not self:GetIsStomping()
 end
 function Onos:GetCanJump()
 
-    return Alien.GetCanJump(self) and not self.stomping and not self:GetIsBoneShieldActive()
+    return Alien.GetCanJump(self) and not self:GetIsStomping() and not self:GetIsBoneShieldActive()
     
 end
 
