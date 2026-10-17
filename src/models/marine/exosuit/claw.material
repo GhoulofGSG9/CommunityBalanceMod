@@ -1,4 +1,4 @@
-shader = "models/marine/exosuit/exosuit.surface_shader"
+shader = "shaders/ExoWeapon.surface_shader"
 albedoMap = "models/marine/exosuit/claw.dds"
 normalMap = "models/marine/exosuit/claw_normal.dds"
 specularMap = "models/marine/exosuit/claw_spec.dds"

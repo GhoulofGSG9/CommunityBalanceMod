@@ -615,11 +615,11 @@ GUIMarineBuyMenu.kExoModuleData = {
     --    image          = kInventoryIconsTexture,
     --    imageTexCoords = { GetSmallIconPixelCoordinates(kTechId.Welder) },
     --},
-    --[kExoModuleTypes.Shield]       = {
-    --    label          = "Shield", tooltip = "EXO_WEAPON_SHIELD_TOOLTIP",
-    --    image          = kInventoryIconsTexture,
-    --    imageTexCoords = { GetSmallIconPixelCoordinates(kTechId.PulseGrenade) },
-    --},
+    [kExoModuleTypes.Shield] = {
+        label = "Barrier Shield", tooltip = "Hold the left attack button to project a barrier. Lower it to recharge. Overloading it temporarily disables it.",
+        image = "ui/exo_barrier_icon.dds",
+        imageTexCoords = { 0, 0, 256, 128 },
+    },
     --[kExoModuleTypes.MarineStructureAbility] = {
     --    label = "Builder", tooltip = "EXO_WEAPON_SHIELD_TOOLTIP",
     --    image = kInventoryIconsTexture,
@@ -1787,8 +1787,12 @@ local function HandleItemClicked(self)
     end
 	
     if self.hoveringExo then
+        if self:_HandleMixedExoPresetClick() then return true, false end
         local researched = self:_GetResearchInfo(kTechId.DualMinigunExosuit)
-        if GetIsMouseOver(self, self.modularExoBuyButton) and researched then
+        local configValid, _, configCost = ModularExo_GetIsConfigValid(self.exoConfig)
+        local canAffordConfig = configValid and PlayerUI_GetPlayerResources()
+            >= math.max(0, (configCost or 0) - (self.activeExoConfigResCost or 0))
+        if GetIsMouseOver(self, self.modularExoBuyButton) and researched and canAffordConfig then
             Client.SendNetworkMessage("ExoModularBuy", ModularExo_ConvertConfigToNetMessage(self.exoConfig))
             MarineBuy_OnClose()
             return true, true
@@ -1934,7 +1938,8 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
         -- isValid, badReason, resourceCost
         local _, _, resourceCost = ModularExo_GetIsConfigValid(self.activeExoConfig)
         self.activeExoConfigResCost = resourceCost
-        self.exoConfig = self.activeExoConfig
+        self.exoConfig = {}
+        for slot, value in pairs(self.activeExoConfig) do self.exoConfig[slot] = value end
     else
         self.activeExoConfig = {}
         self.activeExoConfigResCost = 0
@@ -2095,6 +2100,71 @@ function GUIMarineBuyMenu:_InitializeExoModularButtons()
         panelBackground:SetPosition(Vector(panelX, panelY, 0))
         self.rightSideRoot:AddChild(panelBackground)
     end
+    self:_CreateMixedExoPresetButtons()
+end
+
+function GUIMarineBuyMenu:_CreateMixedExoPresetButtons()
+    self.modularExoMixedPresetButtons = {}
+    local presets = {
+        { label = "L: Minigun / R: Railgun", left = kExoModuleTypes.Minigun, right = kExoModuleTypes.Railgun },
+        { label = "L: Railgun / R: Minigun", left = kExoModuleTypes.Railgun, right = kExoModuleTypes.Minigun },
+    }
+    for index, preset in ipairs(presets) do
+        local button = self:CreateAnimatedGraphicItem()
+        button:SetIsScaling(false)
+        button:SetSize(Vector(325, 64, 0))
+        button:SetPosition(Vector((index - 1) * 335, 12, 0))
+        button:SetTexture(kButtonTexture)
+        button:SetOptionFlag(GUIItem.CorrectScaling)
+        button:SetLayer(kGUILayerMarineBuyMenu)
+        self.rightSideRoot:AddChild(button)
+        table.insert(self.modularExoGraphicItemsToDestroyList, button)
+
+        local label = self:CreateAnimatedTextItem()
+        label:SetIsScaling(false)
+        label:SetAnchor(GUIItem.Middle, GUIItem.Center)
+        label:SetPosition(Vector(0, 0, 0))
+        label:SetFontName(kFont)
+        label:SetTextAlignmentX(GUIItem.Align_Center)
+        label:SetTextAlignmentY(GUIItem.Align_Center)
+        label:SetText(preset.label)
+        label:SetOptionFlag(GUIItem.CorrectScaling)
+        GUIMakeFontScale(label, "kAgencyFB", 27)
+        button:AddChild(label)
+        preset.buttonGraphic = button
+        preset.labelGraphic = label
+        table.insert(self.modularExoMixedPresetButtons, preset)
+    end
+    self:_RefreshMixedExoPresetButtons()
+end
+
+function GUIMarineBuyMenu:_RefreshMixedExoPresetButtons()
+    for _, preset in ipairs(self.modularExoMixedPresetButtons or {}) do
+        local candidate = {}
+        for slot, value in pairs(self.exoConfig) do candidate[slot] = value end
+        candidate[kExoModuleSlots.LeftArm] = preset.left
+        candidate[kExoModuleSlots.RightArm] = preset.right
+        preset.enabled = ModularExo_GetIsConfigValid(candidate)
+        local selected = self.exoConfig[kExoModuleSlots.LeftArm] == preset.left
+            and self.exoConfig[kExoModuleSlots.RightArm] == preset.right
+        local color = not preset.enabled and Color(0.3, 0.3, 0.3, 0.5)
+            or selected and Color(0, 0.7, 1, 1)
+            or Color(0.82, 0.98, 1, 0.65)
+        preset.buttonGraphic:SetColor(color)
+        preset.labelGraphic:SetColor(kTextColor)
+    end
+end
+
+function GUIMarineBuyMenu:_HandleMixedExoPresetClick()
+    for _, preset in ipairs(self.modularExoMixedPresetButtons or {}) do
+        if GetIsMouseOver(self, preset.buttonGraphic) and preset.enabled then
+            self.exoConfig[kExoModuleSlots.LeftArm] = preset.left
+            self.exoConfig[kExoModuleSlots.RightArm] = preset.right
+            self:_RefreshExoModularButtons()
+            return true
+        end
+    end
+    return false
 end
 
 function GUIMarineBuyMenu:MakeModuleButton(moduleType, moduleTypeData, offsetX, offsetY, slotType, vertical)
@@ -2231,7 +2301,8 @@ function GUIMarineBuyMenu:_UpdateExoModularButtons(deltaTime)
 				
         -- local researched = self:_GetResearchInfo(kTechId.DualMinigunExosuit)
 		local researched = self.hostStructure:GetTechId() == kTechId.ExoPrototypeLab
-        if not researched or PlayerUI_GetPlayerResources() < self.exoConfigResourceCost - self.activeExoConfigResCost then
+        local configValid = ModularExo_GetIsConfigValid(self.exoConfig)
+        if not configValid or not researched or PlayerUI_GetPlayerResources() < self.exoConfigResourceCost - self.activeExoConfigResCost then
             self.modularExoBuyButton:SetColor(Color(1, 0, 0, 1))
             self.modularExoBuyButtonText:SetColor(Color(0.5, 0.5, 0.5, 1))
             self.modularExoCostText:SetColor(kCannotBuyColor)
@@ -2266,6 +2337,7 @@ function GUIMarineBuyMenu:_UpdateExoModularButtons(deltaTime)
 end
 
 function GUIMarineBuyMenu:_RefreshExoModularButtons()
+    self:_RefreshMixedExoPresetButtons()
     local _, _, resourceCost, _, _ = ModularExo_GetIsConfigValid(self.exoConfig)
     resourceCost = resourceCost or 0
     self.exoConfigResourceCost = resourceCost
@@ -2283,7 +2355,7 @@ function GUIMarineBuyMenu:_RefreshExoModularButtons()
 				ArmType = "Blowtorch"
 			end
 			local numUsers = teamInfo[ArmType]
-			assert(numUsers, string.format("Netvar %s does not exist in MarineTeamInfo!", netVarName))
+			numUsers = numUsers or 0
 			buttonData.teamNumber:SetText(string.format("%d", numUsers))
 		end
 		

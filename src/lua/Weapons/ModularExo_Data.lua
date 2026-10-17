@@ -1,5 +1,6 @@
 Script.Load("lua/Weapons/Marine/ExoWeaponHolder.lua")
 Script.Load("lua/Weapons/Marine/Claw.lua")
+Script.Load("lua/Weapons/Marine/ExoShield.lua")
 Script.Load("lua/Weapons/Marine/PlasmaLauncher.lua")
 Script.Load("lua/Weapons/Marine/ExoFlamer.lua")
 Script.Load("lua/Weapons/Marine/Minigun.lua")
@@ -70,6 +71,7 @@ kExoArmNames = {
     "Railgun",
 	"PlasmaLauncher",
 	"Blowtorch",
+    "Shield",
 }
 
 -- Module type data
@@ -252,6 +254,18 @@ else
 			leftArmOnly    = false,
 			singleRightArmOnly = true,
 		},
+		[kExoModuleTypes.PlasmaLauncher]    = {
+			category       = kExoModuleCategories.Weapon,
+			powerCost      = 0,
+			resourceCost   = kPlasmaLauncherCost,
+			mapName        = PlasmaLauncher.kMapName,
+			armType        = kExoArmTypes.PlasmaLauncher,
+			weight         = kPlasmaLauncherWeight,
+			armorValue     = kPlasmaLauncherArmor,
+			requiredTechId = kPlasmaLauncherTech,
+			leftArmOnly    = false,
+			singleRightArmOnly = true,
+		},
 		-- Utility modules
 		[kExoModuleTypes.Thrusters]  = {
 			category       = kExoModuleCategories.Utility,
@@ -281,36 +295,44 @@ kExoWeaponRightLeftComboModels = {
         isValid                = true,
         [kExoArmTypes.Minigun] = {
             isValid        = true,
-            worldModel     = "models/marine/exosuit/exosuit_mm.model",
-            worldAnimGraph = "models/marine/exosuit/exosuit_mm.animation_graph",
-            viewModel      = "models/marine/exosuit/exosuit_mm_view.model",
-            viewAnimGraph  = "models/marine/exosuit/exosuit_mm_view.animation_graph",
+            worldModel     = PrecacheAsset("models/marine/exosuit/exosuit_mm.model"),
+            worldAnimGraph = PrecacheAsset("models/marine/exosuit/exosuit_mm.animation_graph"),
+            viewModel      = PrecacheAsset("models/marine/exosuit/exosuit_mm_view.model"),
+            viewAnimGraph  = PrecacheAsset("models/marine/exosuit/exosuit_mm_view.animation_graph"),
         },
         [kExoArmTypes.Railgun] = {
-            isValid = false,
+            isValid        = true,
+            worldModel     = PrecacheAsset("models/marine/exosuit/exosuit_rm.model"),
+            worldAnimGraph = PrecacheAsset("models/marine/exosuit/exosuit_rm.animation_graph"),
+            viewModel      = PrecacheAsset("models/marine/exosuit/exosuit_rm_view.model"),
+            viewAnimGraph  = PrecacheAsset("models/marine/exosuit/exosuit_rm_view.animation_graph"),
         },
 		[kExoArmTypes.PlasmaLauncher] = {
             isValid = false,
         },
         [kExoArmTypes.Claw]    = {
             isValid        = true,
-            worldModel     = "models/claw/exosuit_cm.model",
-            worldAnimGraph = "models/claw/exosuit_cm.animation_graph",
-            viewModel      = "models/claw/exosuit_cm_view.model",
-            viewAnimGraph  = "models/claw/exosuit_cm_view.animation_graph",
+            worldModel     = PrecacheAsset("models/marine/exosuit/exosuit_cm.model"),
+            worldAnimGraph = PrecacheAsset("models/marine/exosuit/exosuit_cm.animation_graph"),
+            viewModel      = PrecacheAsset("models/marine/exosuit/exosuit_cm_view.model"),
+            viewAnimGraph  = PrecacheAsset("models/marine/exosuit/exosuit_cm_view.animation_graph"),
         },
     },
     [kExoArmTypes.Railgun] = {
         isValid                = true,
         [kExoArmTypes.Minigun] = {
-            isValid = false,
+            isValid        = true,
+            worldModel     = PrecacheAsset("models/marine/exosuit/exosuit_mr.model"),
+            worldAnimGraph = PrecacheAsset("models/marine/exosuit/exosuit_mr.animation_graph"),
+            viewModel      = PrecacheAsset("models/marine/exosuit/exosuit_mr_view.model"),
+            viewAnimGraph  = PrecacheAsset("models/marine/exosuit/exosuit_mr_view.animation_graph"),
         },
         [kExoArmTypes.Railgun] = {
             isValid        = true,
-            worldModel     = "models/marine/exosuit/exosuit_rr.model",
-            worldAnimGraph = "models/marine/exosuit/exosuit_rr.animation_graph",
-            viewModel      = "models/marine/exosuit/exosuit_rr_view.model",
-            viewAnimGraph  = "models/marine/exosuit/exosuit_rr_view.animation_graph",
+            worldModel     = PrecacheAsset("models/marine/exosuit/exosuit_rr.model"),
+            worldAnimGraph = PrecacheAsset("models/marine/exosuit/exosuit_rr.animation_graph"),
+            viewModel      = PrecacheAsset("models/marine/exosuit/exosuit_rr_view.model"),
+            viewAnimGraph  = PrecacheAsset("models/marine/exosuit/exosuit_rr_view.animation_graph"),
         },
 		[kExoArmTypes.PlasmaLauncher] = {
             isValid        = true,
@@ -321,10 +343,10 @@ kExoWeaponRightLeftComboModels = {
         },
         [kExoArmTypes.Claw]    = {
             isValid        = true,
-            worldModel     = "models/claw/exosuit_cr.model",
-            worldAnimGraph = "models/claw/exosuit_cr.animation_graph",
-            viewModel      = "models/claw/exosuit_cr_view.model",
-            viewAnimGraph  = "models/claw/exosuit_cr_view.animation_graph",
+            worldModel     = PrecacheAsset("models/marine/exosuit/exosuit_cr.model"),
+            worldAnimGraph = PrecacheAsset("models/marine/exosuit/exosuit_cr.animation_graph"),
+            viewModel      = PrecacheAsset("models/marine/exosuit/exosuit_cr_view.model"),
+            viewAnimGraph  = PrecacheAsset("models/marine/exosuit/exosuit_cr_view.animation_graph"),
         },
     },
     [kExoArmTypes.Claw]    = {
@@ -341,10 +363,10 @@ kExoWeaponRightLeftComboModels = {
         },
         [kExoArmTypes.Claw]    = {
             isValid        = false,
-            worldModel     = "models/claw/exosuit_cm.model",
-            worldAnimGraph = "models/claw/exosuit_cm.animation_graph",
-            viewModel      = "models/claw/exosuit_cm_view.model",
-            viewAnimGraph  = "models/claw/exosuit_cm_view.animation_graph",
+            worldModel     = PrecacheAsset("models/marine/exosuit/exosuit_cm.model"),
+            worldAnimGraph = PrecacheAsset("models/marine/exosuit/exosuit_cm.animation_graph"),
+            viewModel      = PrecacheAsset("models/marine/exosuit/exosuit_cm_view.model"),
+            viewAnimGraph  = PrecacheAsset("models/marine/exosuit/exosuit_cm_view.animation_graph"),
         }, -- NOT A VALID MODEL!
     },
 	[kExoArmTypes.PlasmaLauncher] = {
@@ -375,3 +397,80 @@ kExoWeaponRightLeftComboModels = {
         },
     },
 }
+
+-- Dual claws reuse the existing Claw module in both arm slots.
+kExoModuleTypesData[kExoModuleTypes.Claw].leftArmOnly = false
+kExoWeaponRightLeftComboModels[kExoArmTypes.Claw].isValid = true
+kExoWeaponRightLeftComboModels[kExoArmTypes.Claw][kExoArmTypes.Claw] = {
+    isValid = true,
+    worldModel = PrecacheAsset("models/marine/exosuit/exosuit_cc.model"),
+    worldAnimGraph = PrecacheAsset("models/marine/exosuit/exosuit_cc.animation_graph"),
+    viewModel = PrecacheAsset("models/marine/exosuit/exosuit_cc_view.model"),
+    viewAnimGraph = PrecacheAsset("models/marine/exosuit/exosuit_cc_view.animation_graph"),
+}
+
+-- Right-claw loadouts use mirrored models and hand-swapped native CBM graphs.
+local function MakeRightClawModelData(pair)
+    local base = "models/marine/exosuit/" .. (pair=="pc" and "exosuit_charged_" or "exosuit_") .. pair
+    return {
+        isValid = true,
+        worldModel = PrecacheAsset(base .. ".model"),
+        worldAnimGraph = PrecacheAsset(base .. ".animation_graph"),
+        viewModel = PrecacheAsset(base .. "_view.model"),
+        viewAnimGraph = PrecacheAsset(base .. "_view.animation_graph"),
+    }
+end
+kExoWeaponRightLeftComboModels[kExoArmTypes.Claw][kExoArmTypes.Minigun] = MakeRightClawModelData("mc")
+kExoWeaponRightLeftComboModels[kExoArmTypes.Claw][kExoArmTypes.Railgun] = MakeRightClawModelData("rc")
+kExoWeaponRightLeftComboModels[kExoArmTypes.Claw][kExoArmTypes.PlasmaLauncher] = MakeRightClawModelData("pc")
+
+-- Plasma launcher pairings use the charged arm models.
+local plasmaArms = { c = kExoArmTypes.Claw, m = kExoArmTypes.Minigun,
+    r = kExoArmTypes.Railgun, p = kExoArmTypes.PlasmaLauncher }
+for leftCode, leftType in pairs(plasmaArms) do
+    for rightCode, rightType in pairs(plasmaArms) do
+        if leftCode == "p" or rightCode == "p" then
+            local base = "models/marine/exosuit/exosuit_charged_" .. leftCode .. rightCode
+            kExoWeaponRightLeftComboModels[rightType] = kExoWeaponRightLeftComboModels[rightType] or {}
+            kExoWeaponRightLeftComboModels[rightType].isValid = true
+            kExoWeaponRightLeftComboModels[rightType][leftType] = {
+                isValid = true, worldModel = PrecacheAsset(base .. ".model"),
+                worldAnimGraph = PrecacheAsset(base .. ".animation_graph"),
+                viewModel = PrecacheAsset(base .. "_view.model"),
+                viewAnimGraph = PrecacheAsset(base .. "_view.animation_graph"),
+            }
+        end
+    end
+end
+
+
+-- Lightweight barrier: one emitter on the left arm, compatible with every
+-- selectable right-hand weapon. The claw arm supplies the mounting pose.
+kExoModuleTypesData[kExoModuleTypes.Shield] = {
+    category = kExoModuleCategories.Weapon, powerCost = 0,
+    resourceCost = kExoShieldCost, mapName = ExoShield.kMapName,
+    armType = kExoArmTypes.Claw, weight = 0.08, armorValue = 0,
+    requiredTechId = kExoShieldTech, leftArmOnly = false,
+    singleRightArmOnly = false,
+}
+
+-- Shield variants retain each loadout rig and replace only its equipped hand.
+kExoShieldModelVariants = {}
+kExoShieldModelVariants["l:models/marine/exosuit/exosuit_cc.model"] = PrecacheAsset("models/marine/exosuit/shield_l_exosuit_cc.model")
+kExoShieldModelVariants["l:models/marine/exosuit/exosuit_cc_view.model"] = PrecacheAsset("models/marine/exosuit/shield_l_exosuit_cc_view.model")
+kExoShieldModelVariants["r:models/marine/exosuit/exosuit_cc.model"] = PrecacheAsset("models/marine/exosuit/shield_r_exosuit_cc.model")
+kExoShieldModelVariants["r:models/marine/exosuit/exosuit_cc_view.model"] = PrecacheAsset("models/marine/exosuit/shield_r_exosuit_cc_view.model")
+kExoShieldModelVariants["lr:models/marine/exosuit/exosuit_cc.model"] = PrecacheAsset("models/marine/exosuit/shield_lr_exosuit_cc.model")
+kExoShieldModelVariants["lr:models/marine/exosuit/exosuit_cc_view.model"] = PrecacheAsset("models/marine/exosuit/shield_lr_exosuit_cc_view.model")
+kExoShieldModelVariants["l:models/marine/exosuit/exosuit_cm.model"] = PrecacheAsset("models/marine/exosuit/shield_l_exosuit_cm.model")
+kExoShieldModelVariants["l:models/marine/exosuit/exosuit_cm_view.model"] = PrecacheAsset("models/marine/exosuit/shield_l_exosuit_cm_view.model")
+kExoShieldModelVariants["l:models/marine/exosuit/exosuit_cr.model"] = PrecacheAsset("models/marine/exosuit/shield_l_exosuit_cr.model")
+kExoShieldModelVariants["l:models/marine/exosuit/exosuit_cr_view.model"] = PrecacheAsset("models/marine/exosuit/shield_l_exosuit_cr_view.model")
+kExoShieldModelVariants["l:models/marine/exosuit/exosuit_charged_cp.model"] = PrecacheAsset("models/marine/exosuit/shield_l_exosuit_charged_cp.model")
+kExoShieldModelVariants["l:models/marine/exosuit/exosuit_charged_cp_view.model"] = PrecacheAsset("models/marine/exosuit/shield_l_exosuit_charged_cp_view.model")
+kExoShieldModelVariants["r:models/marine/exosuit/exosuit_mc.model"] = PrecacheAsset("models/marine/exosuit/shield_r_exosuit_mc.model")
+kExoShieldModelVariants["r:models/marine/exosuit/exosuit_mc_view.model"] = PrecacheAsset("models/marine/exosuit/shield_r_exosuit_mc_view.model")
+kExoShieldModelVariants["r:models/marine/exosuit/exosuit_rc.model"] = PrecacheAsset("models/marine/exosuit/shield_r_exosuit_rc.model")
+kExoShieldModelVariants["r:models/marine/exosuit/exosuit_rc_view.model"] = PrecacheAsset("models/marine/exosuit/shield_r_exosuit_rc_view.model")
+kExoShieldModelVariants["r:models/marine/exosuit/exosuit_charged_pc.model"] = PrecacheAsset("models/marine/exosuit/shield_r_exosuit_charged_pc.model")
+kExoShieldModelVariants["r:models/marine/exosuit/exosuit_charged_pc_view.model"] = PrecacheAsset("models/marine/exosuit/shield_r_exosuit_charged_pc_view.model")

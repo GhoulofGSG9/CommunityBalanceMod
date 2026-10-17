@@ -203,7 +203,7 @@ function Minigun:OnPrimaryAttackEnd(player)
     
 end
 
-function Minigun:GetBarrelPoint()
+local function GetLegacyBarrelPoint(self)
 
     local player = self:GetParent()
     if player then
@@ -236,6 +236,55 @@ function Minigun:GetBarrelPoint()
     
     return self:GetOrigin()
     
+end
+
+-- Resolve the actual firing attachment for paired and modular models alike.
+-- Never substitute a railgun muzzle for a minigun muzzle.
+function Minigun:GetFiringMuzzleCoords()
+    local player = self:GetParent()
+    if not player then return nil end
+    local side = self:GetIsLeftSlot() and "left" or "right"
+    local isView = Client and player:GetIsLocalPlayer() and not player:GetIsThirdPerson()
+    if Client and ModularExoVisuals and ModularExoVisuals.GetMuzzleCoords then
+        local frame = ModularExoVisuals.GetMuzzleCoords(player, side, isView)
+        if frame and frame:GetIsFinite() then return frame, isView, true end
+    end
+    local source = isView and player:GetViewModelEntity() or player
+    if not source or not source.GetAttachPointIndex then return nil end
+    local prefix = self:GetIsLeftSlot() and "l" or "r"
+    for _,name in ipairs({"fxnode_"..prefix.."_minigun_muzzle", "fxnode_"..prefix.."minigunmuzzle"}) do
+        if source:GetAttachPointIndex(name) >= 0 then
+            local frame = source:GetAttachPointCoords(name)
+            -- World effects attach to the rendered model, which can have scale
+            -- and pose adjustments beyond the entity's cached model coords.
+            if Client and not isView and source.GetRenderModel and source.boneCoords then
+                local render = source:GetRenderModel()
+                local model = Shared.GetModel(source.modelIndex)
+                if render and model and source.boneCoords:GetSize() > 0 then
+                    frame = render:GetCoords() * model:GetAttachPointCoords(source:GetAttachPointIndex(name), source.boneCoords)
+                end
+            end
+            if frame and frame:GetIsFinite() then return frame, isView, false, name end
+        end
+    end
+end
+
+function Minigun:GetBarrelPoint()
+    local frame, isView = self:GetFiringMuzzleCoords()
+    if frame then
+        if not isView then return frame.origin end
+        -- View-model attachments are in camera space and use a separate FOV.
+        -- Reproject into the world tracer camera so their screen origins match.
+        local player = self:GetParent()
+        local viewFov = Client.GetZoneFov(RenderScene.Zone_ViewModel)
+        local worldFov = Client.GetZoneFov(RenderScene.Zone_Default)
+        if not worldFov or worldFov <= 0 then worldFov = math.rad(player:GetFov()) end
+        local scale = viewFov and viewFov > 0 and math.tan(worldFov*.5)/math.tan(viewFov*.5) or 1
+        local point = Vector(frame.origin.x*scale, frame.origin.y*scale, frame.origin.z)
+        return GetRenderCameraCoords():TransformPoint(point)
+    end
+    -- Only used before a model/attachment is available, never as loadout offsets.
+    return GetLegacyBarrelPoint(self)
 end
 
 function Minigun:GetTracerEffectName()
@@ -373,7 +422,7 @@ function Minigun:ProcessMoveOnWeapon(player, input)
     if Client and not Shared.GetIsRunningPrediction() then
     
         local spinSound = Shared.GetEntity(self.spinSoundId)
-        spinSound:SetParameter("heat", self.heatAmount, 1)
+        if spinSound then spinSound:SetParameter("heat", self.heatAmount, 1) end
         
         --[[
         if player:GetIsLocalPlayer() then
@@ -529,17 +578,19 @@ if Client then
     end
     
     function Minigun:OnClientPrimaryAttacking()
-    
         local parent = self:GetParent()
-        
-        if parent then
-            CreateMuzzleCinematic(self, 
-                kMuzzleEffectName[self:GetExoWeaponSlot()], 
-                kMuzzleEffectName[self:GetExoWeaponSlot()], 
-                kAttachPoints[self:GetExoWeaponSlot()], 
-                parent, nil, true)
+        if not parent then return end
+        local frame, isView, modular, attachName = self:GetFiringMuzzleCoords()
+        if modular and frame then
+            local effect = Client.CreateCinematic(isView and RenderScene.Zone_ViewModel or RenderScene.Zone_Default)
+            effect:SetCinematic(FilterCinematicName(kMuzzleEffectName[self:GetExoWeaponSlot()]))
+            effect:SetCoords(frame)
+        else
+            CreateMuzzleCinematic(self,
+                kMuzzleEffectName[self:GetExoWeaponSlot()],
+                kMuzzleEffectName[self:GetExoWeaponSlot()],
+                attachName or kAttachPoints[self:GetExoWeaponSlot()], parent, nil, true)
         end
-    
     end
 
     function Minigun:OnFilteredCinematicOptionChanged()

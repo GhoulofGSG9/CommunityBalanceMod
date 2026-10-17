@@ -1,0 +1,2 @@
+shader = "shaders/ExoShieldLink.surface_shader"
+surface = "nanoshield"

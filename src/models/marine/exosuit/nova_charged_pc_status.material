@@ -1,0 +1,6 @@
+shader = "shaders/MixedExoStatus.surface_shader"
+emissiveMap = "*exo_railgun_left"
+alternateMap = "*exo_claw_right"
+
+baseIsArm = 0
+alternateIsArm = 1

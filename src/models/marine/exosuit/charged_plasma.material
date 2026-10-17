@@ -1,0 +1,6 @@
+shader = "shaders/ExoWeapon.surface_shader"
+albedoMap = "models/marine/exosuit/charged_plasma_albedo.dds"
+normalMap = "models/marine/exosuit/charged_plasma_normal.dds"
+specularMap = "models/marine/exosuit/charged_plasma_specular.dds"
+emissiveMap = "models/marine/exosuit/charged_plasma_emissive.dds"
+surface = "metal"

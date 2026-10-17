@@ -1,0 +1,129 @@
+<shader>
+<inputs>
+ <input name="shieldMap" type="texture" address="clamp"/>
+ <input name="shieldOpacity" type="float">1.0</input>
+ <input name="shieldHalf" type="float">0.0</input>
+ <input name="shieldDual" type="float">0.0</input>
+ <input name="shieldHeat" type="float">0.0</input>
+ <input name="shieldHitAge" type="float">1</input>
+ <input name="shieldHit" type="float">0.0</input>
+ <input name="shieldHitU" type="float">0.5</input>
+ <input name="shieldHitV" type="float">0.5</input>
+ <input name="shieldEmit1U" type="float">0.25</input>
+ <input name="shieldEmit1V" type="float">0.65</input>
+ <input name="shieldEmit1" type="float">1.0</input>
+ <input name="shieldEmit2U" type="float">0.75</input>
+ <input name="shieldEmit2V" type="float">0.65</input>
+ <input name="shieldEmit2" type="float">0.0</input>
+ <input name="shieldContact" type="float">0</input>
+ <input name="shieldAbsorb" type="float">0</input>
+</inputs>
+<params>
+ <param name="translucent">true</param>
+ <param name="vsNormal">true</param>
+</params>
+<code><![CDATA[
+// Hard-light barrier, drawn as one continuous field across both half meshes.
+// The shape follows whole hex cells (no cut cells, no highlighted border); energy
+// flows out of each feeding stump, and the field grows out of the emitter on deploy.
+float Fract(float x) { return x - floor(x); }
+float Sq(float x) { return x * x; }
+float Hash(float2 p) { return Fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453); }
+
+// xy = offset from cell centre (cell units), z = distance to the cell edge (0 at edge), w = cell hash
+float4 Hex(float2 p)
+{
+ float2 r = float2(1, 1.7320508);
+ float2 h = r * 0.5;
+ float2 a = p - r * floor(p / r) - h;
+ float2 b = (p - h) - r * floor((p - h) / r) - h;
+ float2 g = lerp(b, a, step(dot(a, a), dot(b, b)));
+ float2 q = abs(g);
+ float d = 0.5 - max(dot(q, float2(0.5, 0.8660254)), q.x);
+ return float4(g, d, Hash(p - g));
+}
+
+// Energy rings travelling outward from an emitter.
+float Pulse(float d) { return pow(saturate(1 - abs(Fract(d * 1.6 - time * 1.4) - 0.5) * 2), 10) * exp(-d * 0.45); }
+
+void MaterialShader(in Material_Input input, inout Material material)
+{
+ float kW = 1.65;          // width of one half mesh
+ float kH = 2.75;
+ float kCell = 0.085;
+ float2 full = float2(2 * kW, kH);
+
+ // barrier-wide position in metres, 0 at screen-left / top
+ float2 uv = input.texCoord;
+ float2 P = float2(((1 - uv.x) + shieldHalf) * kW, uv.y * kH);
+
+ // ---- hex lattice and the cell-stepped outline
+ float4 hx = Hex(P / kCell);
+ float2 C = P - hx.xy * kCell;                         // centre of this pixel's cell
+ float m = kCell * 0.62;                               // whole cell must fit inside the mesh
+ float2 lo = C - m;
+ float2 hi = full - m - C;
+ float border = min(min(lo.x, lo.y), min(hi.x, hi.y));  // how deep the cell sits inside the outline
+ float inside = step(0, border);
+ float hexLine = 1 - smoothstep(0.0, 0.07, hx.z);
+ float flicker = pow(saturate(sin(time * (1.3 + hx.w * 2.1) + hx.w * 40)), 12);
+
+ // ---- emitters: one per projecting arm
+ float2 E1 = float2(shieldEmit1U, shieldEmit1V) * full;
+ float2 E2 = float2(shieldEmit2U, shieldEmit2V) * full;
+ float d1 = length(C - E1);
+ float d2 = length(C - E2);
+ float s1 = saturate(shieldEmit1);
+ float s2 = saturate(shieldEmit2);
+ float pulse = max(Pulse(d1) * step(0.01, s1), Pulse(d2) * step(0.01, s2));
+ float emitterGlow = (exp(-length(P - E1) / 0.16) * 1.3 + exp(-d1 / 0.6) * 0.25) * s1
+                   + (exp(-length(P - E2) / 0.16) * 1.3 + exp(-d2 / 0.6) * 0.25) * s2;
+
+ // ---- deploy: cells switch on in rings growing out of each emitter
+ float reach1 = s1 * 3.9;
+ float reach2 = s2 * 3.9;
+ float reveal = max(step(d1, reach1) * step(0.001, s1), step(d2, reach2) * step(0.001, s2));
+ float front = max(exp(-Sq((d1 - reach1) / 0.07)) * step(s1, 0.999) * step(0.001, s1),
+                   exp(-Sq((d2 - reach2) / 0.07)) * step(s2, 0.999) * step(0.001, s2));
+
+ // ---- vertical scan sweep
+ float scan = exp(-Sq((uv.y - Fract(time * 0.22)) * 9)) * 0.5;
+
+ // ---- impact ripple: cells light up inside an expanding ring
+ float hd = length(C - float2(shieldHitU, shieldHitV) * full);
+ float ringR = 0.05 + shieldHitAge * 1.1;
+ float ring = exp(-Sq((hd - ringR) / 0.08));
+ float core = exp(-hd / 0.14);
+ float hit = (ring * (0.6 + hexLine) + core) * shieldHit;
+
+ // ---- glancing-angle glow
+ float fres = pow(1 - saturate(abs(input.vsNormal.z)), 2.5);
+
+ // ---- colour: cyan -> amber -> red as the field takes heat; a twin-emitter barrier runs brighter
+ float heat = saturate(shieldHeat);
+ float3 cool = lerp(float3(0.20, 0.75, 1.00), float3(0.35, 0.85, 1.00), shieldDual);
+ float3 warm = float3(1.00, 0.55, 0.12);
+ float3 hot  = float3(1.00, 0.12, 0.06);
+ float3 tint = lerp(lerp(cool, warm, smoothstep(0.35, 0.7, heat)), hot, smoothstep(0.75, 1.0, heat));
+ float unstable = 1 - smoothstep(0.75, 1.0, heat) * (0.35 + 0.35 * sin(time * 47 + uv.y * 60));
+ float3 hitColor = lerp(float3(0.8, 2.2, 3.5), float3(0.6, 3.2, 1.0), shieldAbsorb);
+ float contact = shieldContact * pow(saturate(sin(time * 31 + hx.w * 20)), 6) * hexLine;
+ float strength = 1 + 0.25 * shieldDual;
+
+ float field = (0.035
+  + hexLine * (0.11 + flicker * 0.25 + pulse * 0.9 + scan * 0.6)
+  + pulse * 0.12 + scan * 0.05
+  + emitterGlow + contact * 0.8) * strength;
+
+ float mask = inside * reveal * saturate(shieldOpacity);
+ material.albedo = float3(0, 0, 0);
+ material.tsNormal = float3(0, 0, 1);
+ material.specular = float3(0, 0, 0);
+ material.gloss = 0;
+ material.emissive = (tint * field * unstable + hitColor * hit + float3(0.7, 0.95, 1.0) * front * hexLine * 3) * mask;
+ material.opacity = saturate(field * 0.55 * unstable + hit * 0.5 + front * hexLine) * mask;
+ material.transmissionColor = float3(0.96, 0.98, 1.0);
+ material.ssDistortion = float2(0, 0);
+}
+]]></code>
+</shader>

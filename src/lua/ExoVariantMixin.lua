@@ -126,7 +126,7 @@ if Client then
 
     function ExoVariantMixin:OnUpdateRender()
 
-        if self.dirtySkinState then
+                if self.dirtySkinState then
 
             local weaponClass = self:GetWeaponLoadoutClass()
             if not weaponClass then
@@ -393,3 +393,53 @@ end
 --    7 - models/marine/exosuit/exosuit_view_panel_mini2.material
 --    8 - models/marine/exosuit/exosuit_view_panel_armor.material
 --    9 - models/marine/exosuit/forearm.material
+
+-- Mixed model material indices differ from the stock paired-weapon models.
+-- Keep their default materials rather than applying a stock skin to wrong slots.
+-- All other loadouts continue through CBM's existing skin implementation.
+if Client then
+    local mixedExoOriginalOnUpdateRender = ExoVariantMixin.OnUpdateRender
+
+    function ExoVariantMixin:OnUpdateRender()
+        local modelName = self:GetModelName()
+        local isMixed = string.find(modelName, "models/marine/exosuit/exosuit_charged_", 1, true) == 1
+            or string.find(modelName, "models/marine/exosuit/shield_", 1, true) == 1
+            or modelName == "models/marine/exosuit/exosuit_mr.model"
+            or modelName == "models/marine/exosuit/exosuit_rm.model"
+            or modelName == "models/marine/exosuit/exosuit_cc.model"
+            or modelName == "models/marine/exosuit/exosuit_cm.model"
+            or modelName == "models/marine/exosuit/exosuit_cr.model"
+            or modelName == "models/marine/exosuit/exosuit_mc.model"
+            or modelName == "models/marine/exosuit/exosuit_rc.model"
+            or modelName == "models/marine/exosuit/exosuit_pc.model"
+
+        if not isMixed then
+            return mixedExoOriginalOnUpdateRender(self)
+        end
+
+        if self.dirtySkinState or self.authoredSkinModel ~= modelName then
+            local worldModel = self:GetRenderModel()
+            if not worldModel or not worldModel:GetReadyForOverrideMaterials() then
+                return false
+            end
+            worldModel:ClearOverrideMaterials()
+            self:SetHighlightNeedsUpdate()
+
+            if self:isa("Exo") and self:GetIsLocalPlayer() then
+                local viewEntity = self:GetViewModelEntity()
+                if viewEntity then
+                    local viewModel = viewEntity:GetRenderModel()
+                    if not viewModel or not viewModel:GetReadyForOverrideMaterials() then
+                        return false
+                    end
+                    viewModel:ClearOverrideMaterials()
+                    viewEntity:SetHighlightNeedsUpdate()
+                end
+            end
+
+            self.dirtySkinState = false
+            self.clientExoVariant = self.exoVariant
+            self.authoredSkinModel = modelName
+        end
+    end
+end

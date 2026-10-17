@@ -314,8 +314,12 @@ function Exo:InitExoModel(overrideAnimGraph)
     local modelData = (kExoWeaponRightLeftComboModels[rightArmType] or {})[leftArmType] or {}
     local modelName = modelData.worldModel or ExokDualRailgunModelName
     local graphName = modelData.worldAnimGraph or ExokDualRailgunAnimationGraph
+    local shieldMask = (self.leftArmModuleType == kExoModuleTypes.Shield and "l" or "")
+        .. (self.rightArmModuleType == kExoModuleTypes.Shield and "r" or "")
+    modelName = (kExoShieldModelVariants or {})[shieldMask .. ":" .. modelName] or modelName
     self:SetModel(modelName, overrideAnimGraph or graphName)
     self.viewModelName = modelData.viewModel or ExokDualRailgunViewModelName
+    self.viewModelName = (kExoShieldModelVariants or {})[shieldMask .. ":" .. self.viewModelName] or self.viewModelName
     self.viewModelGraphName = modelData.viewAnimGraph or ExokDualRailgunViewAnimationGraph
 end
 
@@ -585,7 +589,8 @@ function Exo:InitWeapons()
     self.inventoryWeight = self:CalculateWeight()
     
     self:SetActiveWeapon(ExoWeaponHolder.kMapName)
-    StartSoundEffectForPlayer(kDeploy2DSound, self)
+    -- The holder plays deploy_2D locally from the native deployment cue.
+    -- InitWeapons runs before Player:Replace transfers client ownership.
 end
 
 function Exo:GetMaxBackwardSpeedScalar()
@@ -1114,7 +1119,23 @@ if Client then
     function Exo:TriggerFootstep()
         
         if self ~= Client.GetLocalPlayer() then
-            Player.TriggerFootstep(self)
+            local claw = kExoModuleTypes and (self.leftArmModuleType == kExoModuleTypes.Claw
+                or self.rightArmModuleType == kExoModuleTypes.Claw
+                or self.leftArmModuleType == kExoModuleTypes.Shield)
+            if claw then
+                local now = Shared.GetTime()
+                local allowed = now - (self.exoLastViewStep or -100) > .55
+                if allowed then
+                    self.exoLastViewStep = now;self.exoStepDistance = 0
+                    Player.TriggerFootstep(self)
+                end
+            else
+                local now=Shared.GetTime()
+                if now-(self.exoLastViewStep or -100)>.55 then
+                    self.exoLastViewStep=now;self.exoStepDistance=0
+                    Player.TriggerFootstep(self)
+                end
+            end
         end
     
     end
@@ -1122,6 +1143,21 @@ if Client then
     function Exo:UpdateClientEffects(deltaTime, isLocal)
         
         Player.UpdateClientEffects(self, deltaTime, isLocal)
+        local claw = kExoModuleTypes and (self.leftArmModuleType == kExoModuleTypes.Claw
+            or self.rightArmModuleType == kExoModuleTypes.Claw
+            or self.leftArmModuleType == kExoModuleTypes.Shield)
+        if claw and self:GetIsAlive() and self:GetIsOnGround() then
+            local speed = self:GetVelocity():GetLengthXZ()
+            if speed > .15 then
+                self.exoStepDistance = (self.exoStepDistance or 0) + speed * math.min(deltaTime,.1)
+                if self.exoStepDistance >= 1.35 and Shared.GetTime() - (self.exoLastViewStep or -100) > .60 then
+                    self.exoStepDistance = self.exoStepDistance % 1.35
+                    self.exoLastViewStep = Shared.GetTime()
+                    Player.TriggerFootstep(self)
+                end
+            else self.exoStepDistance = 0 end
+        else self.exoStepDistance = 0 end
+
         
         if isLocal then
             
@@ -1682,7 +1718,7 @@ function Exo:GetFuelUsageRate()
     --local usageScalar = self:GetHasMinigun() and kMinigunFuelUsageScalar or kRailgunFuelUsageScalar
     if self.thrustersActive then
 		if self.thrusterMode == kExoThrusterMode.Vertical then
-			return kExoThrusterFuelUsageRate * 0.5 -- This is double fuel consumption
+			return kExoThrusterFuelUsageRate * 0.33 -- This is triple fuel consumption
 		else 
 			return kExoThrusterFuelUsageRate --* usageScalar
 		end
