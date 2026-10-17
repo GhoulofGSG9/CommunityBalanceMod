@@ -67,6 +67,8 @@ local kTargetMaxFollowRange = 30
 local kAttackRate = 0.42
 
 local kBabblerOffMapInterval = 1
+local kOffMapGiveUpTime = 20
+local kOffMapTeleportDelay = 5
 local kBabblerWagInterval = 0.4
 local kUpdateMoveInterval = 0.3
 local kUpdateAttackInterval = 0.4
@@ -644,6 +646,12 @@ function Babbler:UpdateBabbler(deltaTime, now)
 
         self.attacking = self.timeLastAttack + 0.2 > now
 
+        if self.babblerOffMap then
+            self.jumping = false
+            self:UpdateRelevancy(now)
+            return
+        end
+
         if self.foraging or self.hungry then
             self:UpdateRelevancy(now)
             return
@@ -820,6 +828,8 @@ function Babbler:OnUpdate(deltaTime)
     ScriptActor.OnUpdate(self, deltaTime)
 
     if self:GetIsClinged() then
+        self.babblerOffMap = nil
+        self.offMapSince = nil
         self:UpdateClientSkinState()
         return
     end
@@ -843,18 +853,25 @@ function Babbler:OnUpdate(deltaTime)
             self:BabblerOffMap()
             self.cb_routine_babblerOffMap = now + kBabblerOffMapInterval
         end
-        if self.babblerOffMap then
+        if self.babblerOffMap and self.babblerOffMapRecoveryOrig then
             -- Move toward destination to get back into the map we left like a coward
             local orig = self:GetOrigin()
             local dest = self.babblerOffMapRecoveryOrig
-            local newPos = orig + (dest - orig):GetUnit() * deltaTime * kBabblerRunSpeed
+            local dist = orig:GetDistanceTo(dest)
 
-            -- If close enough go straight for it
-            -- Otherwise, we could have moved too far between now and next tick check
-            if newPos:GetDistanceTo(dest) <= deltaTime * kBabblerRunSpeed then
-                newPos = dest
-            end
-            if orig:GetDistanceTo(dest) >= kEpsilon then
+            if dist >= kEpsilon then
+                local step = deltaTime * kBabblerRunSpeed
+                local newPos = dest
+
+                -- Snap if we are close enough to arrive this tick (we could otherwise overshoot between
+                -- checks), or if the walk back is taking too long
+                local walking = dist > step and (not self.offMapSince or now - self.offMapSince < kOffMapTeleportDelay)
+                if walking then
+                    newPos = orig + (dest - orig) * (step / dist)
+                else
+                    self.cb_routine_babblerOffMap = nil -- arrived: re-check right away
+                end
+
                 self:SetOrigin(newPos)
                 self:SetGroundMoveType(true)
             end
@@ -1670,40 +1687,98 @@ if Server then
         return babblerOffMap, ground
     end
 
+
+    local function FindSpawnNear(anchor)
+        for _ = 1, 10 do
+            local pos = GetRandomSpawnForCapsule(1, 1, anchor + Vector(0, 1, 0), 1, 6, EntityFilterAll())
+            if pos then
+                return pos
+            end
+        end
+    end
+
+    function Babbler:FindOffMapRecoveryPos(startIndex)
+
+        local origin = self:GetOrigin()
+        local anchors = {}
+
+        local RTs = GetEntities("ResourcePoint")
+        Shared.SortEntitiesByDistance(origin, RTs)
+        if RTs[1] then anchors[#anchors + 1] = RTs[1]:GetOrigin() end
+
+        if self.lastOnMapPos then anchors[#anchors + 1] = self.lastOnMapPos end
+
+        local owner = self:GetOwner()
+        if owner and HasMixin(owner, "Live") and owner:GetIsAlive() then
+            local ownerOrigin = owner:isa("Commander") and owner.lastGroundOrigin or owner:GetOrigin()
+            if ownerOrigin then anchors[#anchors + 1] = ownerOrigin end
+        end
+
+        for i = 2, math.min(#RTs, 4) do anchors[#anchors + 1] = RTs[i]:GetOrigin() end
+
+        for _, hive in ipairs(GetEntitiesForTeam("Hive", self:GetTeamNumber())) do
+            anchors[#anchors + 1] = hive:GetOrigin()
+        end
+
+        for i = 0, #anchors - 1 do
+            local anchor = anchors[(startIndex + i) % #anchors + 1]
+            local pos = (anchor == self.lastOnMapPos) and anchor or FindSpawnNear(anchor)
+            if pos then
+                return pos, (startIndex + i) % #anchors
+            end
+        end
+
+    end
+
     function Babbler:BabblerOffMap()
 
-        local babblerOffMap = self:GetIsBabblerOffMap()
+        local now = Shared.GetTime()
+        local babblerOffMap, ground = self:GetIsBabblerOffMap()
 
-        if self.babblerOffMap then
-            if not babblerOffMap then
+        if not babblerOffMap then
+
+            self.offMapSince = nil
+
+            if self.babblerOffMap then
                 self.babblerOffMap = nil
+                self.babblerOffMapRecoveryOrig = nil
+                self:SetVelocity(kResetJumpVelocity)
                 self:UpdateJumpPhysicsBody()
                 self:SetMoveType(kBabblerMoveType.None, nil, nil, true)
                 self:Jump(nil) -- Force update physics and reset ground move
+            elseif self:GetOrigin().y - ground.y < 1.5 then
+                self.lastOnMapPos = self.lastOnMapPos or Vector(0, 0, 0)
+                VectorCopy(ground, self.lastOnMapPos)
+                self.lastOnMapPos.y = self.lastOnMapPos.y + Babbler.kRadius + 0.25
             end
             return
         end
 
-        if babblerOffMap then
-            local inMapOrig
-            local RTs = GetEntities("ResourcePoint")
-
-            if #RTs > 0 then
-                Shared.SortEntitiesByDistance(self:GetOrigin(), RTs)
-                for _ = 1, 10 do
-                    inMapOrig = GetRandomSpawnForCapsule(1, 1, RTs[1]:GetOrigin() + Vector(0, 1, 0),
-                            1, 6, EntityFilterAll())
-                    if inMapOrig then
-                        break
-                    end
-                end
+        self.offMapSince = self.offMapSince or now
+        if now - self.offMapSince > kOffMapGiveUpTime then
+            if self:GetIsAlive() then
+                self:Kill()
             end
-
-            if inMapOrig then
-                self.babblerOffMap = true
-                self.babblerOffMapRecoveryOrig = inMapOrig + Vector(0, 0.5, 0)
-            end
+            return
         end
+
+        -- Still walking back to the recovery point
+        local dest = self.babblerOffMapRecoveryOrig
+        if self.babblerOffMap and dest and self:GetOrigin():GetDistanceTo(dest) > 0.5 then
+            return
+        end
+
+        -- Newly off map, or reached the recovery point and it still reads as off map: (re)pick
+        local startIndex = self.babblerOffMap and (self.offMapAnchorIndex or 0) + 1 or 0
+        local inMapOrig, anchorIndex = self:FindOffMapRecoveryPos(startIndex)
+
+        if inMapOrig then
+            self.babblerOffMap = true
+            self.offMapAnchorIndex = anchorIndex
+            self.babblerOffMapRecoveryOrig = inMapOrig + Vector(0, 0.5, 0)
+            self:SetVelocity(kResetJumpVelocity)
+        end
+
     end
 
     -- Returns a sibling's live target if any idle-relevant babbler of the same
