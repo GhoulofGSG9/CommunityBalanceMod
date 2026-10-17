@@ -20,7 +20,6 @@ BabblerAbility.kMapName = "babblerability"
 
 local kAnimationGraph = PrecacheAsset("models/alien/gorge/gorge_view.animation_graph")
 local kPheromoneTraceWidth = 0.315
-local kWebAimMaxHorizontalRange = 3.25 -- meters (XZ plane) at which a web can still be aimed at
 
 local networkVars =
 {
@@ -115,27 +114,6 @@ local function TraceForTarget(self, startPoint, direction, filter)
 
 end
 
--- A web is only a valid aim target within a few meters (horizontally) of the
--- gorge. Farther away, webs are ignored so the aim passes through them and the
--- gorge can still give move/attack orders in a hallway full of webs.
-local function IsWebOutOfAimRange(trace, eyePos)
-
-    if not trace.entity or not trace.entity:isa("Web") then
-        return false
-    end
-
-    local dx = trace.endPoint.x - eyePos.x
-    local dz = trace.endPoint.z - eyePos.z
-
-    return dx * dx + dz * dz > kWebAimMaxHorizontalRange * kWebAimMaxHorizontalRange
-
-end
-
-local kIgnoreWebsPlayer = nil
-local function IgnoreWebsFilter(test)
-    return test == kIgnoreWebsPlayer or test:isa("Babbler") or test:isa("Web")
-end
-
 local function FindTarget(self, player)
 
     local direction = player:GetViewCoordsZAxis()
@@ -145,14 +123,6 @@ local function FindTarget(self, player)
 
     local trace = TraceForTarget(self, startPoint, direction, filter)
 
-    if IsWebOutOfAimRange(trace, startPoint) then
-
-        kIgnoreWebsPlayer = player
-        trace = TraceForTarget(self, startPoint, direction, IgnoreWebsFilter)
-        kIgnoreWebsPlayer = nil
-
-    end
-    
     local targetEntity = trace.entity
     local hitPoint = trace.fraction < 1 and (trace.endPoint + trace.normal * kPheromoneTraceWidth) or nil
     

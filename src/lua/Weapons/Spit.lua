@@ -93,7 +93,7 @@ if Server then
         local orig = owner:GetOrigin()
         for _, babbler in ipairs(GetEntitiesForTeamWithinRange("Babbler", owner:GetTeamNumber(), orig, 8))
         do
-            if not babbler:GetIsClinged() and babbler:GetOwner() == owner then
+            if not babbler:GetIsClinged() and not babbler:GetIsOnWeb() and babbler:GetOwner() == owner then
                 babbler:OrderAttack(target, target:GetOrigin())
             end
         end

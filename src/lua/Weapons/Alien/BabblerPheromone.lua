@@ -57,9 +57,9 @@ function BabblerPheromone:OnCreate()
 end
 
 -- Gathers every babbler this ball's owner can command, closest first, with
--- already-loose babblers preferred over ones still riding the owner (so a
--- hit doesn't yank a babbler off the owner if a free one nearby can do the
--- job instead).
+-- already-loose babblers preferred over ones parked on the owner or on a web
+-- (so a hit doesn't yank a babbler off its host if a free one nearby can do
+-- the job instead).
 local function CollectBabblers(self)
 
     local owner = self:GetOwner()
@@ -78,10 +78,10 @@ local function CollectBabblers(self)
     local fieldBabblerPriorityRatio = 2.5
 
     for _, babbler in ipairs(babblers) do
-        if babbler:GetOwnerId() == ownerId and babbler:GetIsAlive() and not babbler:GetIsOnWeb() then
+        if babbler:GetOwnerId() == ownerId and babbler:GetIsAlive() then
             table.insert(recruits, babbler)
             sortKeys[babbler] = babbler:GetOrigin():GetDistanceTo(searchOrigin)
-                    * (babbler:GetIsClinged() and fieldBabblerPriorityRatio or 1)
+                    * ((babbler:GetIsClinged() or babbler:GetIsOnWeb()) and fieldBabblerPriorityRatio or 1)
         end
     end
 
@@ -90,6 +90,16 @@ local function CollectBabblers(self)
     end)
 
     return recruits
+
+end
+
+local function IsBabblerAttachedTo(babbler, entity)
+
+    if entity:isa("Web") then
+        return babbler:GetIsOnWeb() and babbler:GetWeb() == entity
+    end
+
+    return babbler:GetIsClinged() and babbler:GetParent() == entity
 
 end
 
@@ -109,18 +119,11 @@ local function DispatchBabblers(babblers, order, entity, position, spots)
 
         if spots ~= nil and spots <= 0 then break end
 
-        local isClinged = babbler:GetIsClinged()
-
         local alreadyThere = order == kBabblerMoveType.Cling
                 and entity ~= nil
-                and isClinged
-                and babbler:GetParent() == entity
+                and IsBabblerAttachedTo(babbler, entity)
 
         if not alreadyThere then
-
-            if isClinged then
-                babbler:Detach()
-            end
 
             if order == kBabblerMoveType.Cling then
                 babbler:OrderCling(entity, position)
@@ -134,10 +137,10 @@ local function DispatchBabblers(babblers, order, entity, position, spots)
 
             babbler:RefreshFreeRoam()
 
-        end
+            if spots ~= nil then
+                spots = spots - 1
+            end
 
-        if spots ~= nil then
-            spots = spots - 1
         end
 
     end

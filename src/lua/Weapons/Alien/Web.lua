@@ -27,10 +27,6 @@ local kWebModelName = PrecacheAsset("models/alien/gorge/web.model")
 
 local kAnimationGraph = PrecacheAsset("models/alien/gorge/web.animation_graph")
 
-local kWebBabblerTickleDamage = 1 -- Tickle damage (so the enemy makes an "outch" sound)
-local kWebBabblerReactInterval = 0.8
-local kWebPanicDuration = 4.5
-
 local networkVars =
 {
     endPoint = "vector",
@@ -481,38 +477,7 @@ local function GetDistance(coords, fromPlayer)
 
 end
 
-local function AlertWebbedBabblers(self, fromPlayer)
-
-    local now = Shared.GetTime()
-    if self.timeLastBabblerReact and now - self.timeLastBabblerReact < kWebBabblerReactInterval then
-        return
-    end
-    self.timeLastBabblerReact = now
-
-    if not fromPlayer or not fromPlayer:GetIsAlive() then return end
-
-    local extents = fromPlayer:GetExtents()
-    local torsoPoint = fromPlayer:GetOrigin() + Vector(0, extents.y, 0)
-    local contactPoint = self:GetClosestPointOnWeb(torsoPoint)
-
-    for babblerId, _ in pairs(self.webbedBabblers) do
-        local babbler = Shared.GetEntity(babblerId)
-        if babbler and babbler:GetIsAlive() then
-
-            babbler:PanicFromWeb(kWebPanicDuration)
-
-            local separation = (babbler:GetOrigin() - contactPoint):GetLength()
-            if separation < 2.5 then
-                babbler:TriggerEffects("babbler_engage")
-                fromPlayer:TakeDamage(kWebBabblerTickleDamage, babbler, babbler,
-                        contactPoint, nil, 0, kWebBabblerTickleDamage, kDamageType.Normal)
-            end
-        end
-    end
-
-end
-
-local function RemoveWebCharge(self, fromPlayer)
+local function RemoveWebCharge(self)
 
     self.numCharges = self.numCharges - 1
     local isAlive = self.numCharges > 0
@@ -520,8 +485,6 @@ local function RemoveWebCharge(self, fromPlayer)
     if isAlive then
         self.chargeScalingFactor = self.chargeScalingFactor - kWebChargeScaleAdditive
     end
-
-    AlertWebbedBabblers(self, fromPlayer)
 
     return isAlive
 
@@ -561,7 +524,7 @@ local function CheckForIntersection(self, fromPlayer)
 
                 if Server and shouldPlayEffects then
 
-                    if not RemoveWebCharge(self, fromPlayer) then
+                    if not RemoveWebCharge(self) then
                         self:Kill(nil, nil, coords.origin)
                     end
 
