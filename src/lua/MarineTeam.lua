@@ -525,6 +525,7 @@ function MarineTeam:Update(timePassed)
     end
     
     if Shared.GetTime() >= self.timeOfLastARCCheck + 10 then
+        self.timeOfLastARCCheck = Shared.GetTime()
         self:CheckARCNumber()
     end
     
