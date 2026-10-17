@@ -41,10 +41,13 @@ function MarineTeam:OnInitialized()
     self.PurificationCharging = false
     self.syncTechLevel = 0
     
+    self.phaseGateOrder = {}
+    self.phaseGatesReversed = false
 end
 
 function MarineTeam:ResetTeam()
     takenInfantryPortalPoints = {}
+    self.phaseGatesReversed = false
     
     local commandStructure = PlayingTeam.ResetTeam(self)
     
@@ -522,6 +525,7 @@ function MarineTeam:Update(timePassed)
     end
     
     if Shared.GetTime() >= self.timeOfLastARCCheck + 10 then
+        self.timeOfLastARCCheck = Shared.GetTime()
         self:CheckARCNumber()
     end
     
@@ -564,6 +568,138 @@ function MarineTeam:Update(timePassed)
 
     end]]
     
+end
+
+local function RemovePhaseGateId(order, id)
+
+    for i = #order, 1, -1 do
+        if order[i] == id then
+            table.remove(order, i)
+        end
+    end
+
+end
+
+function MarineTeam:GetPhaseGateOrder()
+
+    if not self.phaseGateOrder then
+        self.phaseGateOrder = {}
+    end
+
+    return self.phaseGateOrder
+
+end
+
+-- Every PhaseGate on this team, in rotation order. Gates that were never registered (mods, warmup
+-- spawns, anything created before registration ran) are appended so they still take part.
+function MarineTeam:GetOrderedPhaseGates()
+
+    local order = self:GetPhaseGateOrder()
+    local ordered = {}
+    local seen = {}
+
+    for i = #order, 1, -1 do
+
+        local id = order[i]
+        local gate = Shared.GetEntity(id)
+
+        -- Entity ids can be recycled, so make sure the id still belongs to one of our phase gates.
+        if gate and not seen[id] and gate:isa("PhaseGate") and gate:GetTeamNumber() == self:GetTeamNumber() then
+            seen[id] = true
+            table.insert(ordered, 1, gate)
+        else
+            -- Stale or duplicate id, drop it.
+            table.remove(order, i)
+        end
+
+    end
+
+    for _, gate in ipairs(GetEntitiesForTeam("PhaseGate", self:GetTeamNumber())) do
+
+        local id = gate:GetId()
+        if not seen[id] then
+            seen[id] = true
+            table.insert(ordered, gate)
+            table.insert(order, id)
+        end
+
+    end
+
+    return ordered
+
+end
+
+function MarineTeam:GetOrderedActivePhaseGates()
+
+    local active = {}
+
+    for _, gate in ipairs(self:GetOrderedPhaseGates()) do
+        if GetIsUnitActive(gate) then
+            table.insert(active, gate)
+        end
+    end
+
+    return active
+
+end
+
+function MarineTeam:GetPhaseGatesReversed()
+    return self.phaseGatesReversed == true
+end
+
+-- Flips the reading direction of the whole phase gate ring. Returns the new state.
+function MarineTeam:TogglePhaseGatesReversed()
+
+    self.phaseGatesReversed = not self:GetPhaseGatesReversed()
+
+    -- Keep each gate's own (networked) flag in step with the team's.
+    for _, gate in ipairs(GetEntitiesForTeam("PhaseGate", self:GetTeamNumber())) do
+        gate.directionBackwards = self.phaseGatesReversed
+    end
+
+    return self.phaseGatesReversed
+
+end
+function MarineTeam:RegisterPhaseGate(gate)
+
+    if not gate then
+        return
+    end
+
+    local order = self:GetPhaseGateOrder()
+    local id = gate:GetId()
+
+    RemovePhaseGateId(order, id)
+    table.insert(order, id)
+    gate.directionBackwards = self:GetPhaseGatesReversed()
+
+end
+
+function MarineTeam:UnregisterPhaseGate(gate)
+
+    if not gate then
+        return
+    end
+
+    RemovePhaseGateId(self:GetPhaseGateOrder(), gate:GetId())
+
+end
+
+-- Moves the given gate to the head of the rotation.
+function MarineTeam:MovePhaseGateToFront(gate)
+
+    if not gate then
+        return false
+    end
+
+    local order = self:GetPhaseGateOrder()
+    local id = gate:GetId()
+
+    RemovePhaseGateId(order, id)
+    table.insert(order, 1, id)
+
+    return true
+
 end
 
 function MarineTeam:GetHasPoweredPhaseGate()
@@ -771,7 +907,7 @@ function MarineTeam:InitTechTree()
 
     self.techTree:AddActivation(kTechId.BattleMACNanoShield,  kTechId.AdvancedMarineSupport,      kTechId.None)
     self.techTree:AddPassive(kTechId.BattleMACCatPack,        kTechId.AdvancedMarineSupport) --self.techTree:AddActivation(kTechId.BattleMACCatPack,      kTechId.AdvancedMarineSupport,      kTechId.None)
-    self.techTree:AddPassive(kTechId.BattleMACHealingWave,    kTechId.None)	 --self.techTree:AddActivation(kTechId.BattleMACHealingWave,      kTechId.None,      kTechId.None)
+    self.techTree:AddPassive(kTechId.BattleMACHealingWave,    kTechId.None)  --self.techTree:AddActivation(kTechId.BattleMACHealingWave,      kTechId.None,      kTechId.None)
     self.techTree:AddActivation(kTechId.BattleMACSpeedBoost,  kTechId.None,      kTechId.None)
 
     self.techTree:SetComplete()
