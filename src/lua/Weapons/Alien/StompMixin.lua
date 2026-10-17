@@ -19,6 +19,10 @@ StompMixin.type = "Stomp"
 
 local kAttackDurationStomp = Shared.GetAnimationLength("models/alien/onos/onos_view.model", "stomp")
 
+local kStompExpiryMargin = 0.15
+local kStompExpiry = kAttackDurationStomp + kStompExpiryMargin
+local kStompMinEndFraction = 0.25
+
 -- GetHasSecondary and GetSecondaryEnergyCost should completely override any existing
 -- same named function defined in the object.
 StompMixin.overrideFunctions =
@@ -46,12 +50,18 @@ function StompMixin:__initmixin()
 end
 
 function StompMixin:GetIsStomping()
-    return self.secondaryAttacking
+
+    if self.secondaryAttacking == true and self.secondaryAttackStartTime ~= nil and
+            Shared.GetTime() > self.secondaryAttackStartTime + kStompExpiry then
+        self:CancelStomp()
+    end
+
+    return self.secondaryAttacking == true
+
 end
 
 function StompMixin:GetIsStompRunning()
-    return self.secondaryAttacking == true and self.secondaryAttackStartTime ~= nil and
-            Shared.GetTime() <= self.secondaryAttackStartTime + kAttackDurationStomp
+    return self:GetIsStomping() and self.secondaryAttackStartTime ~= nil
 end
 
 
@@ -151,6 +161,16 @@ function StompMixin:OnTag(tagName)
 
     if self.secondaryAttacking and tagName == "stomp_hit" then
 
+        if self.stompHitReceived then
+            return
+        end
+
+        local stompPlayer = self:GetParent()
+        if stompPlayer and stompPlayer:GetEnergy() < kStompEnergyCost then
+            self:CancelStomp(stompPlayer)
+            return
+        end
+
         self.stompHitReceived = true
 
         local player = self:GetParent()
@@ -163,12 +183,8 @@ function StompMixin:OnTag(tagName)
 
         end
 
-    elseif tagName == "end" and self.secondaryAttacking and self.stompHitReceived then
-        -- Stomp and Gore swings share the "end" tag. A swing that was running when the stomp started delivers
-        -- its "end" right after the stomp began, which used to cancel the stomp before its stomp_hit tag (no
-        -- shockwave, no energy cost, but the animation still played). The stomp's own "end" always comes after
-        -- its stomp_hit, so only accept an "end" once that was seen. If the animation never delivers one,
-        -- OnProcessMove ends the stomp after kAttackDurationStomp.
+    elseif tagName == "end" and self.secondaryAttacking and
+            Shared.GetTime() >= (self.secondaryAttackStartTime or 0) + kAttackDurationStomp * kStompMinEndFraction then
         self:CancelStomp()
     end
 
@@ -176,7 +192,7 @@ end
 
 function StompMixin:OnUpdateAnimationInput(modelMixin)
 
-    if self.secondaryAttacking then
+    if self:GetIsStomping() then
         modelMixin:SetAnimationInput("activity", "secondary")
     end
 
@@ -189,7 +205,7 @@ end
 function StompMixin:OnProcessMove(input)
 
     if self.secondaryAttacking and self.secondaryAttackStartTime and
-            Shared.GetTime() > self.secondaryAttackStartTime + kAttackDurationStomp then
+            Shared.GetTime() > self.secondaryAttackStartTime + kStompExpiry then
 
         self:CancelStomp()
 
@@ -221,6 +237,8 @@ end
 if Server then
 
     function StompMixin:OnDestroy()
+
+        self:CancelStomp()
 
         local ids = self.shockwaveEntIds
 
