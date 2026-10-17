@@ -212,6 +212,10 @@ if kCBMaddon then
 	  - Fixed the prototype lab exo hologram staying in the air after the lab was destroyed.
 	  - Fixed issue with sentries and hydras not being able to hit static targets in certain edge cases.
 	  - Fixed issue where you would only pick up weapons when trying to build a marine structure.
+	  - Fixed skulks sometimes getting pulled back when crossing small gaps along the ceiling.
+	  - Fixed babblers playing their run animation while standing still, and their legs not following the direction they move.
+	  - Fixed armory exosuit refits removing parasite and instantly cooling an overheated minigun.
+	  - Fixed point-blank hits sometimes showing no damage number.
 	  - Improved performance of line of sight functions.
 	  - Improved performance of weapon holder functions.
 	  - Improved performance of cloaking functions.
@@ -970,6 +974,10 @@ else
 	  - Fixed the prototype lab exo hologram staying in the air after the lab was destroyed.
 	  - Fixed issue with sentries and hydras not being able to hit static targets in certain edge cases.
 	  - Fixed issue where you would only pick up weapons when trying to build a marine structure.
+	  - Fixed skulks sometimes getting pulled back when crossing small gaps along the ceiling.
+	  - Fixed babblers playing their run animation while standing still, and their legs not following the direction they move.
+	  - Fixed armory exosuit refits removing parasite and instantly cooling an overheated minigun.
+	  - Fixed point-blank hits sometimes showing no damage number.
 	  - Improved performance of line of sight functions.
 	  - Improved performance of weapon holder functions.
 	  - Improved performance of cloaking functions.

@@ -3029,6 +3029,10 @@ elseif Client then
 
     end
 
+    -- Fraction of kBabblerRunSpeed. doesGroundMove stays set after a ground move
+    -- ends (the body is kept kinematic at rest), so it alone can't pick "run".
+    local kRunAnimMinSpeed = 0.05
+
     function Babbler:OnUpdateAnimationInput(modelMixin)
 
         PROFILE("Babbler:OnUpdateAnimationInput")
@@ -3045,7 +3049,7 @@ elseif Client then
             end
         elseif self.jumping then
             move = "jump"
-        elseif self.doesGroundMove then
+        elseif self.doesGroundMove and (self.smoothedMoveSpeed or 0) > kRunAnimMinSpeed then
             move = "run"
         elseif self.wagging then
             move = "wag"
@@ -3058,9 +3062,8 @@ elseif Client then
 
     end
 
-    local function ComputeMoveYaw(dirX, dirZ)
+    local function ComputeMoveYaw(forwardX, forwardZ, dirX, dirZ)
 
-        local forwardX, forwardZ = NormalizeXZ(dirX, dirZ)
         -- xAxis = up x forward = (forwardZ, 0, -forwardX), zAxis = forward
         local x = forwardZ * dirX - forwardX * dirZ
         local z = forwardX * dirX + forwardZ * dirZ
@@ -3082,14 +3085,21 @@ elseif Client then
             local cv = self.clientVelocity
             local vx, vy, vz = cv.x, cv.y, cv.z
 
+            -- Same forward the model is rendered with (see OnAdjustModelCoords)
+            local fwdX, fwdZ = self.moveDirX or 0, self.moveDirZ or 0
+            if LengthSqXZ(fwdX, fwdZ) < kEpsilon then
+                local zAxis = self:GetCoords().zAxis
+                fwdX, fwdZ = NormalizeXZ(zAxis.x, zAxis.z)
+            end
+
             local dirX, dirZ
             if LengthSqXZ(vx, vz) > 0 then
                 dirX, dirZ = NormalizeXZ(vx, vz)
             else
-                dirX, dirZ = self.moveDirX or 0, self.moveDirZ or 0
+                dirX, dirZ = fwdX, fwdZ
             end
 
-            moveYaw = ComputeMoveYaw(dirX, dirZ)
+            moveYaw = ComputeMoveYaw(fwdX, fwdZ, dirX, dirZ)
             targetSpeed = Clamp(Length3(vx, vy, vz) / kBabblerRunSpeed, 0, 1)
         end
 

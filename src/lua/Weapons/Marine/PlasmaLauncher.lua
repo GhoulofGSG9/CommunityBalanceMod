@@ -208,13 +208,7 @@ function PlasmaLauncher:OnUpdateRender()
 	local parent = self:GetParent()
 	local chargeAmount, Mode, minEnergy
 
-	local exoWeaponHolder = parent:GetActiveWeapon()
-	local LeftWeapon = exoWeaponHolder:GetLeftSlotWeapon()
-	local RightWeapon = exoWeaponHolder:GetRightSlotWeapon()
-	local otherSlotWeapon = self:GetExoWeaponSlot() == ExoWeaponHolder.kSlotNames.Left and exoWeaponHolder:GetRightSlotWeapon() or exoWeaponHolder:GetLeftSlotWeapon()
-
 	chargeAmount = self.energyWAmount --self:GetChargeAmount()
-	UIchargeAmount = self.energyWAmount --self:GetChargeAmount()
 	Mode = self.fireMode
 	minEnergy = self.energyCost
 	
@@ -242,7 +236,7 @@ function PlasmaLauncher:OnUpdateRender()
         end
         
         local slot = self.exoWeaponSlot
-        chargeDisplayUI:SetGlobal(kChargeAmountKey[slot], UIchargeAmount)
+        chargeDisplayUI:SetGlobal(kChargeAmountKey[slot], chargeAmount)
         chargeDisplayUI:SetGlobal(kModeKey[slot], Mode)
 		chargeDisplayUI:SetGlobal(kMinEnergyKey[slot], minEnergy)
         		
@@ -280,7 +274,7 @@ function PlasmaLauncher:OnTag(tagName)
     	self.energyAnimation = self.energyWAmount	
         if tagName == "l_shoot" and self.energyWAmount >= self.energyCost then
             Shoot(self, true)
-			if Server then	
+			if Server then
 				self.energyWAmount = math.max(0,self.energyWAmount - self.energyCost)
 			end
         end
