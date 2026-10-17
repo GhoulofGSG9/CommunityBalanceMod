@@ -127,6 +127,10 @@ function Gore:OnHolster(player)
     -- If a stomp was interrupted mid-animation by switching weapons, its
     -- "end" tag never fires, so this must be reset here too.
     self:CancelStomp(player)
+
+    -- Don't carry a half-finished swing's animation input over to the next time this weapon is drawn.
+    self.activityString = "none"
+    self.nextAttackUpdate = nil
     
     self:OnAttackEnd()
     
@@ -242,6 +246,15 @@ function Gore:OnUpdateAnimationInput(modelMixin)
     if self.onDrawTime + kOnDrawStompActivateDelay > now then
         return
     end
+
+    -- While stomping, StompMixin owns the "activity" input. Gore's own (throttled, possibly stale) swing activity
+    -- must not be fed to the animation graph as well, or whichever callback runs last decides which animation plays.
+    if self:GetIsStomping() then
+        self.activityString = "none"
+        self.nextAttackUpdate = nil
+        modelMixin:SetAnimationInput("ability", "gore")
+        return
+    end
     local cooledDown = (not self.nextAttackTime) or (now >= self.nextAttackTime)
     if not self.nextAttackUpdate or now > self.nextAttackUpdate then
         if self.attackButtonPressed and cooledDown then
@@ -278,7 +291,9 @@ end
 
 function Gore:OnDraw(player, previousWeaponMapName)
     Ability.OnDraw(self, player, previousWeaponMapName)
-    self.secondaryAttacking = false
+    self:CancelStomp(player)
+    self.activityString = "none"
+    self.nextAttackUpdate = nil
     self.primaryAttacking = false
     self.onDrawTime = Shared.GetTime()
 end
