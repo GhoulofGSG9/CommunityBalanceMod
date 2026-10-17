@@ -274,14 +274,18 @@ function PlasmaLauncher:OnTag(tagName)
     	self.energyAnimation = self.energyWAmount	
         if tagName == "l_shoot" and self.energyWAmount >= self.energyCost then
             Shoot(self, true)
-			self.energyWAmount = math.max(0,self.energyWAmount - self.energyCost)
+			if Server then
+				self.energyWAmount = math.max(0,self.energyWAmount - self.energyCost)
+			end
         end
         
     elseif not self:GetIsLeftSlot() then
 		self.energyAnimation = self.energyWAmount
         if tagName == "r_shoot" and self.energyWAmount >= self.energyCost then
 			Shoot(self, false)
-			self.energyWAmount = math.max(0,self.energyWAmount - self.energyCost)
+			if Server then
+				self.energyWAmount = math.max(0,self.energyWAmount - self.energyCost)
+			end
         end
     end
 end

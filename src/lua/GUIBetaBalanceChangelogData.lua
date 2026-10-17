@@ -214,7 +214,6 @@ if kCBMaddon then
 	  - Fixed issue where you would only pick up weapons when trying to build a marine structure.
 	  - Fixed skulks sometimes getting pulled back when crossing small gaps along the ceiling.
 	  - Fixed babblers playing their run animation while standing still, and their legs not following the direction they move.
-	  - Fixed the plasma launcher energy display and shots running ahead of the server.
 	  - Fixed armory exosuit refits removing parasite and instantly cooling an overheated minigun.
 	  - Fixed point-blank hits sometimes showing no damage number.
 	  - Improved performance of line of sight functions.
@@ -977,7 +976,6 @@ else
 	  - Fixed issue where you would only pick up weapons when trying to build a marine structure.
 	  - Fixed skulks sometimes getting pulled back when crossing small gaps along the ceiling.
 	  - Fixed babblers playing their run animation while standing still, and their legs not following the direction they move.
-	  - Fixed the plasma launcher energy display and shots running ahead of the server.
 	  - Fixed armory exosuit refits removing parasite and instantly cooling an overheated minigun.
 	  - Fixed point-blank hits sometimes showing no damage number.
 	  - Improved performance of line of sight functions.
