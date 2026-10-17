@@ -69,6 +69,7 @@ function StompMixin:CancelStomp(player)
 
     self.secondaryAttacking = false
     self.stompHitReceived = false
+    self.stompInputActive = false
 
     player = player or self:GetParent()
     if player then
@@ -125,7 +126,6 @@ end
 
 function StompMixin:OnSecondaryAttack(player)
 
-
     if player:GetTimeOfLastWeaponSwitch() > (self.stompButtonReleasedTime or 0) and
             player:GetSecondaryAttackLastFrame() then
         return
@@ -143,6 +143,7 @@ function StompMixin:OnSecondaryAttack(player)
     end
 
     if canStart and not primaryBusy then
+        self.stompInputActive = true
         self.secondaryAttacking = true
         self.stompHitReceived = false
         self.secondaryAttackStartTime = Shared.GetTime()
@@ -191,11 +192,9 @@ function StompMixin:OnTag(tagName)
 end
 
 function StompMixin:OnUpdateAnimationInput(modelMixin)
-
-    if self:GetIsStomping() then
+    if self:GetIsStomping() and self.stompInputActive ~= false then
         modelMixin:SetAnimationInput("activity", "secondary")
     end
-
 end
 
 function StompMixin:UnregisterShockwave(shockwave)
