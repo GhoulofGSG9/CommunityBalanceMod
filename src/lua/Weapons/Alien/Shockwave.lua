@@ -209,7 +209,7 @@ function Shockwave:Detonate()
         
         for _, enemy in ipairs(enemies) do
             local enemyId = enemy:GetId()
-            if enemy:GetIsAlive() and not self.damagedEntIds[enemyId] and math.abs(enemy:GetOrigin().y - groundTrace.endPoint.y) < 0.8 then
+            if GetAreEnemies(self, enemy) and enemy:GetIsAlive() and not self.damagedEntIds[enemyId] and math.abs(enemy:GetOrigin().y - groundTrace.endPoint.y) < 0.8 then
 
                 local hasGroundMove = HasMixin(enemy, "GroundMove")
                 
