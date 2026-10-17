@@ -498,7 +498,7 @@ function MarineTeam:CheckARCNumber()
     --local DISEntities = GetEntitiesForTeam("DIS", self:GetTeamNumber())
     
     --if (#DISEntities + #ARCEntities) > kMaxARCs then
-    if #ARCEntities > kMaxARCs then
+    for i = 1, #ARCEntities - kMaxARCs do
         DestroyEntity(ARCEntities[1])
     end
 end
