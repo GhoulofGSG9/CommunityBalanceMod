@@ -1803,10 +1803,10 @@ if Server then
 
     -- Attacks the closest enemy in range (or one a sibling is already fighting).
     -- Returns true if an attack order was given.
-    function Babbler:EngageNearbyEnemy()
+    function Babbler:EngageNearbyEnemy(onWeb)
 
         local target = self.targetSelector:AcquireTarget() or self:GetTarget() or self:AdoptSiblingTarget(self:GetOwnerId())
-        if not target then
+        if not target or (onWeb and target:isa("PowerPoint")) then
             return false
         end
 
@@ -1829,7 +1829,7 @@ if Server then
             end
 
             -- On a web the only idle behaviour is strolling along it (UpdateWebBehavior)
-            if self:EngageNearbyEnemy() or onWeb then
+            if self:EngageNearbyEnemy(onWeb) or onWeb then
                 return
             end
 
