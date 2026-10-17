@@ -8,7 +8,7 @@
 --
 -- ========= For more information, visit us at http://www.unknownworlds.com =====================
 
-Script.Load("lua/GUIRailgun.lua")
+Script.Load("lua/GUIDial.lua")
 
 local kTexture = "models/marine/exosuit/exosuit_view_panel_rail2.dds"
 
@@ -40,8 +40,8 @@ function UpdateCharge(dt, chargeAmount, Mode, minEnergy)
 			chargeCircle:GetLeftSide():SetColor(Color(1-colorAmt, colorAmt, colorAmt, 1))
 			chargeCircle:GetRightSide():SetColor(Color(1-colorAmt, colorAmt, colorAmt, 1))
 		else
-			chargeCircle:GetLeftSide():SetColor(Color(1, 0.25, 1, 1))   -- Replace colorAmt w/ 1 for solid color
-			chargeCircle:GetRightSide():SetColor(Color(1, 0.25, 1, 1))  -- Replace colorAmt w/ 0.33 for solid color
+			chargeCircle:GetLeftSide():SetColor(Color(0.25, 1, 1, 1))   -- Replace colorAmt w/ 1 for solid color
+			chargeCircle:GetRightSide():SetColor(Color(0.25, 1, 1, 1))  -- Replace colorAmt w/ 0.33 for solid color
 		end
 
 	end

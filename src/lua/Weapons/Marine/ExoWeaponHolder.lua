@@ -18,6 +18,10 @@ local networkVars =
 {
     leftWeaponId = "entityid",
     rightWeaponId = "entityid",
+    -- Capture native graph cues on the server so a late client or prediction
+    -- replay cannot lose the cockpit fade event.
+    deployStartTime = "time",
+    deployEndTime = "time",
 	weaponMapNameLeft = "string (15)",
 	weaponMapNameRight = "string (15)",
 	dualrailfiring = "boolean",
@@ -56,6 +60,8 @@ function ExoWeaponHolder:OnCreate()
 	self.dualBTfiring = false
 	self.dualPLfiring = false
 
+    self.deployStartTime = 0
+    self.deployEndTime = 0
     self.closeStart = Shared.GetTime()
     
 end
@@ -271,9 +277,26 @@ function ExoWeaponHolder:UpdateViewModelPoseParameters(viewModel)
     
 end
 
+local function PlayDeployOwnerSound(self)
+    if Client and not self.deployOwnerSoundPlayed then
+        local parent = self:GetParent()
+        if parent and parent == Client.GetLocalPlayer() then
+            StartSoundEffect(kDeploy2DSoundEffect)
+            self.deployOwnerSoundPlayed = true
+        end
+    end
+end
+
 function ExoWeaponHolder:OnUpdateRender()
 
     PROFILE("ExoWeaponHolder:OnUpdateRender")
+
+    -- A replicated native start cue also covers a missed client OnTag.
+    if self.deployStartTime > 0 then
+        PlayDeployOwnerSound(self)
+    end
+
+
 
     SetViewModelParameter(self, "scanlinesMap",
             ConditionalValue(Client.GetHudDetail() == kHUDMode.Minimal, "ui/transparent.dds", "ui/exosuit_scanlines.dds"))
@@ -282,18 +305,22 @@ function ExoWeaponHolder:OnUpdateRender()
         SetViewModelParameter(self, "dissolveAmount", 1)
     else
     
-        if self.screenDissolveStart then
+        local dissolveStart = self.deployEndTime > 0 and self.deployEndTime
+            or self.screenDissolveStart
+        if dissolveStart then
         
-            local dissolveAmount = math.min(1, (Shared.GetTime() - self.screenDissolveStart) / kScreenDissolveSpeed)
+            local dissolveAmount = math.min(1, math.max(0, (Shared.GetTime() - dissolveStart) / kScreenDissolveSpeed))
             SetViewModelParameter(self, "dissolveAmount", dissolveAmount)
             
         else
             SetViewModelParameter(self, "dissolveAmount", 0)
         end
         
-        if self.closeStart then
+        local closeStart = self.deployStartTime > 0 and self.deployStartTime
+            or self.closeStart
+        if closeStart then
 
-            local closeAmount = math.min(1, (Shared.GetTime() - self.closeStart) / kCloseSpeed)
+            local closeAmount = math.min(1, (Shared.GetTime() - closeStart) / kCloseSpeed)
             SetViewModelParameter(self, "closeAmount", closeAmount)
             
             if closeAmount >= 1 then
@@ -311,7 +338,7 @@ end
 local function TriggerScreenDissolveEffect(self)
 
     if Client and not Shared.GetIsRunningPrediction() then
-        self.screenDissolveStart = Shared.GetTime()
+        self.screenDissolveStart = self.screenDissolveStart or Shared.GetTime()
     end
     
 end
@@ -329,18 +356,31 @@ function ExoWeaponHolder:OnTag(tagName)
     PROFILE("ExoWeaponHolder:OnTag")
 
     if tagName == "deploy_start" then
+        if Client and not Shared.GetIsRunningPrediction() then
+            PlayDeployOwnerSound(self)
+        end
     
-        if Server then        
+        if Server and self.deployStartTime == 0 then
+            self.deployStartTime = Shared.GetTime()
             StartSoundEffectAtOrigin(kDeploy3DSoundEffect, self:GetOrigin())
         end
         
     elseif tagName == "deploy_end" then
+        if Server and self.deployEndTime == 0 then
+            self.deployEndTime = Shared.GetTime()
+        end
         TriggerScreenDissolveEffect(self)
     elseif Client and tagName == "view_step" then
+        local owner = self:GetParent()
+        local allowStep = owner and owner:GetIsAlive() and owner:GetIsOnGround()
+            and owner:GetVelocity():GetLengthXZ()>.15
+            and Shared.GetTime() - (owner.exoLastViewStep or -100) > .55
+        if allowStep then owner.exoLastViewStep = Shared.GetTime();owner.exoStepDistance = 0 end
+
     
         -- This is the local player.
         local player = self:GetParent()
-        if player then
+        if player and allowStep then
         
             local velocity = GetNormalizedVector(player:GetVelocity())
             local viewVec = player:GetViewAngles():GetCoords().zAxis

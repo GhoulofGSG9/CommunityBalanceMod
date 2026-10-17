@@ -1,0 +1,46 @@
+<shader>
+	
+	<inputs>
+		<input name="albedoMap" type="texture" address="wrap" />
+		<input name="normalMap" type="texture" address="wrap" />
+		<input name="specularMap" type="texture" address="wrap" />
+		<input name="emissiveMap" type="texture" address="wrap" srgb="true"/>
+		<input name="highlight" type="float">0.0</input>
+		<input name="darken" type="float">0.0</input>
+	</inputs>
+	
+	<code>
+	<![CDATA[
+		float3 DecodeNormal(const float4 texNormal)
+		{
+			float4 n = texNormal * 2 - 1;
+			return n.xyz;
+		}
+		
+		void MaterialShader(in Material_Input input, inout Material material)
+		{
+			float highlightId   = highlight;
+			
+			float4 specularGloss = tex2D(specularMap, input.texCoord);
+			
+			if( darken == 1 )
+			{
+				//Some materials need extra darkening at run-time so details aren't lost from compression
+				material.albedo 	= pow(tex2D(albedoMap, input.texCoord).rgb, 2.2);
+			}
+			else
+			{
+				material.albedo 	= tex2D(albedoMap, input.texCoord).rgb;
+			}
+            
+			material.tsNormal 	= DecodeNormal( tex2D(normalMap, input.texCoord) );
+			material.specular	= specularGloss.rgb;
+			material.gloss		= specularGloss.a;
+			material.emissive   = tex2D(emissiveMap, input.texCoord).rgb;
+			
+			material.id = 1 * highlightId;    // for alien vision
+		}
+	]]>		
+	</code>
+
+</shader>

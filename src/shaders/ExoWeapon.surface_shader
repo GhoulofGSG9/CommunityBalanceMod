@@ -1,0 +1,24 @@
+<shader><inputs>
+<input name="albedoMap" type="texture" address="wrap"/>
+<input name="normalMap" type="texture" address="wrap"/>
+<input name="specularMap" type="texture" address="wrap"/>
+<input name="hiddenAmount" type="float">0</input>
+<input name="highlight" type="float">0</input><input name="outline" type="float">0</input>
+<input name="emissiveMap" type="texture" address="wrap" srgb="true"/>
+</inputs><params><param name="alphaTest">true</param></params><code><![CDATA[
+// Spark's surface language has floor(), but no built-in frac().
+float frac(float value)
+{
+    return value - floor(value);
+}
+
+void MaterialShader(in Material_Input input, inout Material material) {
+ float2 uv = float2(frac(input.texCoord.x), input.texCoord.y);
+ float4 spec=tex2D(specularMap,uv);
+ material.albedo=tex2D(albedoMap,uv).rgb;
+ material.tsNormal=tex2D(normalMap,uv).xyz*2-1;
+ material.specular=spec.rgb; material.gloss=spec.a;
+ material.emissive=tex2D(emissiveMap,uv).rgb; material.opacity=1-hiddenAmount;
+ material.id=highlight; material.outline=outline;
+}
+]]></code></shader>

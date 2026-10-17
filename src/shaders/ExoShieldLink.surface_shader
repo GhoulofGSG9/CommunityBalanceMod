@@ -1,0 +1,31 @@
+<shader>
+<inputs>
+ <input name="shieldOpacity" type="float">1</input>
+ <input name="shieldHeat" type="float">0</input>
+</inputs>
+<params>
+ <param name="translucent">true</param>
+ <param name="vsNormal">true</param>
+</params>
+<code><![CDATA[
+// Emitter beam from the stump to the barrier: a soft cone with energy pulses
+// streaming outward, brightest at the stump.
+float Fract(float x) { return x - floor(x); }
+void MaterialShader(in Material_Input input, inout Material material)
+{
+ float along = input.texCoord.y;                 // 0 at the stump, 1 at the barrier
+ float facing = saturate(abs(input.vsNormal.z));
+ float core = pow(facing, 3);                    // bright through the middle, soft at the silhouette
+ float streak = pow(saturate(sin(input.texCoord.x * 6.2831 * 3 + time * 2.0)), 8) * 0.4;
+ float pulse = pow(saturate(1 - abs(Fract(along * 3 - time * 2.2) - 0.5) * 2), 8);
+ float base = lerp(1.0, 0.25, along);            // fades toward the barrier
+ float3 tint = lerp(float3(0.2, 0.75, 1.0), float3(1.0, 0.5, 0.12), smoothstep(0.35, 0.8, shieldHeat));
+ float i = (core * (0.35 + pulse * 0.8) + streak * core) * base;
+ material.albedo = float3(0, 0, 0); material.tsNormal = float3(0, 0, 1); material.specular = float3(0, 0, 0); material.gloss = 0;
+ material.emissive = tint * i * 2.0 * saturate(shieldOpacity);
+ material.opacity = saturate(i * 0.45) * saturate(shieldOpacity);
+ material.transmissionColor = float3(1, 1, 1);
+ material.ssDistortion = float2(0, 0);
+}
+]]></code>
+</shader>

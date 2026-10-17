@@ -1,0 +1,2 @@
+shader = "shaders/InWorldGUI.surface_shader"
+emissiveMap = "*exo_minigun_right"

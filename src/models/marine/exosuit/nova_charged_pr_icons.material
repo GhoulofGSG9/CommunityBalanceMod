@@ -1,0 +1,5 @@
+shader = "shaders/ChargedExoIcons.surface_shader"
+emissiveMap = "models/marine/exosuit/exosuit_view_panel_rail1.dds"
+alternateMap = "models/marine/exosuit/exosuit_view_panel_rail1.dds"
+
+armorMap = "*exo_armor"

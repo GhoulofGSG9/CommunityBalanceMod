@@ -1,0 +1,23 @@
+<shader>
+    
+    <inputs>
+        <input name="emissiveMap" type="texture" address="wrap" srgb="true"/>
+    </inputs>
+    
+    <code>
+    <![CDATA[
+        
+        void MaterialShader(in Material_Input input, inout Material material)
+        {
+            material.emissive = tex2D(emissiveMap, input.texCoord).rgb;;
+            
+            // Prevent this from being refracted.
+            material.refractionExclusion = 1.0f;
+            
+            // Write velocity for this transparent object;
+            material.nonOpaqueVelocity = 1;
+        }
+    ]]>
+    </code>
+
+</shader>

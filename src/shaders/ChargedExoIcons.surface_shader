@@ -1,0 +1,16 @@
+<shader><inputs>
+<input name="emissiveMap" type="texture" address="wrap" srgb="true"/>
+<input name="alternateMap" type="texture" address="wrap" srgb="true"/>
+<input name="armorMap" type="texture" address="wrap" srgb="true"/>
+</inputs><code><![CDATA[
+void MaterialShader(in Material_Input input, inout Material material) {
+ float armor=step(3.5,input.texCoord.x);
+ float alternate=step(1.5,input.texCoord.x)*(1.0-armor);
+ float2 uv=input.texCoord-float2(2.0*alternate+4.0*armor,0.0);
+ float4 tex=lerp(lerp(tex2D(emissiveMap,uv),tex2D(alternateMap,uv),alternate),tex2D(armorMap,uv),armor);
+ material.emissive=tex.rgb*lerp(input.color.rgb,float3(1,1,1),armor);
+ material.opacity=lerp(tex.a*input.color.a,1.0,armor);
+ material.refractionExclusion=armor;
+ material.nonOpaqueVelocity=(armor>0.5)?1:0;
+}
+]]></code></shader>

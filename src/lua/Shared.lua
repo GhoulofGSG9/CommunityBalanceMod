@@ -480,77 +480,50 @@ function ModularExo_ConvertConfigToNetMessage(config)
 end
 
 function ModularExo_GetIsConfigValid(config)
+    if type(config) ~= "table" then
+        return false, "missing required slot", 0
+    end
+
     local resourceCost = 0
-    --   local powerCost = 0
-    --  local powerSupply = nil -- We don't know yet
-    local leftArmType = nil
-    local rightArmType = nil
-    for slotType, slotTypeData in pairs(kExoModuleSlotsData) do
+    local leftArmType, rightArmType
+    for slotType, slotData in pairs(kExoModuleSlotsData) do
         local moduleType = config[slotType]
         if moduleType == nil or moduleType == kExoModuleTypes.None then
-            if slotTypeData.required then
-                -- The config MUST give a module type for this slot type
-                return false, "missing required slot" -- not a valid config
-            else
-                -- This slot type is optional, so it's OK to leave it out
+            if slotData.required then
+                return false, "missing required slot", 0
             end
         else
-            -- The config has module type for this slot type
-            local moduleTypeData = kExoModuleTypesData[moduleType]
-            if moduleTypeData == nil or moduleTypeData.category ~= slotTypeData.category then
-                -- They have provided the wrong category of module type for this slot type
-                -- For example, an armor module in a weapon slot
-                return false, "wrong slot type" -- not a valid config
+            local moduleData = kExoModuleTypesData[moduleType]
+            if not moduleData or moduleData.category ~= slotData.category then
+                return false, "wrong slot type", 0
             end
-            
-            --if kMarineTeamType and moduleTypeData.requiredTechId and not GetIsTechResearched(kMarineTeamType, moduleTypeData.requiredTechId) then
-            --     return false, "tech not researched"
-            --end
-            
-            if moduleTypeData.resourceCost then
-                resourceCost = resourceCost + moduleTypeData.resourceCost
+            if slotType == kExoModuleSlots.RightArm and moduleData.leftArmOnly then
+                return false, "bad model right", 0
             end
-            
+            resourceCost = resourceCost + (moduleData.resourceCost or 0)
             if slotType == kExoModuleSlots.LeftArm then
-                leftArmType = moduleTypeData.armType
+                leftArmType = moduleData.armType
             elseif slotType == kExoModuleSlots.RightArm then
-                rightArmType = moduleTypeData.armType
+                rightArmType = moduleData.armType
             end
         end
     end
-    -- Ok, we've iterated over certain module types and it seems OK
-    
-    local exoTexturePath = nil
-    local modelDataForRightArmType = kExoWeaponRightLeftComboModels[rightArmType]
-	local modelDataForLeftArmType = kExoWeaponRightLeftComboModels[leftArmType]
-	
-    if not modelDataForLeftArmType[rightArmType].isValid then
-        -- This means we don't have model data for the situation where the arm type is on the right
-        -- Which means, this isn't a valid config! (e.g: claw selected for right arm)
-        return false, "bad model right"
-	else
-		-- This combo of right and left arm types is supported!
-		exoTexturePath = modelDataForLeftArmType[rightArmType].imageTexturePath
-	end
-	
-	-- THIS IS FOR WHEN THE RIGHT ARM CONTROLS THE UI!
-	--[[if not modelDataForRightArmType[leftArmType].isValid then
-		-- The left arm type is not supported for the given right arm type
-		return false, "bad model left"
-	else
-		-- This combo of right and left arm types is supported!
-		exoTexturePath = modelDataForRightArmType[leftArmType].imageTexturePath
-    end]]
-    
+
+    -- The model loader indexes this table as [RIGHT][LEFT].
+    local rightModels = kExoWeaponRightLeftComboModels[rightArmType]
+    local modelData = rightModels and rightModels[leftArmType]
+    if not rightModels or not rightModels.isValid or not modelData or not modelData.isValid then
+        return false, "bad model right", 0
+    end
+    if not modelData.worldModel or not modelData.worldAnimGraph
+        or not modelData.viewModel or not modelData.viewAnimGraph then
+        return false, "bad model right", 0
+    end
+
     if GetGameInfoEntity and GetGameInfoEntity() and GetGameInfoEntity():GetWarmUpActive() then
         resourceCost = 0
     end
-    
-    -- This config is valid
-    -- Return true, to indicate that
-    -- Also return the power supply and power cost, in case the GUI needs those values
-    -- Also return the image texture path, in case the GUI needs that!
-    return true, nil, resourceCost, exoTexturePath
+    return true, nil, resourceCost, modelData.imageTexturePath
 end
 
 function ModularExo_GetConfigWeight(config)
@@ -580,4 +553,8 @@ function ModularExo_GetConfigArmor(config)
     end
     return armorBonus
 end
+
+
+-- Install shield projectile interception after the projectile classes are loaded.
+Script.Load("lua/Weapons/Marine/ExoShieldProjectileHooks.lua")
 

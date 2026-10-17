@@ -19,26 +19,39 @@ class 'Railgun' (Entity)
 
 Railgun.kMapName = "railgun"
 
-local kChargeTime = 1 -- Changed from vanilla value 2
+local kChargeTime = 1.0 -- Changed from vanilla value 2
 -- The Railgun will automatically shoot if it is charged for too long.
 local kChargeForceShootTime = 2.5 --  vanilla value 2.5
 local kRailgunRange = 30 -- Vanilla 400
 local kRailgunSpread = Math.Radians(0)
 local kBulletSize = 0.3
 
-local kRailgunChargeTime = 1 -- Vanilla 1.4
+local kRailgunChargeTime = 1.0 -- Vanilla 1.4
+local kRailgunShotHeat = 0.56 -- Change also in RailgunGUI
+local kRailgunCoolDownRate = 0.33
+local kRailgunOverheatCoolDownRate = 0.2
 
 local kChargeSound = PrecacheAsset("sound/NS2.fev/marine/heavy/railgun_charge")
 
 local precached1 = PrecacheAsset("cinematics/vfx_materials/alien_frag.surface_shader")
 local precached2 = PrecacheAsset("cinematics/vfx_materials/decals/railgun_hole.surface_shader")
+local kOverheatedSoundName = PrecacheAsset("sound/NS2.fev/marine/heavy/overheated")
+
+-- NOTE(Salads): The railgun exo has different attach point names for both viewmodel and the regular model. FIXME
+local kFirstPersonAttachPoints = { [ExoWeaponHolder.kSlotNames.Left] = "fxnode_l_railgun_muzzle", [ExoWeaponHolder.kSlotNames.Right] = "fxnode_r_railgun_muzzle" }
+local kThirdPersonAttachPoints = { [ExoWeaponHolder.kSlotNames.Left] = "fxnode_lrailgunmuzzle", [ExoWeaponHolder.kSlotNames.Right] = "fxnode_rrailgunmuzzle" }
+local kMuzzleEffectName = PrecacheAsset("cinematics/marine/railgun/muzzle_flash.cinematic")
 
 local networkVars =
 {
     timeChargeStarted = "time",
     railgunAttacking = "boolean",
     lockCharging = "boolean",
-    timeOfLastShot = "time"
+    timeOfLastShot = "time",
+    energyAnimation = "float (0 to 1 by 0.01)",
+    heatAmount = "float (0 to 1 by 0.01)",
+    overheated = "private boolean",
+	timeOverheated = "time",
 }
 
 AddMixinNetworkVars(TechMixin, networkVars)
@@ -62,6 +75,12 @@ function Railgun:OnCreate()
     self.railgunAttacking = false
     self.lockCharging = false
     self.timeOfLastShot = 0
+    self.energyAnimation = 0
+	
+	self.heatAmount = 0
+	self.overheated = false
+	
+	self.timeOverheated = 0
     
     if Client then
     
@@ -202,7 +221,7 @@ function Railgun:GetDeathIconIndex()
 end
 
 function Railgun:GetChargeAmount()
-    return self.railgunAttacking and math.min(1, (Shared.GetTime() - self.timeChargeStarted) / kChargeTime) or 0
+    return self.heatAmount or 0
 end
 
 local function TriggerSteamEffect(self, player)
@@ -237,15 +256,17 @@ local function ExecuteShot(self, startPoint, endPoint, player)
         if capsuleTrace.entity then
 
             if not table.find(hitEntities, capsuleTrace.entity) then
+
                 table.insert(hitEntities, capsuleTrace.entity)
                 self:DoDamage(damage, capsuleTrace.entity, capsuleTrace.endPoint + hitPointOffset, direction, capsuleTrace.surface, false, false)
-				
-				if capsuleTrace.entity:isa("Onos") then
-					if capsuleTrace.entity:GetIsBoneShieldActive() and capsuleTrace.entity:GetHitsBoneShield(self, capsuleTrace.endPoint + hitPointOffset) then
-						break
-					end
-				end
-            end		
+            end
+            
+            if capsuleTrace.entity:isa("Onos") then
+                if capsuleTrace.entity:GetIsBoneShieldActive() and capsuleTrace.entity:GetHitsBoneShield(self, capsuleTrace.endPoint + hitPointOffset) then
+                    break
+                end
+            end
+            
         end
 
         -- Stop looping early if we've reached the end.
@@ -296,13 +317,21 @@ local function Shoot(self, leftSide)
         
         if Client then
             TriggerSteamEffect(self, player)
+							
+			local attachPoint
+			if player:GetIsLocalPlayer() and not player:GetIsThirdPerson() then
+				attachPoint = kFirstPersonAttachPoints[self:GetExoWeaponSlot()]
+			else
+				attachPoint = kThirdPersonAttachPoints[self:GetExoWeaponSlot()]
+			end
+
+			CreateMuzzleCinematic(self, kMuzzleEffectName, kMuzzleEffectName, attachPoint, player, nil, true)		
         end
         
         self:LockGun()
         self.lockCharging = true
         
-    end
-    
+    end    
 end
 
 if Server then
@@ -329,14 +358,14 @@ end
 
 function Railgun:ProcessMoveOnWeapon(player, input)
 
-    if self.railgunAttacking then
-    
-        if (Shared.GetTime() - self.timeChargeStarted) >= kChargeForceShootTime then
-            self.railgunAttacking = false
-        end
-        
-    end
-    
+	local dt = input.time
+	local addAmount = self.overheated and -(dt * kRailgunOverheatCoolDownRate) or -(dt * kRailgunCoolDownRate)
+	self.heatAmount = math.min(1, math.max(0, self.heatAmount + addAmount))
+	
+	if self.overheated and self.heatAmount == 0 then
+		self.overheated = false
+	end	
+	
 end
 
 function Railgun:OnUpdateRender()
@@ -345,6 +374,8 @@ function Railgun:OnUpdateRender()
     
     local chargeAmount = self:GetChargeAmount()
     local parent = self:GetParent()
+	local numOverheated = self.overheated and 1 or 0
+	
     if parent and parent:GetIsLocalPlayer() then
     
         local viewModel = parent:GetViewModelEntity()
@@ -354,7 +385,7 @@ function Railgun:OnUpdateRender()
             local renderModel = viewModel:GetRenderModel()
             renderModel:SetMaterialParameter("chargeAmount" .. self:GetExoWeaponSlotName(), chargeAmount)
             renderModel:SetMaterialParameter("timeSinceLastShot" .. self:GetExoWeaponSlotName(), Shared.GetTime() - self.timeOfLastShot)
-            
+			renderModel:SetMaterialParameter("overheated" .. self:GetExoWeaponSlotName(), numOverheated)
         end
         
         local chargeDisplayUI = self.chargeDisplayUI
@@ -369,7 +400,7 @@ function Railgun:OnUpdateRender()
         
         chargeDisplayUI:SetGlobal("chargeAmount" .. self:GetExoWeaponSlotName(), chargeAmount)
         chargeDisplayUI:SetGlobal("timeSinceLastShot" .. self:GetExoWeaponSlotName(), Shared.GetTime() - self.timeOfLastShot)
-        
+        chargeDisplayUI:SetGlobal("overheated" .. self:GetExoWeaponSlotName(), numOverheated)
     else
     
         if self.chargeDisplayUI then
@@ -382,16 +413,9 @@ function Railgun:OnUpdateRender()
     end
     
     if self.chargeSound then
-    
-        local playing = self.chargeSound:GetIsPlaying()
-        if not playing and chargeAmount > 0 then
+        if self:GetPrimaryAttacking() and not self.overheated and not self.chargeSound:GetIsPlaying() then
             self.chargeSound:Start()
-        elseif playing and chargeAmount <= 0 then
-            self.chargeSound:Stop()
         end
-        
-        self.chargeSound:SetParameter("charge", chargeAmount, 1)
-        
     end
     
 end
@@ -401,30 +425,43 @@ function Railgun:OnTag(tagName)
     PROFILE("Railgun:OnTag")
     
     if self:GetIsLeftSlot() then
-    
-        if tagName == "l_shoot" then
+        if tagName == "l_shoot" and not self.overheated then
             Shoot(self, true)
-        elseif tagName == "l_shoot_end" then
-            self.lockCharging = false
+            if Server then  
+                self.heatAmount = math.max(0,self.heatAmount + kRailgunShotHeat)
+                self.isReloading = false
+            end
         end
         
     elseif not self:GetIsLeftSlot() then
-    
-        if tagName == "r_shoot" then
+        if tagName == "r_shoot" and not self.overheated then
             Shoot(self, false)
-        elseif tagName == "r_shoot_end" then
-            self.lockCharging = false
+            if Server then
+                self.heatAmount = math.max(0,self.heatAmount + kRailgunShotHeat)
+                self.isReloading = false
+            end
         end
-        
     end
     
+	if self.heatAmount == 1 then
+		self.overheated = true
+		self.timeOverheated = Shared.GetTime()
+		local player = self:GetParent()
+		if self:GetIsLeftSlot() then
+            player:TriggerEffects("minigun_overheated_left")
+        elseif self:GetIsRightSlot() then    
+            player:TriggerEffects("minigun_overheated_right")
+        end
+		StartSoundEffectForPlayer(kOverheatedSoundName, player)		
+	end
+	
 end
 
 
 function Railgun:OnUpdateAnimationInput(modelMixin)
 
     local activity = "none"
-    if self.railgunAttacking then
+    if self.railgunAttacking and not self.overheated then
         activity = "primary"
     end
     modelMixin:SetAnimationInput("activity_" .. self:GetExoWeaponSlotName(), activity)
@@ -440,28 +477,13 @@ function Railgun:UpdateViewModelPoseParameters(viewModel)
 end
 
 if Client then
-
-    -- NOTE(Salads): The railgun exo has different attach point names for both viewmodel and the regular model. FIXME
-    local kFirstPersonAttachPoints = { [ExoWeaponHolder.kSlotNames.Left] = "fxnode_l_railgun_muzzle", [ExoWeaponHolder.kSlotNames.Right] = "fxnode_r_railgun_muzzle" }
-    local kThirdPersonAttachPoints = { [ExoWeaponHolder.kSlotNames.Left] = "fxnode_lrailgunmuzzle", [ExoWeaponHolder.kSlotNames.Right] = "fxnode_rrailgunmuzzle" }
-    local kMuzzleEffectName = PrecacheAsset("cinematics/marine/railgun/muzzle_flash.cinematic")
-
-    function Railgun:OnClientPrimaryAttackEnd()
-    
-        local parent = self:GetParent()
-        
-        if parent then
-
-            local attachPoint
-            if parent:GetIsLocalPlayer() and not parent:GetIsThirdPerson() then
-                attachPoint = kFirstPersonAttachPoints[self:GetExoWeaponSlot()]
-            else
-                attachPoint = kThirdPersonAttachPoints[self:GetExoWeaponSlot()]
+ 
+	function Railgun:OnClientPrimaryAttackEnd()
+        if self.chargeSound then
+            if self.chargeSound:GetIsPlaying() then
+                self.chargeSound:Stop()
             end
-
-            CreateMuzzleCinematic(self, kMuzzleEffectName, kMuzzleEffectName, attachPoint, parent, nil, true)
         end
-        
     end
     
     function Railgun:GetSecondaryAttacking()
@@ -476,6 +498,8 @@ if Client then
         return self.railgunAttacking
     end
 
+    local kFilterRailgunTarget = EntityFilterAllButMixin("RailgunTarget")
+    local kFilterTunnel = EntityFilterAllButIsa("Tunnel")
     function Railgun:OnProcessMove(input)
 
         Entity.OnProcessMove(self, input)
@@ -485,30 +509,47 @@ if Client then
         if player then
     
             -- trace and highlight first target
-            local filter = EntityFilterAllButMixin("RailgunTarget")
+            local filter = kFilterRailgunTarget
+            local viewAngles = player:GetViewAngles()
+            local shootCoords = viewAngles:GetCoords()          
             local startPoint = player:GetEyePos()
-            local endPoint = startPoint + player:GetViewCoords().zAxis * kRailgunRange * 1.11 -- modified this line
-            local trace = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.Bullets, EntityFilterAllButIsa("Tunnel"))
-            local direction = (endPoint - startPoint):GetUnit()
+            local spreadDirection = CalculateSpread(shootCoords, 0, NetworkRandom) -- Assume spread is zero...
+            local endPoint = startPoint + spreadDirection * kRailgunRange
+            local trace = Shared.TraceRay(startPoint, endPoint, CollisionRep.Damage, PhysicsMask.Bullets, kFilterTunnel)
             
+            if trace.entity then
+                trace.entity:SetRailgunTarget()
+                self.railgunTargetId = trace.entity:GetId()
+                return
+            end
+
+            local direction = (endPoint - startPoint):GetUnit()
             local extents = GetDirectedExtentsForDiameter(direction, kBulletSize)
+            local distance = (trace.endPoint - startPoint):GetLength()
+            local distIncrement = 1.5
+            local maxAttempts = 20 -- Just for edge cases
             
             self.railgunTargetId = nil
             
-            if trace.fraction < 1 then
-                
+            -- Looping is required to deal with capsule getting stuck on geometry.
+            for _ = 1, maxAttempts do
                 local capsuleTrace = Shared.TraceBox(extents, startPoint, trace.endPoint, CollisionRep.Damage, PhysicsMask.Bullets, filter)
+                -- If we found an entity, leave
                 if capsuleTrace.entity then
-                
                     capsuleTrace.entity:SetRailgunTarget()
                     self.railgunTargetId = capsuleTrace.entity:GetId()
-                    
+                    break
                 end
-            
+
+                -- If we reached the endpoint, leave
+                if (capsuleTrace.endPoint - trace.endPoint):GetLength() <= distIncrement then
+                    break
+                end
+
+                VectorCopy(capsuleTrace.endPoint, startPoint)
+                startPoint = startPoint + direction * distIncrement
             end
-        
         end
-    
     end
     
     function Railgun:GetTargetId()
