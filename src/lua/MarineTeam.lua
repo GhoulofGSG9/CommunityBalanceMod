@@ -499,7 +499,7 @@ function MarineTeam:CheckARCNumber()
     
     --if (#DISEntities + #ARCEntities) > kMaxARCs then
     for i = 1, #ARCEntities - kMaxARCs do
-        DestroyEntity(ARCEntities[1])
+        DestroyEntity(ARCEntities[i])
     end
 end
 
