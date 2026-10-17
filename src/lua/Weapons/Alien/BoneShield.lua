@@ -200,7 +200,7 @@ function BoneShield:GetCanUseBoneShield(player)
     local canUse = (now - self.lastTimeDeactivated) > kBoneShieldActivationCooldown
             and self.hitPoints > (kMaxBoneshieldHitpoints * kBoneShieldMinimumStartHitpointsFactor)
             and player:GetIsOnGround()
-            and not player.stomping
+            and not self:GetIsStomping()
             and not player.charging
     return canUse
     
@@ -246,7 +246,10 @@ function BoneShield:OnUpdateAnimationInput(modelMixin)
     end
     
     modelMixin:SetAnimationInput("ability", abilityString)
-    modelMixin:SetAnimationInput("activity", activityString)
+    -- While stomping, StompMixin owns the "activity" input.
+    if not self:GetIsStomping() then
+        modelMixin:SetAnimationInput("activity", activityString)
+    end
     
 end
 
@@ -256,6 +259,11 @@ function BoneShield:OnHolster(player)
     self:CancelStomp(player)
     self:OnPrimaryAttackEnd(player)
     self.holsterTime = Shared.GetTime()
+end
+
+function BoneShield:OnDraw(player, previousWeaponMapName)
+    Ability.OnDraw(self, player, previousWeaponMapName)
+    self:CancelStomp(player)
 end
 
 function BoneShield:OnBroken()
