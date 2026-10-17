@@ -62,8 +62,12 @@ local function ClearQueuedWeaponSwitch(self)
 end
 
 local function QueueWeaponSwitch(self, weapon, keepQuickSwitchSlot)
-    self.queuedWeaponId = weapon:GetId()
-    self.queuedWeaponTime = Shared.GetTime()
+    -- Asking for the same weapon again must not renew the request, otherwise mashing the key keeps it alive forever.
+    local weaponId = weapon:GetId()
+    if self.queuedWeaponId ~= weaponId then
+        self.queuedWeaponId = weaponId
+        self.queuedWeaponTime = Shared.GetTime()
+    end
     self.queuedWeaponKeepQuickSwitch = keepQuickSwitchSlot == true
 end
 
@@ -261,6 +265,8 @@ function WeaponOwnerMixin:SetActiveWeapon(weaponMapName, keepQuickSwitchSlot)
                 QueueWeaponSwitch(self, newWeapon, keepQuickSwitchSlot)
             end
 
+            UpdateWeaponsWeight(self)
+
             return false
 
         end
@@ -344,6 +350,13 @@ end
 
 function WeaponOwnerMixin:QuickSwitchWeapon()
     --DebugPrint("switching to hud slot %d", self.quickSwitchSlot)
+    -- A switch is still pending (blocked, e.g. mid-stomp): quick switching again takes it back instead of requesting
+    -- the very same target once more. Same end result as the A -> B -> A toggle when nothing blocks the switch.
+    if self.queuedWeaponId ~= Entity.invalidId then
+        ClearQueuedWeaponSwitch(self)
+        return
+    end
+
     self:SwitchWeapon(self.quickSwitchSlot)
 end
 
@@ -384,6 +397,16 @@ function WeaponOwnerMixin:SelectNextWeaponInDirection(direction)
 
     local weaponList = self:GetHUDOrderedWeaponList()
     local activeWeapon = self:GetActiveWeapon()
+
+    -- Step from the weapon we are about to switch to, not the one we are leaving, so repeated scrolling during a
+    -- blocked switch keeps advancing instead of requesting the same neighbour again.
+    if self.queuedWeaponId ~= Entity.invalidId then
+        local queuedWeapon = Shared.GetEntity(self.queuedWeaponId)
+        if queuedWeapon and queuedWeapon:GetParent() == self then
+            activeWeapon = queuedWeapon
+        end
+    end
+
     local activeIndex = 1
     for i, weapon in ipairs(weaponList) do
     
