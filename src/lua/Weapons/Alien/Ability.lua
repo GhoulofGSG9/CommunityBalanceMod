@@ -122,6 +122,15 @@ function Ability:GetPrimaryAttackAllowed()
     return true
 end
 
+-- True while the owner has a weapon switch queued (see WeaponOwnerMixin). This weapon is about to be holstered,
+-- so it must not start new attacks (or land one that was already started) in the meantime.
+function Ability:GetHasPendingWeaponSwitch()
+
+    local player = self:GetParent()
+    return player ~= nil and player.GetHasQueuedWeaponSwitch ~= nil and player:GetHasQueuedWeaponSwitch()
+
+end
+
 -- Child class can override
 function Ability:OnPrimaryAttack(player)
 

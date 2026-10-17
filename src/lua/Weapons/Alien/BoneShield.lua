@@ -191,8 +191,7 @@ end
 
 function BoneShield:IsRechargeOnCooldown()
     local now = Shared.GetTime()
-    local result = (now - self.lastTimeDeactivated) <= self:GetCooldown()
-    return result
+    return (now - self.lastTimeDeactivated) <= kBoneShieldActivationCooldown
 end
 
 -- NOTE(Salads): BoneShield now only has a energy recharge cooldown.
@@ -201,15 +200,26 @@ function BoneShield:GetCanUseBoneShield(player)
     local canUse = (now - self.lastTimeDeactivated) > kBoneShieldActivationCooldown
             and self.hitPoints > (kMaxBoneshieldHitpoints * kBoneShieldMinimumStartHitpointsFactor)
             and player:GetIsOnGround()
-            and not player.stomping
+            and not self:GetIsStomping()
             and not player.charging
     return canUse
     
 end
 
+local kStompOverridesFreshShieldWindow = 0.15
+function BoneShield:GetCanInterruptPrimaryForStomp()
+    return self.primaryAttacking == true and self.primaryAttackStartTime ~= nil and
+            Shared.GetTime() - self.primaryAttackStartTime <= kStompOverridesFreshShieldWindow
+end
+
+function BoneShield:InterruptPrimaryForStomp(player)
+    self.primaryAttacking = false
+end
+
 function BoneShield:OnPrimaryAttack(player)
-    if not self.primaryAttacking and self:GetCanUseBoneShield(player) then
+    if not self.primaryAttacking and not self:GetHasPendingWeaponSwitch() and self:GetCanUseBoneShield(player) then
         self.primaryAttacking = true
+        self.primaryAttackStartTime = Shared.GetTime()
 
         if Server then
             player:TriggerEffects("onos_shield_start")
@@ -236,24 +246,32 @@ function BoneShield:OnUpdateAnimationInput(modelMixin)
     end
     
     modelMixin:SetAnimationInput("ability", abilityString)
-    modelMixin:SetAnimationInput("activity", activityString)
+    -- While stomping, StompMixin owns the "activity" input.
+    if not self:GetIsStomping() then
+        modelMixin:SetAnimationInput("activity", activityString)
+    end
     
 end
 
 
 function BoneShield:OnHolster(player)
     Ability.OnHolster(self, player)
-    self.secondaryAttacking = false
-    player.stomping = false
+    self:CancelStomp(player)
     self:OnPrimaryAttackEnd(player)
     self.holsterTime = Shared.GetTime()
 end
 
+function BoneShield:OnDraw(player, previousWeaponMapName)
+    Ability.OnDraw(self, player, previousWeaponMapName)
+    self:CancelStomp(player)
+end
+
 function BoneShield:OnBroken()
+    local player = self:GetParent()
     self.hitPoints = 0
-    self:OnPrimaryAttackEnd()
-    if Server then
-        self:GetParent():TriggerEffects("onos_shield_break")
+    self:OnPrimaryAttackEnd(player)
+    if Server and player then
+        player:TriggerEffects("onos_shield_break")
     end
     self.isBroken = true
 end
@@ -261,11 +279,12 @@ end
 function BoneShield:ProcessMoveOnWeapon(player, input)
 
     local now = Shared.GetTime()
+    local isAlive = player:GetIsAlive()
 
-    if not self.isBroken and ((now < self.hitPointsRechargeStartTime and self.hitPoints <= kEpsilon) or not player:GetIsAlive()) then
+    if not self.isBroken and ((now < self.hitPointsRechargeStartTime and self.hitPoints <= kEpsilon) or not isAlive) then
         self:OnBroken()
 
-    elseif now > self.hitPointsRechargeStartTime then
+    elseif isAlive and now > self.hitPointsRechargeStartTime then
         local hitpointsToRecover = 0
 
         -- ProcessMoveOnWeapon only gets called on active weapon, but we want boneshield fuel to regen while "holstered"

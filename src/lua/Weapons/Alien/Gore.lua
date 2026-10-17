@@ -126,8 +126,11 @@ function Gore:OnHolster(player)
     
     -- If a stomp was interrupted mid-animation by switching weapons, its
     -- "end" tag never fires, so this must be reset here too.
-    self.secondaryAttacking = false
-    player.stomping = false
+    self:CancelStomp(player)
+
+    -- Don't carry a half-finished swing's animation input over to the next time this weapon is drawn.
+    self.activityString = "none"
+    self.nextAttackUpdate = nil
     
     self:OnAttackEnd()
     
@@ -162,9 +165,14 @@ function Gore:OnTag(tagName)
     PROFILE("Gore:OnTag")
 
     if tagName == "hit" then
-    
+
+        if self:GetHasPendingWeaponSwitch() or self:GetIsStompRunning() then
+            self:OnAttackEnd()
+            return
+        end
+
         local player = self:GetParent()
-        
+
         local didHit, impactPoint, target = self:Attack(player)
         
         -- play sound effects
@@ -196,7 +204,12 @@ function Gore:OnTag(tagName)
 end
 
 function Gore:OnPrimaryAttack(player)
-    
+
+    if self:GetHasPendingWeaponSwitch() or self:GetIsStompRunning() then
+        self:OnAttackEnd()
+        return
+    end
+
     local nextAttackType = self.attackType
     if nextAttackType == Gore.kAttackType.None then
         nextAttackType = GetAttackType(self, player)
@@ -211,8 +224,13 @@ function Gore:OnPrimaryAttack(player)
 
 end
 
+-- Gore doesn't use primaryAttacking, so StompMixin needs this to know a swing is in progress.
+function Gore:GetIsPrimaryAttackInProgress()
+    return self.attackButtonPressed == true or self.attackType ~= Gore.kAttackType.None
+end
+
 function Gore:OnPrimaryAttackEnd(player)
-    
+
     Ability.OnPrimaryAttackEnd(self, player)
     self:OnAttackEnd()
     
@@ -226,6 +244,15 @@ end
 function Gore:OnUpdateAnimationInput(modelMixin)
     local now = Shared.GetTime()
     if self.onDrawTime + kOnDrawStompActivateDelay > now then
+        return
+    end
+
+    -- While stomping, StompMixin owns the "activity" input. Gore's own (throttled, possibly stale) swing activity
+    -- must not be fed to the animation graph as well, or whichever callback runs last decides which animation plays.
+    if self:GetIsStomping() then
+        self.activityString = "none"
+        self.nextAttackUpdate = nil
+        modelMixin:SetAnimationInput("ability", "gore")
         return
     end
     local cooledDown = (not self.nextAttackTime) or (now >= self.nextAttackTime)
@@ -264,7 +291,9 @@ end
 
 function Gore:OnDraw(player, previousWeaponMapName)
     Ability.OnDraw(self, player, previousWeaponMapName)
-    self.secondaryAttacking = false
+    self:CancelStomp(player)
+    self.activityString = "none"
+    self.nextAttackUpdate = nil
     self.primaryAttacking = false
     self.onDrawTime = Shared.GetTime()
 end
