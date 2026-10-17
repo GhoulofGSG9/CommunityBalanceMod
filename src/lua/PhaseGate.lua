@@ -130,10 +130,10 @@ local networkVars =
     targetYaw = "float (-3.14159265 to 3.14159265 by 0.003)",
     destinationEndpoint = "position",
     directionBackwards = "boolean",
-	gateCharge = "integer (0 to 2)",
-	timeLastGateCharge = "compensated private time",
-	damagedTimeEnd = "compensated private time",
-	gateAdvanced = "boolean",
+    gateCharge = "integer (0 to 2)",
+    timeLastGateCharge = "compensated private time",
+    damagedTimeEnd = "compensated private time",
+    gateAdvanced = "boolean",
 }
 
 AddMixinNetworkVars(BaseModelMixin, networkVars)
@@ -184,8 +184,8 @@ function PhaseGate:OnCreate()
     InitMixin(self, GhostStructureMixin)
     InitMixin(self, PowerConsumerMixin)
     InitMixin(self, ParasiteMixin)
-	InitMixin(self, BlightMixin)
-	
+    InitMixin(self, BlightMixin)
+    
     if Client then
         InitMixin(self, CommanderGlowMixin)
     end
@@ -194,11 +194,11 @@ function PhaseGate:OnCreate()
     self.linked = false
     self.phase = false
     self.deployed = false
-	self.damagedTimeEnd = Shared.GetTime()
+    self.damagedTimeEnd = Shared.GetTime()
     self.destLocationId = Entity.invalidId
-	self.timeLastGateCharge = Shared.GetTime()
-	self.gateCharge = 0
-	self.gateAdvanced = false
+    self.timeLastGateCharge = Shared.GetTime()
+    self.gateCharge = 0
+    self.gateAdvanced = false
     if Server then
         self.directionBackwards = false
     end
@@ -235,7 +235,12 @@ function PhaseGate:OnInitialized()
         InitMixin(self, SupplyUserMixin)
 
         self.performedPhaseLastUpdate = false
-    
+
+        local team = self:GetTeam()
+        if team and team.RegisterPhaseGate then
+            team:RegisterPhaseGate(self)
+        end
+
     elseif Client then
     
         InitMixin(self, UnitStatusMixin)
@@ -252,12 +257,19 @@ local function DestroyRelevancyPortal(self)
         Server.DestroyRelevancyPortal(self.relevancyPortalIndex)
         self.relevancyPortalIndex = -1
     end
+    self.relevancyPortalDestinationId = nil
 end
 
 function PhaseGate:OnDestroy()
     
+    if Server then
+        local team = self:GetTeam()
+        if team and team.UnregisterPhaseGate then
+            team:UnregisterPhaseGate(self)
+        end
+    end
+
     ScriptActor.OnDestroy(self)
-    
     DestroyRelevancyPortal(self)
     
 end
@@ -266,12 +278,6 @@ function PhaseGate:GetIsWallWalkingAllowed()
     return false
 end 
 
-function PhaseGate:GetTechButtons(techId)
-
-    return { kTechId.None, kTechId.None, kTechId.None, kTechId.None, 
-             kTechId.None, kTechId.None, kTechId.None, kTechId.None }
-    
-end
 
 -- Temporarily don't use "target" attach point
 local kPhaseGateEngagementPointOffset = Vector(0, 0.1, 0)
@@ -310,39 +316,34 @@ function PhaseGate:GetPlayIdleSound()
     return ScriptActor.GetPlayIdleSound(self) and self.linked
 end
 
--- Returns next phase gate in round-robin order. Returns nil if there are no other built/active phase gates
+-- Returns the destination phase gate.
 local function GetDestinationGate(self)
-
-    -- Find next phase gate to teleport to
-    local phaseGates = {}    
-    for index, phaseGate in ipairs( GetEntitiesForTeam("PhaseGate", self:GetTeamNumber()) ) do
-        if GetIsUnitActive(phaseGate) then
-            table.insert(phaseGates, phaseGate)
-        end
-    end    
-    
-    if table.icount(phaseGates) < 2 then
+    if not Server then
         return nil
     end
-    
-    -- Find our index and add 1
-    local index = table.find(phaseGates, self)
-    if (index ~= nil) then
-        local nextIndex
-        if directionBackwards then
-            nextIndex = ConditionalValue(index == 1, table.icount(phaseGates), index - 1)
-        else
-            nextIndex = ConditionalValue(index == table.icount(phaseGates), 1, index + 1)
-        end
 
-        ASSERT(nextIndex >= 1)
-        ASSERT(nextIndex <= table.icount(phaseGates))
-        return phaseGates[nextIndex]
-        
+    local team = self:GetTeam()
+    if not team or not team.GetOrderedActivePhaseGates then
+        return nil
     end
-    
-    return nil
-    
+
+    local phaseGates = team:GetOrderedActivePhaseGates()
+    local numGates = #phaseGates
+
+    if numGates < 2 then
+        return nil
+    end
+
+    local index = table.find(phaseGates, self)
+    if index == nil then
+        return nil
+    end
+
+    local step = team:GetPhaseGatesReversed() and -1 or 1
+    local nextIndex = (index - 1 + step) % numGates + 1
+
+    return phaseGates[nextIndex]
+
 end
 
 local function ComputeDestinationLocationId(self, destGate)
@@ -384,13 +385,13 @@ function PhaseGate:Phase(user)
 
         self.timeOfLastPhase = Shared.GetTime()
         
-		local destinationPhaseGate = GetDestinationGate(self)		
-		local canHaveNanoshield = self.gateAdvanced and destinationPhaseGate.gateCharge > 0 and Shared.GetTime() < destinationPhaseGate.damagedTimeEnd
-		if user:isa("Player") and canHaveNanoshield then
-			if not user:GetHasCatPackBoost() then
-				user:ApplyCatPack()
-				destinationPhaseGate.gateCharge = destinationPhaseGate.gateCharge - 1
-			end
+        local destinationPhaseGate = GetDestinationGate(self)       
+        local canHaveNanoshield = self.gateAdvanced and destinationPhaseGate and destinationPhaseGate.gateCharge > 0 and Shared.GetTime() < destinationPhaseGate.damagedTimeEnd
+        if user:isa("Player") and canHaveNanoshield then
+            if not user:GetHasCatPackBoost() then
+                user:ApplyCatPack()
+                destinationPhaseGate.gateCharge = destinationPhaseGate.gateCharge - 1
+            end
         end
         return true
         
@@ -411,6 +412,7 @@ if Server then
 
     function PhaseGate:Update()
 
+        local now = Shared.GetTime()
         local destinationPhaseGate = GetDestinationGate(self)
 
         if self.performedPhaseLastUpdate then
@@ -426,7 +428,7 @@ if Server then
             self.performedPhaseLastUpdate = false
         end
 
-        self.phase = (self.timeOfLastPhase ~= nil) and (Shared.GetTime() < (self.timeOfLastPhase + kPhaseGateTimeout))
+        self.phase = (self.timeOfLastPhase ~= nil) and (now < (self.timeOfLastPhase + kPhaseGateTimeout))
 
         if destinationPhaseGate ~= nil and GetIsUnitActive(self) and self.deployed and destinationPhaseGate.deployed then
 
@@ -434,6 +436,11 @@ if Server then
             self.linked = true
             self.targetYaw = destinationPhaseGate:GetAngles().yaw
             self.destLocationId = ComputeDestinationLocationId(self, destinationPhaseGate)
+
+            -- The destination can change while we stay linked. Rebuild so it follows the new destination.
+            if self.relevancyPortalIndex ~= -1 and self.relevancyPortalDestinationId ~= destinationPhaseGate:GetId() then
+                DestroyRelevancyPortal(self)
+            end
 
             if self.relevancyPortalIndex == -1 then
                 -- Create a relevancy portal to the destination to smooth out entity propagation.
@@ -447,6 +454,7 @@ if Server then
 
                 if mask ~= 0 then
                     self.relevancyPortalIndex = Server.CreateRelevancyPortal(self:GetOrigin(), self.destinationEndpoint, mask, self.kRelevancyPortalRadius)
+                    self.relevancyPortalDestinationId = destinationPhaseGate:GetId()
                 end
             end
 
@@ -458,21 +466,36 @@ if Server then
             DestroyRelevancyPortal(self)
 
         end
-		
-		if Shared.GetTime() > self.timeLastGateCharge + kgateChargeTime and self.gateCharge < 2 then
-			self.gateCharge = self.gateCharge + 1
-			self.timeLastGateCharge = Shared.GetTime()
-		end
-		
-		if GetHasTech(self, kTechId.AdvancedObservatory) then
-			self.gateAdvanced = true
-		else
-			self.gateAdvanced = false
-		end
-		
+        
+        if now > self.timeLastGateCharge + kgateChargeTime and self.gateCharge < 2 then
+            self.gateCharge = self.gateCharge + 1
+            self.timeLastGateCharge = now
+        end
+        
+        if GetHasTech(self, kTechId.AdvancedObservatory) then
+            self.gateAdvanced = true
+        else
+            self.gateAdvanced = false
+        end
+        
         return true
 
     end
+
+end
+
+function PhaseGate:SetAsFirstPhaseGate()
+    -- GetTeam() only exists on the server.
+    if not Server then
+        return false
+    end
+
+    local team = self:GetTeam()
+    if not team or not team.MovePhaseGateToFront then
+        return false
+    end
+
+    return team:MovePhaseGateToFront(self)
 
 end
 
@@ -481,8 +504,11 @@ function PhaseGate:PerformActivation(techId, position, normal, commander)
     local success = false
 
     if techId == kTechId.ReversePhaseGate then
-        success = true
-        directionBackwards = not directionBackwards
+        local team = Server and self:GetTeam()
+        if team and team.TogglePhaseGatesReversed then
+            team:TogglePhaseGatesReversed()
+            success = true
+        end
     end
 
     return success, true
@@ -519,40 +545,40 @@ function PhaseGate:OnUpdateRender()
     
         self.clientLinked = self.linked
         
-		--if GetHasTech(self, kTechId.AdvancedObservatory) then
-			--local effects = ConditionalValue(self.linked and self:GetIsVisible(), "cargo_gate_linked", "cargo_gate_unlinked")
-			--self:TriggerEffects(effects)
-		--else
-		local effects = ConditionalValue(self.linked and self:GetIsVisible(), "phase_gate_linked", "phase_gate_unlinked")
-		self:TriggerEffects(effects) --FIXME This is really wasteful
-		--end
-		
+        --if GetHasTech(self, kTechId.AdvancedObservatory) then
+            --local effects = ConditionalValue(self.linked and self:GetIsVisible(), "cargo_gate_linked", "cargo_gate_unlinked")
+            --self:TriggerEffects(effects)
+        --else
+        local effects = ConditionalValue(self.linked and self:GetIsVisible(), "phase_gate_linked", "phase_gate_unlinked")
+        self:TriggerEffects(effects) --FIXME This is really wasteful
+        --end
+        
     end
 
-	if Client then
-		local model = self:GetRenderModel()
+    if Client then
+        local model = self:GetRenderModel()
 
-		if not self.kAdvGateMaterial and self.gateAdvanced then
+        if not self.kAdvGateMaterial and self.gateAdvanced then
 
-			if model and model:GetReadyForOverrideMaterials() then
-				local material = kAdvGateMaterial
-				assert(material)
-				model:SetOverrideMaterial( 0, material )
+            if model and model:GetReadyForOverrideMaterials() then
+                local material = kAdvGateMaterial
+                assert(material)
+                model:SetOverrideMaterial( 0, material )
 
-				model:SetMaterialParameter("highlight", 0.91)
+                model:SetMaterialParameter("highlight", 0.91)
 
-				self.kAdvGateMaterial = true
-				self:SetHighlightNeedsUpdate()
-			end
-			
-		elseif self.kAdvGateMaterial and not self.gateAdvanced then
-		
-			if model and model:GetReadyForOverrideMaterials() then
-				model:ClearOverrideMaterials()
-				self.kAdvGateMaterial = false
-			end
-		end  
-	end
+                self.kAdvGateMaterial = true
+                self:SetHighlightNeedsUpdate()
+            end
+            
+        elseif self.kAdvGateMaterial and not self.gateAdvanced then
+        
+            if model and model:GetReadyForOverrideMaterials() then
+                model:ClearOverrideMaterials()
+                self.kAdvGateMaterial = false
+            end
+        end  
+    end
 
 end
 
